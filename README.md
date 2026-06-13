@@ -11,6 +11,34 @@ By feeding these agents a Structural Schema (e.g., YANG, OpenAPI, Protobuf) and 
 
 ---
 
+## Governance: The Functional Constitution
+
+This pipeline ships with a **default functional constitution** at `.pipeline/constitution.md` that governs all specification generation (Pipeline 1). It defines:
+
+| Section | What it governs |
+|---|---|
+| **Domain Rules** | Schema compliance, data model integrity, traceability requirements, conflict resolution between normative text and schema |
+| **Specification Standards** | Epic/Feature granularity, BDD scenario format, User Story/Use Case formality, labeling taxonomy |
+| **Agent Behavior** | Commit format, branch strategy, documentation standards, idempotency, error handling |
+| **Universal Quality Gates** | Validation gates per worker phase, 100% model coverage, cross-reference integrity, human approval scope |
+| **Forbidden Practices** | No invented requirements, no platform contamination, no skipped error scenarios, no silent node drops |
+
+The constitution is **read by all skills before execution**. It is the single source of truth for specification quality decisions.
+
+For implementation work (Pipeline 2), platform-specific rules live in **Implementation Profiles** at `.pipeline/profiles/<platform>.md`. These are created per-project, per-platform, and are never read by specification workers.
+
+```
+.pipeline/
+  constitution.md              <-- Governs Pipeline 1 (all agents read this)
+  profiles/
+    react.md                   <-- Governs Pipeline 2 for React targets
+    flutter.md                 <-- Governs Pipeline 2 for Flutter targets
+```
+
+> To customize: edit `.pipeline/constitution.md` directly. The constitution is human-authored, agent-enforced.
+
+---
+
 ## The Agent Architecture
 
 This toolchain operates on a **Master-Worker architecture** with two distinct pipelines:
@@ -242,7 +270,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ---
 
-## 📊 Expected Outputs
+## Expected Outputs
 
 ### Specification Pipeline
 A perfectly synchronized taxonomy on your live GitHub board:
