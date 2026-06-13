@@ -9,7 +9,7 @@ By feeding these agents a Structural Schema (e.g., YANG, OpenAPI, Protobuf) and 
 
 ---
 
-## 🏗️ The Agent Architecture
+## The Agent Architecture
 
 This toolchain operates on a **Master-Worker architecture** with two distinct pipelines:
 
@@ -67,7 +67,7 @@ The execution engine. Implements features from the backlog using a disciplined, 
 
 ---
 
-## �️ Always-Loaded Governance Rules
+## Always-Loaded Governance Rules
 
 In addition to skills (loaded on-demand), this pipeline includes **rules** — constraints injected into every agent session regardless of which skill is active. When installed via Tessl, these rules are automatically distributed to agent-specific config files (`.cursor/rules/`, `CLAUDE.md`, `AGENTS.md`).
 
@@ -85,7 +85,7 @@ These rules live in `rules/` and are packaged into the Tessl plugin alongside sk
 
 ---
 
-## �️ Supported Runtimes
+## Supported Runtimes
 
 The skills are runtime-agnostic markdown files. The `feature-driven-implementation` skill includes runtime-specific dispatch instructions:
 
@@ -97,7 +97,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ---
 
-## 🚀 How to Run the Specification Pipeline
+## How to Run the Specification Pipeline
 
 **Prerequisites:** AI agent framework capable of reading `.md` skill files + executing CLI commands (`gh`, `git`).
 
@@ -115,7 +115,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ---
 
-## 🛠️ How to Implement a Feature
+## How to Implement a Feature
 
 > **Feature Implementation Prompt:**
 >
@@ -160,7 +160,7 @@ For each delivered feature:
 
 ---
 
-## 📦 Tessl Integration (Skill Registry & Evaluation)
+## Tessl Integration (Skill Registry & Evaluation)
 
 This pipeline's skills conform to the [Agent Skills specification](https://agentskills.io/specification) and are compatible with [Tessl](https://tessl.io/) — the package manager and governance platform for AI agent skills.
 
@@ -242,7 +242,7 @@ Agents pull version-locked context from the registry via MCP instead of parsing 
 
 ---
 
-## 🤝 Spec Kit Compatibility
+## Spec Kit Compatibility
 
 This pipeline can also be used **alongside** [GitHub Spec Kit](https://github.com/github/spec-kit) without conflict:
 
