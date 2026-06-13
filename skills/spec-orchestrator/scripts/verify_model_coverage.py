@@ -78,7 +78,7 @@ def load_feature_files(features_dir):
     return features
 
 def main():
-    workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
     # Allow overriding paths via command-line args or environment variables.
     # Usage: verify_model_coverage.py [yang_dir] [features_dir]

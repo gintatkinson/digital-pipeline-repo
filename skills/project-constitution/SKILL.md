@@ -1,11 +1,13 @@
 ---
 name: project-constitution
-title: "Project Constitution (Layered Governance: Functional + Implementation Profiles)"
-description: "Establishes a two-tier governance model: a platform-agnostic functional layer for specification, and platform-specific implementation profiles for feature delivery. Supports multiple implementation targets from one shared spec."
-category: "governance"
-risk: low
-source: custom
-version: "2.0"
+description: "Establishes and manages a project's two-tier governance constitution: a platform-agnostic functional layer for specification and platform-specific implementation profiles. Use when setting up a new project, onboarding agents, adding a new implementation platform, or updating project-wide coding standards and quality gates."
+compatibility: "Works with any agent runtime. No CLI dependencies."
+metadata:
+  title: "Project Constitution (Layered Governance: Functional + Implementation Profiles)"
+  category: governance
+  risk: low
+  source: custom
+  version: "2.0"
 ---
 
 # Project Constitution (Layered Governance)

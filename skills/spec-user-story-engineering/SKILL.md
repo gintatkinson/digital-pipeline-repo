@@ -1,11 +1,13 @@
 ---
 name: spec-user-story-engineering
-title: "Specification User Story Engineering (Behavioral Extraction)"
-description: "Extracts operational scenarios from normative specification documents and models them as OOA/OOD User Stories matrixed against existing GitHub features."
-category: "architecture"
-risk: low
-source: custom
-version: "1.1"
+description: "Extracts BDD User Stories from normative specification documents using OOA/OOD modeling. Use when you need to derive behavioral scenarios (Given-When-Then) from protocol specs and matrix them against existing GitHub Feature issues."
+compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+metadata:
+  title: "Specification User Story Engineering (Behavioral Extraction)"
+  category: architecture
+  risk: low
+  source: custom
+  version: "1.1"
 ---
 
 # Specification User Story Engineering (Behavioral Extraction)

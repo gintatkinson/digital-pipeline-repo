@@ -1,9 +1,11 @@
 ---
 name: feature-driven-implementation
-description: Guides the serial, subagent-driven, TDD-disciplined implementation of Agile features with two-stage review gates and automated lifecycle closure of GitHub issues and parent Epics.
-risk: low
-source: custom
-version: "2.0"
+description: "Implements Agile features using serial, subagent-driven, TDD-disciplined execution with two-stage review gates. Use when you need to implement a feature from a GitHub backlog with micro-task decomposition, RED-GREEN-REFACTOR cycles, and automated Epic closure."
+compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+metadata:
+  risk: low
+  source: custom
+  version: "2.0"
 ---
 
 # Feature-Driven Autonomous Delivery & Closure

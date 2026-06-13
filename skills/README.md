@@ -28,8 +28,8 @@ Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on
 Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Scenarios, Alternate Flows, Postconditions) and maps them to User Stories and Features in a Realization Matrix. Includes duplicate detection. See `skills/spec-usecase-engineering/SKILL.md`.
 
 #### Pipeline Utilities (Worker D & Coverage Check)
-* **`reconcile_backlog.py`**: Zero-trust consistency audit. Queries GitHub, syncs checkbox states in local markdown, auto-closes completed Epics/Stories/Use Cases.
-* **`verify_model_coverage.py`**: Parses YANG schemas and mathematically verifies 100% model coverage in feature specs. Supports CLI args: `verify_model_coverage.py [yang_dir] [features_dir]`.
+* **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries GitHub, syncs checkbox states in local markdown, auto-closes completed Epics/Stories/Use Cases.
+* **`scripts/verify_model_coverage.py`**: Parses YANG schemas and mathematically verifies 100% model coverage in feature specs. Supports CLI args: `verify_model_coverage.py [yang_dir] [features_dir]`.
 
 ### Pipeline 2: Feature Implementation
 
@@ -142,13 +142,87 @@ For each delivered feature:
 
 ---
 
+## 📦 Tessl Integration (Skill Registry & Evaluation)
+
+This pipeline's skills conform to the [Agent Skills specification](https://agentskills.io/specification) and are compatible with [Tessl](https://tessl.io/) — the package manager and governance platform for AI agent skills.
+
+### Install Skills via Tessl
+
+```bash
+# Initialize Tessl in your project repo
+tessl init --agent claude-code --agent cursor --agent gemini
+
+# Install the full pipeline from GitHub
+tessl install github:gintatkinson/digital-pipeline-repo
+
+# Or install individual skills
+tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
+```
+
+### Publish to a Private Registry
+
+Package your organization's customized pipeline skills for team-wide distribution:
+
+```bash
+# Import a skill into Tessl plugin format
+tessl skill import skills/spec-orchestrator
+
+# Review and auto-optimize skill quality
+tessl skill review skills/spec-orchestrator --optimize
+
+# Publish to your org's private workspace
+tessl skill publish skills/spec-orchestrator --workspace your-org
+```
+
+### Evaluate Skill Quality
+
+Tessl provides three evaluation layers critical for safety-critical domains:
+
+- **Skill Review** — `tessl skill review skills/spec-orchestrator --threshold 80` scores structural quality and compliance with the Agent Skills spec. Use as a CI gate.
+- **Task Evals** — `tessl eval run` tests whether agents perform better *with* your skills vs *without*, measuring specification accuracy and compliance.
+- **Scenario Evals** — `tessl scenario generate` creates realistic evaluation scenarios from your skills to regression-test agent behavior.
+
+### MCP Integration
+
+```bash
+# Start the Tessl MCP server for structured agent access
+tessl mcp start
+```
+
+Agents pull version-locked context from the registry via MCP instead of parsing raw markdown files — preventing context-window overflow and ensuring version consistency across teams.
+
+### Tessl + This Pipeline Architecture
+
+```
+┌──────────────────────────────────────────┐
+│        TESSL REGISTRY (SaaS/Private)     │
+│  Versioned, evaluated skill packages     │
+│  for all domain-specific pipelines       │
+└─────────────────────┬────────────────────┘
+                      │  tessl install / MCP
+                      ▼
+┌──────────────────────────────────────────┐
+│         AI AGENT (any runtime)           │
+│  Claude Code / Gemini / Cursor / Copilot │
+│  Pulls verified skills + context bundles │
+└─────────────────────┬────────────────────┘
+                      │  Executes skills
+                      ▼
+┌──────────────────────────────────────────┐
+│      DIGITAL PIPELINE (this repo)        │
+│  spec-orchestrator → Workers A/B/C → D   │
+│  feature-driven-implementation (TDD)     │
+│  project-constitution (governance)       │
+└──────────────────────────────────────────┘
+```
+
+---
+
 ## 🤝 Spec Kit Compatibility
 
-This pipeline can be used **alongside** [GitHub Spec Kit](https://github.com/github/spec-kit) without conflict:
+This pipeline can also be used **alongside** [GitHub Spec Kit](https://github.com/github/spec-kit) without conflict:
 
-- **`specify init`** can be used to bootstrap agent-specific config files (`.claude/`, `.windsurf/`, etc.) in project repos.
+- **`specify init`** can bootstrap agent-specific config files (`.claude/`, `.windsurf/`, etc.) in project repos.
 - **`.specify/memory/constitution.md`** is analogous to this pipeline's `.pipeline/constitution.md` — use whichever convention your project prefers.
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
-
-> If you use Spec Kit for scaffolding, simply point your agent to this repo's `/skills/` directory for execution after running `specify init`.

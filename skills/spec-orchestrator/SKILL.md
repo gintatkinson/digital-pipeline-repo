@@ -1,11 +1,13 @@
 ---
 name: spec-orchestrator
-title: "Autonomous Specification Orchestrator (Master Command)"
-description: "Master command-and-control skill for end-to-end multi-agent protocol specification engineering."
-category: "orchestration"
-risk: medium
-source: custom
-version: "1.1"
+description: "Orchestrates end-to-end multi-agent protocol specification engineering. Use when you need to transform a protocol standard (IETF, 3GPP, IEEE, CAMARA) into a complete GitHub-tracked Agile backlog of Epics, Features, User Stories, and Use Cases."
+compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+metadata:
+  title: "Autonomous Specification Orchestrator (Master Command)"
+  category: orchestration
+  risk: medium
+  source: custom
+  version: "1.1"
 ---
 
 # Autonomous Specification Orchestrator (Master Command)
@@ -64,11 +66,11 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 ## Phase 4: Reconciliation & Automated Verification (Worker D & Coverage Check)
 1. **Trigger Backlog Reconciliation**: Run the automated backlog reconciliation script:
    ```bash
-   ./skills/spec-orchestrator/reconcile_backlog.py
+   ./skills/spec-orchestrator/scripts/reconcile_backlog.py
    ```
 2. **Trigger Model Coverage Verification**: Run the automated model coverage parity check tool:
    ```bash
-   ./skills/spec-orchestrator/verify_model_coverage.py [yang_dir] [features_dir]
+   ./skills/spec-orchestrator/scripts/verify_model_coverage.py [yang_dir] [features_dir]
    ```
    If `yang_dir` and `features_dir` are omitted, the script defaults to `$YANG_DIR` / `$FEATURES_DIR` environment variables, or `<repo_root>/yang` and `<repo_root>/docs/features`.
 3. **Execution**: The backlog script queries GitHub issues, resolves checklist checkboxes in the local files, and automatically closes completed Epics, User Stories, and Use Cases. The coverage script verifies that every single node/typedef from the raw YANG schemas is exhaustively documented in the feature specs.

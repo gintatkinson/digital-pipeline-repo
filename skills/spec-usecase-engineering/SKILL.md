@@ -1,11 +1,13 @@
 ---
 name: spec-usecase-engineering
-title: "Specification Use Case Engineering (System Interaction)"
-description: "Extracts formal UML OOA/OOD System Use Cases from normative specification documents and maps them to User Stories and Features."
-category: "architecture"
-risk: low
-source: custom
-version: "1.1"
+description: "Extracts formal UML System Use Cases from normative specification documents using OOA/OOD methodology. Use when you need to derive Actors, Preconditions, Main Success Scenarios, and Realization Matrices linking Use Cases to User Stories and Features."
+compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+metadata:
+  title: "Specification Use Case Engineering (System Interaction)"
+  category: architecture
+  risk: low
+  source: custom
+  version: "1.1"
 ---
 
 # Specification Use Case Engineering (System Interaction)

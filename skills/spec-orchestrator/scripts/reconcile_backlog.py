@@ -93,7 +93,7 @@ def sync_issue_body_to_github(issue_num, filepath, issue_type="Issue"):
             if trunc_index == -1:
                 trunc_index = 60000
             
-            project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+            project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
             rel_path = os.path.relpath(filepath, project_root)
             
             content = content[:trunc_index] + (
@@ -152,7 +152,7 @@ def main():
 
     # Locate the docs directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    docs_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "docs"))
+    docs_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "..", "docs"))
     if not os.path.exists(docs_dir):
         print(f"Docs directory not found at: {docs_dir}")
         sys.exit(1)

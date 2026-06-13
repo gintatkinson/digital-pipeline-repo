@@ -1,10 +1,12 @@
 ---
 name: schema-specification-engineering
-title: "Schema Specification Engineering (Structural Extraction)"
-description: Transform structural schemas (e.g., YANG, OpenAPI, Protobuf) and their associated normative specification documents into deterministic, behavior-driven Agile feature specifications.
-risk: medium
-source: custom
-version: "2.0"
+description: "Transforms structural schemas (YANG, OpenAPI, Protobuf) and normative specification documents into Agile Epics and Features. Use when you need to extract platform-independent feature specifications from protocol schemas with exhaustive constraint parsing and Given-When-Then acceptance criteria."
+compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+metadata:
+  title: "Schema Specification Engineering (Structural Extraction)"
+  risk: medium
+  source: custom
+  version: "2.0"
 ---
 
 # Schema Specification Engineering
