@@ -9,7 +9,7 @@ Welcome to the Digital Systems Engineering Pipeline. This repository contains a 
 
 By feeding these agents a Structural Schema (e.g., YANG, OpenAPI, Protobuf) and its associated Normative Specification Document (e.g., an RFC or Technical Specification), the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
 
-DeepWiki Documentatio at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
+## DeepWiki Documentation at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
 
 ---
 
@@ -385,4 +385,4 @@ This pipeline can also be used **alongside** [GitHub Spec Kit](https://github.co
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
-DeepWiki Documentatio at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
+## DeepWiki Documentatio at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
