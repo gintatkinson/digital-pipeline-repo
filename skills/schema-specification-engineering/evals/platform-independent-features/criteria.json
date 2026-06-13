@@ -1,4 +1,5 @@
 {
+  "_copyright": "Copyright Gint Atkinson, gint.atkinson@gmail.com",
   "criteria": [
     {
       "name": "no_platform_in_frontmatter",

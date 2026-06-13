@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Task: Specification-Engineer a Protocol Standard
 
 You are given a YANG schema file and its associated RFC normative text document.

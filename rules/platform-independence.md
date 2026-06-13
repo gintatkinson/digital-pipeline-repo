@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: Platform Independence in Specifications
 
 **ALWAYS enforce:** Epics, Features, User Stories, and Use Cases must be purely functional and platform-independent.

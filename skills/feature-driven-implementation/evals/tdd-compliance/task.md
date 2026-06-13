@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Task: Implement a Feature Using TDD
 
 You are given a GitHub repository with an open Feature issue and an approved implementation plan.

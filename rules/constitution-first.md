@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: Constitution First
 
 **ALWAYS enforce:** Before beginning any pipeline task, read the project constitution.

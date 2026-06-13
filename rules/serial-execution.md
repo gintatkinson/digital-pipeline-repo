@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: Serial Execution
 
 **ALWAYS enforce:** Implement strictly **one feature at a time**. Do not start feature N+1 until feature N is completely verified, merged, documented, and closed.

@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Task: Set Up a Project Constitution
 
 You are given a new project repository that needs governance documents established.

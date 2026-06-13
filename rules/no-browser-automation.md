@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: No Browser Automation
 
 **ALWAYS enforce:** Do not use automated browser tools for UI verification unless the project explicitly mandates it.

@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Task: Extract Features from a YANG Schema
 
 You are given a YANG schema file and its associated RFC normative text.

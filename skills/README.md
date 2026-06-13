@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Digital Systems Engineering Pipeline (Builders Project)
 
 Welcome to the Digital Systems Engineering Pipeline. This repository contains a suite of autonomous AI Agent "Skills" designed to:

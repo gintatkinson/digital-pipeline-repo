@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: Test-Driven Development (TDD)
 
 **ALWAYS enforce:** All implementation MUST follow the RED-GREEN-REFACTOR cycle.

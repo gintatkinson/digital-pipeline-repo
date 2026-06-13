@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 ---
 name: schema-specification-engineering
 description: "Transforms structural schemas (YANG, OpenAPI, Protobuf) and normative specification documents into Agile Epics and Features. Use when you need to extract platform-independent feature specifications from protocol schemas with exhaustive constraint parsing and Given-When-Then acceptance criteria."

@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 ---
 name: project-constitution
 description: "Establishes and manages a project's two-tier governance constitution: a platform-agnostic functional layer for specification and platform-specific implementation profiles. Use when setting up a new project, onboarding agents, adding a new implementation platform, or updating project-wide coding standards and quality gates."

@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: GitHub as Source of Truth
 
 **ALWAYS enforce:** Use `gh` CLI commands to query GitHub for authoritative issue state. Never trust local files or checklist documentation alone.

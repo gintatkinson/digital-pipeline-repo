@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 ---
 title: "Spec Kit Integration Decision Blueprint"
 status: draft

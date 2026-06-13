@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Rule: Verification-Before-Completion
 
 **ALWAYS enforce:** Before declaring any task, micro-task, or feature complete, you MUST provide **concrete proof of correctness**.

@@ -1,3 +1,5 @@
+<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+
 # Feature-Driven Autonomous Delivery Workflow
 
 > **Canonical Skill Definition:** [`skills/feature-driven-implementation/SKILL.md`](../../skills/feature-driven-implementation/SKILL.md)

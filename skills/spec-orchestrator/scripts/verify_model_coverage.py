@@ -1,3 +1,5 @@
+# Copyright Gint Atkinson, gint.atkinson@gmail.com
+
 #!/usr/bin/env python3
 import os
 import re
