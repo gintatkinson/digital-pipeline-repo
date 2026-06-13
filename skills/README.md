@@ -2,7 +2,7 @@
 
 Welcome to the Digital Systems Engineering Pipeline. This repository contains a suite of autonomous AI Agent "Skills" designed to:
 
-1. **Reverse-engineer protocol standards** (IETF, 3GPP, CAMARA, IEEE) into deterministic, behavior-driven Agile tracking matrices in GitHub.
+1. **Specification-engineer protocol standards** (IETF, 3GPP, CAMARA, IEEE) into deterministic, behavior-driven Agile tracking matrices in GitHub.
 2. **Implement features** from those backlogs using subagent-driven TDD execution discipline with two-stage review gates.
 
 By feeding these agents a Structural Schema (e.g., YANG, OpenAPI, Protobuf) and its associated Normative Specification Document (e.g., an RFC or Technical Specification), the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
@@ -88,7 +88,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 > **Specification Generation Prompt:**
 >
-> "Adopt the `spec-orchestrator` skill. I want to reverse-engineer [Protocol Standard, e.g., RFC 8345].
+> "Adopt the `spec-orchestrator` skill. I want to specification-engineer [Protocol Standard, e.g., RFC 8345].
 >
 > 1. The structural schemas are located at `[path to schemas]`.
 > 2. The normative specification documents are located at `[path to specs]`.

@@ -1,7 +1,7 @@
 ---
 name: schema-specification-engineering
 title: "Schema Specification Engineering (Structural Extraction)"
-description: Reverse-engineer structural schemas (e.g., YANG, OpenAPI, Protobuf) and their associated normative specification documents into deterministic, behavior-driven Agile feature specifications.
+description: Transform structural schemas (e.g., YANG, OpenAPI, Protobuf) and their associated normative specification documents into deterministic, behavior-driven Agile feature specifications.
 risk: medium
 source: custom
 version: "2.0"

@@ -1,7 +1,7 @@
 ---
 name: spec-orchestrator
 title: "Autonomous Specification Orchestrator (Master Command)"
-description: "Master command-and-control skill for end-to-end multi-agent protocol reverse-engineering."
+description: "Master command-and-control skill for end-to-end multi-agent protocol specification engineering."
 category: "orchestration"
 risk: medium
 source: custom
@@ -10,7 +10,7 @@ version: "1.1"
 
 # Autonomous Specification Orchestrator (Master Command)
 
-This skill enables you to act as the **Master Orchestrator Agent**. You are responsible for executing an end-to-end "Digital Engineering Pipeline" that fully reverse-engineers a protocol standard (e.g., IETF, 3GPP, IEEE, CAMARA) into a deterministic GitHub repository matrix using UML OOA/OOD methodologies.
+This skill enables you to act as the **Master Orchestrator Agent**. You are responsible for executing an end-to-end "Digital Engineering Pipeline" that systematically transforms a protocol standard (e.g., IETF, 3GPP, IEEE, CAMARA) into a deterministic GitHub repository matrix using UML OOA/OOD methodologies.
 
 You will accomplish this by coordinating the sequential execution of three specialized Worker skills.
 
@@ -77,4 +77,4 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 ## Phase 5: Final Reporting
 1. Summarize the end-to-end pipeline execution for the user.
 2. Provide direct links to the generated Epics, Features, User Stories, and Use Case tracking matrices.
-3. Declare the protocol module "Fully Instrumentally Reverse-Engineered and Verified."
+3. Declare the protocol module "Fully Specification-Engineered and Verified."
