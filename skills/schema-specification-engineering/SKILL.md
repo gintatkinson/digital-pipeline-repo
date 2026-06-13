@@ -73,15 +73,20 @@ Use this as the single canonical workflow for translating structural schemas and
 
 2. **GitHub Label Bootstrapping:** Run `gh label create "epic" --force` and `gh label create "feature" --force`.
 
-3. **Feature Generation FIRST:**
+3. **Duplicate Detection (Idempotency Check):**
+   - Before creating any issue, run `gh issue list --label "feature" --state "all" --json number,title` and check if an issue with an identical or semantically equivalent title already exists.
+   - If a duplicate is found: skip creation, reuse the existing Issue ID for Epic linkage.
+   - This ensures the pipeline is safe to re-run without creating duplicate issues.
+
+4. **Feature Generation FIRST:**
    - Execute `gh issue create` for EVERY Feature markdown file first.
    - Example: `gh issue create --title "Feature Title" --body-file docs/features/feat-01.md --label "feature"`
    - **CRITICAL:** Capture the returned GitHub Issue URL/ID from standard output.
 
-4. **Epic Markdown Assembly:**
+5. **Epic Markdown Assembly:**
    - Now that you possess the actual live Issue IDs for all extracted features, inject them into the Epic's Markdown file.
    - Ensure the body of the Epic explicitly lists its child features as a Markdown tasklist referencing the GitHub Issue ID and the absolute GitHub URL of the feature document (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md`):
      `- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`
 
-5. **Epic Generation LAST:**
+6. **Epic Generation LAST:**
    - Finally, execute `gh issue create` for the Epic markdown file containing the fully resolved tasklist.

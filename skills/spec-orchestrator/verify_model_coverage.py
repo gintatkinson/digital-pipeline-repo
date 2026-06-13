@@ -18,15 +18,19 @@ def parse_yang_file(filepath):
     module_name = module_match.group(1)
 
     # Patterns to match definitions
-    # Exclude standard keywords like description, reference, organization, etc.
+    # Covers all primary YANG statement types that define named schema nodes
     patterns = [
         r'\btypedef\s+([a-zA-Z0-9_\-]+)',
         r'\bleaf\s+([a-zA-Z0-9_\-]+)',
+        r'\bleaf-list\s+([a-zA-Z0-9_\-]+)',
         r'\bcontainer\s+([a-zA-Z0-9_\-]+)',
         r'\blist\s+([a-zA-Z0-9_\-]+)',
+        r'\bgrouping\s+([a-zA-Z0-9_\-]+)',
         r'\bchoice\s+([a-zA-Z0-9_\-]+)',
         r'\bcase\s+([a-zA-Z0-9_\-]+)',
-        r'\bidentity\s+([a-zA-Z0-9_\-]+)'
+        r'\bidentity\s+([a-zA-Z0-9_\-]+)',
+        r'\banydata\s+([a-zA-Z0-9_\-]+)',
+        r'\banyxml\s+([a-zA-Z0-9_\-]+)'
     ]
 
     definitions = set()
@@ -137,9 +141,13 @@ def main():
         missing = []
 
         for name in sorted(definitions):
-            # Use word boundary search to find exact parameter/node name matches in markdown
-            # Also allow matching bolding (e.g. **name**) or inline code (e.g. `name`)
-            pattern = rf"\b{re.escape(name)}\b"
+            # Require the name to appear in a structured context to reduce false positives.
+            # Match: `name`, **name**, |name|, - name, or preceded by YANG keywords.
+            # Short names (<=3 chars) require backtick or bold wrapping to avoid prose matches.
+            if len(name) <= 3:
+                pattern = rf"(`{re.escape(name)}`|\*\*{re.escape(name)}\*\*)"
+            else:
+                pattern = rf"\b{re.escape(name)}\b"
             if re.search(pattern, combined_text):
                 module_covered += 1
             else:

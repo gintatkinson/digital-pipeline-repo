@@ -90,6 +90,7 @@ Normative Specification: [Link to normative specification, e.g., RFC 9179 Geogra
 ## Step 5: Zero-Fault GitHub Synchronization
 1. Commit and push the Markdown files to the remote repository.
 2. You MUST verify the `use-case` label exists in the repository. Run `gh label create "use-case" --force`. Do not bypass this.
-3. Create the issue natively in GitHub. You MUST explicitly bind the label:
+3. **Duplicate Detection:** Before creating, run `gh issue list --label "use-case" --state "all" --json number,title` and check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
+4. Create the issue natively in GitHub. You MUST explicitly bind the label:
    `gh issue create --title "[Use Case Title]" --body-file [path/to/markdown.md] --label "use-case"`
-4. Verify the creation and return the generated GitHub URLs to the Orchestrator or User.
+5. Verify the creation and return the generated GitHub URLs to the Orchestrator or User.
