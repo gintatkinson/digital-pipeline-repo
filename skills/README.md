@@ -85,6 +85,108 @@ These rules live in `rules/` and are packaged into the Tessl plugin alongside sk
 
 ---
 
+## Installation
+
+The pipeline has **no external dependencies beyond `gh` CLI and `git`**. Choose the method that fits your team's workflow.
+
+### Method 1: Direct Copy (Simplest)
+
+Copy the `skills/` and `rules/` directories into your project repository:
+
+```bash
+# Clone the pipeline repo
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git /tmp/digital-pipeline
+
+# Copy skills and rules into your project
+cp -r /tmp/digital-pipeline/skills/ ./skills/
+cp -r /tmp/digital-pipeline/rules/ ./rules/
+
+# Clean up
+rm -rf /tmp/digital-pipeline
+```
+
+Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
+
+### Method 2: Git Submodule (Versioned, Updatable)
+
+Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates:
+
+```bash
+# Add as submodule
+git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+
+# Your agent reads from .pipeline-skills/skills/ and .pipeline-skills/rules/
+```
+
+To update to the latest version:
+
+```bash
+git submodule update --remote .pipeline-skills
+git add .pipeline-skills && git commit -m "chore: update pipeline skills"
+```
+
+### Method 3: Tessl Registry (Managed Distribution)
+
+Use Tessl for version-locked, team-wide distribution with automated rule injection and quality evaluation. See the [Tessl Integration](#tessl-integration-skill-registry--evaluation) section below for full details.
+
+```bash
+tessl init --agent gemini --agent claude-code --agent cursor
+tessl install github:gintatkinson/digital-pipeline-repo
+```
+
+### Setup for Google Antigravity / Gemini CLI
+
+After installing the pipeline via any method above, configure Gemini to load the skills and rules:
+
+1. **Point Gemini at the skills directory.** In your Gemini CLI session or Antigravity project config, reference the skill files:
+
+   ```
+   # If using direct copy or submodule:
+   Read the files in ./skills/ and ./rules/ directories.
+
+   # If using Tessl:
+   Tessl auto-injects rules. Skills are loaded via MCP or the .tessl/ directory.
+   ```
+
+2. **AGENTS.md (recommended).** Create an `AGENTS.md` file in your project root that tells Gemini (and any other agent) where to find the pipeline:
+
+   ```markdown
+   # Agent Instructions
+
+   ## Pipeline Skills
+   This project uses the Digital Systems Engineering Pipeline.
+   - Skills: read all SKILL.md files in `skills/` (or `.pipeline-skills/skills/` if submodule)
+   - Rules: read all files in `rules/` (or `.pipeline-skills/rules/` if submodule) -- these are mandatory constraints that apply to every task
+   - Constitution: read `.pipeline/constitution.md` before any task
+   - Implementation profiles: read `.pipeline/profiles/<platform>.md` before implementing features
+   ```
+
+3. **Subagent dispatch.** Gemini CLI supports subagent tool calls with curated context. The `feature-driven-implementation` skill includes Gemini-specific dispatch instructions in Step 3.
+
+### Setup for Claude Code
+
+```bash
+# If using Tessl (auto-configures CLAUDE.md and MCP):
+tessl init --agent claude-code
+tessl install github:gintatkinson/digital-pipeline-repo
+
+# If using direct copy, add to CLAUDE.md:
+echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
+```
+
+### Setup for Cursor / Windsurf / Cascade
+
+```bash
+# If using Tessl (auto-configures .cursor/rules/):
+tessl init --agent cursor
+tessl install github:gintatkinson/digital-pipeline-repo
+
+# If using direct copy, create .cursor/rules/pipeline.mdc or .windsurf/rules/pipeline.md
+# referencing the skills/ and rules/ directories.
+```
+
+---
+
 ## Supported Runtimes
 
 The skills are runtime-agnostic markdown files. The `feature-driven-implementation` skill includes runtime-specific dispatch instructions:
