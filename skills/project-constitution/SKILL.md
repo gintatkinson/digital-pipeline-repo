@@ -1,102 +1,184 @@
 ---
 name: project-constitution
-title: "Project Constitution (Persistent Principles & Governance)"
-description: "Establishes and maintains a project's governing principles, coding standards, testing mandates, and domain rules as persistent agent memory."
+title: "Project Constitution (Layered Governance: Functional + Implementation Profiles)"
+description: "Establishes a two-tier governance model: a platform-agnostic functional layer for specification, and platform-specific implementation profiles for feature delivery. Supports multiple implementation targets from one shared spec."
 category: "governance"
 risk: low
 source: custom
-version: "1.0"
+version: "2.0"
 ---
 
-# Project Constitution (Persistent Principles & Governance)
+# Project Constitution (Layered Governance)
 
-Use this skill to establish or update a project's foundational constitution — a persistent memory file that all other skills and agents reference when making decisions. The constitution captures what is non-negotiable for the project and survives across sessions, agents, and runtime environments.
+Use this skill to establish or update a project's foundational governance documents. The constitution is **two-tiered** to reflect the fundamental separation in this pipeline:
+
+- **Specification** (Epics, Features, User Stories, Use Cases) is **purely functional and platform-independent.**
+- **Implementation** (code, tests, deployment) is **platform-specific** and may have multiple variants.
+
+> [!IMPORTANT]
+> Epics, Features, User Stories, and Use Cases derived from protocol specifications (IETF RFC, 3GPP TS, YANG schemas, etc.) describe *what* the system must do — never *how* it is built. A single set of functional specs can drive implementations on React, Flutter, .NET, or any other platform simultaneously.
+
+## Architecture: Two Tiers
+
+```
+.pipeline/
+├── constitution.md                  # Tier 1: Functional (shared, platform-agnostic)
+└── profiles/
+    ├── react.md                     # Tier 2: Implementation profile for React
+    ├── flutter.md                   # Tier 2: Implementation profile for Flutter
+    └── dotnet.md                    # Tier 2: Implementation profile for .NET
+```
+
+**Tier 1 — Functional Constitution** (`.pipeline/constitution.md`)
+- Domain rules, specification sources, data model constraints
+- Agent behavior rules (commit format, branch naming, documentation)
+- Quality gates that apply universally (human approval, The Grill)
+- Read by ALL skills (spec-orchestrator, workers, implementation)
+
+**Tier 2 — Implementation Profiles** (`.pipeline/profiles/<platform>.md`)
+- Platform & stack constraints (framework, language version, forbidden deps)
+- Coding standards (typing rules, naming conventions, architecture pattern)
+- Testing mandates (test framework, coverage thresholds, TDD level)
+- Operational context (deployment env, CI/CD, security)
+- Read ONLY by `feature-driven-implementation` when targeting that platform
 
 > [!TIP]
-> Inspired by Spec Kit's `/speckit.constitution` concept. This skill provides the same persistent principles memory but integrated natively into the Digital Pipeline without external dependencies.
+> Inspired by Spec Kit's `/speckit.constitution` concept. This skill provides persistent principles memory integrated natively into the Digital Pipeline, extended with multi-platform profile support.
 
 ## When to Invoke
 
-- **New project setup:** Before running any other pipeline skill, establish the constitution first.
-- **Major architectural changes:** When the team adopts new standards, frameworks, or constraints.
+- **New project setup:** Establish the functional constitution before running any pipeline skill.
+- **New platform target:** Create an implementation profile before implementing features on a new platform.
+- **Major architectural changes:** When the team adopts new standards or constraints.
 - **Agent onboarding:** When a new agent session begins and needs to understand project rules.
 
 ## Core Mandates
 
-1. **Single Source of Truth:** Every project MUST have exactly one constitution file. It lives at `.pipeline/constitution.md` in the project repository root (or `docs/constitution.md` if `.pipeline/` is not used).
-2. **Cumulative, Never Destructive:** When updating the constitution, read the existing file first. Append or refine — never delete established principles without explicit human approval.
-3. **Human Authored, Agent Enforced:** The constitution is written by the human (with agent assistance for structure). Agents MUST NOT modify it autonomously. They read it, follow it, and reference it in decisions.
-4. **Universal Reference:** Every other skill in this pipeline (`spec-orchestrator`, `schema-specification-engineering`, `feature-driven-implementation`, etc.) MUST read the constitution before beginning execution and adhere to its mandates.
+1. **Functional/Implementation Separation:** Specification skills (`spec-orchestrator`, Workers A-C) MUST NOT read implementation profiles. They operate on the functional constitution only. Implementation profiles contain platform-specific details that would contaminate platform-independent specs.
+2. **One Functional Constitution, Many Profiles:** A project has exactly one `.pipeline/constitution.md` (functional) and zero or more `.pipeline/profiles/<platform>.md` (implementation). Multiple platforms can coexist.
+3. **Cumulative, Never Destructive:** When updating any constitution document, read the existing file first. Append or refine — never delete established principles without explicit human approval.
+4. **Human Authored, Agent Enforced:** The constitution is written by the human (with agent assistance for structure). Agents MUST NOT modify it autonomously.
+5. **Profile Selection at Implementation Time:** When invoking `feature-driven-implementation`, the target platform is specified. The agent reads the functional constitution AND the matching implementation profile. If no profile exists for the target platform, halt and prompt the human to create one.
 
 ---
 
 ## Step-by-Step Workflow
 
-### Step 1: Initialize Constitution
-
-If no constitution file exists, create one from the template below:
+### Step 1: Initialize Constitution Structure
 
 ```bash
-mkdir -p .pipeline
-touch .pipeline/constitution.md
+mkdir -p .pipeline/profiles
 ```
 
-### Step 2: Interactive Principles Gathering
+### Step 2: Gather Functional Principles (Tier 1)
 
-Prompt the human with these categories (adapt to project domain):
+Prompt the human with these categories — all must be **platform-independent**:
 
-1. **Platform & Stack Constraints**
-   - Target platform(s): (e.g., React, Flutter, .NET)
-   - Language version requirements
-   - Forbidden dependencies or patterns
+1. **Domain Rules**
+   - Specification sources (e.g., IETF RFC 8345, 3GPP TS 28.541)
+   - Schema compliance requirements (e.g., YANG, OpenAPI)
+   - Data model constraints (e.g., mandatory fields, cardinality)
+   - Semantic invariants (e.g., "every network node must have a unique ID")
 
-2. **Coding Standards**
-   - Type strictness level (e.g., no `any` in TypeScript)
-   - Naming conventions (domain-driven, kebab-case files, etc.)
-   - Module/component architecture pattern
+2. **Specification Standards**
+   - Epic/Feature granularity rules
+   - BDD scenario format requirements
+   - Use Case formality level (UML strict vs lightweight)
+   - Acceptance criteria format (Given/When/Then mandatory?)
 
-3. **Testing Mandates**
-   - Required test types (unit, integration, E2E, property-based)
-   - Coverage thresholds
-   - TDD enforcement level (mandatory per micro-task, or per feature)
-   - Test framework(s)
-
-4. **Domain Rules**
-   - Specification sources (e.g., IETF RFC, 3GPP TS)
-   - Schema compliance requirements
-   - Data model constraints
-
-5. **Agent Behavior Rules**
-   - Drill-down navigation mandate
-   - UI verification method (manual vs Playwright)
-   - Commit message format
-   - Branch naming convention
+3. **Agent Behavior Rules** (universal)
+   - Commit message format (e.g., `feat:`, `fix:`, `docs:`)
+   - Branch naming convention (e.g., `feat/<N>-<desc>`)
    - Documentation standards
+   - Drill-down navigation mandate
 
-6. **Quality Gates**
-   - Linting: must pass before commit? (yes/no)
-   - Build: must pass before PR? (yes/no)
-   - Review: required before merge? (yes/no)
-   - Human approval gates (The Grill, acceptance testing)
+4. **Universal Quality Gates**
+   - Human approval required before code? (The Grill: yes/no)
+   - Review required before merge? (yes/no)
+   - Spec compliance review mandatory? (yes/no)
 
-7. **Operational Context**
-   - Deployment environment
-   - CI/CD pipeline requirements
-   - Security constraints (API keys, auth, CORS)
+### Step 3: Generate Functional Constitution
 
-### Step 3: Generate Constitution Document
-
-Write the gathered principles into `.pipeline/constitution.md` using this format:
+Write to `.pipeline/constitution.md`:
 
 ```markdown
 ---
-title: "Project Constitution"
+title: "Project Constitution — Functional Layer"
 project: "[Project Name]"
+tier: functional
 created: "[ISO Date]"
 last_updated: "[ISO Date]"
 ---
 
 # Project Constitution: [Project Name]
+
+> This document governs specification generation and is platform-independent.
+> All agents MUST read this file before beginning any pipeline execution.
+> For platform-specific rules, see `.pipeline/profiles/<platform>.md`.
+
+## Domain Rules
+- [Captured rules]
+
+## Specification Standards
+- [Captured standards]
+
+## Agent Behavior
+- [Captured rules]
+
+## Universal Quality Gates
+- [Captured gates]
+```
+
+### Step 4: Gather Implementation Principles (Tier 2, Per Platform)
+
+For each target platform, prompt the human:
+
+1. **Platform & Stack Constraints**
+   - Target framework and version (e.g., React 18, Flutter 3.24, .NET 9)
+   - Language and version (e.g., TypeScript 5.x, Dart 3.x, C# 12)
+   - Forbidden dependencies or patterns
+   - Required dependencies
+
+2. **Coding Standards**
+   - Type strictness level (e.g., no `any`, strict null checks)
+   - Naming conventions (e.g., PascalCase components, kebab-case files)
+   - Module/component architecture pattern (e.g., feature-based, layered)
+
+3. **Testing Mandates**
+   - Required test types (unit, widget, integration, E2E)
+   - Test framework(s) (e.g., Jest, Playwright, flutter_test)
+   - Coverage thresholds (e.g., 80% line coverage)
+   - TDD enforcement level (mandatory per micro-task, or per feature)
+
+4. **Build & Deployment**
+   - Build command (e.g., `npm run build`, `flutter build`)
+   - Lint command (e.g., `npm run lint`, `flutter analyze`)
+   - CI/CD pipeline (e.g., GitHub Actions, Vercel)
+   - Deployment target (e.g., Netlify, App Store, Azure)
+
+5. **Security & Ops**
+   - API key management
+   - Auth provider
+   - CORS/CSP rules
+
+### Step 5: Generate Implementation Profile
+
+Write to `.pipeline/profiles/<platform>.md`:
+
+```markdown
+---
+title: "Implementation Profile — [Platform]"
+project: "[Project Name]"
+tier: implementation
+platform: "[platform identifier, e.g., react, flutter, dotnet]"
+created: "[ISO Date]"
+last_updated: "[ISO Date]"
+---
+
+# Implementation Profile: [Platform]
+
+> This document governs feature implementation on [Platform] only.
+> Read alongside `.pipeline/constitution.md` (functional layer).
 
 ## Platform & Stack
 - [Captured constraints]
@@ -107,52 +189,132 @@ last_updated: "[ISO Date]"
 ## Testing Mandates
 - [Captured mandates]
 
-## Domain Rules
-- [Captured rules]
+## Build & Deployment
+- [Captured config]
 
-## Agent Behavior
-- [Captured rules]
-
-## Quality Gates
-- [Captured gates]
-
-## Operational Context
-- [Captured context]
-
----
-
-> This file is the single source of truth for project governance.
-> All agents MUST read this file before beginning any pipeline execution.
-> Human approval is required to modify this document.
+## Security & Ops
+- [Captured constraints]
 ```
 
-### Step 4: Commit & Reference
+### Step 6: Commit & Reference
 
-1. Commit the constitution:
+1. Commit all constitution documents:
    ```bash
-   git add .pipeline/constitution.md
-   git commit -m "docs: establish project constitution"
+   git add .pipeline/
+   git commit -m "docs: establish project constitution (functional + implementation profiles)"
    ```
 
 2. Ensure the project's `AGENTS.md` (or equivalent) references the constitution:
    ```markdown
    **CRITICAL: Read `.pipeline/constitution.md` before any task execution.**
+   **For implementation tasks, also read `.pipeline/profiles/<platform>.md`.**
    ```
 
-### Step 5: Ongoing Governance
+### Step 7: Profile Lifecycle Management
 
-- **Before every feature:** The agent reads the constitution and confirms adherence.
-- **On conflict:** If a proposed change conflicts with the constitution, the agent halts and escalates to the human.
-- **On evolution:** The human requests a constitution update. The agent reads the existing file, proposes amendments, and waits for approval before writing.
+#### Adding a Profile
+
+1. Human requests: *"I want to implement on [platform]."*
+2. Agent runs Step 4 (gather implementation principles for the new platform).
+3. Agent generates `.pipeline/profiles/<platform>.md` via Step 5.
+4. Agent updates `AGENTS.md` to reference the new profile.
+5. Commit:
+   ```bash
+   git add .pipeline/profiles/<platform>.md
+   git commit -m "docs: add implementation profile for <platform>"
+   ```
+6. Functional specs (Epics, Features, Stories, Use Cases) remain unchanged.
+
+#### Updating a Profile
+
+1. Human requests a change: *"Update the React profile to require Playwright E2E tests."*
+2. Agent reads the existing `.pipeline/profiles/react.md`.
+3. Agent proposes the amendment and waits for human approval.
+4. Agent writes the update (append/refine, never destructive overwrite of unrelated sections).
+5. Update `last_updated` in the profile's frontmatter.
+6. Commit:
+   ```bash
+   git add .pipeline/profiles/<platform>.md
+   git commit -m "docs: update <platform> implementation profile — <change summary>"
+   ```
+
+#### Removing a Profile
+
+1. Human requests: *"We're dropping the [platform] implementation."*
+2. Agent confirms with the human: *"This will remove `.pipeline/profiles/<platform>.md`. Functional specs are unaffected. Proceed?"*
+3. Agent deletes the profile file:
+   ```bash
+   rm .pipeline/profiles/<platform>.md
+   ```
+4. Agent removes any references to the profile from `AGENTS.md` or other config files.
+5. Commit:
+   ```bash
+   git add -A
+   git commit -m "docs: remove <platform> implementation profile"
+   ```
+6. Existing solution walkthroughs (e.g., `feat-82-<platform>-solution.md`) are NOT deleted — they remain as historical records.
+
+#### Listing Active Profiles
+
+To see which platforms are currently configured:
+```bash
+ls .pipeline/profiles/
+```
+
+### Step 8: Ongoing Governance
+
+- **Before every spec-generation run:** Agent reads `.pipeline/constitution.md` only. Implementation profiles are ignored.
+- **Before every feature implementation:** Agent reads `.pipeline/constitution.md` AND `.pipeline/profiles/<target-platform>.md`.
+- **On conflict:** If a proposed change conflicts with any constitution document, the agent halts and escalates.
+- **On evolution:** Human requests an update. Agent reads existing, proposes amendments, waits for approval.
+
+---
+
+## Multi-Platform Scenarios
+
+### Scenario: Same spec, two implementations
+
+```
+docs/epics/epic-01-network-topology.md          # Functional (shared)
+docs/features/feat-01-node-display.md            # Functional (shared)
+docs/user-stories/us-01-view-node-details.md     # Functional (shared)
+
+# React implementation
+.pipeline/profiles/react.md
+docs/designs/feat-82-solution.md                 # React solution walkthrough
+
+# Flutter implementation
+.pipeline/profiles/flutter.md
+docs/designs/feat-82-flutter-solution.md         # Flutter solution walkthrough
+```
+
+The agent implements Feature #82 twice — once per platform — each time loading the appropriate profile. The functional specs (Epics, Features, Stories, Use Cases) are written once and shared.
+
+### Scenario: Platform-specific acceptance criteria
+
+If a Feature's acceptance criteria need platform-specific variants, add them as conditional blocks in the Feature markdown:
+
+```markdown
+## Acceptance Criteria
+
+### Functional (all platforms)
+- Given a network node, When the user selects it, Then the detail panel displays all attributes.
+
+### Platform-Specific
+- **[react]**: The detail panel uses a `<Drawer>` component with CSS transitions.
+- **[flutter]**: The detail panel uses a `showModalBottomSheet` with Material 3 theming.
+```
+
+The spec-generation workers write only the "Functional" criteria. Platform-specific criteria are added during implementation planning (Step 2 of `feature-driven-implementation`).
 
 ---
 
 ## Integration with Other Skills
 
-| Skill | How It Uses the Constitution |
-|---|---|
-| `spec-orchestrator` | Reads platform constraints before triggering Workers |
-| `schema-specification-engineering` | Reads platform target to scope Features correctly |
-| `feature-driven-implementation` | Reads testing mandates, coding standards, and quality gates to enforce during TDD |
-| `spec-user-story-engineering` | Reads domain rules to model BDD scenarios accurately |
-| `spec-usecase-engineering` | Reads operational context for Use Case preconditions |
+| Skill | Reads Functional Constitution? | Reads Implementation Profile? |
+|---|---|---|
+| `spec-orchestrator` | YES — domain rules, spec standards | NO |
+| `schema-specification-engineering` | YES — domain rules, data model constraints | NO |
+| `spec-user-story-engineering` | YES — BDD format, domain rules | NO |
+| `spec-usecase-engineering` | YES — Use Case formality, domain rules | NO |
+| `feature-driven-implementation` | YES — agent behavior, quality gates | YES — platform, coding, testing, build |

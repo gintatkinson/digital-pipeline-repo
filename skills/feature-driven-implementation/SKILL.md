@@ -34,10 +34,11 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 ## Step-by-Step Workflow
 
 ### Step 1: Backlog & Dependency Mapping
-1. **Read the project constitution** (`.pipeline/constitution.md` or `docs/constitution.md`) if it exists. Apply all platform, testing, and domain constraints from it throughout execution.
-2. Analyze `docs/epics/` and `docs/features/` to determine feature dependencies.
-3. Map the backlog queue in order of base dependencies first.
-4. Create a local tracking file (e.g., `task.md`) to manage current tasks.
+1. **Read the project constitution** (`.pipeline/constitution.md`) if it exists. This is the **functional layer** — domain rules, agent behavior, universal quality gates.
+2. **Read the implementation profile** (`.pipeline/profiles/<target-platform>.md`) for the target platform. This provides platform-specific coding standards, testing mandates, build commands, and deployment config. If no profile exists for the target platform, halt and prompt the human to create one using the `project-constitution` skill.
+3. Analyze `docs/epics/` and `docs/features/` to determine feature dependencies.
+4. Map the backlog queue in order of base dependencies first.
+5. Create a local tracking file (e.g., `task.md`) to manage current tasks.
 
 ### Step 1.5: Tech Stack Research (Optional)
 
@@ -59,18 +60,19 @@ If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or ne
    ```bash
    git checkout -b feat/<N>-<short-description>
    ```
-2. Verify the feature target platform (`platform` field in frontmatter) and create/update `implementation_plan.md` outlining a **complete vertical slice**:
+2. **Platform Scoping:** The feature spec is platform-independent (functional). Apply the target platform from the implementation profile (`.pipeline/profiles/<platform>.md`, loaded in Step 1) to translate functional requirements into platform-specific design decisions. This is where framework components, UI patterns, and test frameworks are chosen — not during spec generation.
+3. Create/update `implementation_plan.md` outlining a **complete vertical slice** for the target platform:
    - **Database Layer (Test Data):** Specific updates to the unified database loaded with test data, including edge cases.
    - **Logic & Parser Layer:** Type definitions, validation schemas, and hooks to wire the parser into the main application logic flow.
-   - **UI & Presentation Layer:** The visual component, layout changes, styles, and data bindings to render the new attributes.
-   - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code. Include E2E test specifications where applicable.
+   - **UI & Presentation Layer:** Platform-specific component choices, layout changes, styles, and data bindings to render the new attributes (e.g., React `<Drawer>`, Flutter `showModalBottomSheet`).
+   - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code, using the test framework from the implementation profile. Include E2E test specifications where applicable.
    - **Verification Plan:** Detailed manual validation instructions, compiler checks, and tests.
-3. **Micro-Task Breakdown:** Decompose the plan into sequential micro-tasks (2-5 min each). Each task must specify:
+4. **Micro-Task Breakdown:** Decompose the plan into sequential micro-tasks (2-5 min each). Each task must specify:
    - Target file(s) and line ranges
    - What changes
    - The failing test that drives the change
    - How to verify completion
-4. Present the plan to the user and wait for explicit approval. Enter "The Grill" — interactive review to challenge design choices, clarify ambiguities, and validate spec/RFC compliance.
+5. Present the plan to the user and wait for explicit approval. Enter "The Grill" — interactive review to challenge design choices, clarify ambiguities, and validate spec/RFC compliance.
 
 ### Step 3: Execution & Build (Subagent-Driven TDD Vertical Slice)
 
