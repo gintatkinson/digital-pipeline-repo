@@ -28,6 +28,18 @@ If any phase fails (worker error, GitHub API failure, validation gate failure):
 Before beginning orchestration, verify you have:
 1. The target specification identifier (e.g., RFC 8345, 3GPP TS 23.501).
 2. The path(s) to the associated structural schemas (e.g., `*.yang`, `*.yaml`, `*.proto`).
+3. *(Optional)* A project constitution at `.pipeline/constitution.md`. If present, read it and apply platform/domain constraints to all worker dispatches.
+
+## Parallel Dispatch Convention
+
+Phases marked with **`[P]`** may be dispatched in parallel when:
+- The runtime supports parallel subagent dispatch (Claude Code, Gemini CLI)
+- There are no data dependencies between the parallel phases
+- Each parallel worker operates on independent schema modules
+
+Phases NOT marked `[P]` are strictly sequential — the validation gate of phase N must pass before phase N+1 begins.
+
+> **Single-agent runtimes (Cascade/Windsurf/Devin):** Ignore `[P]` markers and execute all phases sequentially.
 
 ## Phase 1: Structural Extraction (Worker A)
 1. **Trigger**: Initialize the execution of the `schema-specification-engineering` skill.
@@ -35,17 +47,19 @@ Before beginning orchestration, verify you have:
 3. **Execution**: Allow the worker logic to computationally extract EVERY structural element in the schema without abbreviation.
 4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --state "open"`) to verify the new Epics and Features exist and are properly interlinked. Do not proceed to Phase 2 until the structural foundation is verified.
 
-## Phase 2: Behavioral Extraction - User Stories (Worker B)
+## Phase 2 `[P]`: Behavioral Extraction - User Stories (Worker B)
 1. **Trigger**: Initialize the execution of the `spec-user-story-engineering` skill.
 2. **Context**: Pass the text/path of the target specification document.
 3. **Execution**: Allow the worker logic to parse the operational scenarios, extract the OOA/OOD User Stories, and query the GitHub repository to build the Cross-Cutting Matrix linking to the Phase 1 features.
 4. **Validation Gate**: Verify that the `user-story` issues have been created in GitHub and that their tasklists successfully render the intersecting `#IssueID`s generated during Phase 1.
 
-## Phase 3: System Interaction Extraction - UML Use Cases (Worker C)
+## Phase 3 `[P]`: System Interaction Extraction - UML Use Cases (Worker C)
 1. **Trigger**: Initialize the execution of the `spec-usecase-engineering` skill.
 2. **Context**: Pass the text/path of the target specification document.
 3. **Execution**: Allow the worker logic to extract formal UML System Use Cases (Actors, Preconditions, Flow, Postconditions) and map them down to the User Stories from Phase 2 and Features from Phase 1.
 4. **Validation Gate**: Verify that the `use-case` issues have been created in GitHub and that the Realization Matrix successfully links back to User Stories and Features.
+
+> **`[P]` Note:** Phases 2 and 3 are marked parallel-capable because Worker C queries GitHub for User Story Issue IDs (created by Worker B) via `gh issue list`. If both are dispatched simultaneously, Worker C will find the User Story issues as soon as Worker B creates them. On single-agent runtimes, execute Phase 2 first, then Phase 3.
 
 ## Phase 4: Reconciliation & Automated Verification (Worker D & Coverage Check)
 1. **Trigger Backlog Reconciliation**: Run the automated backlog reconciliation script:

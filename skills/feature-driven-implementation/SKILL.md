@@ -34,9 +34,25 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 ## Step-by-Step Workflow
 
 ### Step 1: Backlog & Dependency Mapping
-1. Analyze `docs/epics/` and `docs/features/` to determine feature dependencies.
-2. Map the backlog queue in order of base dependencies first.
-3. Create a local tracking file (e.g., `task.md`) to manage current tasks.
+1. **Read the project constitution** (`.pipeline/constitution.md` or `docs/constitution.md`) if it exists. Apply all platform, testing, and domain constraints from it throughout execution.
+2. Analyze `docs/epics/` and `docs/features/` to determine feature dependencies.
+3. Map the backlog queue in order of base dependencies first.
+4. Create a local tracking file (e.g., `task.md`) to manage current tasks.
+
+### Step 1.5: Tech Stack Research (Optional)
+
+If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or new platform capabilities:
+
+1. **Identify research targets:** What specific APIs, libraries, or patterns does this feature require?
+2. **Check versions:** Verify the installed/pinned versions of relevant dependencies. Note any breaking changes between the project's current version and the latest.
+3. **Document findings:** Create `research.md` on the feature branch with:
+   - Framework/library versions being used
+   - Relevant API documentation links
+   - Known gotchas, migration notes, or deprecation warnings
+   - Patterns recommended by official docs
+4. **Feed into The Grill:** Reference `research.md` during the plan review to ensure the implementation plan accounts for framework realities.
+
+> Skip this step if the feature uses well-established patterns already documented in the codebase.
 
 ### Step 2: Checkout & Plan Review ("The Grill")
 1. Checkout a dedicated feature branch from `master` (or `main`):

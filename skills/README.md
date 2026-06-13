@@ -33,8 +33,11 @@ Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Sc
 
 ### Pipeline 2: Feature Implementation
 
+#### `project-constitution` (Governance & Persistent Memory)
+Establishes a project's governing principles (platform constraints, coding standards, testing mandates, domain rules) as a persistent file (`.pipeline/constitution.md`). All other skills read this before execution. See `skills/project-constitution/SKILL.md`.
+
 #### `feature-driven-implementation` (v2.0 — Subagent-Driven TDD Delivery)
-The execution engine. Implements features from the backlog using a disciplined, verifiable process. See `skills/feature-driven-implementation/SKILL.md`.
+The execution engine. Implements features from the backlog using a disciplined, verifiable process. Includes an optional **tech stack research phase** for features involving unfamiliar or rapidly-evolving frameworks. See `skills/feature-driven-implementation/SKILL.md`.
 
 **Core execution discipline (14 mandates):**
 
@@ -56,6 +59,9 @@ The execution engine. Implements features from the backlog using a disciplined, 
 | 14 | **Inter-Task Code Review** | Diff against plan, log deviations |
 
 **Additional protocols:**
+- **Project Constitution:** Persistent principles file read before every execution
+- **Tech Stack Research:** Optional `research.md` phase before The Grill for unfamiliar frameworks
+- **Parallel Dispatch `[P]`:** Spec-generation phases 2 & 3 can run in parallel on multi-agent runtimes
 - **Systematic Debugging (4-phase):** Reproduce → Diagnose (stack trace, no guessing) → Fix (minimal upstream) → Verify (full suite)
 - **Vertical Slice Order:** Database → Parser/State → UI Components
 
@@ -133,3 +139,16 @@ For each delivered feature:
 4. **Updated Epic checklist**: Feature marked `[x]`, Epic auto-closed when all features complete.
 
 *Note: Skills automatically bootstrap repository labels (`epic`, `feature`, `user-story`, `use-case`) via `gh label create --force`.*
+
+---
+
+## 🤝 Spec Kit Compatibility
+
+This pipeline can be used **alongside** [GitHub Spec Kit](https://github.com/github/spec-kit) without conflict:
+
+- **`specify init`** can be used to bootstrap agent-specific config files (`.claude/`, `.windsurf/`, etc.) in project repos.
+- **`.specify/memory/constitution.md`** is analogous to this pipeline's `.pipeline/constitution.md` — use whichever convention your project prefers.
+- **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
+- **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
+
+> If you use Spec Kit for scaffolding, simply point your agent to this repo's `/skills/` directory for execution after running `specify init`.
