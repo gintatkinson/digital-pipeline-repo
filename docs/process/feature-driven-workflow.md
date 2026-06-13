@@ -1,5 +1,8 @@
 # Feature-Driven Autonomous Delivery Workflow
 
+> **Canonical Skill Definition:** [`skills/feature-driven-implementation/SKILL.md`](../../skills/feature-driven-implementation/SKILL.md)
+> This document is a human-readable overview. The SKILL.md is the authoritative, machine-consumable definition with full TDD discipline, subagent dispatch, and two-stage review gates.
+
 This document outlines a high-quality, dependency-driven agentic workflow for serially implementing features based on the project's Epics, Features, and User Stories. It enforces strict serialization, interactive design approval, and end-to-end GitHub lifecycle management.
 
 ## 1. Goal Description

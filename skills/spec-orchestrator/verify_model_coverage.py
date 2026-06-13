@@ -75,8 +75,17 @@ def load_feature_files(features_dir):
 
 def main():
     workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    yang_dir = os.path.join(workspace_dir, "Cognitive-Controller-xUI", "yang")
-    features_dir = os.path.join(workspace_dir, "docs", "features")
+
+    # Allow overriding paths via command-line args or environment variables.
+    # Usage: verify_model_coverage.py [yang_dir] [features_dir]
+    yang_dir = (
+        sys.argv[1] if len(sys.argv) > 1
+        else os.environ.get("YANG_DIR", os.path.join(workspace_dir, "yang"))
+    )
+    features_dir = (
+        sys.argv[2] if len(sys.argv) > 2
+        else os.environ.get("FEATURES_DIR", os.path.join(workspace_dir, "docs", "features"))
+    )
 
     if not os.path.exists(yang_dir):
         print(f"Error: YANG directory not found at {yang_dir}")

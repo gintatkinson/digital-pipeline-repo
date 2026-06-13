@@ -1,7 +1,11 @@
 ---
+name: spec-orchestrator
 title: "Autonomous Specification Orchestrator (Master Command)"
 description: "Master command-and-control skill for end-to-end multi-agent protocol reverse-engineering."
 category: "orchestration"
+risk: medium
+source: custom
+version: "1.1"
 ---
 
 # Autonomous Specification Orchestrator (Master Command)
@@ -9,6 +13,16 @@ category: "orchestration"
 This skill enables you to act as the **Master Orchestrator Agent**. You are responsible for executing an end-to-end "Digital Engineering Pipeline" that fully reverse-engineers a protocol standard (e.g., IETF, 3GPP, IEEE, CAMARA) into a deterministic GitHub repository matrix using UML OOA/OOD methodologies.
 
 You will accomplish this by coordinating the sequential execution of three specialized Worker skills.
+
+> [!NOTE]
+> This orchestrator handles **specification generation** (Phases 1-5). For **feature implementation**, use the separate `feature-driven-implementation` skill which provides subagent-driven TDD execution discipline.
+
+## Error Recovery
+If any phase fails (worker error, GitHub API failure, validation gate failure):
+1. **Do not proceed** to the next phase.
+2. **Log the exact error** (stderr, exit code, GitHub API response).
+3. **Attempt remediation:** Re-run the failed step once. If it fails again, escalate to the user with the full error context.
+4. **Never skip a validation gate.** If a gate cannot be satisfied, the pipeline is halted until manually resolved.
 
 ## Pre-Flight Checklist
 Before beginning orchestration, verify you have:
@@ -40,8 +54,9 @@ Before beginning orchestration, verify you have:
    ```
 2. **Trigger Model Coverage Verification**: Run the automated model coverage parity check tool:
    ```bash
-   ./skills/spec-orchestrator/verify_model_coverage.py
+   ./skills/spec-orchestrator/verify_model_coverage.py [yang_dir] [features_dir]
    ```
+   If `yang_dir` and `features_dir` are omitted, the script defaults to `$YANG_DIR` / `$FEATURES_DIR` environment variables, or `<repo_root>/yang` and `<repo_root>/docs/features`.
 3. **Execution**: The backlog script queries GitHub issues, resolves checklist checkboxes in the local files, and automatically closes completed Epics, User Stories, and Use Cases. The coverage script verifies that every single node/typedef from the raw YANG schemas is exhaustively documented in the feature specs.
 4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, and that the overall model coverage is verified at exactly 100%.
 

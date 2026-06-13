@@ -1,24 +1,33 @@
 ---
 name: feature-driven-implementation
-description: Guides the serial, interactive implementation of Agile features and automated lifecycle closure of GitHub issues and parent Epics.
+description: Guides the serial, subagent-driven, TDD-disciplined implementation of Agile features with two-stage review gates and automated lifecycle closure of GitHub issues and parent Epics.
 risk: low
 source: custom
+version: "2.0"
 ---
 
 # Feature-Driven Autonomous Delivery & Closure
 
 Use this skill to execute the end-to-end implementation lifecycle for prioritized Agile features and ensure complete automated closure of feature issues, walkthrough updates, and parent Epics.
 
+This skill integrates subagent-driven development, TDD execution discipline, two-stage review gates, micro-task decomposition, systematic debugging, and verification-before-completion — ensuring that agents cannot drift, falsely report success, or skip quality gates.
+
 ## Core Mandates
 
-1. **Serial Execution:** strictly implement **one feature at a time**. Do not start feature N+1 until feature N is completely verified, merged, documented, and closed.
-2. **The Grill Approval:** create an implementation plan and obtain explicit human approval BEFORE modifying any source files.
-3. **Traceability:** all closed issues MUST have a closing comment referencing the relative path or GitHub URL of the committed solution walkthrough.
-4. **Agentic Epic Closure:** when all constituent features of an Epic are closed, the agent must check off the items in the local Epic markdown, update the Epic issue's body on GitHub, and close the Epic issue itself.
-5. **No Browser Automation:** All web UI verification must be performed manually. Do not use automated browser subagents (`browser_subagent`) or headless testing for UI verification.
+1. **Serial Execution:** Strictly implement **one feature at a time**. Do not start feature N+1 until feature N is completely verified, merged, documented, and closed.
+2. **The Grill Approval:** Create an implementation plan and obtain explicit human approval BEFORE modifying any source files.
+3. **Traceability:** All closed issues MUST have a closing comment referencing the relative path or GitHub URL of the committed solution walkthrough.
+4. **Agentic Epic Closure:** When all constituent features of an Epic are closed, the agent must check off the items in the local Epic markdown, update the Epic issue's body on GitHub, and close the Epic issue itself.
+5. **No Browser Automation:** All web UI verification must be performed manually unless the project explicitly uses automated E2E testing (e.g., Playwright). Do not use automated browser subagents (`browser_subagent`) or headless testing for UI verification unless the project's test suite mandates it.
 6. **GitHub as Source of Truth:** Do not rely on local files or checklist documentation for feature definitions or backlog status as they may be contaminated or contain broken links. Always query the official GitHub repository issues using `gh` CLI commands as the canonical source of truth.
-7. **Cumulative Walkthroughs & Document Integrity:** When writing or updating living artifacts (such as implementation plans, task lists, and verification walkthroughs), you MUST NOT perform destructive overwrites. Always read the existing file first. When adding support for a new feature or sub-feature, append or merge the details into the existing document so that the historical record of prior feature deliveries and verification instructions remains fully intact. Do not narrow your focus to the immediate scope at the expense of the overall system specifications or historical audit trail.
-8. **Validation Isolation & Separate Subagent Audit:** To prevent confirmation bias, missing link/UUID bugs, and documentation mismatches, the primary agent MUST NOT self-verify database changes or documentation links without a strict checklist. The Orchestrator MUST dispatch a separate **Validator Subagent** (or Spec Reviewer) if available. If running in a single-agent context where subagent spawning is unavailable, the agent MUST perform a strict, isolated self-audit (Step 4.4 fallback) verifying that every UUID and link target referenced in the walkthrough resolves and exists in the unified database.
+7. **Cumulative Walkthroughs & Document Integrity:** When writing or updating living artifacts (such as implementation plans, task lists, and verification walkthroughs), you MUST NOT perform destructive overwrites. Always read the existing file first. Append or merge new details so the historical record remains fully intact.
+8. **Validation Isolation & Separate Subagent Audit:** The primary agent MUST NOT self-verify database changes or documentation links without a strict checklist. Dispatch a separate **Validator Subagent** if available. In single-agent contexts, perform a strict, isolated self-audit (Step 4.4 fallback) verifying that every UUID and link target referenced in the walkthrough resolves and exists in the unified database.
+9. **Test-Driven Development (TDD):** All implementation MUST follow the RED-GREEN-REFACTOR cycle. Write a failing test FIRST, verify it fails, write minimal code to pass, verify it passes, then refactor. Code written before its corresponding test must be deleted and re-implemented after the test.
+10. **Micro-Task Decomposition:** Break every approved implementation plan into micro-tasks of 2-5 minutes each. Each micro-task must have: exact file paths, expected changes, a driving test, and a verification step. Never execute more than one micro-task without verification.
+11. **Subagent-Driven Development:** Each micro-task SHOULD be dispatched to a fresh subagent with isolated context. The coordinator provides only the task text, relevant file contents, and project conventions — never the full session history. This prevents context drift and confirmation bias. See Step 3 for runtime-specific dispatch instructions.
+12. **Two-Stage Review:** After each micro-task's implementation, two reviews MUST occur in order: (1) **Spec Compliance Review** — does the code match the approved plan and RFC/spec requirements? (2) **Code Quality Review** — is the code well-structured, typed, tested, and maintainable? Both must pass before proceeding to the next task.
+13. **Verification-Before-Completion:** Before declaring any task, micro-task, or feature complete, the agent MUST provide concrete proof of correctness (raw test output, build output, or explicit file-content verification). Assertions like "it works" or "tests pass" without pasted evidence are forbidden.
+14. **Inter-Task Code Review:** After each micro-task, diff the changes against the approved plan. Log deviations. Critical deviations block progress until resolved with the user.
 
 ---
 
@@ -30,7 +39,7 @@ Use this skill to execute the end-to-end implementation lifecycle for prioritize
 3. Create a local tracking file (e.g., `task.md`) to manage current tasks.
 
 ### Step 2: Checkout & Plan Review ("The Grill")
-1. Checkout a dedicated feature branch from `master`:
+1. Checkout a dedicated feature branch from `master` (or `main`):
    ```bash
    git checkout -b feat/<N>-<short-description>
    ```
@@ -38,30 +47,123 @@ Use this skill to execute the end-to-end implementation lifecycle for prioritize
    - **Database Layer (Test Data):** Specific updates to the unified database loaded with test data, including edge cases.
    - **Logic & Parser Layer:** Type definitions, validation schemas, and hooks to wire the parser into the main application logic flow.
    - **UI & Presentation Layer:** The visual component, layout changes, styles, and data bindings to render the new attributes.
+   - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code. Include E2E test specifications where applicable.
    - **Verification Plan:** Detailed manual validation instructions, compiler checks, and tests.
-3. Present the plan to the user and wait for explicit approval.
+3. **Micro-Task Breakdown:** Decompose the plan into sequential micro-tasks (2-5 min each). Each task must specify:
+   - Target file(s) and line ranges
+   - What changes
+   - The failing test that drives the change
+   - How to verify completion
+4. Present the plan to the user and wait for explicit approval. Enter "The Grill" — interactive review to challenge design choices, clarify ambiguities, and validate spec/RFC compliance.
 
-### Step 3: Execution & Build (Vertical Slice Mandate & Code Audits)
+### Step 3: Execution & Build (Subagent-Driven TDD Vertical Slice)
+
+Execution follows a **per-task subagent dispatch loop**. The coordinator reads the plan once, extracts all micro-tasks, then dispatches a fresh implementer per task with two-stage review after each.
+
+#### 3.1 Pre-Execution
 1. **No Handover Trust:** Never assume previous phases or turns implemented a portion of the code correctly based on summaries. Explicitly open and check the source code files in all relevant directories.
-2. **Implement Full Vertical Slice:** Implement the changes strictly based on the approved plan. Do not stop at validation utilities or unit tests. You MUST implement the full vertical slice:
-   - **1. Database Layer:** Update/extend the unified database with test data records containing the new properties.
-   - **2. Parser/State:** Hook the normalization and validation rules into the main data loader/router pipelines.
-   - **3. UI Components:** Update components to retrieve, format, style, and visually present the properties to the user.
-3. **Double-Check Code Presence:** Before proceeding to verification, perform explicit grep or file-reading checks of the modified UI files to guarantee that all presentation code actually exists in the files.
-4. Maintain strong typing, domain-driven design conventions, and strict schema compliance.
-5. Ensure no linting, type-checking, or compilation errors are present.
+2. **Extract All Tasks:** Read the approved plan. Extract every micro-task with its full text, target files, driving test, and verification step. Create a tracking list (e.g., `task.md` or TodoWrite).
+
+#### 3.2 Per-Task Dispatch Loop
+
+For each micro-task in sequence:
+
+**A. Dispatch Implementer (Fresh Context)**
+
+The implementer receives ONLY:
+- The micro-task text (exact scope, target files, expected changes)
+- Relevant file contents (read and provided by the coordinator)
+- Project conventions (TDD mandate, typing rules, drill-down navigation rule, etc.)
+- The driving test specification
+
+The implementer MUST NOT receive the full session history or prior task context.
+
+**Runtime-Specific Dispatch:**
+
+| Runtime | Dispatch Method |
+|---|---|
+| **Claude Code** | `Task("implementer-prompt")` — native subagent with isolated context |
+| **Gemini CLI / Antigravity** | Subagent tool call with curated context payload |
+| **Cascade (Windsurf/Devin)** | The coordinator explicitly re-reads all relevant files from disk before each micro-task to simulate context reset. Prefix each task with: "Ignore all prior implementation context. Your only scope is the following task." If true isolation is needed, instruct the user to open a new Cascade chat for the task. |
+
+**B. Implementer Executes TDD Cycle**
+- **RED:** Write the failing test first. Run it. Confirm it fails with the expected error.
+- **GREEN:** Write the minimal code to make the test pass. Run it. Confirm it passes.
+- **REFACTOR:** Clean up the code while keeping tests green. Run tests again.
+- **COMMIT:** Commit the passing micro-task with a descriptive message.
+- **SELF-REVIEW:** Implementer reviews own changes before handing back.
+
+**C. Handle Implementer Status**
+- **DONE:** Proceed to two-stage review (Step 3.3).
+- **DONE_WITH_CONCERNS:** Read concerns. If correctness/scope issue, address before review. If observational, note and proceed.
+- **NEEDS_CONTEXT:** Coordinator provides missing context and re-dispatches.
+- **BLOCKED:** Assess blocker: (1) context problem → provide more context, (2) task too complex → break into smaller pieces, (3) plan is wrong → escalate to human via "The Grill."
+
+#### 3.3 Two-Stage Review Gate
+
+After each micro-task's implementation, two reviews MUST occur **in this order**:
+
+**Stage 1: Spec Compliance Review**
+- Does the code match the approved plan exactly?
+- Does it comply with the RFC/spec requirements from `docs/features/` and `docs/user-stories/`?
+- Is anything missing from the spec? Is anything extra (not requested)?
+- **If issues found:** Implementer fixes → re-review. Do NOT proceed to Stage 2 until Stage 1 passes.
+
+**Stage 2: Code Quality Review**
+- Is the code well-structured and idiomatic?
+- Are types correct and strict (no `any` unless justified)?
+- Are tests meaningful (not smoke-only)?
+- Does it follow project conventions (drill-down navigation, domain-driven design, etc.)?
+- **If issues found:** Implementer fixes → re-review. Do NOT proceed to next task until Stage 2 passes.
+
+**Runtime-Specific Review:**
+
+| Runtime | Review Method |
+|---|---|
+| **Claude Code / Gemini CLI** | Dispatch separate spec-reviewer and code-quality-reviewer subagents with the diff + spec docs |
+| **Cascade (Windsurf/Devin)** | Coordinator performs both reviews as explicit self-audit steps: (1) re-read the spec, diff the changes, check compliance point-by-point, (2) re-read the code, check typing/style/conventions. Document findings in `task.md` before proceeding. |
+
+#### 3.4 Vertical Slice Order
+- **1. Database Layer:** Write test for expected data shape → implement data records.
+- **2. Parser/State:** Write test for normalization/validation → implement parser hooks.
+- **3. UI Components:** Write test (or E2E spec) for UI rendering → implement components.
+
+#### 3.5 Inter-Task Continuation
+- After both reviews pass, mark task complete in tracking list.
+- **Do not pause to ask "Should I continue?"** — execute all tasks continuously unless BLOCKED.
+- If deviation from plan is critical (architectural change, missing spec compliance), STOP and return to "The Grill."
+
+#### 3.6 Code Presence Verification
+Before proceeding to Step 4, perform explicit grep or file-reading checks of all modified files to guarantee that all implementation code actually exists in the files. Do not trust summaries.
+
+#### 3.7 Invariants
+- Maintain strong typing, domain-driven design conventions, and strict schema compliance.
+- Ensure no linting, type-checking, or compilation errors at any point.
+- Never dispatch multiple implementer subagents in parallel on the same feature (conflicts).
+- Never start code quality review before spec compliance is approved (wrong order).
+- Never skip the re-review loop (reviewer found issues = implementer fixes = review again).
+
+### Step 3.8: Systematic Debugging (When Tests Fail Unexpectedly)
+
+If a test fails with an unexpected error during Step 3, follow the 4-phase debugging protocol:
+
+1. **Reproduce:** Isolate the failure. Run the single failing test in isolation. Record exact error output.
+2. **Diagnose:** Trace the root cause. Do NOT guess — read the stack trace, add targeted logging, check variable state. Identify the exact line and condition causing failure.
+3. **Fix:** Apply the minimal upstream fix. Prefer single-line changes. Do not add workarounds downstream. Do not "fix" by weakening or deleting the test.
+4. **Verify:** Run the full test suite (not just the fixed test) to confirm no regressions. Only proceed when all tests pass.
 
 ### Step 4: Verification & Testing (Human & Assertion-Based Verification)
 1. **Assertion-Based Automation:** When writing or updating widget/unit tests, do not rely on basic smoke tests that only verify the app launches. Add explicit assertions that query the rendering tree for the presence of the new fields or text tokens.
-2. Run local tests or build checks (e.g., `npm run lint`, `npm run build`, `flutter analyze`).
-3. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands to run, which page/element to navigate to, what actions to perform, and what visual output to inspect in the browser or client to verify that the implementation is 100% correct.
-4. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):** 
+2. Run local tests or build checks (e.g., `npm run lint`, `npm run build`, `flutter analyze`, `npx playwright test`).
+3. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.
+4. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands to run, which page/element to navigate to, what actions to perform, and what visual output to inspect in the browser or client to verify that the implementation is 100% correct.
+5. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):**
    - **Multi-Agent Mode:** Dispatch a separate **Validator Subagent** to read the draft `walkthrough.md` / `feat-<Issue_Number>-solution.md` and cross-reference every referenced UUID, link, and port ID. The Validator subagent must independently locate these elements in the unified database to confirm they exist and match the UI navigation targets. Fail the validation step if there is any mismatch.
    - **Single-Agent Fallback:** The agent must step out of the implementation context and systematically audit its own draft `walkthrough.md` / `feat-<Issue_Number>-solution.md`. Perform exact regex and grep lookups to verify that every single UUID, link, and port ID referenced in the walkthrough exists verbatim in the unified database. Document the results of this check explicitly before requesting user approval.
-5. Apply any feedback iteratively on the feature branch.
+6. Apply any feedback iteratively on the feature branch.
 
 ### Step 5: Release & Closure (CRITICAL)
-1. Merge the feature branch into `master` after explicit acceptance:
+1. Merge the feature branch into `master` (or `main`) after explicit acceptance:
    ```bash
    git checkout master
    git merge feat/<N>-<short-description>
@@ -69,7 +171,7 @@ Use this skill to execute the end-to-end implementation lifecycle for prioritize
 2. Create or update a cumulative solution walkthrough document under `docs/designs/feat-<Issue_Number>-solution.md` summarizing the changes, testing, and validations. Do not delete or overwrite sections for previously implemented sub-features or related components. Ensure the document is a cumulative record of all changes, maintaining a 100% scope perspective to deliver 0-defect verification instructions.
    > [!IMPORTANT]
    > **DO NOT USE THE FEATURE INDEX NUMBER** (e.g. 24 for Feature 24) in the solution filename if the GitHub Issue Number is different (e.g. 82). The solution file name MUST strictly use the GitHub Issue Number (e.g. `feat-82-solution.md`).
-   > 
+   >
    > **ZERO-TRUST COLLISION CHECK:** Before updating or creating this file, search the repository and Git history for the filename `feat-<Issue_Number>-solution.md` to check its existing content. If it exists, read it first and append/merge the new changes rather than overwriting. If there is a filename mismatch or conflict, alert the user and resolve the naming conflict immediately.
 3. Commit and push the solution document:
    ```bash

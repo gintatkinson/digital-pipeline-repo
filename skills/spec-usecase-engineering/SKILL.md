@@ -1,7 +1,11 @@
 ---
+name: spec-usecase-engineering
 title: "Specification Use Case Engineering (System Interaction)"
 description: "Extracts formal UML OOA/OOD System Use Cases from normative specification documents and maps them to User Stories and Features."
 category: "architecture"
+risk: low
+source: custom
+version: "1.1"
 ---
 
 # Specification Use Case Engineering (System Interaction)
@@ -32,7 +36,7 @@ A System Use Case is realized by User Stories and structural Features.
 3. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`).
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/use-cases/uc[X]-[name].md`. Format strictly:
+Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-geo-location.md`). Format strictly:
 
 ```markdown
 ---

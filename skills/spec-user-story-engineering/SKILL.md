@@ -1,7 +1,11 @@
 ---
+name: spec-user-story-engineering
 title: "Specification User Story Engineering (Behavioral Extraction)"
 description: "Extracts operational scenarios from normative specification documents and models them as OOA/OOD User Stories matrixed against existing GitHub features."
 category: "architecture"
+risk: low
+source: custom
+version: "1.1"
 ---
 
 # Specification User Story Engineering (Behavioral Extraction)
@@ -38,7 +42,7 @@ A User Story requires technical building blocks (Domain Objects/Features) to fun
 4. Construct a `## Required Features` matrix in your document containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature document (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`).
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/user-stories/us[X]-[name].md`. Format strictly:
+Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-earth-wgs84.md`). Format strictly:
 
 ```markdown
 ---
