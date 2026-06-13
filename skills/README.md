@@ -67,7 +67,25 @@ The execution engine. Implements features from the backlog using a disciplined, 
 
 ---
 
-## 🖥️ Supported Runtimes
+## �️ Always-Loaded Governance Rules
+
+In addition to skills (loaded on-demand), this pipeline includes **rules** — constraints injected into every agent session regardless of which skill is active. When installed via Tessl, these rules are automatically distributed to agent-specific config files (`.cursor/rules/`, `CLAUDE.md`, `AGENTS.md`).
+
+| Rule | Enforcement |
+|---|---|
+| **`serial-execution`** | One feature at a time. No parallel feature work. |
+| **`tdd-mandate`** | RED-GREEN-REFACTOR cycle required. Code before test must be deleted. |
+| **`verification-required`** | Raw proof (pasted output) required. "It works" without evidence is forbidden. |
+| **`constitution-first`** | Read `.pipeline/constitution.md` before any task. Spec workers must NOT read implementation profiles. |
+| **`no-browser-automation`** | No ad-hoc browser scripts. Manual verification or project E2E framework only. |
+| **`github-source-of-truth`** | Use `gh` CLI for issue state. Never trust local files alone. |
+| **`platform-independence`** | Specs must be functional. No framework names in features, stories, or use cases. |
+
+These rules live in `rules/` and are packaged into the Tessl plugin alongside skills. Without Tessl, agents can read them directly from the `rules/` directory.
+
+---
+
+## �️ Supported Runtimes
 
 The skills are runtime-agnostic markdown files. The `feature-driven-implementation` skill includes runtime-specific dispatch instructions:
 
@@ -196,7 +214,7 @@ Agents pull version-locked context from the registry via MCP instead of parsing 
 ```
 ┌──────────────────────────────────────────┐
 │        TESSL REGISTRY (SaaS/Private)     │
-│  Versioned, evaluated skill packages     │
+│  Versioned, evaluated plugin packages    │
 │  for all domain-specific pipelines       │
 └─────────────────────┬────────────────────┘
                       │  tessl install / MCP
@@ -206,14 +224,20 @@ Agents pull version-locked context from the registry via MCP instead of parsing 
 │  Claude Code / Gemini / Cursor / Copilot │
 │  Pulls verified skills + context bundles │
 └─────────────────────┬────────────────────┘
-                      │  Executes skills
-                      ▼
-┌──────────────────────────────────────────┐
-│      DIGITAL PIPELINE (this repo)        │
-│  spec-orchestrator → Workers A/B/C → D   │
-│  feature-driven-implementation (TDD)     │
-│  project-constitution (governance)       │
-└──────────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+┌──────────────────┐  ┌──────────────────┐
+│  RULES (always)  │  │ SKILLS (on-task) │
+│  serial-exec     │  │ spec-orchestrator│
+│  tdd-mandate     │  │ Workers A/B/C    │
+│  verification    │  │ feature-impl     │
+│  constitution    │  │ constitution     │
+│  platform-indep  │  │                  │
+│  github-sot      │  │                  │
+│  no-browser      │  │                  │
+└──────────────────┘  └──────────────────┘
+     Always loaded       Loaded per task
 ```
 
 ---
