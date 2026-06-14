@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import json
 
 def parse_yang_file(filepath):
     """
@@ -44,6 +45,31 @@ def parse_yang_file(filepath):
                 definitions.add(name)
 
     return module_name, definitions
+
+def parse_schema_file(filepath):
+    """
+    Parses a schema file and extracts definitions depending on file extension.
+    Supported extensions: .yang (YANG). Extensible to other formats.
+    """
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext == ".yang":
+        return parse_yang_file(filepath)
+    # Extensible to other formats (e.g. .yaml, .proto)
+    print(f"Warning: Extensible schema parser not yet implemented for extension '{ext}' in {os.path.basename(filepath)}")
+    return os.path.basename(filepath), set()
+
+def load_behavioral_triggers(schema_dir, script_dir):
+    workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+    search_paths = [
+        os.path.join(schema_dir, "behavioral_triggers.json"),
+        os.path.join(workspace_dir, "rules", "behavioral_triggers.json"),
+        os.path.join(script_dir, "behavioral_triggers.json")
+    ]
+    for path in search_paths:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    return []
 
 def load_feature_files(features_dir):
     """
@@ -214,43 +240,113 @@ def verify_uml_diagrams(features_dir):
 
     return errors
 
+def verify_behavioral_triggers(schema_dir, features_dir, modules):
+    docs_dir = os.path.dirname(features_dir)
+    user_stories_dir = os.path.join(docs_dir, "user-stories")
+    use_cases_dir = os.path.join(docs_dir, "use-cases")
+    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    triggers = load_behavioral_triggers(schema_dir, script_dir)
+    
+    # Collect all definitions from all modules
+    all_nodes = set()
+    for defs in modules.values():
+        all_nodes.update(defs)
+        
+    errors = []
+    for trigger in triggers:
+        trigger_nodes = trigger.get("trigger_nodes", [])
+        # Check if the schema contains any of the trigger nodes
+        if not any(node in all_nodes for node in trigger_nodes):
+            continue
+            
+        for rule in trigger.get("rules", []):
+            target_type = rule.get("target_type")
+            target_dir = user_stories_dir if target_type == "user-story" else use_cases_dir
+            
+            found_match = False
+            files = []
+            if os.path.exists(target_dir):
+                files = [os.path.join(target_dir, f) for f in os.listdir(target_dir) if f.endswith(".md")]
+
+            for filepath in files:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                # Check mermaid block requirement if specified
+                mermaid_type = rule.get("requires_mermaid_block")
+                if mermaid_type:
+                    mermaid_matches = re.findall(rf"```mermaid\s*\n\s*{mermaid_type}(.*?)\n```", content, re.DOTALL)
+                    if not mermaid_matches:
+                        continue
+                    
+                    mermaid_terms = rule.get("match_terms_in_mermaid", [])
+                    if mermaid_terms:
+                        if not any(any(term in m_content for term in mermaid_terms) for m_content in mermaid_matches):
+                            continue
+
+                # Check terms in body
+                body_terms = rule.get("match_terms_in_body", [])
+                if body_terms:
+                    if not any(term in content.lower() for term in body_terms):
+                        continue
+
+                # Check secondary terms in body if specified
+                body_terms_sec = rule.get("match_terms_in_body_secondary", [])
+                if body_terms_sec:
+                    if not any(term in content.lower() for term in body_terms_sec):
+                        continue
+
+                found_match = True
+                break
+
+            if not found_match:
+                errors.append(rule.get("error_message", f"Failed validation rule in {trigger.get('name')}"))
+
+    return errors
+
 def main():
     workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
     # Allow overriding paths via command-line args or environment variables.
-    # Usage: verify_model_coverage.py [yang_dir] [features_dir]
-    yang_dir = (
+    schema_dir = (
         sys.argv[1] if len(sys.argv) > 1
-        else os.environ.get("YANG_DIR", os.path.join(workspace_dir, "yang"))
+        else os.environ.get("SCHEMA_DIR", os.environ.get("YANG_DIR", None))
     )
+    if not schema_dir:
+        schema_path = os.path.join(workspace_dir, "schema")
+        yang_path = os.path.join(workspace_dir, "yang")
+        if os.path.exists(schema_path):
+            schema_dir = schema_path
+        else:
+            schema_dir = yang_path
+
     features_dir = (
         sys.argv[2] if len(sys.argv) > 2
         else os.environ.get("FEATURES_DIR", os.path.join(workspace_dir, "docs", "features"))
     )
 
-    if not os.path.exists(yang_dir):
-        print(f"Error: YANG directory not found at {yang_dir}")
-        sys.exit(1)
-
+    has_failed = False
     print("=== Model Coverage Parity Audit ===")
-    print(f"Scanning YANG schemas in: {yang_dir}")
+    print(f"Scanning schemas in: {schema_dir}")
     print(f"Scanning feature specifications in: {features_dir}\n")
 
-    # 1. Parse all YANG modules
+    # 1. Parse all modules
     modules = {}
-    for filename in os.listdir(yang_dir):
-        if not filename.endswith(".yang"):
-            continue
-        filepath = os.path.join(yang_dir, filename)
-        try:
-            module_name, definitions = parse_yang_file(filepath)
-            if module_name:
-                modules[module_name] = definitions
-        except Exception as e:
-            print(f"Warning: Failed to parse YANG file {filename}: {e}")
+    if os.path.exists(schema_dir):
+        for filename in os.listdir(schema_dir):
+            filepath = os.path.join(schema_dir, filename)
+            if os.path.isdir(filepath):
+                continue
+            try:
+                module_name, definitions = parse_schema_file(filepath)
+                if module_name:
+                    modules[module_name] = definitions
+            except Exception as e:
+                print(f"Warning: Failed to parse schema file {filename}: {e}")
 
     if not modules:
-        print("Error: No valid YANG modules found.")
+        print("Error: No valid modules/schemas found.")
         sys.exit(1)
 
     # 2. Load all feature markdown files
@@ -334,6 +430,17 @@ def main():
         has_failed = True
     else:
         print("\nSuccess: 100% model coverage verified across all specification files.")
+
+    print("\n=== Behavioral Coverage Triggers Audit ===")
+    behavioral_errors = verify_behavioral_triggers(schema_dir, features_dir, modules)
+
+    if behavioral_errors:
+        print("[!] Behavioral Coverage Violations Identified:")
+        for err in behavioral_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: All behavioral coverage triggers passed.")
 
     if has_failed:
         sys.exit(1)

@@ -125,8 +125,8 @@ stateDiagram-v2
 - [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
-YANG Schema: [Link to structural schema, e.g., ietf-geo-location@2022-02-11.yang](https://github.com/YangModels/yang/blob/main/standard/ietf/RFC/ietf-geo-location%402022-02-11.yang)
-Normative Specification: [Link to normative specification, e.g., RFC 9179 Geographic Location](https://datatracker.ietf.org/doc/rfc9179/)
+Structural Schema: [Link to structural schema, e.g., schema-filename](link-to-schema)
+Normative Specification: [Link to normative specification, e.g., specification-name](link-to-specification)
 ```
 
 ## Step 5: Zero-Fault GitHub Synchronization

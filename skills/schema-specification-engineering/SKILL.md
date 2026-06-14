@@ -111,11 +111,11 @@ Use this as the single canonical workflow for translating structural schemas and
    ```
 
 3. **Source References Block (CRITICAL):**
-   - At the bottom of every feature markdown file, you MUST append a `## 4. Source References` section formatted exactly like this:
+   - At the bottom of every feature markdown file, you MUST append a `## 4. Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
    ```markdown
    ## 4. Source References
-   YANG Schema: [ietf-geo-location@2022-02-11.yang](https://github.com/YangModels/yang/blob/main/standard/ietf/RFC/ietf-geo-location%402022-02-11.yang)
-   Normative Specification: [RFC 9179 Geographic Location](https://datatracker.ietf.org/doc/rfc9179/)
+   Structural Schema: [schema-filename](link-to-schema)
+   Normative Specification: [specification-name](link-to-specification)
    ```
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 

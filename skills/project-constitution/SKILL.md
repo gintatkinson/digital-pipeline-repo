@@ -76,13 +76,12 @@ mkdir -p .pipeline/profiles
 
 ### Step 2: Gather Functional Principles (Tier 1)
 
-Prompt the human with these categories — all must be **platform-independent**:
+Prompt the human with these categories — all must be **platform-independent** and **protocol-agnostic**. The constitution itself MUST NOT hardcode or assume any specific standard or schema format (such as YANG or RFC 8345) during initialization; all reference models are loaded dynamically at runtime.
 
 1. **Domain Rules**
-   - Specification sources (e.g., IETF RFC 8345, 3GPP TS 28.541)
-   - Schema compliance requirements (e.g., YANG, OpenAPI)
-   - Data model constraints (e.g., mandatory fields, cardinality)
-   - Semantic invariants (e.g., "every network node must have a unique ID")
+   - General schema compliance requirements (how constraints, ranges, and patterns are captured)
+   - General data model integrity rules (mapping nodes to feature specs, tracking circular dependencies)
+   - Semantic invariants (e.g., "every node must resolve to a valid existing parent context")
 
 2. **Specification Standards**
    - Epic/Feature granularity rules
@@ -116,7 +115,7 @@ last_updated: "[ISO Date]"
 
 # Project Constitution: [Project Name]
 
-> This document governs specification generation and is platform-independent.
+> This document governs specification generation and is platform-independent and protocol-agnostic.
 > All agents MUST read this file before beginning any pipeline execution.
 > For platform-specific rules, see `.pipeline/profiles/<platform>.md`.
 

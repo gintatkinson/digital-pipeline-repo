@@ -1,0 +1,33 @@
+[
+  {
+    "name": "Velocity Trigger",
+    "trigger_nodes": ["v-north", "v-east", "v-up"],
+    "rules": [
+      {
+        "target_type": "user-story",
+        "requires_mermaid_block": "sequenceDiagram",
+        "match_terms_in_mermaid": ["v-north", "v-east", "v-up", "speed", "heading"],
+        "match_terms_in_body": ["calculate", "calculation", "compute", "computation", "formula", "derive", "derivation", "speed", "heading"],
+        "error_message": "Velocity nodes are defined in YANG, but no User Story was found with a UML 'sequenceDiagram' containing velocity terms (v-north, v-east, v-up, speed, heading) and detailing velocity/speed/heading calculations."
+      },
+      {
+        "target_type": "use-case",
+        "match_terms_in_body": ["v-north", "v-east", "v-up", "speed", "heading"],
+        "match_terms_in_body_secondary": ["calculate", "calculation", "compute", "computation", "formula", "derive", "derivation"],
+        "error_message": "Velocity nodes are defined in YANG, but no Use Case was found detailing velocity/speed/heading calculations."
+      }
+    ]
+  },
+  {
+    "name": "Temporal Trigger",
+    "trigger_nodes": ["valid-until", "timestamp"],
+    "rules": [
+      {
+        "target_type": "use-case",
+        "requires_mermaid_block": "stateDiagram",
+        "match_terms_in_body": ["valid-until", "timestamp", "expiry", "expired", "stale", "decay", "temporal"],
+        "error_message": "Temporal/lifecycle nodes (valid-until/timestamp) are defined in YANG, but no Use Case was found with a UML 'stateDiagram-v2' modeling temporal validation and decay transitions."
+      }
+    ]
+  }
+]
