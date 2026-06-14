@@ -37,13 +37,13 @@ Use this as the single canonical workflow for translating structural schemas and
    - `type` definitions (fraction-digits, string patterns, identityrefs)
    - `units` and `default` values
    - `config false` (operational vs configuration state)
-4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`) illustrating the domain object class structure, attributes with types, and relationships (aggregations, compositions, inheritances) representing the schema container.
+4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`) illustrating the domain object class structure, attributes with types, and relationships (aggregations, compositions, inheritances) representing the schema container. **Isolated classes are strictly prohibited.** Every class diagram must show relationships to parent or child containers using composition/aggregation lines (using symbols like `*--`, `o--`, `<|--`, `--`, or `-->`) to map nested containers and choice/case structures.
 5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section detailing:
-   - The data that must be stored and retrievable (test data shape, required fields).
+   - The data that must be stored and retrievable, including a copy-pasteable JSON payload shape placeholder representing the complete structure.
    - The validation logic that must be enforced (constraints, ranges, patterns).
-   - The information that must be visually presented to the user and in what logical arrangement (e.g., "display all coordinates in a grouped detail view") — without specifying framework-specific components.
-5. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains location records... When the user inspects the node... Then the detail view displays the physical address"). Do not reference specific UI components or frameworks.
-6. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
+   - Platform-independent layout arrangement guidelines (e.g. specifying logical grouping, field order, and presentation hierarchy such as displaying all coordinates in a grouped detail view, without referencing framework-specific components or grids like React, HTML inputs, CSS flexbox, etc.).
+6. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains location records... When the user inspects the node... Then the detail view displays the physical address"). Do not reference specific UI components or frameworks.
+7. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 
 ## Step 3: Specification Context Injection (Verbatim)
 
@@ -77,13 +77,28 @@ Use this as the single canonical workflow for translating structural schemas and
    ## UML Class Diagram
    ```mermaid
    classDiagram
-       class ContainerName {
-           +Type attributeName
+       ParentContainer *-- ChildContainer : contains
+       class ParentContainer {
+           +string parentAttribute
+       }
+       class ChildContainer {
+           +int childAttribute
        }
    ```
 
    ## Functional UI Requirements
-   [UI data/validation/presentation specifications]
+   ### Data Shape & JSON Payload
+   ```json
+   {
+     "placeholder_key": "placeholder_value"
+   }
+   ```
+
+   ### Validation Logic
+   - Validation rule 1...
+
+   ### Layout & Presentation Guidelines
+   - [Platform-independent layout specifications detailing how the elements are grouped and ordered visually without specifying any platform-specific rendering framework]
 
    ## Given-When-Then Acceptance Criteria
    [BDD scenarios]

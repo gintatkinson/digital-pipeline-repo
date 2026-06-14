@@ -19,6 +19,9 @@ This skill enables a sub-agent to autonomously read a normative specification do
 ## Execution Trigger
 You should invoke this skill ONLY after the structural Features have been extracted using the `schema-specification-engineering` skill.
 
+### Algorithmic & Calculation Story Extraction Trigger
+In addition to standard deployment scenarios, you MUST scan the specification and schema for any derived, computed, or calculated values (e.g. deriving speed or heading from a velocity vector, or performing unit conversions, coordinate transformations, validation ranges, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
+
 ## Step 1: Context Ingestion (Operational Text)
 1. Ingest the target normative specification document.
 2. **IGNORE** the structural schemas (e.g., YANG, OpenAPI, Protobuf) and normative schema definitions.
@@ -38,6 +41,10 @@ For every distinct deployment scenario found, model it as a formal User Story in
    - Or standard format: `As an [Actor], I need to [Action/Message] so that [Outcome/State Change].`
 3. Map the story to specific Domain Objects (the structural schema entities affected).
 4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `LocationRegistry`, `CoordinateValidator`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `LocationProvider`).
+   - **Mandated Sequence Elements:** The diagram MUST model:
+     - **Validation Loops/Conditional Blocks:** Use Mermaid `alt` or `loop` blocks to explicitly illustrate input validation loops (e.g., bounds checking on coordinates or range limits).
+     - **Typed Parameters & Return Values:** All method calls and returns MUST be fully typed (e.g., `registerLocation(latitude: decimal64, longitude: decimal64): status_code`).
+     - **Helper/Calculator Object Delegation:** Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating coordinate transformations to a `GeodesicCalculator` utility class).
 
 
 ## Step 3: The Cross-Cutting Matrix (Feature Linking)
@@ -79,10 +86,21 @@ sequenceDiagram
     autonumber
     actor LocationProvider
     participant LocationRegistry
-    
-    LocationProvider->>LocationRegistry: registerLocation(latitude, longitude)
-    Note over LocationRegistry: Validate coordinate range
-    LocationRegistry-->>LocationProvider: registerLocationResult(success)
+    participant GeodesicCalculator
+
+    LocationProvider->>LocationRegistry: registerLocation(latitude: decimal64, longitude: decimal64)
+    alt is valid coordinates
+        LocationRegistry->>GeodesicCalculator: validateBounds(latitude: decimal64, longitude: decimal64)
+        GeodesicCalculator-->>LocationRegistry: validationResult(isValid: boolean)
+        alt isValid == true
+            Note over LocationRegistry: Store coordinates
+            LocationRegistry-->>LocationProvider: registrationStatus(status: SUCCESS)
+        else isValid == false
+            LocationRegistry-->>LocationProvider: registrationStatus(status: INVALID_COORDINATES)
+        end
+    else missing mandatory fields
+        LocationRegistry-->>LocationProvider: registrationStatus(status: MISSING_FIELDS)
+    end
 ```
 
 ## Operational Context

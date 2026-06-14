@@ -30,7 +30,10 @@ For each major system interaction, model a formal Use Case following standard UM
 2. **Preconditions:** The exact state the system/objects must be in before the Use Case begins.
 3. **Trigger:** The specific event or message that initiates the Use Case.
 4. **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
-5. **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows for every Use Case, covering validation failures, business logic variations, or system/network errors.
+5. **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows for every Use Case.
+   - **Branching Point**: Each flow MUST explicitly identify which step of the Main Success Scenario it branches from.
+   - **Detail Level**: Contain at least 2 numbered steps of system/actor interaction.
+   - **Guarantees**: State the resulting state changes, rollback operations, or notifications.
 6. **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. You must define both a Success Guarantee and a Failure/Abort Guarantee.
 7. **UML Use Case & State Machine Diagrams:** Every Use Case MUST include:
    - A **UML Use Case Diagram** (using Mermaid `graph TD` structured with a system boundary `subgraph` and actors) illustrating the system boundary, actors (both primary and secondary), relationships, and any `<<include>>` or `<<extend>>` linkages.
@@ -46,9 +49,10 @@ An agent MUST extract a separate, dedicated System Use Case (in addition to stan
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)
 A System Use Case is realized by User Stories and structural Features.
-1. Execute `gh issue list --label "user-story" --state "open" --json number,title` and `gh issue list --label "feature" --state "open" --json number,title` to pull the existing inventory.
-2. Determine which User Stories and Features are required to fulfill this specific System Use Case.
-3. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`).
+1. Execute `gh issue list --label "user-story" --state "all" --json number,title,body` and `gh issue list --label "feature" --state "open" --json number,title` to pull the existing inventory.
+2. **Perform Semantic Analysis**: Inspect both titles and content bodies of stories to perform mapping rather than simple title-only matching.
+3. Determine which User Stories and Features are required to fulfill this specific System Use Case.
+4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)` or `(realizes the authentication scenario)`).**
 
 ## Step 4: Markdown Generation
 Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-geo-location.md`). Format strictly:
@@ -79,10 +83,12 @@ spec_source: "[Spec Reference]"
 3. [Step 3...]
 
 ## 5. Alternate and Exception Flows
-- **5a. [Condition]:**
+- **5a. [Condition] (Branches from Basic Flow step [X]):**
   1. [System/Object] does [Action]
-- **5b. [Exception]:**
-  1. [System/Object] aborts and returns to [State]
+  2. [System/Object] transitions to [State] and returns to step [Y] of the Main Success Scenario.
+- **5b. [Exception] (Branches from Basic Flow step [X]):**
+  1. [System/Object] detects [Error]
+  2. [System/Object] aborts the transaction, rolls back [State], and notifies [Actor].
 
 ## 6. Postconditions (Guarantees)
 - **Success Guarantee:** [Final Object/System State on success]
@@ -114,9 +120,9 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #[IssueID] - [User Story Title](https://github.com/owner/repo/blob/branch_name/docs/user-stories/us-XX-name.md)
+- [ ] #[IssueID] - [User Story Title](https://github.com/owner/repo/blob/branch_name/docs/user-stories/us-XX-name.md) (semantic linkage justification)
 ### Required Features
-- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md)
+- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 YANG Schema: [Link to structural schema, e.g., ietf-geo-location@2022-02-11.yang](https://github.com/YangModels/yang/blob/main/standard/ietf/RFC/ietf-geo-location%402022-02-11.yang)

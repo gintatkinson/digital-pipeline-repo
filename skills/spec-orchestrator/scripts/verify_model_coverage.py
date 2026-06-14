@@ -110,12 +110,19 @@ def verify_uml_diagrams(features_dir):
             continue
         
         # Check for Mermaid classDiagram block
-        if not re.search(r"```mermaid\s*\n\s*classDiagram", content):
+        class_diagram_match = re.search(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+        if not class_diagram_match:
             errors.append(f"Feature {os.path.basename(filepath)} is missing a valid '```mermaid classDiagram' block.")
+        elif not re.search(r"(\*--|o--|<\|--|--|-->)", class_diagram_match.group(1)):
+            errors.append(f"Feature {os.path.basename(filepath)} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
             
         # Check that erDiagram is NOT used
         if re.search(r"erDiagram", content):
             errors.append(f"Feature {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
+
+        # Check for JSON payload example under Functional UI Requirements
+        if not re.search(r"##\s+Functional\s+UI\s+Requirements.*```json", content, re.DOTALL | re.IGNORECASE):
+            errors.append(f"Feature {os.path.basename(filepath)} is missing a JSON payload example (```json block) under Functional UI Requirements.")
 
     # 2. Verify User Stories
     story_files = get_md_files(user_stories_dir)
@@ -159,6 +166,51 @@ def verify_uml_diagrams(features_dir):
         # Check for ERD
         if re.search(r"erDiagram", content):
             errors.append(f"Use Case {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
+
+        # Check for Cockburn sections
+        required_sections = [
+            (r"##\s+1\.\s+Actors", "## 1. Actors"),
+            (r"##\s+2\.\s+Preconditions", "## 2. Preconditions"),
+            (r"##\s+3\.\s+Trigger", "## 3. Trigger"),
+            (r"##\s+4\.\s+Main\s+Success\s+Scenario", "## 4. Main Success Scenario"),
+            (r"##\s+5\.\s+Alternate\s+(?:and|&)\s+Exception\s+Flows", "## 5. Alternate and Exception Flows"),
+            (r"##\s+6\.\s+Postconditions", "## 6. Postconditions"),
+            (r"##\s+8\.\s+Realization\s+Matrix", "## 8. Realization Matrix")
+        ]
+        for pattern, header_name in required_sections:
+            if not re.search(pattern, content, re.IGNORECASE):
+                errors.append(f"Use Case {os.path.basename(filepath)} is missing mandated section '{header_name}'.")
+
+        # Enforce at least 2 alternate flows with at least 2 numbered steps
+        flows_block_match = re.search(r"##\s+5\.\s+Alternate\s+(?:and|&)\s+Exception\s+Flows(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
+        if flows_block_match:
+            flows_block = flows_block_match.group(1)
+            flows = re.findall(r"-\s+\*\*\d[a-zA-Z]\..*?(?=-\s+\*\*\d[a-zA-Z]\.|\Z)", flows_block, re.DOTALL)
+            if len(flows) < 2:
+                errors.append(f"Use Case {os.path.basename(filepath)} must contain at least 2 detailed Alternate/Exception flows.")
+            else:
+                for idx, flow in enumerate(flows):
+                    steps = re.findall(r"\b\d+\.\s+\S+", flow)
+                    if len(steps) < 2:
+                        errors.append(f"Use Case {os.path.basename(filepath)} alternate flow {idx+1} is too thin (must contain at least 2 numbered steps).")
+        else:
+            errors.append(f"Use Case {os.path.basename(filepath)} is missing '## 5. Alternate and Exception Flows' content block.")
+
+        # Validate the Realization Matrix checklist and absolute URLs
+        if re.search(r"##\s+8\.\s+Realization\s+Matrix", content, re.IGNORECASE):
+            if not re.search(r"###\s+Required\s+User\s+Stories", content, re.IGNORECASE):
+                errors.append(f"Use Case {os.path.basename(filepath)} is missing '### Required User Stories' under Realization Matrix.")
+            if not re.search(r"###\s+Required\s+Features", content, re.IGNORECASE):
+                errors.append(f"Use Case {os.path.basename(filepath)} is missing '### Required Features' under Realization Matrix.")
+            
+            checkboxes = re.findall(r"-\s+\[[ x]\]\s+.*", content)
+            for cb in checkboxes:
+                if "(" in cb and ")" in cb:
+                    link_match = re.search(r"\((.*?)\)", cb)
+                    if link_match:
+                        link = link_match.group(1)
+                        if not link.startswith("https://github.com/"):
+                            errors.append(f"Use Case {os.path.basename(filepath)} contains a non-absolute/invalid URL in realization matrix: '{link}'.")
 
     return errors
 

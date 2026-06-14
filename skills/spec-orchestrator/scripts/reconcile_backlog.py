@@ -63,6 +63,10 @@ def update_checklist_in_file(filepath, issue_dict):
         dep_num = int(dep_num_str)
         dep_issue = issue_dict.get(dep_num)
         
+        if dep_issue is None:
+            print(f"Error: Invalid/hallucinated dependency reference #{dep_num} in {os.path.basename(filepath)}")
+            sys.exit(1)
+            
         if dep_issue and dep_issue["state"].upper() == "CLOSED":
             # Replace the first uncompleted checkbox of this issue with [x]
             dep_pattern = rf"-\s*\[\s*\]\s*(?:#|#\[|\#\s*){dep_num}\b"
