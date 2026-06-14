@@ -26,7 +26,7 @@ Use this as the single canonical workflow for translating structural schemas and
 
 1. **Parse the Schema:** Read the primary structural schema file (e.g., `*.yang`, `*.yaml`, `*.proto`) and its imports.
 2. **Identify Top-Level Trees:** Decompose the high-level structural containers (e.g., `/system-config`, `/users`, `/orders`) into discrete logical groupings.
-3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic GitHub issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`).
+3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic GitHub issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`). The Epic file MUST contain an overarching UML Class Diagram and a UML State Machine Diagram representing the macro-level domain, combining the individual structures and lifecycles that will be broken down into child features.
 
 ## Step 2: Exhaustive Feature Extraction
 
@@ -67,7 +67,31 @@ Use this as the single canonical workflow for translating structural schemas and
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
 
-2. **File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
+2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
+   ```markdown
+   # Epic: [Epic Title]
+
+   ## Description
+   [High-level functional description of the schema module]
+
+   ## System-Level UML Class Diagram
+   ```mermaid
+   classDiagram
+       [Overall composition of all child feature containers]
+   ```
+
+   ## System State Machine Diagram
+   ```mermaid
+   stateDiagram-v2
+       [*] --> [Initial]
+       [High-level module state transitions]
+   ```
+
+   ## Child Features
+   - [ ] #[IssueID] - [Feature Title](URL)
+   ```
+
+3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
    ```markdown
    # Feature: [Feature Title]
 

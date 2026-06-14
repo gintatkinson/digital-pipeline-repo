@@ -112,6 +112,7 @@ def verify_uml_diagrams(features_dir):
     docs_dir = os.path.dirname(features_dir)
     user_stories_dir = os.path.join(docs_dir, "user-stories")
     use_cases_dir = os.path.join(docs_dir, "use-cases")
+    epics_dir = os.path.join(docs_dir, "epics")
 
     errors = []
 
@@ -237,6 +238,32 @@ def verify_uml_diagrams(features_dir):
                         link = link_match.group(1)
                         if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
                             errors.append(f"Use Case {os.path.basename(filepath)} contains a non-absolute/invalid URL in realization matrix: '{link}'.")
+
+    # 4. Verify Epics
+    epic_files = get_md_files(epics_dir)
+    for filepath in epic_files:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check for invalid Mermaid dotted link syntax
+        if re.search(r"-\.-*->\s*\|", content):
+            errors.append(f"Epic {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+
+        # Check for ## System-Level UML Class Diagram header
+        if not re.search(r"##\s+System-Level\s+UML\s+Class\s+Diagram", content, re.IGNORECASE):
+            errors.append(f"Epic {os.path.basename(filepath)} is missing a '## System-Level UML Class Diagram' header.")
+
+        # Check for Mermaid classDiagram block
+        if not re.search(r"```mermaid\s*\n\s*classDiagram", content):
+            errors.append(f"Epic {os.path.basename(filepath)} is missing a valid '```mermaid classDiagram' block.")
+
+        # Check for ## System State Machine Diagram header
+        if not re.search(r"##\s+System\s+State\s+Machine\s+Diagram", content, re.IGNORECASE):
+            errors.append(f"Epic {os.path.basename(filepath)} is missing a '## System State Machine Diagram' header.")
+
+        # Check for Mermaid stateDiagram-v2 block
+        if not re.search(r"```mermaid\s*\n\s*stateDiagram-v2", content):
+            errors.append(f"Epic {os.path.basename(filepath)} is missing a valid '```mermaid stateDiagram-v2' block.")
 
     return errors
 
