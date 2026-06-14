@@ -11,14 +11,25 @@ def parse_yang_file(filepath):
     Parses a YANG file and extracts all defined names (typedefs, containers, lists, leaves, choices, cases, identities).
     """
     with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
+        raw_content = f.read()
 
-    # Extract module name
-    module_match = re.search(r'\bmodule\s+([a-zA-Z0-9_\-]+)', content)
+    # Extract module name from raw content first
+    module_match = re.search(r'\bmodule\s+([a-zA-Z0-9_\-]+)', raw_content)
     if not module_match:
         return None, set()
 
     module_name = module_match.group(1)
+
+    # Clean the content by removing comments and string literals to prevent parsing prose
+    content = raw_content
+    # Remove block comments /* ... */
+    content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+    # Remove line comments // ...
+    content = re.sub(r'//.*?\n', '\n', content)
+    # Remove double-quoted string literals " ... " (handling escaped characters and multiline)
+    content = re.sub(r'"(\\.|[^"\\])*"', '', content, flags=re.DOTALL)
+    # Remove single-quoted string literals ' ... '
+    content = re.sub(r"'(\\.|[^'\\])*'", '', content, flags=re.DOTALL)
 
     # Patterns to match definitions
     # Covers all primary YANG statement types that define named schema nodes
