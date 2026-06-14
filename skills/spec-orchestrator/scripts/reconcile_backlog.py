@@ -82,12 +82,48 @@ def update_checklist_in_file(filepath, issue_dict):
             
     return updated_content, (has_deps and all_deps_closed)
 
+def convert_frontmatter_to_table(content):
+    match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+    if not match:
+        return content
+    
+    frontmatter_text = match.group(1)
+    body_text = content[match.end():]
+    
+    table_lines = [
+        "| Metadata | Value |",
+        "| --- | --- |"
+    ]
+    
+    for line in frontmatter_text.splitlines():
+        line = line.strip()
+        if not line or ":" not in line:
+            continue
+        key, val = line.split(":", 1)
+        key = key.strip()
+        val = val.strip()
+        
+        # If val is a list, e.g. ["epic", "ietf-geo-location"], clean it up
+        if val.startswith("[") and val.endswith("]"):
+            items = [item.strip().strip('"\'') for item in val[1:-1].split(",")]
+            val = ", ".join(items)
+        else:
+            val = val.strip('"\'')
+            
+        table_lines.append(f"| **{key}** | {val} |")
+        
+    table_text = "\n".join(table_lines) + "\n\n"
+    return table_text + body_text
+
 def sync_issue_body_to_github(issue_num, filepath, issue_type="Issue"):
     print(f"  [{issue_type} Sync] Syncing #{issue_num} body to GitHub...")
     temp_path = filepath + ".tmp_body"
     try:
         with open(filepath, "r", encoding="utf-8") as sf:
             content = sf.read()
+        
+        # Convert YAML frontmatter to a Markdown table for GitHub issue body
+        content = convert_frontmatter_to_table(content)
         
         # Prevent GraphQL: Body is too long (updateIssue) errors (limit is 65536 characters)
         if len(content) > 60000:
@@ -153,8 +189,11 @@ def main():
             feature_titles[norm_title] = num
 
     # Locate the docs directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    docs_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "..", "docs"))
+    if len(sys.argv) > 1:
+        docs_dir = os.path.abspath(sys.argv[1])
+    else:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        docs_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "..", "docs"))
     if not os.path.exists(docs_dir):
         print(f"Docs directory not found at: {docs_dir}")
         sys.exit(1)
@@ -226,12 +265,14 @@ def main():
             if issue_num:
                 _, completed = update_checklist_in_file(filepath, issue_dict)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
-                if completed and is_open:
-                    close_issue_on_github(
-                        issue_num,
-                        f"Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified."
-                    )
-                    issue_dict[issue_num]["state"] = "CLOSED"
+                if is_open:
+                    sync_issue_body_to_github(issue_num, filepath, issue_type="User Story")
+                    if completed:
+                        close_issue_on_github(
+                            issue_num,
+                            f"Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified."
+                        )
+                        issue_dict[issue_num]["state"] = "CLOSED"
             else:
                 print(f"Warning: No GitHub User Story issue found matching: '{title}'")
 
@@ -251,12 +292,14 @@ def main():
             if issue_num:
                 _, completed = update_checklist_in_file(filepath, issue_dict)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
-                if completed and is_open:
-                    close_issue_on_github(
-                        issue_num,
-                        f"Resolved. All dependent user stories and features for use case '{title}' are completed."
-                    )
-                    issue_dict[issue_num]["state"] = "CLOSED"
+                if is_open:
+                    sync_issue_body_to_github(issue_num, filepath, issue_type="Use Case")
+                    if completed:
+                        close_issue_on_github(
+                            issue_num,
+                            f"Resolved. All dependent user stories and features for use case '{title}' are completed."
+                        )
+                        issue_dict[issue_num]["state"] = "CLOSED"
             else:
                 print(f"Warning: No GitHub Use Case issue found matching: '{title}'")
 
