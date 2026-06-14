@@ -25,12 +25,12 @@ Use this as the single canonical workflow for translating structural schemas and
 ## Step 1: Forensic Audit & Module Decomposition
 
 1. **Parse the Schema:** Read the primary structural schema file (e.g., `*.yang`, `*.yaml`, `*.proto`) and its imports.
-2. **Identify Top-Level Trees:** Decompose the high-level structural containers (e.g., `/globals`, `/tunnels`, `/lsps`, `/rpcs`) into discrete logical groupings.
+2. **Identify Top-Level Trees:** Decompose the high-level structural containers (e.g., `/system-config`, `/users`, `/orders`) into discrete logical groupings.
 3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic GitHub issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`).
 
 ## Step 2: Exhaustive Feature Extraction
 
-1. **Semantic Feature Breakdown:** Analyze the child containers, choices, or elements. Identify cohesive functional groups (e.g., a logical grouping of related properties or nested parameters) and map them to a distinct "Feature".
+1. **Semantic Feature Breakdown:** Analyze the child containers, choices, or elements. Identify cohesive functional groups (e.g., a "User Profile" containing `first-name`, `last-name`) and map them to a distinct "Feature".
 2. **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns). Platform-specific implementation details are resolved later via the `feature-driven-implementation` skill using implementation profiles (`.pipeline/profiles/<platform>.md`).
 3. **Exhaustive Constraint Parsing:** For EVERY leaf node within the grouped feature, analyze and record all structural constraints:
    - `when` and `must` clauses
@@ -114,8 +114,8 @@ Use this as the single canonical workflow for translating structural schemas and
    - At the bottom of every feature markdown file, you MUST append a `## 4. Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
    ```markdown
    ## 4. Source References
-   Structural Schema: [schema-filename](link-to-schema)
-   Normative Specification: [specification-name](link-to-specification)
+   Structural Schema: [Target Schema File](link-to-schema)
+   Normative Specification: [Normative Specification](link-to-specification)
    ```
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 

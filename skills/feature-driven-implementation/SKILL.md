@@ -60,7 +60,7 @@ If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or ne
 > Skip this step if the feature uses well-established patterns already documented in the codebase.
 
 ### Step 2: Checkout & Plan Review ("The Grill")
-1. Checkout a dedicated feature branch from `master` (or `main`):
+1. Checkout a dedicated feature branch from `<default-branch>` (e.g., `main` or `master`):
    ```bash
    git checkout -b feat/<N>-<short-description>
    ```
@@ -185,9 +185,9 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 6. Apply any feedback iteratively on the feature branch.
 
 ### Step 5: Release & Closure (CRITICAL)
-1. Merge the feature branch into `master` (or `main`) after explicit acceptance:
+1. Merge the feature branch into `<default-branch>` after explicit acceptance:
    ```bash
-   git checkout master
+   git checkout <default-branch>
    git merge feat/<N>-<short-description>
    ```
 2. Create or update a cumulative solution walkthrough document under `docs/designs/feat-<Issue_Number>-solution.md` summarizing the changes, testing, and validations. Do not delete or overwrite sections for previously implemented sub-features or related components. Ensure the document is a cumulative record of all changes, maintaining a 100% scope perspective to deliver 0-defect verification instructions.
@@ -199,11 +199,11 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
    ```bash
    git add docs/designs/feat-<Issue_Number>-solution.md
    git commit -m "docs: release solution walkthrough for issue #<Issue_Number>"
-   git push origin master
+   git push origin <default-branch>
    ```
 4. Close the feature issue on GitHub using `gh` CLI, embedding a comment pointing to the committed solution document:
    ```bash
-   gh issue close <Issue_Number> --comment "Implemented in master. Solution Walkthrough: https://github.com/<owner>/<repo>/blob/master/docs/designs/feat-<Issue_Number>-solution.md"
+   gh issue close <Issue_Number> --comment "Implemented in <default-branch>. Solution Walkthrough: https://github.com/<owner>/<repo>/blob/<default-branch>/docs/designs/feat-<Issue_Number>-solution.md"
    ```
 5. Update the local parent Epic markdown checklist:
    - Mark the completed feature as completed (`[x]`).

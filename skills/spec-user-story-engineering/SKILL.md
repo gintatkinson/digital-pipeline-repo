@@ -40,11 +40,11 @@ For every distinct deployment scenario found, model it as a formal User Story in
    - `Then` (Postcondition object state)
    - Or standard format: `As an [Actor], I need to [Action/Message] so that [Outcome/State Change].`
 3. Map the story to specific Domain Objects (the structural schema entities affected).
-4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `ComponentRegistry`, `InputValidator`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `DataProvider`).
+4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g., `[DomainRegistry]`, `[EntityValidator]`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `[ClientActor]`).
    - **Mandated Sequence Elements:** The diagram MUST model:
      - **Validation Loops/Conditional Blocks:** Use Mermaid `alt` or `loop` blocks to explicitly illustrate input validation loops (e.g., bounds checking on input fields or parameter limits).
-     - **Typed Parameters & Return Values:** All method calls and returns MUST be fully typed (e.g., `registerData(identifier: string, value: int32): status_code`).
-     - **Helper/Calculator Object Delegation:** Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating computations to a `CalculationEngine` utility class).
+     - **Typed Parameters & Return Values:** All method calls and returns MUST be fully typed (e.g., `operationName(attributeName: DataType): status_code`).
+     - **Helper/Calculator Object Delegation:** Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating computations to a `[BusinessLogicService]` utility class).
 
 
 ## Step 3: The Cross-Cutting Matrix (Feature Linking)
@@ -55,7 +55,7 @@ A User Story requires technical building blocks (Domain Objects/Features) to fun
 4. Construct a `## Required Features` matrix in your document containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature document (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`).
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-earth-wgs84.md`). Format strictly:
+Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-register-entity.md`). Format strictly:
 
 ```markdown
 ---
@@ -84,22 +84,22 @@ spec_source: "[Spec Reference]"
 ```mermaid
 sequenceDiagram
     autonumber
-    actor DataProvider
-    participant ComponentRegistry
-    participant CalculationEngine
+    actor ClientActor
+    participant DomainRegistry
+    participant BusinessLogicService
 
-    DataProvider->>ComponentRegistry: registerData(identifier: string, value: int32)
+    ClientActor->>DomainRegistry: operationName(attributeName: DataType)
     alt is valid payload
-        ComponentRegistry->>CalculationEngine: validateBounds(value: int32)
-        CalculationEngine-->>ComponentRegistry: validationResult(isValid: boolean)
+        DomainRegistry->>BusinessLogicService: validateBounds(attributeName: DataType)
+        BusinessLogicService-->>DomainRegistry: validationResult(isValid: boolean)
         alt isValid == true
-            Note over ComponentRegistry: Store value
-            ComponentRegistry-->>DataProvider: registrationStatus(status: SUCCESS)
+            Note over DomainRegistry: Store value
+            DomainRegistry-->>ClientActor: status(status: SUCCESS)
         else isValid == false
-            ComponentRegistry-->>DataProvider: registrationStatus(status: INVALID_VALUE)
+            DomainRegistry-->>ClientActor: status(status: INVALID_DATA)
         end
     else missing mandatory fields
-        ComponentRegistry-->>DataProvider: registrationStatus(status: MISSING_FIELDS)
+        DomainRegistry-->>ClientActor: status(status: MISSING_FIELDS)
     end
 ```
 
@@ -111,8 +111,8 @@ sequenceDiagram
 - [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md)
 
 ## Source References
-Structural Schema: [Link to structural schema, e.g., schema-filename](link-to-schema)
-Normative Specification: [Link to normative specification, e.g., specification-name](link-to-specification)
+Structural Schema: [Target Schema File](link-to-schema)
+Normative Specification: [Normative Specification](link-to-specification)
 ```
 
 ## Step 5: Zero-Fault GitHub Synchronization

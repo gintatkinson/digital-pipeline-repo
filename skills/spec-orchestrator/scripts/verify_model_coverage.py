@@ -235,7 +235,7 @@ def verify_uml_diagrams(features_dir):
                     link_match = re.search(r"\((.*?)\)", cb)
                     if link_match:
                         link = link_match.group(1)
-                        if not link.startswith("https://github.com/"):
+                        if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
                             errors.append(f"Use Case {os.path.basename(filepath)} contains a non-absolute/invalid URL in realization matrix: '{link}'.")
 
     return errors
@@ -345,9 +345,22 @@ def main():
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
 
+    skip_coverage_checks = False
     if not modules:
-        print("Error: No valid modules/schemas found.")
-        sys.exit(1)
+        non_yang_extensions = {".yaml", ".yml", ".json", ".proto"}
+        has_non_yang_schemas = False
+        if os.path.exists(schema_dir):
+            for filename in os.listdir(schema_dir):
+                ext = os.path.splitext(filename)[1].lower()
+                if ext in non_yang_extensions:
+                    has_non_yang_schemas = True
+                    break
+        if has_non_yang_schemas:
+            print("Warning: Deep AST node coverage parity audit is currently optimized for YANG schemas. Skipping strict coverage percentage check for OpenAPI/Protobuf, but proceeding with UML compliance audit.")
+            skip_coverage_checks = True
+        else:
+            print("Error: No valid modules/schemas found.")
+            sys.exit(1)
 
     # 2. Load all feature markdown files
     features = load_feature_files(features_dir)
@@ -358,55 +371,56 @@ def main():
     total_covered = 0
     coverage_gaps = {}
 
-    for module_name, definitions in sorted(modules.items()):
-        # Find all feature files that explicitly list this module name in their labels
-        matching_features = [f for f in features if module_name in f["labels"]]
-        
-        # If no features target this module explicitly, it is an auxiliary/unused schema and not a target epic.
-        if not matching_features:
-            continue
+    if not skip_coverage_checks:
+        for module_name, definitions in sorted(modules.items()):
+            # Find all feature files that explicitly list this module name in their labels
+            matching_features = [f for f in features if module_name in f["labels"]]
+            
+            # If no features target this module explicitly, it is an auxiliary/unused schema and not a target epic.
+            if not matching_features:
+                continue
 
-        # Combine content of all features globally (definitions can be documented in other features that import them)
-        combined_text = "\n".join([f["content"] for f in features])
+            # Combine content of all features globally (definitions can be documented in other features that import them)
+            combined_text = "\n".join([f["content"] for f in features])
 
-        module_defined = len(definitions)
-        module_covered = 0
-        missing = []
+            module_defined = len(definitions)
+            module_covered = 0
+            missing = []
 
-        for name in sorted(definitions):
-            # Require the name to appear in a structured context to reduce false positives.
-            # Match: `name`, **name**, |name|, - name, or preceded by YANG keywords.
-            # Short names (<=3 chars) require backtick or bold wrapping to avoid prose matches.
-            if len(name) <= 3:
-                pattern = rf"(`{re.escape(name)}`|\*\*{re.escape(name)}\*\*)"
+            for name in sorted(definitions):
+                # Require the name to appear in a structured context to reduce false positives.
+                # Match: `name`, **name**, |name|, - name, or preceded by YANG keywords.
+                # Short names (<=3 chars) require backtick or bold wrapping to avoid prose matches.
+                if len(name) <= 3:
+                    pattern = rf"(`{re.escape(name)}`|\*\*{re.escape(name)}\*\*)"
+                else:
+                    pattern = rf"\b{re.escape(name)}\b"
+                if re.search(pattern, combined_text):
+                    module_covered += 1
+                else:
+                    missing.append(name)
+
+            total_defined += module_defined
+            total_covered += module_covered
+
+            if missing:
+                coverage_gaps[module_name] = missing
+
+            if module_defined > 0:
+                pct = (module_covered / module_defined) * 100
+                print(f"Module '{module_name}': {module_covered}/{module_defined} nodes covered ({pct:.2f}%)")
             else:
-                pattern = rf"\b{re.escape(name)}\b"
-            if re.search(pattern, combined_text):
-                module_covered += 1
-            else:
-                missing.append(name)
+                print(f"Module '{module_name}': 0 nodes defined")
 
-        total_defined += module_defined
-        total_covered += module_covered
-
-        if missing:
-            coverage_gaps[module_name] = missing
-
-        if module_defined > 0:
-            pct = (module_covered / module_defined) * 100
-            print(f"Module '{module_name}': {module_covered}/{module_defined} nodes covered ({pct:.2f}%)")
+        print("\n=== Audit Summary ===")
+        if total_defined > 0:
+            overall_pct = (total_covered / total_defined) * 100
+            print(f"Total Schema Nodes Defined: {total_defined}")
+            print(f"Total Schema Nodes Covered: {total_covered}")
+            print(f"Overall Model Coverage:     {overall_pct:.2f}%")
         else:
-            print(f"Module '{module_name}': 0 nodes defined")
-
-    print("\n=== Audit Summary ===")
-    if total_defined > 0:
-        overall_pct = (total_covered / total_defined) * 100
-        print(f"Total Schema Nodes Defined: {total_defined}")
-        print(f"Total Schema Nodes Covered: {total_covered}")
-        print(f"Overall Model Coverage:     {overall_pct:.2f}%")
-    else:
-        print("No target schema nodes found to verify.")
-        sys.exit(1)
+            print("No target schema nodes found to verify.")
+            sys.exit(1)
 
     print("\n=== UML Diagrams Compliance Audit ===")
     uml_errors = verify_uml_diagrams(features_dir)
@@ -429,7 +443,8 @@ def main():
         print("\nError: 100% model coverage validation failed.")
         has_failed = True
     else:
-        print("\nSuccess: 100% model coverage verified across all specification files.")
+        if not skip_coverage_checks:
+            print("\nSuccess: 100% model coverage verified across all specification files.")
 
     print("\n=== Behavioral Coverage Triggers Audit ===")
     behavioral_errors = verify_behavioral_triggers(schema_dir, features_dir, modules)

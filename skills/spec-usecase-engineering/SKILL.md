@@ -55,7 +55,7 @@ A System Use Case is realized by User Stories and structural Features.
 4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)` or `(realizes the authentication scenario)`).**
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-entity.md`). Format strictly:
+Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-core-entity.md`). Format strictly:
 
 ```markdown
 ---
@@ -125,8 +125,8 @@ stateDiagram-v2
 - [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
-Structural Schema: [Link to structural schema, e.g., schema-filename](link-to-schema)
-Normative Specification: [Link to normative specification, e.g., specification-name](link-to-specification)
+Structural Schema: [Target Schema File](link-to-schema)
+Normative Specification: [Normative Specification](link-to-specification)
 ```
 
 ## Step 5: Zero-Fault GitHub Synchronization
