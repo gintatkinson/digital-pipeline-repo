@@ -37,7 +37,8 @@ Use this as the single canonical workflow for translating structural schemas and
    - `type` definitions (fraction-digits, string patterns, identityrefs)
    - `units` and `default` values
    - `config false` (operational vs configuration state)
-4. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section detailing:
+4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`) illustrating the domain object class structure, attributes with types, and relationships (aggregations, compositions, inheritances) representing the schema container.
+5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section detailing:
    - The data that must be stored and retrievable (test data shape, required fields).
    - The validation logic that must be enforced (constraints, ranges, patterns).
    - The information that must be visually presented to the user and in what logical arrangement (e.g., "display all coordinates in a grouped detail view") — without specifying framework-specific components.
@@ -66,7 +67,35 @@ Use this as the single canonical workflow for translating structural schemas and
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
 
-2. **Source References Block (CRITICAL):**
+2. **File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
+   ```markdown
+   # Feature: [Feature Title]
+
+   ## Description
+   [Functional description of the feature]
+
+   ## UML Class Diagram
+   ```mermaid
+   classDiagram
+       class ContainerName {
+           +Type attributeName
+       }
+   ```
+
+   ## Functional UI Requirements
+   [UI data/validation/presentation specifications]
+
+   ## Given-When-Then Acceptance Criteria
+   [BDD scenarios]
+
+   ## Specification Context (Verbatim)
+   [Raw normative specification context paragraphs]
+
+   ## 4. Source References
+   [Source references links]
+   ```
+
+3. **Source References Block (CRITICAL):**
    - At the bottom of every feature markdown file, you MUST append a `## 4. Source References` section formatted exactly like this:
    ```markdown
    ## 4. Source References

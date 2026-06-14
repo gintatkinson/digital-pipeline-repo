@@ -37,6 +37,8 @@ For every distinct deployment scenario found, model it as a formal User Story in
    - `Then` (Postcondition object state)
    - Or standard format: `As an [Actor], I need to [Action/Message] so that [Outcome/State Change].`
 3. Map the story to specific Domain Objects (the structural schema entities affected).
+4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `LocationRegistry`, `CoordinateValidator`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `LocationProvider`).
+
 
 ## Step 3: The Cross-Cutting Matrix (Feature Linking)
 A User Story requires technical building blocks (Domain Objects/Features) to function. You must find the blocks that have already been built.
@@ -71,12 +73,24 @@ spec_source: "[Spec Reference]"
 **I need to** [Action]
 **So that** [Outcome/State Change]
 
+## UML Sequence Diagram
+```mermaid
+sequenceDiagram
+    autonumber
+    actor LocationProvider
+    participant LocationRegistry
+    
+    LocationProvider->>LocationRegistry: registerLocation(latitude, longitude)
+    Note over LocationRegistry: Validate coordinate range
+    LocationRegistry-->>LocationProvider: registerLocationResult(success)
+```
+
 ## Operational Context
 [Verbatim operational constraints or deployment scenarios quoted from the specification]
 
 ## Required Features Matrix
-- [ ] #[IssueID] [Feature Title]
-- [ ] #[IssueID] [Feature Title]
+- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md)
+- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md)
 
 ## Source References
 YANG Schema: [Link to structural schema, e.g., ietf-geo-location@2022-02-11.yang](https://github.com/YangModels/yang/blob/main/standard/ietf/RFC/ietf-geo-location%402022-02-11.yang)

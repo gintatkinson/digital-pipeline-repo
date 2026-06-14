@@ -79,6 +79,89 @@ def load_feature_files(features_dir):
         })
     return features
 
+def verify_uml_diagrams(features_dir):
+    """
+    Validates that UML diagrams exist in all generated specs and conform to UML-only rules.
+    """
+    docs_dir = os.path.dirname(features_dir)
+    user_stories_dir = os.path.join(docs_dir, "user-stories")
+    use_cases_dir = os.path.join(docs_dir, "use-cases")
+
+    errors = []
+
+    def get_md_files(d):
+        if not os.path.exists(d):
+            return []
+        return [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".md")]
+
+    # 1. Verify Features
+    feature_files = get_md_files(features_dir)
+    for filepath in feature_files:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # Check for invalid Mermaid dotted link syntax
+        if re.search(r"-\.-*->\s*\|", content):
+            errors.append(f"Feature {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+
+        # Check for UML Class Diagram header
+        if not re.search(r"##\s+UML\s+Class\s+Diagram", content, re.IGNORECASE):
+            errors.append(f"Feature {os.path.basename(filepath)} is missing a '## UML Class Diagram' header.")
+            continue
+        
+        # Check for Mermaid classDiagram block
+        if not re.search(r"```mermaid\s*\n\s*classDiagram", content):
+            errors.append(f"Feature {os.path.basename(filepath)} is missing a valid '```mermaid classDiagram' block.")
+            
+        # Check that erDiagram is NOT used
+        if re.search(r"erDiagram", content):
+            errors.append(f"Feature {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
+
+    # 2. Verify User Stories
+    story_files = get_md_files(user_stories_dir)
+    for filepath in story_files:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        # Check for invalid Mermaid dotted link syntax
+        if re.search(r"-\.-*->\s*\|", content):
+            errors.append(f"User Story {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+
+        if not re.search(r"##\s+UML\s+Sequence\s+Diagram", content, re.IGNORECASE):
+            errors.append(f"User Story {os.path.basename(filepath)} is missing a '## UML Sequence Diagram' header.")
+            continue
+            
+        if not re.search(r"```mermaid\s*\n\s*sequenceDiagram", content):
+            errors.append(f"User Story {os.path.basename(filepath)} is missing a valid '```mermaid sequenceDiagram' block.")
+
+    # 3. Verify Use Cases
+    usecase_files = get_md_files(use_cases_dir)
+    for filepath in usecase_files:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        # Check for invalid Mermaid dotted link syntax
+        if re.search(r"-\.-*->\s*\|", content):
+            errors.append(f"Use Case {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+
+        if not re.search(r"##\s+UML\s+Diagrams", content, re.IGNORECASE):
+            errors.append(f"Use Case {os.path.basename(filepath)} is missing a '## UML Diagrams' header.")
+            continue
+            
+        # Check for Use Case Diagram (flowchart graph)
+        if not re.search(r"```mermaid\s*\n\s*(graph|flowchart)", content):
+            errors.append(f"Use Case {os.path.basename(filepath)} is missing a UML Use Case diagram ('```mermaid graph' or 'flowchart').")
+            
+        # Check for State Machine Diagram
+        if not re.search(r"```mermaid\s*\n\s*stateDiagram", content):
+            errors.append(f"Use Case {os.path.basename(filepath)} is missing a UML State Machine diagram ('```mermaid stateDiagram').")
+
+        # Check for ERD
+        if re.search(r"erDiagram", content):
+            errors.append(f"Use Case {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
+
+    return errors
+
 def main():
     workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -177,15 +260,33 @@ def main():
         print("No target schema nodes found to verify.")
         sys.exit(1)
 
+    print("\n=== UML Diagrams Compliance Audit ===")
+    uml_errors = verify_uml_diagrams(features_dir)
+    
+    has_failed = False
+
+    if uml_errors:
+        print("[!] UML Compliance Violations Identified:")
+        for err in uml_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: All specification files are fully UML-compliant (no ERDs or invalid syntax found).")
+
     if coverage_gaps:
         print("\n[!] Coverage Gaps Identified:")
         for module_name, missing in sorted(coverage_gaps.items()):
             print(f"  Module '{module_name}' is missing {len(missing)} nodes:")
             print(f"    Missing: {', '.join(missing)}")
         print("\nError: 100% model coverage validation failed.")
-        sys.exit(1)
+        has_failed = True
     else:
         print("\nSuccess: 100% model coverage verified across all specification files.")
+
+    if has_failed:
+        sys.exit(1)
+    else:
+        print("\nSuccess: All verification checks passed.")
         sys.exit(0)
 
 if __name__ == "__main__":

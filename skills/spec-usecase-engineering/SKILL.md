@@ -29,9 +29,20 @@ For each major system interaction, model a formal Use Case following standard UM
 1. **Primary & Secondary Actors:** The internal/external entities interacting with the system.
 2. **Preconditions:** The exact state the system/objects must be in before the Use Case begins.
 3. **Trigger:** The specific event or message that initiates the Use Case.
-4. **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome.
-5. **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths.
-6. **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects.
+4. **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
+5. **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows for every Use Case, covering validation failures, business logic variations, or system/network errors.
+6. **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. You must define both a Success Guarantee and a Failure/Abort Guarantee.
+7. **UML Use Case & State Machine Diagrams:** Every Use Case MUST include:
+   - A **UML Use Case Diagram** (using Mermaid `graph TD` structured with a system boundary `subgraph` and actors) illustrating the system boundary, actors (both primary and secondary), relationships, and any `<<include>>` or `<<extend>>` linkages.
+   - A **UML State Machine Diagram** (using Mermaid `stateDiagram-v2`) showing transition logic from preconditions to final postconditions.
+   - Only UML diagrams are allowed; ERDs are strictly forbidden.
+   - **Mermaid Dotted Link Label Syntax Constraint:** Dotted/dashed arrows with labels (e.g., for `<<include>>` or `<<extend>>` relationships) MUST use the `-. label .->` syntax (e.g. `UC -. <<include>> .-> UC_Sub`). Do NOT use the pipe syntax (like `-.->|label|` or `-.-->|label|`), as it is invalid Mermaid syntax for dotted lines and will cause parsing and rendering failures on GitHub.
+
+### Behavioral Extraction Triggers (Mandatory Use Cases)
+An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD location management) if the normative text or YANG schema meets any of the following triggers:
+- **Algorithmic/Calculation Trigger**: If the specification defines any mathematical formula, equation, conversion, or derivation, it MUST have a dedicated Use Case mapping the inputs, steps of the calculation flow, and potential edge-case validation failure paths.
+- **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles, it MUST have a dedicated Use Case detailing the expiry check flows, transition to expired/stale state, and postconditions for stale data access.
+
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)
 A System Use Case is realized by User Stories and structural Features.
@@ -75,16 +86,37 @@ spec_source: "[Spec Reference]"
 
 ## 6. Postconditions (Guarantees)
 - **Success Guarantee:** [Final Object/System State on success]
-- **Failure Guarantee:** [Final Object/System State on failure/abort]
+- **Failure Guarantee:** [Final Object/System State on failure/abort/rollback]
+
+## UML Diagrams
+### Use Case Diagram
+```mermaid
+graph TD
+    subgraph System Boundary
+        UC[Use Case Title]
+        UC_Ext[Extended Action]
+    end
+    Actor((Primary Actor)) --> UC
+    UC -. <<extend>> .-> UC_Ext
+    UC --> SecActor((Secondary Actor))
+```
+
+### State Machine Diagram
+```mermaid
+stateDiagram-v2
+    [*] --> [InitialState]
+    [InitialState] --> [State1] : [Event/Transition]
+    [State1] --> [State2] : [Event/Transition]
+```
 
 ## 7. Operational Context
 [Verbatim deployment scenarios quoted from the specification]
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #[IssueID] [User Story Title]
+- [ ] #[IssueID] - [User Story Title](https://github.com/owner/repo/blob/branch_name/docs/user-stories/us-XX-name.md)
 ### Required Features
-- [ ] #[IssueID] [Feature Title]
+- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md)
 
 ## Source References
 YANG Schema: [Link to structural schema, e.g., ietf-geo-location@2022-02-11.yang](https://github.com/YangModels/yang/blob/main/standard/ietf/RFC/ietf-geo-location%402022-02-11.yang)
