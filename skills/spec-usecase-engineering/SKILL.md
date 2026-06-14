@@ -44,7 +44,7 @@ For each major system interaction, model a formal Use Case following standard UM
 ### Behavioral Extraction Triggers (Mandatory Use Cases)
 An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD data management) if the normative text or structural schema meets any of the following triggers:
 - **Algorithmic/Calculation Trigger**: If the specification defines any mathematical formula, equation, conversion, or derivation, it MUST have a dedicated Use Case mapping the inputs, steps of the calculation flow, and potential edge-case validation failure paths.
-- **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles, it MUST have a dedicated Use Case detailing the expiry check flows, transition to expired/stale state, and postconditions for stale data access.
+- **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (e.g., expiration timestamps or state decay time thresholds) or implies state-decay lifecycles, it MUST have a dedicated Use Case detailing the expiry check flows, transition to expired/stale state, and postconditions for stale data access.
 
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)

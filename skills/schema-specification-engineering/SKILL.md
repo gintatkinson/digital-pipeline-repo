@@ -30,7 +30,7 @@ Use this as the single canonical workflow for translating structural schemas and
 
 ## Step 2: Exhaustive Feature Extraction
 
-1. **Semantic Feature Breakdown:** Analyze the child containers, choices, or elements. Identify cohesive functional groups (e.g., a "Velocity Vector" containing `v-north`, `v-east`, and `v-up`) and map them to a distinct "Feature".
+1. **Semantic Feature Breakdown:** Analyze the child containers, choices, or elements. Identify cohesive functional groups (e.g., a logical grouping of related properties or nested parameters) and map them to a distinct "Feature".
 2. **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns). Platform-specific implementation details are resolved later via the `feature-driven-implementation` skill using implementation profiles (`.pipeline/profiles/<platform>.md`).
 3. **Exhaustive Constraint Parsing:** For EVERY leaf node within the grouped feature, analyze and record all structural constraints:
    - `when` and `must` clauses
