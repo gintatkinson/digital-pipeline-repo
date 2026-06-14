@@ -40,11 +40,11 @@ For every distinct deployment scenario found, model it as a formal User Story in
    - `Then` (Postcondition object state)
    - Or standard format: `As an [Actor], I need to [Action/Message] so that [Outcome/State Change].`
 3. Map the story to specific Domain Objects (the structural schema entities affected).
-4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `LocationRegistry`, `CoordinateValidator`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `LocationProvider`).
+4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `ComponentRegistry`, `InputValidator`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `DataProvider`).
    - **Mandated Sequence Elements:** The diagram MUST model:
-     - **Validation Loops/Conditional Blocks:** Use Mermaid `alt` or `loop` blocks to explicitly illustrate input validation loops (e.g., bounds checking on coordinates or range limits).
-     - **Typed Parameters & Return Values:** All method calls and returns MUST be fully typed (e.g., `registerLocation(latitude: decimal64, longitude: decimal64): status_code`).
-     - **Helper/Calculator Object Delegation:** Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating coordinate transformations to a `GeodesicCalculator` utility class).
+     - **Validation Loops/Conditional Blocks:** Use Mermaid `alt` or `loop` blocks to explicitly illustrate input validation loops (e.g., bounds checking on input fields or parameter limits).
+     - **Typed Parameters & Return Values:** All method calls and returns MUST be fully typed (e.g., `registerData(identifier: string, value: int32): status_code`).
+     - **Helper/Calculator Object Delegation:** Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating computations to a `CalculationEngine` utility class).
 
 
 ## Step 3: The Cross-Cutting Matrix (Feature Linking)
@@ -84,22 +84,22 @@ spec_source: "[Spec Reference]"
 ```mermaid
 sequenceDiagram
     autonumber
-    actor LocationProvider
-    participant LocationRegistry
-    participant GeodesicCalculator
+    actor DataProvider
+    participant ComponentRegistry
+    participant CalculationEngine
 
-    LocationProvider->>LocationRegistry: registerLocation(latitude: decimal64, longitude: decimal64)
-    alt is valid coordinates
-        LocationRegistry->>GeodesicCalculator: validateBounds(latitude: decimal64, longitude: decimal64)
-        GeodesicCalculator-->>LocationRegistry: validationResult(isValid: boolean)
+    DataProvider->>ComponentRegistry: registerData(identifier: string, value: int32)
+    alt is valid payload
+        ComponentRegistry->>CalculationEngine: validateBounds(value: int32)
+        CalculationEngine-->>ComponentRegistry: validationResult(isValid: boolean)
         alt isValid == true
-            Note over LocationRegistry: Store coordinates
-            LocationRegistry-->>LocationProvider: registrationStatus(status: SUCCESS)
+            Note over ComponentRegistry: Store value
+            ComponentRegistry-->>DataProvider: registrationStatus(status: SUCCESS)
         else isValid == false
-            LocationRegistry-->>LocationProvider: registrationStatus(status: INVALID_COORDINATES)
+            ComponentRegistry-->>DataProvider: registrationStatus(status: INVALID_VALUE)
         end
     else missing mandatory fields
-        LocationRegistry-->>LocationProvider: registrationStatus(status: MISSING_FIELDS)
+        ComponentRegistry-->>DataProvider: registrationStatus(status: MISSING_FIELDS)
     end
 ```
 

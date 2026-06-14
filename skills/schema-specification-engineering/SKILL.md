@@ -42,7 +42,7 @@ Use this as the single canonical workflow for translating structural schemas and
    - The data that must be stored and retrievable, including a copy-pasteable JSON payload shape placeholder representing the complete structure.
    - The validation logic that must be enforced (constraints, ranges, patterns).
    - Platform-independent layout arrangement guidelines (e.g. specifying logical grouping, field order, and presentation hierarchy such as displaying all coordinates in a grouped detail view, without referencing framework-specific components or grids like React, HTML inputs, CSS flexbox, etc.).
-6. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains location records... When the user inspects the node... Then the detail view displays the physical address"). Do not reference specific UI components or frameworks.
+6. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains active records... When the user inspects the node... Then the detail view displays the record attributes"). Do not reference specific UI components or frameworks.
 7. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 
 ## Step 3: Specification Context Injection (Verbatim)

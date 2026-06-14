@@ -42,7 +42,7 @@ For each major system interaction, model a formal Use Case following standard UM
    - **Mermaid Dotted Link Label Syntax Constraint:** Dotted/dashed arrows with labels (e.g., for `<<include>>` or `<<extend>>` relationships) MUST use the `-. label .->` syntax (e.g. `UC -. <<include>> .-> UC_Sub`). Do NOT use the pipe syntax (like `-.->|label|` or `-.-->|label|`), as it is invalid Mermaid syntax for dotted lines and will cause parsing and rendering failures on GitHub.
 
 ### Behavioral Extraction Triggers (Mandatory Use Cases)
-An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD location management) if the normative text or YANG schema meets any of the following triggers:
+An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD data management) if the normative text or structural schema meets any of the following triggers:
 - **Algorithmic/Calculation Trigger**: If the specification defines any mathematical formula, equation, conversion, or derivation, it MUST have a dedicated Use Case mapping the inputs, steps of the calculation flow, and potential edge-case validation failure paths.
 - **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles, it MUST have a dedicated Use Case detailing the expiry check flows, transition to expired/stale state, and postconditions for stale data access.
 
@@ -55,7 +55,7 @@ A System Use Case is realized by User Stories and structural Features.
 4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)` or `(realizes the authentication scenario)`).**
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-geo-location.md`). Format strictly:
+Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-entity.md`). Format strictly:
 
 ```markdown
 ---
