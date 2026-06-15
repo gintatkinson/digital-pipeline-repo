@@ -190,7 +190,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
    git checkout <default-branch>
    git merge feat/<N>-<short-description>
    ```
-2. Create or update a cumulative solution walkthrough document under `docs/designs/feat-<Issue_Number>-solution.md` summarizing the changes, testing, and validations. Do not delete or overwrite sections for previously implemented sub-features or related components. Ensure the document is a cumulative record of all changes, maintaining a 100% scope perspective to deliver 0-defect verification instructions.
+2. Create or update a cumulative solution walkthrough document under `docs/designs/feat-<Issue_Number>-solution.md` summarizing the changes, testing, and validations. This document must include a Code Realization Table that explicitly maps each feature and its attributes to the implemented source files, classes, methods, and functions. Do not delete or overwrite sections for previously implemented sub-features or related components. Ensure the document is a cumulative record of all changes, maintaining a 100% scope perspective to deliver 0-defect verification instructions.
    > [!IMPORTANT]
    > **DO NOT USE THE FEATURE INDEX NUMBER** (e.g. 24 for Feature 24) in the solution filename if the GitHub Issue Number is different (e.g. 82). The solution file name MUST strictly use the GitHub Issue Number (e.g. `feat-82-solution.md`).
    >

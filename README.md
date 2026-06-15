@@ -60,8 +60,8 @@ Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on
 Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Scenarios, Alternate Flows, Postconditions) and maps them to User Stories and Features in a Realization Matrix. Includes duplicate detection. See `skills/spec-usecase-engineering/SKILL.md`.
 
 #### Pipeline Utilities (Worker D & Coverage Check)
-* **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries GitHub, syncs checkbox states in local markdown, auto-closes completed Epics/Stories/Use Cases.
-* **`scripts/verify_model_coverage.py`**: Parses YANG schemas and mathematically verifies 100% model coverage in feature specs. Supports CLI args: `verify_model_coverage.py [yang_dir] [features_dir]`.
+* **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries GitHub, syncs checkbox states in local markdown using PyYAML, enforces dependency hallucination checks, and auto-closes completed Epics/Stories/Use Cases.
+* **`scripts/verify_model_coverage.py`**: Automated UML compliance linter. Parses YANG schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
 
 ### Pipeline 2: Feature Implementation
 
@@ -286,7 +286,7 @@ A perfectly synchronized taxonomy on your live GitHub board:
 ### Implementation Pipeline
 For each delivered feature:
 
-1. **Solution Walkthrough** (`docs/designs/feat-<Issue_Number>-solution.md`): Cumulative record of changes, testing, and verification.
+1. **Solution Walkthrough** (`docs/designs/feat-<Issue_Number>-solution.md`): Cumulative record of changes, testing, and verification, including a **Code Realization Table** mapping features/attributes to implemented source files, classes, and functions.
 2. **Passing test suite**: All tests green with raw output as evidence.
 3. **Closed GitHub Issue**: With direct link to the committed solution walkthrough.
 4. **Updated Epic checklist**: Feature marked `[x]`, Epic auto-closed when all features complete.

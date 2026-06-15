@@ -70,13 +70,15 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
    ```bash
    ./skills/spec-orchestrator/scripts/reconcile_backlog.py
    ```
-2. **Trigger Model Coverage Verification**: Run the automated model coverage parity check tool:
+2. **Trigger Model Coverage & UML Conformance Verification**: Run the automated UML compliance and coverage linter tool:
    ```bash
    ./skills/spec-orchestrator/scripts/verify_model_coverage.py [yang_dir] [features_dir]
    ```
    If `yang_dir` and `features_dir` are omitted, the script defaults to `$YANG_DIR` / `$FEATURES_DIR` environment variables, or `<repo_root>/yang` and `<repo_root>/docs/features`.
-3. **Execution**: The backlog script queries GitHub issues, resolves checklist checkboxes in the local files, and automatically closes completed Epics, User Stories, and Use Cases. The coverage script verifies that every single node/typedef from the raw YANG schemas is exhaustively documented in the feature specs.
-4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, and that the overall model coverage is verified at exactly 100%.
+3. **Execution**: 
+   - The backlog script parses frontmatter using PyYAML to prevent block erasure, performs dependency issue hallucination checks, queries GitHub issues, syncs checkbox states in local markdown, and automatically closes completed Epics, User Stories, and Use Cases.
+   - The coverage linter parses raw YANG schemas, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage within those class diagrams, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules (isolated classes, standard primitives, lifeline aliases, open return arrow assignments, system boundary use cases, undirected actor links, correct extend arrow directionality, etc.).
+4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%.
 
 ## Phase 5: Final Reporting
 1. Summarize the end-to-end pipeline execution for the user.

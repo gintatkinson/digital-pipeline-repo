@@ -45,7 +45,7 @@ The agent hands the completed build over to you for validation.
 The final stage of the feature's lifecycle.
 - **Action:** 
   1. Once you explicitly accept the feature, the agent merges the feature branch into `<default-branch>`.
-  2. **Solution Document Creation:** The agent commits the final Walkthrough/Solution document to the `docs/designs/` directory.
+  2. **Solution Document Creation:** The agent commits the final Walkthrough/Solution document (including a Code Realization Table mapping features/attributes to implemented code) to the `docs/designs/` directory.
      * **Strict Naming Constraint:** The file MUST be formatted exactly as `feat-<Issue_Number>-solution.md` or `epic-<Issue_Number>-solution.md`, where `<Issue_Number>` is the unique GitHub Issue Number (e.g., `feat-82-solution.md`). **DO NOT** use the Feature Index number (e.g., Feature 24) if the Issue Number is different.
      * **Zero-Trust Collision Check:** Before creating the file, search the repository and Git history to ensure the filename does not already exist. If it does, halt and resolve the naming conflict.
   3. The agent pushes the changes to `<default-branch>` and uses the `gh` CLI to close the corresponding Issue in GitHub, explicitly embedding a direct URL link to the committed solution document on the remote standard default branch in the closing comment.
