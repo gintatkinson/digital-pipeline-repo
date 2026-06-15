@@ -5,7 +5,7 @@ title: "Project Constitution -- Functional Layer (Default)"
 project: "Digital Systems Engineering Pipeline"
 tier: functional
 created: "2025-06-13"
-last_updated: "2025-06-13"
+last_updated: "2026-06-15"
 ---
 
 # Project Constitution: Digital Systems Engineering Pipeline
@@ -159,6 +159,7 @@ last_updated: "2025-06-13"
 
 ## 5. Forbidden Practices
 
+- Do NOT read, write, or execute terminal commands targeting directories outside the active repository workspace.
 - Do NOT invent requirements not present in the specification or schema.
 - Do NOT add platform-specific language to Epics, Features, User Stories, or Use Cases.
 - Do NOT skip negative/error scenarios -- every constraint implies at least one failure mode.
