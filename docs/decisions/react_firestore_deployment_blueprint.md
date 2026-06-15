@@ -219,13 +219,13 @@ To maintain design parity across the hybrid layers, the React components and hoo
 ```mermaid
 flowchart TD
     subgraph P1 ["Phase 1: Local Sandbox Setup"]
-        p1_1["Configure Vite Dev Server (1 hour)"] --> p1_2["Implement firestore-init with IndexedDB (30 mins)"]
+        p1_1["Configure Vite Dev Server (1 hour)"] --> p1_2["Implement Ports & Swappable Adapters (1.5 hours)"]
     end
-    subgraph P2 ["Phase 2: Hybrid Webview Integration"]
-        p1_2 --> p2_1["Embed React view in Flutter WebView (1 hour)"] --> p2_2["Setup Firestore Reactive listeners (1 hour)"]
+    subgraph P2 ["Phase 2: WebView & Proxy Integration"]
+        p1_2 --> p2_1["Embed React view in Flutter WebView (1 hour)"] --> p2_2["Configure Firestore Sync & Envoy routing (1.5 hours)"]
     end
     subgraph P3 ["Phase 3: Verification"]
-        p2_2 --> p3_1["Verify Offline Caching & Sync (1 hour)"] --> p3_2["Run E2E Webview Tests (1 hour)"]
+        p2_2 --> p3_1["Verify Offline Caching & gRPC Calls (1 hour)"] --> p3_2["Run E2E WebView & API Tests (1.5 hours)"]
     end
     
     style P1 fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
@@ -234,6 +234,6 @@ flowchart TD
 ```
 
 1. **Step 1**: Set up the standalone React Vite configuration for the 3D topology canvas.
-2. **Step 2**: Configure the `firestore-init.ts` wrapper with `persistentLocalCache` for IndexedDB cache management.
-3. **Step 3**: Embed the React webview in the Flutter shell and configure Firestore snapshot synchronizations.
-4. **Step 4**: Verify write synchronizations, offline cache fallbacks, and emulator redirection.
+2. **Step 2**: Define the abstract Port interfaces (`ITopologyService`) and code the concrete implementations (`FirestoreTopologyAdapter` and `GrpcWebTopologyAdapter`).
+3. **Step 3**: Embed the React assets inside the Flutter WebView container, configuring real-time Firestore snapshots and the Envoy proxy container for HTTP/1.1 gRPC-web routing.
+4. **Step 4**: Execute manual and automated E2E tests validating offline Firestore mutations and active gRPC streaming event handlers.
