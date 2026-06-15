@@ -82,7 +82,7 @@ Use this as the single canonical workflow for translating structural schemas and
     # Epic: [Epic Title]
 
     ## 1. Context
-    [High-level functional description and reverse-engineering context of the schema module]
+    [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
     - [ ] #[IssueID] - Feature 1: [Feature Title](URL)
