@@ -774,59 +774,260 @@ def verify_uml_diagrams(features_dir):
             return []
         return [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".md")]
 
-    # 1. Verify Features
+    # Scan all feature files to build global class symbol table
+    global_classes = {}
     feature_files = get_md_files(features_dir)
     for filepath in feature_files:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+        class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+        for match in class_diagram_matches:
+            parsed_cd = parse_mermaid_class_diagram(match.group(0))
+            for class_name, class_info in parsed_cd["classes"].items():
+                if class_name not in global_classes:
+                    global_classes[class_name] = {
+                        "name": class_name,
+                        "attributes": [],
+                        "methods": []
+                    }
+                # Merge attributes and methods avoiding duplicates
+                existing_attrs = {a["name"] for a in global_classes[class_name]["attributes"]}
+                for attr in class_info["attributes"]:
+                    if attr["name"] not in existing_attrs:
+                        global_classes[class_name]["attributes"].append(attr)
+                existing_methods = {m["name"] for m in global_classes[class_name]["methods"]}
+                for method in class_info["methods"]:
+                    if method["name"] not in existing_methods:
+                        global_classes[class_name]["methods"].append(method)
+
+    # 1. Verify Features
+    for filepath in feature_files:
+        filename = os.path.basename(filepath)
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
         
         # Check for invalid Mermaid dotted link syntax
         if re.search(r"-\.-*->\s*\|", content):
-            errors.append(f"Feature {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+            errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
 
         # Check for UML Class Diagram header
         if not re.search(r"##\s+UML\s+Class\s+Diagram", content, re.IGNORECASE):
-            errors.append(f"Feature {os.path.basename(filepath)} is missing a '## UML Class Diagram' header.")
+            errors.append(f"Feature {filename} is missing a '## UML Class Diagram' header.")
             continue
         
         # Check for Mermaid classDiagram block
         class_diagram_match = re.search(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
         if not class_diagram_match:
-            errors.append(f"Feature {os.path.basename(filepath)} is missing a valid '```mermaid classDiagram' block.")
-        elif not re.search(r"(\*--|o--|<\|--|--|-->)", class_diagram_match.group(1)):
-            errors.append(f"Feature {os.path.basename(filepath)} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
+            errors.append(f"Feature {filename} is missing a valid '```mermaid classDiagram' block.")
+            continue
             
+        if not re.search(r"(\*--|o--|<\|--|--|-->)", class_diagram_match.group(1)):
+            errors.append(f"Feature {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
+
+        # Semantic Class Diagram Validation
+        parsed_cd = parse_mermaid_class_diagram(class_diagram_match.group(0))
+        classes = parsed_cd["classes"]
+        relationships = parsed_cd["relationships"]
+
+        # Check for isolated classes
+        adj = {c: set() for c in classes}
+        for rel in relationships:
+            u = rel["from_class"]
+            v = rel["to_class"]
+            if u not in adj:
+                adj[u] = set()
+            if v not in adj:
+                adj[v] = set()
+            adj[u].add(v)
+            adj[v].add(u)
+
+        for c, neighbors in adj.items():
+            if len(neighbors) == 0:
+                errors.append(f"Feature {filename} contains class '{c}' with zero relationships. Isolated classes are prohibited.")
+
+        if classes:
+            start_node = next(iter(classes))
+            visited = set()
+            queue = [start_node]
+            visited.add(start_node)
+            while queue:
+                curr = queue.pop(0)
+                for neighbor in adj.get(curr, []):
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            unvisited = set(classes.keys()) - visited
+            if unvisited:
+                errors.append(f"Feature {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.")
+
+        # Primitives check
+        valid_primitives = {"String", "Integer", "Real", "Boolean"}
+        for cls_name, cls_info in classes.items():
+            for attr in cls_info["attributes"]:
+                if attr["raw"] and "<<" in attr["raw"] and ">>" in attr["raw"]:
+                    continue
+                attr_type = attr["type"]
+                if not attr_type:
+                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a type.")
+                    continue
+                if attr_type not in valid_primitives and attr_type not in classes:
+                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' has invalid type '{attr_type}'. UML primitive types must be String, Integer, Real, or Boolean (case-sensitive), or reference another class.")
+
+        # Stereotype & Generalization check
+        choice_classes = set()
+        for line in class_diagram_match.group(0).splitlines():
+            line_clean = line.strip()
+            m1 = re.search(r"<<choice>>\s*([a-zA-Z0-9_\-.:]+)", line_clean, re.IGNORECASE)
+            if m1:
+                choice_classes.add(m1.group(1))
+            m2 = re.search(r"class\s+([a-zA-Z0-9_\-.:]+)\s+.*<<choice>>", line_clean, re.IGNORECASE)
+            if m2:
+                choice_classes.add(m2.group(1))
+        for cls_name, cls_info in classes.items():
+            if "<<choice>>" in cls_name:
+                choice_classes.add(cls_name)
+            for attr in cls_info["attributes"]:
+                if attr["raw"] and "<<choice>>" in attr["raw"]:
+                    choice_classes.add(cls_name)
+
+        for choice_cls in choice_classes:
+            has_subclass = False
+            for rel in relationships:
+                if rel["type"] == "generalization":
+                    is_parent = False
+                    if rel["direction"] == "backward" and rel["from_class"] == choice_cls:
+                        is_parent = True
+                    elif rel["direction"] == "forward" and rel["to_class"] == choice_cls:
+                        is_parent = True
+                    if is_parent:
+                        has_subclass = True
+                        break
+            if not has_subclass:
+                errors.append(f"Feature {filename} choice class '{choice_cls}' must have at least one subclass inheriting from it via generalization (<|--).")
+
+        # Multiplicity & Visibility check
+        for cls_name, cls_info in classes.items():
+            for attr in cls_info["attributes"]:
+                if attr["raw"] and "<<" in attr["raw"] and ">>" in attr["raw"]:
+                    continue
+                if attr["visibility"] not in {"+", "-", "#", "~"}:
+                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a valid UML visibility prefix (+, -, #, ~).")
+                if not attr["multiplicity"]:
+                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).")
+
+            for method in cls_info["methods"]:
+                if method["visibility"] not in {"+", "-", "#", "~"}:
+                    errors.append(f"Feature {filename} class '{cls_name}' method '{method['name']}' is missing a valid UML visibility prefix (+, -, #, ~).")
+                has_mult = False
+                if method["return_type"] and re.search(r'\[[^\]]+\]', method["return_type"]):
+                    has_mult = True
+                elif re.search(r'\)\s*\[[^\]]+\]', method["raw"]) or re.search(r'\]\s*$', method["raw"]):
+                    has_mult = True
+                if not has_mult:
+                    errors.append(f"Feature {filename} class '{cls_name}' method '{method['name']}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
+
         # Check that erDiagram is NOT used
         if re.search(r"erDiagram", content):
-            errors.append(f"Feature {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
+            errors.append(f"Feature {filename} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
 
         # Enforce the structured Functional UI Requirements sub-sections
         if not re.search(r"##\s+Functional\s+UI\s+Requirements", content, re.IGNORECASE):
-            errors.append(f"Feature {os.path.basename(filepath)} is missing '## Functional UI Requirements' section.")
+            errors.append(f"Feature {filename} is missing '## Functional UI Requirements' section.")
         else:
             if not re.search(r"###\s+1\.\s+Test\s+Data\s+Shape", content, re.IGNORECASE):
-                errors.append(f"Feature {os.path.basename(filepath)} is missing structured sub-section '### 1. Test Data Shape (JSON Payload Example)'.")
+                errors.append(f"Feature {filename} is missing structured sub-section '### 1. Test Data Shape (JSON Payload Example)'.")
             elif not re.search(r"###\s+1\.\s+Test\s+Data\s+Shape.*```json", content, re.DOTALL | re.IGNORECASE):
-                errors.append(f"Feature {os.path.basename(filepath)} is missing a JSON payload example (```json block) under Test Data Shape.")
+                errors.append(f"Feature {filename} is missing a JSON payload example (```json block) under Test Data Shape.")
             if not re.search(r"###\s+4\.\s+Interactive\s+Flow\s+&\s+States", content, re.IGNORECASE):
-                errors.append(f"Feature {os.path.basename(filepath)} is missing structured sub-section '### 4. Interactive Flow & States'.")
+                errors.append(f"Feature {filename} is missing structured sub-section '### 4. Interactive Flow & States'.")
 
     # 2. Verify User Stories
     story_files = get_md_files(user_stories_dir)
     for filepath in story_files:
+        filename = os.path.basename(filepath)
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
             
         # Check for invalid Mermaid dotted link syntax
         if re.search(r"-\.-*->\s*\|", content):
-            errors.append(f"User Story {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+            errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
 
         if not re.search(r"##\s+UML\s+Sequence\s+Diagram", content, re.IGNORECASE):
-            errors.append(f"User Story {os.path.basename(filepath)} is missing a '## UML Sequence Diagram' header.")
+            errors.append(f"User Story {filename} is missing a '## UML Sequence Diagram' header.")
             continue
             
-        if not re.search(r"```mermaid\s*\n\s*sequenceDiagram", content):
-            errors.append(f"User Story {os.path.basename(filepath)} is missing a valid '```mermaid sequenceDiagram' block.")
+        # Check for Mermaid sequenceDiagram block(s)
+        seq_diagram_matches = re.finditer(r"```mermaid\s*\n\s*sequenceDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+        has_seq = False
+        for seq_match in seq_diagram_matches:
+            has_seq = True
+            seq_code = seq_match.group(0)
+            parsed_sd = parse_mermaid_sequence_diagram(seq_code)
+            lifelines = parsed_sd["lifelines"]
+            messages = parsed_sd["messages"]
+
+            # Lifeline Notation: Verify all lifelines match the alias-label syntax with name : Classifier
+            for alias, lf in lifelines.items():
+                label = lf["label"]
+                if not lf["classifier_name"]:
+                    errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' is missing the name : Classifier pattern in its label: '{label}'")
+                else:
+                    # Cross-View Classifier Check
+                    cls_name = lf["classifier_name"]
+                    if cls_name not in global_classes:
+                        errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' specifies classifier '{cls_name}' which is not defined in any feature class diagram.")
+
+            # Message operations checks
+            for msg in messages:
+                # Cross-View Operation Check
+                if msg["arrow_type"] in ("sync", "async"):
+                    op_name = msg["operation"]
+                    if not op_name:
+                        errors.append(f"User Story {filename} sequence diagram message '{msg['raw']}' is missing an operation signature.")
+                        continue
+                    receiver = msg["receiver"]
+                    rx_lf = lifelines.get(receiver)
+                    rx_cls = rx_lf["classifier_name"] if rx_lf else None
+                    if rx_cls:
+                        if rx_cls in global_classes:
+                            cls_methods = global_classes[rx_cls]["methods"]
+                            method_found = None
+                            for m in cls_methods:
+                                if m["name"] == op_name:
+                                    method_found = m
+                                    break
+                            if not method_found:
+                                errors.append(f"User Story {filename} sequence diagram message '{msg['raw']}' calls operation '{op_name}' which is not defined on class '{rx_cls}' in any class diagram.")
+                            elif method_found["visibility"] != "+":
+                                errors.append(f"User Story {filename} sequence diagram message '{msg['raw']}' calls non-public operation '{op_name}' on class '{rx_cls}' (visibility must be '+').")
+
+                # Return Arrow Check
+                if msg["arrow_type"] == "reply":
+                    if msg["arrow"] != "-->":
+                        errors.append(f"User Story {filename} sequence diagram return message '{msg['raw']}' uses invalid reply arrow '{msg['arrow']}'. Return arrows must strictly use standard open arrowhead '-->'.")
+                    
+                    # Return Signature Check
+                    raw_msg_text = msg["raw"].split(":", 1)[1].strip() if ":" in msg["raw"] else msg["raw"]
+                    if "(" in raw_msg_text or ")" in raw_msg_text:
+                        errors.append(f"User Story {filename} sequence diagram return message '{msg['raw']}' looks like an operation call (contains parentheses). Return messages must be simple assignments or return values (e.g. status : Status).")
+
+            # Combined Fragment Guards
+            for line in seq_code.splitlines():
+                line_clean = line.strip()
+                line_clean = re.sub(r'%%.*$', '', line_clean).strip()
+                if not line_clean:
+                    continue
+                frag_match = re.match(r'^\s*(alt|loop|opt|par|critical|else|option)(?:\s+(.*))?$', line_clean, re.IGNORECASE)
+                if frag_match:
+                    keyword = frag_match.group(1).lower()
+                    guard_part = frag_match.group(2)
+                    if guard_part:
+                        guard_part = guard_part.strip()
+                        if guard_part and not (guard_part.startswith('[') and guard_part.endswith(']')):
+                            errors.append(f"User Story {filename} sequence diagram contains a combined fragment '{keyword}' with guard '{guard_part}' that is not enclosed in square brackets [].")
+
+        if not has_seq:
+            errors.append(f"User Story {filename} is missing a valid '```mermaid sequenceDiagram' block.")
 
         # Enforce BDD Scenario or Story Statement
         bdd_scenario_present = (
@@ -835,23 +1036,23 @@ def verify_uml_diagrams(features_dir):
             re.search(r"\bAs an\b.*?\bI want to\b.*?\bSo that\b", content, re.DOTALL | re.IGNORECASE)
         )
         if not bdd_scenario_present:
-            errors.append(f"User Story {os.path.basename(filepath)} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).")
+            errors.append(f"User Story {filename} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).")
             
         # Enforce Required Features Matrix & Checklist format
         if not re.search(r"##\s+Required\s+Features(?:\s+Matrix)?", content, re.IGNORECASE):
-            errors.append(f"User Story {os.path.basename(filepath)} is missing '## Required Features Matrix' section.")
+            errors.append(f"User Story {filename} is missing '## Required Features Matrix' section.")
         else:
             checkboxes = re.findall(r"-\s+\[[ x]\]\s+.*", content)
             if not checkboxes:
-                errors.append(f"User Story {os.path.basename(filepath)} must have at least one feature reference checklist item in its Required Features Matrix.")
+                errors.append(f"User Story {filename} must have at least one feature reference checklist item in its Required Features Matrix.")
             for cb in checkboxes:
                 url_match = re.search(r"\]\((https?://[^)]+)\)", cb)
                 if not url_match:
-                    errors.append(f"User Story {os.path.basename(filepath)} contains a checklist item with a missing or non-absolute URL: '{cb.strip()}'.")
+                    errors.append(f"User Story {filename} contains a checklist item with a missing or non-absolute URL: '{cb.strip()}'.")
                 else:
                     link = url_match.group(1)
                     if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
-                        errors.append(f"User Story {os.path.basename(filepath)} contains a non-absolute/invalid URL in Required Features Matrix: '{link}'.")
+                        errors.append(f"User Story {filename} contains a non-absolute/invalid URL in Required Features Matrix: '{link}'.")
 
     # 3. Verify Use Cases
     usecase_files = get_md_files(use_cases_dir)
@@ -880,7 +1081,7 @@ def verify_uml_diagrams(features_dir):
         # Check for State Machine Diagram
         if not re.search(r"```mermaid\s*\n\s*stateDiagram", content):
             errors.append(f"Use Case {basename} is missing a UML State Machine diagram ('```mermaid stateDiagram').")
-
+ 
         # Check for ERD
         if re.search(r"erDiagram", content):
             errors.append(f"Use Case {basename} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
