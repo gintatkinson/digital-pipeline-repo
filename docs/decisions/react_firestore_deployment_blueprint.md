@@ -258,13 +258,13 @@ class FirebaseService {
 ```mermaid
 flowchart TD
     subgraph P1 ["Phase 1: Environment Setup"]
-        p1_1["Configure Tauri Wrapper (3 days)"] --> p1_2["Write firestore-init Service (2 days)"]
+        p1_1["Configure Tauri Wrapper (1 hour)"] --> p1_2["Write firestore-init Service (30 mins)"]
     end
     subgraph P2 ["Phase 2: Dual Mode Server"]
-        p1_2 --> p2_1["Adapt Server for Express & Vite (3 days)"] --> p2_2["Implement Dev/Prod Toggle (2 days)"]
+        p1_2 --> p2_1["Adapt Server for Express & Vite (1 hour)"] --> p2_2["Implement Dev/Prod Toggle (30 mins)"]
     end
     subgraph P3 ["Phase 3: Integration & Testing"]
-        p2_2 --> p3_1["Verify Offline Sync & Rules (3 days)"] --> p3_2["Conduct Audit & Build Tests (2 days)"]
+        p2_2 --> p3_1["Verify Offline Sync & Rules (1 hour)"] --> p3_2["Conduct Audit & Build Tests (1 hour)"]
     end
     
     style P1 fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
