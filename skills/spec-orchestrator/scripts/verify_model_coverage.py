@@ -758,26 +758,14 @@ def load_feature_files(features_dir):
         })
     return features
 
-def verify_uml_diagrams(features_dir):
-    """
-    Validates that UML diagrams exist in all generated specs and conform to UML-only rules.
-    """
-    docs_dir = os.path.dirname(features_dir)
-    user_stories_dir = os.path.join(docs_dir, "user-stories")
-    use_cases_dir = os.path.join(docs_dir, "use-cases")
-    epics_dir = os.path.join(docs_dir, "epics")
-
-    errors = []
-
-    def get_md_files(d):
-        if not os.path.exists(d):
-            return []
-        return [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".md")]
-
-    # Scan all feature files to build global class symbol table
+def build_global_classes(features_dir):
     global_classes = {}
-    feature_files = get_md_files(features_dir)
-    for filepath in feature_files:
+    if not os.path.exists(features_dir):
+        return global_classes
+    for filename in os.listdir(features_dir):
+        if not filename.endswith(".md"):
+            continue
+        filepath = os.path.join(features_dir, filename)
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
@@ -799,6 +787,28 @@ def verify_uml_diagrams(features_dir):
                 for method in class_info["methods"]:
                     if method["name"] not in existing_methods:
                         global_classes[class_name]["methods"].append(method)
+    return global_classes
+
+def verify_uml_diagrams(features_dir, global_classes=None):
+    """
+    Validates that UML diagrams exist in all generated specs and conform to UML-only rules.
+    """
+    docs_dir = os.path.dirname(features_dir)
+    user_stories_dir = os.path.join(docs_dir, "user-stories")
+    use_cases_dir = os.path.join(docs_dir, "use-cases")
+    epics_dir = os.path.join(docs_dir, "epics")
+
+    errors = []
+
+    def get_md_files(d):
+        if not os.path.exists(d):
+            return []
+        return [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".md")]
+
+    # Scan all feature files to build global class symbol table
+    feature_files = get_md_files(features_dir)
+    if global_classes is None:
+        global_classes = build_global_classes(features_dir)
 
     # 1. Verify Features
     for filepath in feature_files:
@@ -1039,10 +1049,12 @@ def verify_uml_diagrams(features_dir):
             errors.append(f"User Story {filename} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).")
             
         # Enforce Required Features Matrix & Checklist format
-        if not re.search(r"##\s+Required\s+Features(?:\s+Matrix)?", content, re.IGNORECASE):
+        rf_match = re.search(r"##\s+Required\s+Features(?:\s+Matrix)?(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+        if not rf_match:
             errors.append(f"User Story {filename} is missing '## Required Features Matrix' section.")
         else:
-            checkboxes = re.findall(r"-\s+\[[ x]\]\s+.*", content)
+            rf_section = rf_match.group(1)
+            checkboxes = re.findall(r"-\s+\[[ xX]\]\s+.*", rf_section)
             if not checkboxes:
                 errors.append(f"User Story {filename} must have at least one feature reference checklist item in its Required Features Matrix.")
             for cb in checkboxes:
@@ -1053,6 +1065,11 @@ def verify_uml_diagrams(features_dir):
                     link = url_match.group(1)
                     if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
                         errors.append(f"User Story {filename} contains a non-absolute/invalid URL in Required Features Matrix: '{link}'.")
+                
+                # Extract semantic linkage justification: must be in parentheses at the end of the line
+                justification_match = re.search(r"\s+\(([^)]+)\)$", cb)
+                if not justification_match or (url_match and justification_match.group(1) == url_match.group(1)):
+                    errors.append(f"User Story {filename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.")
 
     # 3. Verify Use Cases
     usecase_files = get_md_files(use_cases_dir)
@@ -1075,8 +1092,72 @@ def verify_uml_diagrams(features_dir):
             continue
             
         # Check for Use Case Diagram (flowchart graph)
-        if not re.search(r"```mermaid\s*\n\s*(graph|flowchart)", content):
+        usecase_diagram_matches = list(re.finditer(r"```mermaid\s*\n\s*(?:graph|flowchart)(.*?)(?=```|\Z)", content, re.DOTALL))
+        if not usecase_diagram_matches:
             errors.append(f"Use Case {basename} is missing a UML Use Case diagram ('```mermaid graph' or 'flowchart').")
+        else:
+            for match in usecase_diagram_matches:
+                diagram_code = match.group(0)
+                parsed = parse_mermaid_flowchart(diagram_code)
+                
+                # 1. Subject Boundary
+                boundary_sub = None
+                for sub_id, sub_info in parsed["subgraphs"].items():
+                    if "boundary" in sub_id.lower() or "system" in sub_id.lower() or \
+                       (sub_info["label"] and ("boundary" in sub_info["label"].lower() or "system" in sub_info["label"].lower())):
+                        boundary_sub = sub_info
+                        break
+                
+                if not boundary_sub:
+                    errors.append(f"Use Case {basename} is missing a system boundary subgraph (e.g. ID or label containing 'boundary' or 'system').")
+                    continue
+                    
+                boundary_sub_id = boundary_sub["id"]
+                
+                # Helper to check if a node is an actor
+                def is_actor_node(node):
+                    if not node:
+                        return False
+                    return (node.get("shape") == "circle") or \
+                           ("actor" in node["id"].lower()) or \
+                           (node.get("label") and "actor" in node["label"].lower())
+                
+                # Assert all usecase / actor nodes placements and shapes
+                for node_id, node in parsed["nodes"].items():
+                    is_actor = is_actor_node(node)
+                    if is_actor:
+                        # Assert actor node is outside boundary_sub (not in any subgraph's nodes)
+                        if node.get("subgraph") is not None:
+                            errors.append(f"Use Case {basename} actor node '{node_id}' must be placed outside the system boundary subgraph (found in subgraph '{node['subgraph']}').")
+                    else:
+                        # Assert usecase node is inside boundary_sub
+                        if node.get("subgraph") != boundary_sub_id:
+                            errors.append(f"Use Case {basename} use case node '{node_id}' must be defined inside the system boundary subgraph '{boundary_sub_id}'.")
+                        # Assert all use case nodes use stadium/oval shape
+                        if node.get("shape") != "stadium":
+                            errors.append(f"Use Case {basename} use case node '{node_id}' must use the Mermaid stadium/oval shape ('stadium').")
+                
+                # Assert connections
+                for conn in parsed["connections"]:
+                    src_id = conn["from"]
+                    tgt_id = conn["to"]
+                    src_node = parsed["nodes"].get(src_id)
+                    tgt_node = parsed["nodes"].get(tgt_id)
+                    
+                    src_is_actor = is_actor_node(src_node)
+                    tgt_is_actor = is_actor_node(tgt_node)
+                    
+                    # Undirected Actor Links
+                    if (src_is_actor and not tgt_is_actor) or (not src_is_actor and tgt_is_actor):
+                        if "arrow" in conn["style"]:
+                            errors.append(f"Use Case {basename} connection from '{src_id}' to '{tgt_id}' between Actor and Use Case must use an undirected link, not '{conn['style']}'.")
+                    
+                    # Extend Arrow Direction
+                    if conn["label"] and "extend" in conn["label"].lower():
+                        src_has_ext = "extend" in src_id.lower() or "ext" in src_id.lower() or (src_node and src_node.get("label") and ("extend" in src_node["label"].lower() or "ext" in src_node["label"].lower()))
+                        tgt_has_ext = "extend" in tgt_id.lower() or "ext" in tgt_id.lower() or (tgt_node and tgt_node.get("label") and ("extend" in tgt_node["label"].lower() or "ext" in tgt_node["label"].lower()))
+                        if tgt_has_ext and not src_has_ext:
+                            errors.append(f"Use Case {basename} extend arrow from '{src_id}' to '{tgt_id}' is reversed. Extend arrows must point from the extending Use Case (client) to the base Use Case (supplier).")
             
         # Check for State Machine Diagram
         if not re.search(r"```mermaid\s*\n\s*stateDiagram", content):
@@ -1330,6 +1411,8 @@ def main():
     total_covered = 0
     coverage_gaps = {}
 
+    global_classes = build_global_classes(features_dir)
+
     if not skip_coverage_checks:
         for module_name, definitions in sorted(modules.items()):
             # Find all feature files that explicitly list this module name in their labels
@@ -1339,19 +1422,25 @@ def main():
             if not matching_features:
                 continue
 
-            # Combine content of all features globally (definitions can be documented in other features that import them)
-            combined_text = "\n".join([f["content"] for f in features])
-
             module_defined = len(definitions)
             module_covered = 0
             missing = []
 
             for name in sorted(definitions):
-                # Require the name to appear in a structured context to reduce false positives.
-                # Match: `name`, **name**, |name|, - name, or preceded by YANG keywords.
-                # Short names (<=3 chars) require backtick or bold wrapping to avoid prose matches.
-                pattern = rf"(`{re.escape(name)}`|\*\*{re.escape(name)}\*\*)"
-                if re.search(pattern, combined_text):
+                # Verify node coverage against class/attribute/method names in global_classes
+                found = False
+                if name in global_classes:
+                    found = True
+                else:
+                    for cls_info in global_classes.values():
+                        if any(attr["name"] == name for attr in cls_info["attributes"]):
+                            found = True
+                            break
+                        if any(method["name"] == name for method in cls_info["methods"]):
+                            found = True
+                            break
+
+                if found:
                     module_covered += 1
                 else:
                     missing.append(name)
@@ -1379,7 +1468,7 @@ def main():
             sys.exit(1)
 
     print("\n=== UML Diagrams Compliance Audit ===")
-    uml_errors = verify_uml_diagrams(features_dir)
+    uml_errors = verify_uml_diagrams(features_dir, global_classes)
     
     has_failed = False
 
