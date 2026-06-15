@@ -19,8 +19,11 @@ This skill enables a sub-agent to autonomously read a normative specification do
 ## Execution Trigger
 You should invoke this skill ONLY after the structural Features have been extracted using the `schema-specification-engineering` skill.
 
-### Algorithmic & Calculation Story Extraction Trigger
-In addition to standard deployment scenarios, you MUST scan the specification and schema for any derived, computed, or calculated values (e.g. deriving speed or heading from a velocity vector, or performing unit conversions, coordinate transformations, validation ranges, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
+### Algorithmic & Calculation Story Extraction Trigger (Mandatory)
+In addition to standard deployment scenarios, you MUST scan the specification and schema for any derived, computed, or calculated values (e.g. deriving speed or heading from a velocity vector, or performing unit conversions, coordinate transformations, validation ranges, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated, mandatory User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
+
+### Temporal & Lifecycle Expiration Story Extraction Trigger (Mandatory)
+In addition to standard deployment scenarios, you MUST scan the specification and schema for any temporal/lifecycle expirations, state-decay lifecycles, or timeout transitions (e.g. token expiration, data staleness, status-based data access rules, or lifecycle decay). For every temporal or lifecycle expiration identified, you MUST extract a dedicated, mandatory User Story detailing the transition to the expired state and any postconditions for accessing data in that state.
 
 ## Step 1: Context Ingestion (Operational Text & Schemas)
 1. Ingest the target normative specification document AND the target structural schemas (e.g., YANG, OpenAPI, Protobuf).
@@ -39,10 +42,9 @@ In addition to standard deployment scenarios, you MUST scan the specification an
 For every distinct deployment scenario and behavioral trigger found, model it as a formal User Story integrated with OOA/OOD principles.
 
 ### Behavioral Extraction Triggers (Mandatory User Stories)
-An agent MUST extract a separate, dedicated User Story if the normative text or structural schema meets any of the following triggers:
-- **Algorithmic/Calculation Trigger**: If the specification or schema defines any mathematical formula, equation, conversion, or derivation, it MUST have a dedicated User Story mapping the calculation behavior.
-  - BDD scenarios must cover edge cases, rounding, division by zero, and invalid inputs.
-- **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles, it MUST have a dedicated User Story detailing the transition to expired/stale state and postconditions for stale data access.
+An agent MUST extract a separate, dedicated, and mandatory User Story if the normative text or structural schema meets any of the following triggers:
+- **Algorithmic/Calculation Trigger (Mandatory)**: If the specification or schema defines any mathematical formula, equation, conversion, or derivation (e.g. deriving speed or heading from velocity vectors), it MUST have a dedicated User Story mapping the calculation behavior. BDD scenarios must cover edge cases, rounding, division by zero, and invalid inputs.
+- **Temporal/State Lifecycle Trigger (Mandatory)**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles (e.g. temporal or lifecycle expirations), it MUST have a dedicated User Story detailing the transition to expired/stale state and postconditions for stale data access.
 
 1. Identify the Actor/Role (the object or entity initiating the action).
 2. Formulate the core scenario using strict BDD syntax mapped to object interactions:
@@ -51,11 +53,20 @@ An agent MUST extract a separate, dedicated User Story if the normative text or 
    - `Then` (Postcondition object state)
    - Or standard format: `As a [Actor], I want to [Action/Message] so that [Outcome/State Change].`
 3. Map the story to specific Domain Objects (the structural schema entities affected).
-4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g., `[DomainRegistry]`, `[EntityValidator]`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `[ClientActor]`).
-   - **Mandated Sequence Elements:** The diagram MUST model:
-     - **Validation Loops/Conditional Blocks:** Use Mermaid `alt` or `loop` blocks to explicitly illustrate input validation loops (e.g., bounds checking on input fields or parameter limits).
-     - **Typed Parameters & Return Values:** All method calls and returns MUST be fully typed (e.g., `operationName(attributeName: DataType): status_code`).
-     - **Helper/Calculator Object Delegation:** Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating computations to a `[BusinessLogicService]` utility class).
+4. **UML Sequence Diagram**: Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g., `[DomainRegistry]`, `[EntityValidator]`).
+   - **Lifeline Notation**: All sequence diagrams must use the standard UML lifeline notation `name : Classifier` or `: Classifier` (e.g., `clientActor : ClientActor` or `: DomainRegistry`) instead of naked classifier names. In Mermaid, define this using the alias syntax: `actor clientActor as "clientActor : ClientActor"` or `participant domainRegistry as "domainRegistry : DomainRegistry"`. Naming actor participants simply as `Actor` is prohibited; use descriptive names.
+   - **Open Return Arrow**: Return/reply messages must use the open arrowhead (`-->` in Mermaid) instead of the filled/closed arrowhead (`-->>`).
+   - **Return Value Signatures**: Return messages must represent assignments/return values (e.g. `isValid : Boolean` or `registeredId : UUID`) rather than method/operation calls (e.g. `validationResult(isValid: boolean)`).
+   - **Operation Matching**: Every call/message in a sequence diagram must map to a public operation/method (with camelCase signature and typed arguments) on the receiver lifeline's classifier in the class diagrams (e.g., `operationName(attributeName: DataType)`).
+   - **Combined Fragment Guards**: Guards on conditional/looping blocks (e.g. `alt`, `loop`, `opt`) must be enclosed in standard UML square brackets `[guard]` (e.g. `alt [isValid == true]`).
+   - **Validation Loops/Conditional Blocks**: Use Mermaid `alt` or `loop` blocks to explicitly illustrate input validation loops (e.g., bounds checking on input fields or parameter limits).
+   - **Helper/Calculator Object Delegation**: Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating computations to a `[BusinessLogicService]` utility class).
+5. **UML State Machine Diagram**: Include clear templates and rules for modeling state transitions, guards, events, and actions using Mermaid `stateDiagram-v2`.
+   - **State Machine Notation & Rules**:
+     - **States**: States must be written in PascalCase (e.g. `Active`, `Expired`, `Pending`).
+     - **Transitions**: Every transition must be annotated with the syntax `event [guard] / action` on the transition arrow. For example: `StateA --> StateB : submitPayload [payloadIsValid == true] / savePayload`.
+     - **Initial and Final States**: Use `[*]` for entry and exit points.
+     - **Dotted Link Syntax Constraint**: Enforce the use of the `-. label .->` syntax in Mermaid diagrams when referencing secondary or dependency relationships, and strictly prohibit the invalid pipe syntax (`-.->|label|`).
 
 
 ## Step 3: The Cross-Cutting Matrix (Feature Linking)
@@ -95,23 +106,33 @@ spec_source: "[Spec Reference]"
 ```mermaid
 sequenceDiagram
     autonumber
-    actor ClientActor
-    participant DomainRegistry
-    participant BusinessLogicService
+    actor clientActor as "clientActor : ClientActor"
+    participant domainRegistry as "domainRegistry : DomainRegistry"
+    participant businessLogicService as "businessLogicService : BusinessLogicService"
 
-    ClientActor->>DomainRegistry: operationName(attributeName: DataType)
-    alt is valid payload
-        DomainRegistry->>BusinessLogicService: validateBounds(attributeName: DataType)
-        BusinessLogicService-->>DomainRegistry: validationResult(isValid: boolean)
-        alt isValid == true
-            Note over DomainRegistry: Store value
-            DomainRegistry-->>ClientActor: status(status: SUCCESS)
-        else isValid == false
-            DomainRegistry-->>ClientActor: status(status: INVALID_DATA)
+    clientActor->>domainRegistry: operationName(attributeName: DataType)
+    alt [payloadIsValid == true]
+        domainRegistry->>businessLogicService: validateBounds(attributeName: DataType)
+        businessLogicService-->domainRegistry: isValid : Boolean
+        alt [isValid == true]
+            Note over domainRegistry: Store value
+            domainRegistry-->clientActor: status : Status
+        else [isValid == false]
+            domainRegistry-->clientActor: status : Status
         end
-    else missing mandatory fields
-        DomainRegistry-->>ClientActor: status(status: MISSING_FIELDS)
+    else [payloadIsValid == false]
+        domainRegistry-->clientActor: status : Status
     end
+```
+
+## UML State Machine Diagram
+*(Mandatory if the story involves state transitions or lifecycle expirations)*
+```mermaid
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Active : activate [activationCodeIsValid == true] / initializeSession
+    Active --> Expired : expire [timeElapsed >= timeoutLimit] / cleanupResources
+    Expired --> [*]
 ```
 
 ## Operational Context
