@@ -126,8 +126,8 @@ The pipeline requires Python 3, the `gh` CLI, and `git`. Python scripts require 
 Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository:
 
 ```bash
-# Clone the pipeline repo (specifically branch feat/remediation-2.0)
-git clone -b feat/remediation-2.0 https://github.com/gintatkinson/digital-pipeline-repo.git /tmp/digital-pipeline
+# Clone the pipeline repo
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git /tmp/digital-pipeline
 
 # Copy skills, rules, and configurations into your project
 cp -r /tmp/digital-pipeline/skills/ ./skills/
@@ -145,8 +145,8 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates:
 
 ```bash
-# Add as submodule (specifying the 2.0 branch)
-git submodule add -b feat/remediation-2.0 https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+# Add as submodule
+git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
 
 # Your agent reads from .pipeline-skills/skills/ and .pipeline-skills/rules/
 ```
@@ -386,4 +386,4 @@ This pipeline can also be used **alongside** [GitHub Spec Kit](https://github.co
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
-## DeepWiki Documentatio at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
+## DeepWiki Documentation at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
