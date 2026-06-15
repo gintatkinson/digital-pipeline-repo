@@ -26,7 +26,10 @@ Use this as the single canonical workflow for translating structural schemas and
 
 1. **Parse the Schema:** Read the primary structural schema file (e.g., `*.yang`, `*.yaml`, `*.proto`) and its imports.
 2. **Identify Top-Level Trees:** Decompose the high-level structural containers (e.g., `/system-config`, `/users`, `/orders`) into discrete logical groupings.
-3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic GitHub issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`). The Epic file MUST contain an overarching UML Class Diagram and a UML State Machine Diagram representing the macro-level domain, combining the individual structures and lifecycles that will be broken down into child features.
+3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic GitHub issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`). The Epic file MUST contain:
+   - An overarching **System-Level UML Class Diagram** using the Mermaid `namespace` keyword to group the subsystem's child classes under a package boundary (UML Package).
+   - A **UML Component** representing the subsystem, specifying its provided/required interfaces and operations.
+   - A **System State Machine Diagram** representing the macro-level domain, combining the individual structures and lifecycles that will be broken down into child features.
 
 ## Step 2: Exhaustive Feature Extraction
 
@@ -38,15 +41,19 @@ Use this as the single canonical workflow for translating structural schemas and
    - `units` and `default` values
    - `config false` (operational vs configuration state)
 4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
-   - **Hierarchical Composition**: Do NOT show classes in isolation. The diagram MUST illustrate the full container hierarchy from the module root container down to the Feature's target schema nodes, using composition (`*--`) or aggregation (`o--`) relationships.
+   - **UML Classifier Mapping**: Feature specifications must map to a single primary UML Class or DataType (instead of a subtree of containers) representing the schema node.
    - **Choice/Case Representation**: Model schema `choice` structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent `case` containers as classes inheriting (`<|--`) from the choice class.
+   - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of YANG or custom types (e.g. `string`, `uint32`, `decimal64`).
+   - **Visibility & Multiplicity**: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
+   - **UML Constraints**: YANG `must` and `when` constraints must map to formal UML `{constraint}` elements or structured notes.
 5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section divided into the following structured sub-sections:
-   - **1. Test Data Shape (JSON Payload Example)**: A concrete, copy-pasteable JSON payload showing the exact structure of the test data (including nested objects, leaf types, and default values).
+   - **1. Test Data Shape (JSON Payload Example)**: A concrete, copy-pasteable JSON payload schema example block showing the exact structure of the test data (including nested objects, leaf types, and default values).
    - **2. Validation & Constraints**: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions (e.g., "must-after", "if-then").
    - **3. Visual Layout & Arrangement**: A detailed, platform-independent description of the visual layout. Detail the visual grouping (e.g., layout sections, information density, visual hierarchy, primary vs secondary rows) without naming framework-specific components.
    - **4. Interactive Flow & States**: Detail system states (read-only, edit, empty, loading, error highlighting).
 6. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains active records... When the user inspects the node... Then the detail view displays the record attributes"). Do not reference specific UI components or frameworks.
-7. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
+7. **Code Realization Table:** Every feature solution walkthrough/implementation document MUST include a Code Realization Table mapping features/attributes to implemented source files, classes, and functions.
+8. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 
 ## Step 3: Specification Context Injection (Verbatim)
 
@@ -90,10 +97,31 @@ Use this as the single canonical workflow for translating structural schemas and
 
     ## 3. Architecture and System Interaction Diagrams
 
+    ### Subsystem Component Definition
+    Define the subsystem representing the Epic as a UML Component specifying provided/required interfaces and operations.
+    ```mermaid
+    classDiagram
+        class SubsystemComponent {
+            <<component>>
+            +providedInterface() : Boolean [1]
+            +requiredInterface() : String [1]
+        }
+    ```
+
     ## System-Level UML Class Diagram
     ```mermaid
     classDiagram
-        [Overall composition of all child feature containers]
+        namespace SubsystemPackage {
+            class FeatureClassifier1 {
+                +String attributeOne [1]
+                -Boolean attributeTwo [0..1]
+            }
+            class FeatureClassifier2 {
+                +Integer attributeThree [0..*]
+                +operationOne(input : String) : Boolean [1]
+            }
+        }
+        SubsystemComponent ..> FeatureClassifier1 : realizes
     ```
 
     ## 4. State Machine Definitions
@@ -123,21 +151,12 @@ Use this as the single canonical workflow for translating structural schemas and
     ## UML Class Diagram
     ```mermaid
     classDiagram
-        class RootContainer {
-            +Type rootAttribute
+        class FeatureClassifier {
+            +String primaryAttribute [1]
+            -Boolean optionalAttribute [0..1] {constraintText}
+            +Integer listAttribute [0..*]
+            +doSomething(param : String) : Boolean [1]
         }
-        class NestedContainer {
-            +Type nestedAttribute
-        }
-        class ChoiceContainer {
-            <<choice>>
-        }
-        class CaseContainer {
-            +Type caseAttribute
-        }
-        RootContainer *-- NestedContainer : contains
-        NestedContainer *-- ChoiceContainer : has choice
-        ChoiceContainer <|-- CaseContainer : case
     ```
 
     ## Functional UI Requirements
@@ -156,6 +175,11 @@ Use this as the single canonical workflow for translating structural schemas and
 
     ### 4. Interactive Flow & States
     - [Behavior in read-only vs editable mode, validation error indicators, loading/empty states]
+
+   ## Code Realization Table
+   | Feature/Attribute | Source File | Class/Type | Function/Method | Notes |
+   |---|---|---|---|---|
+   | [Attribute or feature] | [Path to source file] | [Class or type name] | [Function or method name] | [Details] |
 
    ## Given-When-Then Acceptance Criteria
    [BDD scenarios]
