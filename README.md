@@ -119,7 +119,7 @@ These rules live in `rules/` and are packaged into the Tessl plugin alongside sk
 
 ## Installation
 
-The pipeline has **no external dependencies beyond `gh` CLI and `git`**. Choose the method that fits your team's workflow.
+The pipeline requires Python 3, the `gh` CLI, and `git`. Python scripts require `PyYAML` to parse configuration and issue frontmatter (install via `pip install -r requirements.txt`). Choose the method that fits your team's workflow.
 
 ### Method 1: Direct Copy (Simplest)
 
