@@ -199,11 +199,42 @@ function isValidNode(data) {
 
 ---
 
-## 5. Future Evolution: Flutter Mapping Strategy
+## 5. Future Evolution: Hybrid Flutter & React Webview Architecture
 
-To prepare for a transition to Flutter (compiling to Native macOS, Windows, and Web), the React components and hooks should be structured to mirror standard Flutter design patterns.
+Rather than rewriting the complex WebGL/Three.js 3D topology visualization canvas in Dart (which would introduce immense technical risk and friction), the long-term roadmap implements a **Hybrid Flutter Application Shell** that embeds the specialized **React 3D Topology view** inside a native webview container.
 
-### 5.1 Architecture Mapping Table
+```
+┌────────────────────────────────────────────────────────┐
+│               FLUTTER APPLICATION SHELL                │
+│  (Auth, Navigation, State Management, CRUD Forms)      │
+│                                                        │
+│   ┌────────────────────────────────────────────────┐   │
+│   │           EMBEDDED WEBVIEW CONTAINER           │   │
+│   │                                                │   │
+│   │            REACT 3D TOPOLOGY VIEW              │   │
+│   │         (WebGL / Three.js 3D Rendering)        │   │
+│   └────────────────────────────────────────────────┘   │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Reactive Real-time Sync
+                           ▼
+                 [ Google Firestore ]
+```
+
+### 5.1 Real-Time Synchronization via Firestore
+By using Google Firestore as the shared state coordinator, the Flutter app shell and React 3D view do not require complex, error-prone platform-channel message serialization. Both components run independent reactive listeners:
+- **Write Path**: Any user interaction (e.g., editing coordinates in a Flutter form, or dragging a 3D node in the React canvas) writes updates directly to the Firestore `/nodes/{nodeId}` collection.
+- **Sync Repaint**: Both platforms run live query listeners (using Dart `snapshots()` and JS `onSnapshot()`). Firestore reactively pushes updates to both views simultaneously, causing the 3D canvas to repaint instantly without direct IPC channel bindings.
+
+### 5.2 Webview Container Integration
+- **Desktop Compilation (macOS/Windows)**: Flutter embeds the React build inside the desktop binary using native desktop webview widgets (e.g., WebView2 on Windows, WebKit on macOS).
+- **Web Compilation**: Flutter embeds the React module on the web target using Flutter's `HtmlElementView` to register and load an `iframe` element pointing to the React static assets directory.
+
+### 5.3 Long-Term Rust Integration (Infrastructure & FFI)
+As the infrastructure transitions to Rust, it serves two critical execution layers:
+1. **Cloud & Server Infrastructure**: Replaces the Express web server with a high-performance Rust web server (e.g., using **Axum** or **Actix-web**).
+2. **Flutter Desktop FFI**: Heavy computations, mathematical simulations, or local database processing are compiled into a Rust dynamic library (`.dylib`, `.dll`, or `.so`) and called natively by Flutter using **Dart FFI** (via `flutter_rust_bridge`).
+
+### 5.4 Architecture Mapping Table
 
 | React Concept | Flutter Equivalent | Description |
 |---|---|---|
@@ -213,8 +244,9 @@ To prepare for a transition to Flutter (compiling to Native macOS, Windows, and 
 | **Custom Hooks (`useAuth`)** | `StateNotifier` / `Notifier` | Encapsulated business and lifecycle logic |
 | **Firebase Web SDK** | `cloud_firestore` / `firebase_auth` | FlutterFire official native plugins |
 | **IndexedDB Cache** | Hive / SQLite / Offline caching | Local persistence engines |
+| **Tauri Rust IPC** | Dart FFI (`flutter_rust_bridge`) | Native Rust library execution bridge |
 
-### 5.2 Flutter Dual-Platform Initialization
+### 5.5 Flutter Dual-Platform Initialization
 The official FlutterFire SDK supports local offline cache out of the box. The initialization code maps 1-to-1 with our React setup:
 
 ```dart
