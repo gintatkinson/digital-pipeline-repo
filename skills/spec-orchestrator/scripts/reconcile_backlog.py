@@ -13,7 +13,9 @@ def normalize_title(title):
     # Strip quotes and leading/trailing whitespace
     title = title.strip().strip('"\'')
     # Strip common prefixes (e.g., epic-01:, feat-02:, us-03:, uc-04:, etc.)
-    title = re.sub(r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?[- ]*\d*[- ]*[:\-]\s*', '', title, flags=re.IGNORECASE)
+    title = re.sub(r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*', '', title, flags=re.IGNORECASE)
+    # Normalize hyphens to spaces to handle typographic variations
+    title = title.replace("-", " ")
     # Strip any remaining punctuation and normalize spacing
     title = re.sub(r'[^\w\s]', '', title)
     title = " ".join(title.split())
@@ -50,15 +52,15 @@ def update_checklist_in_file(filepath, issue_dict):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Find checkboxes matching: - [ ] #123 or - [ ] #[123]
-    pattern = r"(-\s*\[\s*\]\s*(?:#|#\[|\#\s*)(\d+))"
+    # Match both checked and unchecked boxes: e.g., - [ ] #123 or - [x] #123
+    pattern = r"(-\s*\[\s*([ xX])\s*\]\s*(?:#|#\[|\#\s*)(\d+))"
     
     updated_content = content
     all_deps_closed = True
     has_deps = False
     
     matches = re.findall(pattern, content)
-    for full_match, dep_num_str in matches:
+    for full_match, mark, dep_num_str in matches:
         has_deps = True
         dep_num = int(dep_num_str)
         dep_issue = issue_dict.get(dep_num)
@@ -67,18 +69,18 @@ def update_checklist_in_file(filepath, issue_dict):
             print(f"Error: Invalid/hallucinated dependency reference #{dep_num} in {os.path.basename(filepath)}")
             sys.exit(1)
             
-        if dep_issue and dep_issue["state"].upper() == "CLOSED":
-            # Replace the first uncompleted checkbox of this issue with [x]
-            dep_pattern = rf"-\s*\[\s*\]\s*(?:#|#\[|\#\s*){dep_num}\b"
-            updated_content = re.sub(dep_pattern, lambda m: m.group(0).replace("[ ]", "[x]"), updated_content, count=1)
-            print(f"  [Checklist] Checked off dependency #{dep_num} in {os.path.basename(filepath)}")
-        else:
+        is_closed = (dep_issue["state"].upper() == "CLOSED")
+        target_mark = 'x' if is_closed else ' '
+        
+        if mark != target_mark:
+            # Replace the specific checkbox character
+            old_box = f"[{mark}]"
+            new_box = f"[{target_mark}]"
+            updated_content = updated_content.replace(full_match, full_match.replace(old_box, new_box, 1), 1)
+            print(f"  [Checklist] Updated dependency #{dep_num} to [{target_mark}] in {os.path.basename(filepath)}")
+            
+        if not is_closed:
             all_deps_closed = False
-
-    # Check for any remaining open dependencies
-    remaining = re.findall(pattern, updated_content)
-    if remaining:
-        all_deps_closed = False
 
     if updated_content != content:
         with open(filepath, "w", encoding="utf-8") as f:
@@ -99,22 +101,52 @@ def convert_frontmatter_to_table(content):
         "| --- | --- |"
     ]
     
+    current_key = None
+    current_list_values = []
+    
+    def flush_key():
+        nonlocal current_key, current_list_values
+        if current_key:
+            if current_list_values:
+                val = ", ".join(current_list_values)
+            else:
+                val = ""
+            table_lines.append(f"| **{current_key}** | {val} |")
+            current_key = None
+            current_list_values = []
+
     for line in frontmatter_text.splitlines():
-        line = line.strip()
-        if not line or ":" not in line:
+        line_stripped = line.strip()
+        if not line_stripped:
             continue
-        key, val = line.split(":", 1)
-        key = key.strip()
-        val = val.strip()
         
-        # If val is a list, e.g. ["epic", "ietf-geo-location"], clean it up
-        if val.startswith("[") and val.endswith("]"):
-            items = [item.strip().strip('"\'') for item in val[1:-1].split(",")]
-            val = ", ".join(items)
-        else:
-            val = val.strip('"\'')
+        if line_stripped.startswith("-"):
+            # It is a list item under the current key
+            val = line_stripped[1:].strip().strip('"\'')
+            current_list_values.append(val)
+        elif ":" in line_stripped:
+            # It's a new key-value definition. Flush the previous key first.
+            flush_key()
+            key, val = line_stripped.split(":", 1)
+            key = key.strip()
+            val = val.strip()
             
-        table_lines.append(f"| **{key}** | {val} |")
+            # Check if it is an inline list like [a, b]
+            if val.startswith("[") and val.endswith("]"):
+                items = [item.strip().strip('"\'') for item in val[1:-1].split(",")]
+                table_lines.append(f"| **{key}** | {', '.join(items)} |")
+            elif val == "" or val == ">":
+                # Start of a multi-line list or text block
+                current_key = key
+            else:
+                val = val.strip('"\'')
+                table_lines.append(f"| **{key}** | {val} |")
+        else:
+            # Fallback for unrecognized line types
+            pass
+            
+    # Flush the last key
+    flush_key()
         
     table_text = "\n".join(table_lines) + "\n\n"
     return table_text + body_text

@@ -37,11 +37,14 @@ Use this as the single canonical workflow for translating structural schemas and
    - `type` definitions (fraction-digits, string patterns, identityrefs)
    - `units` and `default` values
    - `config false` (operational vs configuration state)
-4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`) illustrating the domain object class structure, attributes with types, and relationships (aggregations, compositions, inheritances) representing the schema container. **Isolated classes are strictly prohibited.** Every class diagram must show relationships to parent or child containers using composition/aggregation lines (using symbols like `*--`, `o--`, `<|--`, `--`, or `-->`) to map nested containers and choice/case structures.
-5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section detailing:
-   - The data that must be stored and retrievable, including a copy-pasteable JSON payload shape placeholder representing the complete structure.
-   - The validation logic that must be enforced (constraints, ranges, patterns).
-   - Platform-independent layout arrangement guidelines (e.g. specifying logical grouping, field order, and presentation hierarchy such as displaying all coordinates in a grouped detail view, without referencing framework-specific components or grids like React, HTML inputs, CSS flexbox, etc.).
+4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
+   - **Hierarchical Composition**: Do NOT show classes in isolation. The diagram MUST illustrate the full container hierarchy from the module root container down to the Feature's target schema nodes, using composition (`*--`) or aggregation (`o--`) relationships.
+   - **Choice/Case Representation**: Model schema `choice` structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent `case` containers as classes inheriting (`<|--`) from the choice class.
+5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section divided into the following structured sub-sections:
+   - **1. Test Data Shape (JSON Payload Example)**: A concrete, copy-pasteable JSON payload showing the exact structure of the test data (including nested objects, leaf types, and default values).
+   - **2. Validation & Constraints**: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions (e.g., "must-after", "if-then").
+   - **3. Visual Layout & Arrangement**: A detailed, platform-independent description of the visual layout. Detail the visual grouping (e.g., layout sections, information density, visual hierarchy, primary vs secondary rows) without naming framework-specific components.
+   - **4. Interactive Flow & States**: Detail system states (read-only, edit, empty, loading, error highlighting).
 6. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains active records... When the user inspects the node... Then the detail view displays the record attributes"). Do not reference specific UI components or frameworks.
 7. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 
@@ -98,31 +101,42 @@ Use this as the single canonical workflow for translating structural schemas and
    ## Description
    [Functional description of the feature]
 
-   ## UML Class Diagram
-   ```mermaid
-   classDiagram
-       ParentContainer *-- ChildContainer : contains
-       class ParentContainer {
-           +string parentAttribute
-       }
-       class ChildContainer {
-           +int childAttribute
-       }
-   ```
+    ## UML Class Diagram
+    ```mermaid
+    classDiagram
+        class RootContainer {
+            +Type rootAttribute
+        }
+        class NestedContainer {
+            +Type nestedAttribute
+        }
+        class ChoiceContainer {
+            <<choice>>
+        }
+        class CaseContainer {
+            +Type caseAttribute
+        }
+        RootContainer *-- NestedContainer : contains
+        NestedContainer *-- ChoiceContainer : has choice
+        ChoiceContainer <|-- CaseContainer : case
+    ```
 
-   ## Functional UI Requirements
-   ### Data Shape & JSON Payload
-   ```json
-   {
-     "placeholder_key": "placeholder_value"
-   }
-   ```
+    ## Functional UI Requirements
+    ### 1. Test Data Shape (JSON Payload Example)
+    ```json
+    {
+      "example_key": "example_value"
+    }
+    ```
 
-   ### Validation Logic
-   - Validation rule 1...
+    ### 2. Validation & Constraints
+    - [Field constraints, ranges, patterns]
 
-   ### Layout & Presentation Guidelines
-   - [Platform-independent layout specifications detailing how the elements are grouped and ordered visually without specifying any platform-specific rendering framework]
+    ### 3. Visual Layout & Arrangement
+    - [Detailed grouping, zoning, typographic hierarchy, and information density guidelines]
+
+    ### 4. Interactive Flow & States
+    - [Behavior in read-only vs editable mode, validation error indicators, loading/empty states]
 
    ## Given-When-Then Acceptance Criteria
    [BDD scenarios]

@@ -9,7 +9,7 @@ metadata:
   category: orchestration
   risk: medium
   source: custom
-  version: "1.1"
+  version: "2.0"
 ---
 
 # Autonomous Specification Orchestrator (Master Command)

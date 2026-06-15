@@ -21,15 +21,12 @@ def parse_yang_file(filepath):
     module_name = module_match.group(1)
 
     # Clean the content by removing comments and string literals to prevent parsing prose
-    content = raw_content
-    # Remove block comments /* ... */
-    content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
-    # Remove line comments // ...
-    content = re.sub(r'//.*?\n', '\n', content)
-    # Remove double-quoted string literals " ... " (handling escaped characters and multiline)
-    content = re.sub(r'"(\\.|[^"\\])*"', '', content, flags=re.DOTALL)
-    # Remove single-quoted string literals ' ... '
-    content = re.sub(r"'(\\.|[^'\\])*'", '', content, flags=re.DOTALL)
+    pattern = r'(/\*.*?\*/)|(//[^\n]*)|("(?:\\.|[^"\\])*")|(\'(?:\\.|[^\'\\])*\')'
+    def replacer(match):
+        if match.group(1): return " "  # block comment -> space
+        if match.group(2): return "\n" # line comment -> newline
+        return ""                      # string literal -> strip
+    content = re.sub(pattern, replacer, raw_content, flags=re.DOTALL)
 
     # Patterns to match definitions
     # Covers all primary YANG statement types that define named schema nodes
@@ -44,7 +41,10 @@ def parse_yang_file(filepath):
         r'\bcase\s+([a-zA-Z0-9_\-]+)',
         r'\bidentity\s+([a-zA-Z0-9_\-]+)',
         r'\banydata\s+([a-zA-Z0-9_\-]+)',
-        r'\banyxml\s+([a-zA-Z0-9_\-]+)'
+        r'\banyxml\s+([a-zA-Z0-9_\-]+)',
+        r'\brpc\s+([a-zA-Z0-9_\-]+)',
+        r'\bnotification\s+([a-zA-Z0-9_\-]+)',
+        r'\baction\s+([a-zA-Z0-9_\-]+)'
     ]
 
     definitions = set()
@@ -158,9 +158,16 @@ def verify_uml_diagrams(features_dir):
         if re.search(r"erDiagram", content):
             errors.append(f"Feature {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
 
-        # Check for JSON payload example under Functional UI Requirements
-        if not re.search(r"##\s+Functional\s+UI\s+Requirements.*```json", content, re.DOTALL | re.IGNORECASE):
-            errors.append(f"Feature {os.path.basename(filepath)} is missing a JSON payload example (```json block) under Functional UI Requirements.")
+        # Enforce the structured Functional UI Requirements sub-sections
+        if not re.search(r"##\s+Functional\s+UI\s+Requirements", content, re.IGNORECASE):
+            errors.append(f"Feature {os.path.basename(filepath)} is missing '## Functional UI Requirements' section.")
+        else:
+            if not re.search(r"###\s+1\.\s+Test\s+Data\s+Shape", content, re.IGNORECASE):
+                errors.append(f"Feature {os.path.basename(filepath)} is missing structured sub-section '### 1. Test Data Shape (JSON Payload Example)'.")
+            elif not re.search(r"###\s+1\.\s+Test\s+Data\s+Shape.*```json", content, re.DOTALL | re.IGNORECASE):
+                errors.append(f"Feature {os.path.basename(filepath)} is missing a JSON payload example (```json block) under Test Data Shape.")
+            if not re.search(r"###\s+4\.\s+Interactive\s+Flow\s+&\s+States", content, re.IGNORECASE):
+                errors.append(f"Feature {os.path.basename(filepath)} is missing structured sub-section '### 4. Interactive Flow & States'.")
 
     # 2. Verify User Stories
     story_files = get_md_files(user_stories_dir)
@@ -179,31 +186,62 @@ def verify_uml_diagrams(features_dir):
         if not re.search(r"```mermaid\s*\n\s*sequenceDiagram", content):
             errors.append(f"User Story {os.path.basename(filepath)} is missing a valid '```mermaid sequenceDiagram' block.")
 
+        # Enforce BDD Scenario or Story Statement
+        bdd_scenario_present = (
+            re.search(r"\bGiven\b.*?\bWhen\b.*?\bThen\b", content, re.DOTALL | re.IGNORECASE) or
+            re.search(r"\bAs a\b.*?\bI want to\b.*?\bSo that\b", content, re.DOTALL | re.IGNORECASE) or
+            re.search(r"\bAs an\b.*?\bI want to\b.*?\bSo that\b", content, re.DOTALL | re.IGNORECASE)
+        )
+        if not bdd_scenario_present:
+            errors.append(f"User Story {os.path.basename(filepath)} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).")
+            
+        # Enforce Required Features Matrix & Checklist format
+        if not re.search(r"##\s+Required\s+Features(?:\s+Matrix)?", content, re.IGNORECASE):
+            errors.append(f"User Story {os.path.basename(filepath)} is missing '## Required Features Matrix' section.")
+        else:
+            checkboxes = re.findall(r"-\s+\[[ x]\]\s+.*", content)
+            if not checkboxes:
+                errors.append(f"User Story {os.path.basename(filepath)} must have at least one feature reference checklist item in its Required Features Matrix.")
+            for cb in checkboxes:
+                url_match = re.search(r"\]\((https?://[^)]+)\)", cb)
+                if not url_match:
+                    errors.append(f"User Story {os.path.basename(filepath)} contains a checklist item with a missing or non-absolute URL: '{cb.strip()}'.")
+                else:
+                    link = url_match.group(1)
+                    if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
+                        errors.append(f"User Story {os.path.basename(filepath)} contains a non-absolute/invalid URL in Required Features Matrix: '{link}'.")
+
     # 3. Verify Use Cases
     usecase_files = get_md_files(use_cases_dir)
     for filepath in usecase_files:
+        basename = os.path.basename(filepath)
+        
+        # Enforce naming convention
+        if not re.match(r"^uc-\d{2}-[a-z0-9\-]+\.md$", basename):
+            errors.append(f"Use Case file '{basename}' does not follow the naming convention 'uc-[XX]-[name].md' (zero-padded, lowercase, dash-separated).")
+
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
             
         # Check for invalid Mermaid dotted link syntax
         if re.search(r"-\.-*->\s*\|", content):
-            errors.append(f"Use Case {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
+            errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
 
         if not re.search(r"##\s+UML\s+Diagrams", content, re.IGNORECASE):
-            errors.append(f"Use Case {os.path.basename(filepath)} is missing a '## UML Diagrams' header.")
+            errors.append(f"Use Case {basename} is missing a '## UML Diagrams' header.")
             continue
             
         # Check for Use Case Diagram (flowchart graph)
         if not re.search(r"```mermaid\s*\n\s*(graph|flowchart)", content):
-            errors.append(f"Use Case {os.path.basename(filepath)} is missing a UML Use Case diagram ('```mermaid graph' or 'flowchart').")
+            errors.append(f"Use Case {basename} is missing a UML Use Case diagram ('```mermaid graph' or 'flowchart').")
             
         # Check for State Machine Diagram
         if not re.search(r"```mermaid\s*\n\s*stateDiagram", content):
-            errors.append(f"Use Case {os.path.basename(filepath)} is missing a UML State Machine diagram ('```mermaid stateDiagram').")
+            errors.append(f"Use Case {basename} is missing a UML State Machine diagram ('```mermaid stateDiagram').")
 
         # Check for ERD
         if re.search(r"erDiagram", content):
-            errors.append(f"Use Case {os.path.basename(filepath)} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
+            errors.append(f"Use Case {basename} contains forbidden 'erDiagram' (ERD diagrams are strictly prohibited).")
 
         # Check for Cockburn sections
         required_sections = [
@@ -217,7 +255,7 @@ def verify_uml_diagrams(features_dir):
         ]
         for pattern, header_name in required_sections:
             if not re.search(pattern, content, re.IGNORECASE):
-                errors.append(f"Use Case {os.path.basename(filepath)} is missing mandated section '{header_name}'.")
+                errors.append(f"Use Case {basename} is missing mandated section '{header_name}'.")
 
         # Enforce at least 2 alternate flows with at least 2 numbered steps
         flows_block_match = re.search(r"##\s+5\.\s+Alternate\s+(?:and|&)\s+Exception\s+Flows(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
@@ -225,30 +263,54 @@ def verify_uml_diagrams(features_dir):
             flows_block = flows_block_match.group(1)
             flows = re.findall(r"-\s+\*\*\d[a-zA-Z]\..*?(?=-\s+\*\*\d[a-zA-Z]\.|\Z)", flows_block, re.DOTALL)
             if len(flows) < 2:
-                errors.append(f"Use Case {os.path.basename(filepath)} must contain at least 2 detailed Alternate/Exception flows.")
+                errors.append(f"Use Case {basename} must contain at least 2 detailed Alternate/Exception flows.")
             else:
                 for idx, flow in enumerate(flows):
                     steps = re.findall(r"\b\d+\.\s+\S+", flow)
                     if len(steps) < 2:
-                        errors.append(f"Use Case {os.path.basename(filepath)} alternate flow {idx+1} is too thin (must contain at least 2 numbered steps).")
+                        errors.append(f"Use Case {basename} alternate flow {idx+1} is too thin (must contain at least 2 numbered steps).")
         else:
-            errors.append(f"Use Case {os.path.basename(filepath)} is missing '## 5. Alternate and Exception Flows' content block.")
+            errors.append(f"Use Case {basename} is missing '## 5. Alternate and Exception Flows' content block.")
 
         # Validate the Realization Matrix checklist and absolute URLs
         if re.search(r"##\s+8\.\s+Realization\s+Matrix", content, re.IGNORECASE):
             if not re.search(r"###\s+Required\s+User\s+Stories", content, re.IGNORECASE):
-                errors.append(f"Use Case {os.path.basename(filepath)} is missing '### Required User Stories' under Realization Matrix.")
+                errors.append(f"Use Case {basename} is missing '### Required User Stories' under Realization Matrix.")
             if not re.search(r"###\s+Required\s+Features", content, re.IGNORECASE):
-                errors.append(f"Use Case {os.path.basename(filepath)} is missing '### Required Features' under Realization Matrix.")
+                errors.append(f"Use Case {basename} is missing '### Required Features' under Realization Matrix.")
             
-            checkboxes = re.findall(r"-\s+\[[ x]\]\s+.*", content)
-            for cb in checkboxes:
-                if "(" in cb and ")" in cb:
-                    link_match = re.search(r"\((.*?)\)", cb)
-                    if link_match:
-                        link = link_match.group(1)
-                        if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
-                            errors.append(f"Use Case {os.path.basename(filepath)} contains a non-absolute/invalid URL in realization matrix: '{link}'.")
+            # Validate checklist occupancy and contents under specific subheadings
+            stories_section_match = re.search(r"###\s+Required\s+User\s+Stories(.*?)(?=###\s+Required\s+Features|##\s+Source\s+References|\Z)", content, re.DOTALL | re.IGNORECASE)
+            features_section_match = re.search(r"###\s+Required\s+Features(.*?)(?=###\s+Required\s+User\s+Stories|##\s+Source\s+References|\Z)", content, re.DOTALL | re.IGNORECASE)
+            
+            story_checkboxes = []
+            if stories_section_match:
+                story_checkboxes = re.findall(r"-\s+\[[ xX]\]\s+.*", stories_section_match.group(1))
+            
+            feature_checkboxes = []
+            if features_section_match:
+                feature_checkboxes = re.findall(r"-\s+\[[ xX]\]\s+.*", features_section_match.group(1))
+                
+            if not story_checkboxes:
+                errors.append(f"Use Case {basename} Realization Matrix contains no User Story checkboxes under '### Required User Stories'.")
+            if not feature_checkboxes:
+                errors.append(f"Use Case {basename} Realization Matrix contains no Feature checkboxes under '### Required Features'.")
+                
+            all_checkboxes = story_checkboxes + feature_checkboxes
+            for cb in all_checkboxes:
+                # Extract URL: must be in parentheses immediately following the markdown link bracket
+                url_match = re.search(r"\]\((https?://[^)]+)\)", cb)
+                if not url_match:
+                    errors.append(f"Use Case {basename} contains a checklist item with a missing or non-absolute markdown link URL: '{cb.strip()}'.")
+                else:
+                    url_str = url_match.group(1)
+                    if not re.match(r"^https?://[a-zA-Z0-9.-]+/", url_str):
+                        errors.append(f"Use Case {basename} contains an invalid URL in realization matrix: '{url_str}'.")
+                
+                # Extract semantic linkage justification: must be in parentheses at the end of the line
+                justification_match = re.search(r"\s+\(([^)]+)\)$", cb)
+                if not justification_match or (url_match and justification_match.group(1) == url_match.group(1)):
+                    errors.append(f"Use Case {basename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.")
 
     # 4. Verify Epics
     epic_files = get_md_files(epics_dir)
@@ -403,6 +465,9 @@ def main():
     # 2. Load all feature markdown files
     features = load_feature_files(features_dir)
     print(f"Loaded {len(features)} feature specifications.\n")
+    if not features:
+        print("Error: No feature specifications found in directory.")
+        sys.exit(1)
 
     # 3. Audit coverage per module
     total_defined = 0
@@ -429,10 +494,7 @@ def main():
                 # Require the name to appear in a structured context to reduce false positives.
                 # Match: `name`, **name**, |name|, - name, or preceded by YANG keywords.
                 # Short names (<=3 chars) require backtick or bold wrapping to avoid prose matches.
-                if len(name) <= 3:
-                    pattern = rf"(`{re.escape(name)}`|\*\*{re.escape(name)}\*\*)"
-                else:
-                    pattern = rf"\b{re.escape(name)}\b"
+                pattern = rf"(`{re.escape(name)}`|\*\*{re.escape(name)}\*\*)"
                 if re.search(pattern, combined_text):
                     module_covered += 1
                 else:

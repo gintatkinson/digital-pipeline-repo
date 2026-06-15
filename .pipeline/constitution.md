@@ -27,12 +27,12 @@ last_updated: "2025-06-13"
 ### 1.2 Schema Compliance
 
 - Every data model constraint in the schema MUST be captured in at least one Feature's acceptance criteria. Zero loss tolerance.
-- Constraints include: type, range, pattern, default, mandatory, when, must, min-elements, max-elements, ordered-by, unique, leafref targets.
+- Constraints include: data type, validation ranges, regex patterns, default values, mandatory fields, conditional expressions, minimum/maximum elements, and structural relationship references.
 - If a schema node has no explicit constraint, document its type and note "no additional constraints specified in schema."
 
 ### 1.3 Data Model Integrity
 
-- Every container, list, leaf, leaf-list, choice, case, augmentation, grouping usage, typedef, identity, and deviation MUST map to at least one Feature.
+- Every schema definition, model node, data object, property, variant, custom type, and extension defined in the input schemas MUST map to at least one Feature.
 - Cross-module references (leafref, augment, uses) must be explicitly documented with source and target module names.
 - Circular dependencies must be flagged and escalated -- do not silently drop them.
 
@@ -69,7 +69,7 @@ last_updated: "2025-06-13"
 - Negative scenarios (error cases, boundary violations) are MANDATORY for every constraint.
 - Example:
   ```
-  Given a network node with leaf "admin-status" of type enumeration {up, down, testing}
+  Given a database record with a status attribute restricted to enum values {active, suspended, inactive}
   When the system receives a value of "unknown" (not in enumeration)
   Then the system rejects the value with a constraint violation error
   ```
@@ -101,12 +101,12 @@ last_updated: "2025-06-13"
 
 - Specification commits: `docs: [action] [artifact type] -- [brief description]`
   - Example: `docs: create feature -- display node attributes with validation`
-  - Example: `docs: update epic -- add termination-point features`
+  - Example: docs: update epic -- add domain-registration features
 - Implementation commits: `feat:`, `fix:`, `test:`, `refactor:`, `chore:` per Conventional Commits.
 
 ### 3.2 Branch Strategy
 
-- Specification work: directly on `master` (or a single `spec/<module>` branch if the change is large).
+- Specification work: directly on the default branch (e.g. `main`/`master`) or a single `spec/<module>` branch if the change is large.
 - Implementation work: `feat/<issue-number>-<short-description>` branches.
 
 ### 3.3 Documentation Standards

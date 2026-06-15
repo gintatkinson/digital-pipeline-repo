@@ -9,7 +9,7 @@ metadata:
   category: architecture
   risk: low
   source: custom
-  version: "1.1"
+  version: "2.0"
 ---
 
 # Specification Use Case Engineering (System Interaction)
@@ -49,7 +49,7 @@ An agent MUST extract a separate, dedicated System Use Case (in addition to stan
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)
 A System Use Case is realized by User Stories and structural Features.
-1. Execute `gh issue list --label "user-story" --state "all" --json number,title,body` and `gh issue list --label "feature" --state "open" --json number,title` to pull the existing inventory.
+1. Execute `gh issue list --label "user-story" --state "all" --json number,title,body` and `gh issue list --label "feature" --state "all" --json number,title,body` to pull the existing inventory.
 2. **Perform Semantic Analysis**: Inspect both titles and content bodies of stories to perform mapping rather than simple title-only matching.
 3. Determine which User Stories and Features are required to fulfill this specific System Use Case.
 4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)` or `(realizes the authentication scenario)`).**

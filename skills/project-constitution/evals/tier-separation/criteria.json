@@ -13,7 +13,7 @@
     },
     {
       "name": "domain_rules_present",
-      "description": "Functional constitution includes domain rules referencing IETF RFC 8345 and YANG schema compliance",
+      "description": "Functional constitution includes domain rules referencing standard/schema compliance matching the input domain",
       "weight": 2
     },
     {
