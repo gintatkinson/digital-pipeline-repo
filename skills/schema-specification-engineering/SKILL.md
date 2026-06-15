@@ -71,28 +71,47 @@ Use this as the single canonical workflow for translating structural schemas and
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
-   ```markdown
-   # Epic: [Epic Title]
+    ```markdown
+    # Epic: [Epic Title]
 
-   ## Description
-   [High-level functional description of the schema module]
+    ## 1. Context
+    [High-level functional description and reverse-engineering context of the schema module]
 
-   ## System-Level UML Class Diagram
-   ```mermaid
-   classDiagram
-       [Overall composition of all child feature containers]
-   ```
+    ## 2. Requirements & Checklist
+    - [ ] #[IssueID] - Feature 1: [Feature Title](URL)
 
-   ## System State Machine Diagram
-   ```mermaid
-   stateDiagram-v2
-       [*] --> [Initial]
-       [High-level module state transitions]
-   ```
+    ### Associated Use Cases & User Stories
 
-   ## Child Features
-   - [ ] #[IssueID] - [Feature Title](URL)
-   ```
+    #### Associated Use Cases
+    - [ ] #[IssueID] - Use Case 1: [Use Case Title] (Issue #[IssueID])
+
+    #### Associated User Stories
+    - [ ] #[IssueID] - User Story 1: [User Story Title] (Issue #[IssueID])
+
+    ## 3. Architecture and System Interaction Diagrams
+
+    ## System-Level UML Class Diagram
+    ```mermaid
+    classDiagram
+        [Overall composition of all child feature containers]
+    ```
+
+    ## 4. State Machine Definitions
+
+    ## System State Machine Diagram
+    ```mermaid
+    stateDiagram-v2
+        [*] --> [Initial]
+        [High-level module state transitions]
+    ```
+
+    ## 5. Specification Context
+    [Verbatim schema grouping/container descriptions from the normative specification]
+
+    ## 6. Source References
+    YANG Schema: [Schema File Name]
+    Normative Specification: [RFC/Standard Name]
+    ```
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
    ```markdown

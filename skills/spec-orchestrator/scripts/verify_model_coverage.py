@@ -322,6 +322,19 @@ def verify_uml_diagrams(features_dir):
         if re.search(r"-\.-*->\s*\|", content):
             errors.append(f"Epic {os.path.basename(filepath)} contains invalid Mermaid dotted link label syntax (e.g. '-.->|' or '-.-->|'). Use '-. label .->' instead.")
 
+        # Check for mandated 6-section headers
+        required_headers = [
+            (r"##\s+1\.\s+Context", "## 1. Context"),
+            (r"##\s+2\.\s+Requirements\s+&\s+Checklist", "## 2. Requirements & Checklist"),
+            (r"##\s+3\.\s+Architecture\s+and\s+System\s+Interaction\s+Diagrams", "## 3. Architecture and System Interaction Diagrams"),
+            (r"##\s+4\.\s+State\s+Machine\s+Definitions", "## 4. State Machine Definitions"),
+            (r"##\s+5\.\s+Specification\s+Context", "## 5. Specification Context"),
+            (r"##\s+6\.\s+Source\s+References", "## 6. Source References")
+        ]
+        for pattern, header_name in required_headers:
+            if not re.search(pattern, content, re.IGNORECASE):
+                errors.append(f"Epic {os.path.basename(filepath)} is missing mandated section '{header_name}'.")
+
         # Check for ## System-Level UML Class Diagram header
         if not re.search(r"##\s+System-Level\s+UML\s+Class\s+Diagram", content, re.IGNORECASE):
             errors.append(f"Epic {os.path.basename(filepath)} is missing a '## System-Level UML Class Diagram' header.")
