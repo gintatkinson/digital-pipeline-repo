@@ -586,7 +586,7 @@ def parse_mermaid_sequence_diagram(mermaid_code):
             continue
             
         msg_match = re.match(
-            r'^\s*([a-zA-Z0-9_\-.:]+)\s*(-->>|->>|-->|->|--x|-x)([+-]?)\s*([a-zA-Z0-9_\-.:]+)([+-]?)\s*:\s*(.*)$',
+            r'^\s*([a-zA-Z0-9_.:]+(?:-[a-zA-Z0-9_.:]+)*)\s*(-->>|->>|-->|->|--x|-x)([+-]?)\s*([a-zA-Z0-9_.:]+(?:-[a-zA-Z0-9_.:]+)*)([+-]?)\s*:\s*(.*)$',
             line
         )
         if msg_match:
@@ -1428,15 +1428,26 @@ def main():
 
             for name in sorted(definitions):
                 # Verify node coverage against class/attribute/method names in global_classes
+                # Support camelCase and PascalCase variations from kebab-case / snake_case
+                variants = {name}
+                if '-' in name or '_' in name:
+                    parts = re.split(r'[-_]', name)
+                    variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
+                    variants.add("".join(p.capitalize() for p in parts))
+                else:
+                    if name:
+                        variants.add(name[0].lower() + name[1:])
+                        variants.add(name[0].upper() + name[1:])
+
                 found = False
-                if name in global_classes:
+                if any(v in global_classes for v in variants):
                     found = True
                 else:
                     for cls_info in global_classes.values():
-                        if any(attr["name"] == name for attr in cls_info["attributes"]):
+                        if any(attr["name"] in variants for attr in cls_info["attributes"]):
                             found = True
                             break
-                        if any(method["name"] == name for method in cls_info["methods"]):
+                        if any(method["name"] in variants for method in cls_info["methods"]):
                             found = True
                             break
 
