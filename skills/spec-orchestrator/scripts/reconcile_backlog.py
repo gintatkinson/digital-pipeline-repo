@@ -6,6 +6,7 @@ import re
 import subprocess
 import json
 import sys
+import yaml
 
 def normalize_title(title):
     if not title:
@@ -96,57 +97,27 @@ def convert_frontmatter_to_table(content):
     frontmatter_text = match.group(1)
     body_text = content[match.end():]
     
+    try:
+        data = yaml.safe_load(frontmatter_text)
+        if not isinstance(data, dict):
+            return content
+    except Exception as e:
+        print(f"Error parsing frontmatter YAML: {e}")
+        return content
+    
     table_lines = [
         "| Metadata | Value |",
         "| --- | --- |"
     ]
     
-    current_key = None
-    current_list_values = []
-    
-    def flush_key():
-        nonlocal current_key, current_list_values
-        if current_key:
-            if current_list_values:
-                val = ", ".join(current_list_values)
-            else:
-                val = ""
-            table_lines.append(f"| **{current_key}** | {val} |")
-            current_key = None
-            current_list_values = []
-
-    for line in frontmatter_text.splitlines():
-        line_stripped = line.strip()
-        if not line_stripped:
-            continue
-        
-        if line_stripped.startswith("-"):
-            # It is a list item under the current key
-            val = line_stripped[1:].strip().strip('"\'')
-            current_list_values.append(val)
-        elif ":" in line_stripped:
-            # It's a new key-value definition. Flush the previous key first.
-            flush_key()
-            key, val = line_stripped.split(":", 1)
-            key = key.strip()
-            val = val.strip()
-            
-            # Check if it is an inline list like [a, b]
-            if val.startswith("[") and val.endswith("]"):
-                items = [item.strip().strip('"\'') for item in val[1:-1].split(",")]
-                table_lines.append(f"| **{key}** | {', '.join(items)} |")
-            elif val == "" or val == ">":
-                # Start of a multi-line list or text block
-                current_key = key
-            else:
-                val = val.strip('"\'')
-                table_lines.append(f"| **{key}** | {val} |")
+    for key, value in data.items():
+        if isinstance(value, list):
+            val = ", ".join(str(item) for item in value)
+        elif value is None:
+            val = ""
         else:
-            # Fallback for unrecognized line types
-            pass
-            
-    # Flush the last key
-    flush_key()
+            val = str(value)
+        table_lines.append(f"| **{key}** | {val} |")
         
     table_text = "\n".join(table_lines) + "\n\n"
     return table_text + body_text
