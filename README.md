@@ -123,15 +123,16 @@ The pipeline has **no external dependencies beyond `gh` CLI and `git`**. Choose 
 
 ### Method 1: Direct Copy (Simplest)
 
-Copy the `skills/` and `rules/` directories into your project repository:
+Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository:
 
 ```bash
-# Clone the pipeline repo
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git /tmp/digital-pipeline
+# Clone the pipeline repo (specifically branch feat/remediation-2.0)
+git clone -b feat/remediation-2.0 https://github.com/gintatkinson/digital-pipeline-repo.git /tmp/digital-pipeline
 
-# Copy skills and rules into your project
+# Copy skills, rules, and configurations into your project
 cp -r /tmp/digital-pipeline/skills/ ./skills/
 cp -r /tmp/digital-pipeline/rules/ ./rules/
+cp -r /tmp/digital-pipeline/.pipeline/ ./.pipeline/
 
 # Clean up
 rm -rf /tmp/digital-pipeline
@@ -144,8 +145,8 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates:
 
 ```bash
-# Add as submodule
-git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+# Add as submodule (specifying the 2.0 branch)
+git submodule add -b feat/remediation-2.0 https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
 
 # Your agent reads from .pipeline-skills/skills/ and .pipeline-skills/rules/
 ```
