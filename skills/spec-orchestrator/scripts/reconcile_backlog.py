@@ -68,6 +68,8 @@ def update_checklist_in_file(filepath, issue_dict):
         
         if dep_issue is None:
             print(f"Error: Invalid/hallucinated dependency reference #{dep_num} in {os.path.basename(filepath)}")
+            print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
+            print("    gh issue create --repo gintatkinson/digital-pipeline-repo --title \"Tooling Bug: [Brief description]\" --body \"Context: Reconciler failed due to invalid dependency reference.\"")
             sys.exit(1)
             
         is_closed = (dep_issue["state"].upper() == "CLOSED")
@@ -164,6 +166,49 @@ def close_issue_on_github(issue_num, comment):
     except Exception as e:
         print(f"  [Error] Failed to close issue #{issue_num}: {e}")
 
+def resolve_issue_ids_in_file(filepath, combined_titles):
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    if "#[IssueID]" not in content:
+        return content
+        
+    lines = content.splitlines()
+    updated = False
+    
+    for i, line in enumerate(lines):
+        if "#[IssueID]" not in line:
+            continue
+            
+        title = None
+        link_label_match = re.search(r'\[([^\]]+)\]\(', line)
+        if link_label_match:
+            title = link_label_match.group(1).strip()
+        else:
+            dash_match = re.search(r'-\s*\[[ xX]\]\s*#\[IssueID\]\s*-\s*(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?(.*)$', line)
+            if dash_match:
+                title = dash_match.group(1).strip()
+                title = re.sub(r'\(.*?\)', '', title).strip()
+                title = title.strip('[]-* ')
+                
+        if title:
+            norm = normalize_title(title)
+            issue_num = combined_titles.get(norm)
+            if issue_num:
+                lines[i] = line.replace("#[IssueID]", f"#{issue_num}")
+                updated = True
+                print(f"  [Resolve ID] Resolved #[IssueID] to #{issue_num} for '{title}' in {os.path.basename(filepath)}")
+            else:
+                print(f"  [Warning] Could not resolve #[IssueID] for title '{title}' in {os.path.basename(filepath)}")
+                
+    if updated:
+        new_content = "\n".join(lines) + "\n"
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        return new_content
+        
+    return content
+
 def main():
     # Verify GitHub CLI authentication
     try:
@@ -195,6 +240,12 @@ def main():
         elif "feature" in labels:
             feature_titles[norm_title] = num
 
+    combined_titles = {}
+    combined_titles.update(epic_titles)
+    combined_titles.update(feature_titles)
+    combined_titles.update(story_titles)
+    combined_titles.update(usecase_titles)
+
     # Locate the docs directory
     if len(sys.argv) > 1:
         docs_dir = os.path.abspath(sys.argv[1])
@@ -214,6 +265,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(epics_dir, filename)
+            resolve_issue_ids_in_file(filepath, combined_titles)
             title = extract_title(filepath)
             if not title:
                 continue
@@ -242,6 +294,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(features_dir, filename)
+            resolve_issue_ids_in_file(filepath, combined_titles)
             title = extract_title(filepath)
             if not title:
                 continue
@@ -263,6 +316,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(stories_dir, filename)
+            resolve_issue_ids_in_file(filepath, combined_titles)
             title = extract_title(filepath)
             if not title:
                 continue
@@ -290,6 +344,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(usecases_dir, filename)
+            resolve_issue_ids_in_file(filepath, combined_titles)
             title = extract_title(filepath)
             if not title:
                 continue

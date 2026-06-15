@@ -1430,8 +1430,8 @@ def main():
                 # Verify node coverage against class/attribute/method names in global_classes
                 # Support camelCase and PascalCase variations from kebab-case / snake_case
                 variants = {name}
-                if '-' in name or '_' in name:
-                    parts = re.split(r'[-_]', name)
+                if '-' in name or '_' in name or '.' in name:
+                    parts = re.split(r'[-_.]', name)
                     variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
                     variants.add("".join(p.capitalize() for p in parts))
                 else:
@@ -1514,6 +1514,8 @@ def main():
         print("Success: All behavioral coverage triggers passed.")
 
     if has_failed:
+        print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
+        print("    gh issue create --repo gintatkinson/digital-pipeline-repo --title \"Tooling Bug: [Brief description]\" --body \"Context: UML/Coverage validation failed in downstream execution.\"")
         sys.exit(1)
     else:
         print("\nSuccess: All verification checks passed.")

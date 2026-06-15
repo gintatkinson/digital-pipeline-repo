@@ -157,6 +157,10 @@ To prevent semantic divergence between structural design and dynamic behavior:
 
 - If a validation gate fails, HALT immediately. Do not proceed to the next phase.
 - Log the failure reason with the specific file/issue that caused it.
+- If you suspect the failure is due to a pipeline tooling bug or schema limitation, automatically submit a GitHub issue to the upstream repository:
+  ```bash
+  gh issue create --repo gintatkinson/digital-pipeline-repo --title "Tooling Bug: [Brief description]" --body "Context: [Error details, stack traces, and schema file references]"
+  ```
 - Escalate to the human with a clear description of what failed and why.
 
 ---
@@ -198,6 +202,7 @@ To prevent semantic divergence between structural design and dynamic behavior:
 - Do NOT create Features larger than 10 acceptance criteria without splitting.
 - Do NOT hardcode GitHub issue numbers in cross-references -- always query live state via `gh` CLI.
 - Do NOT silently drop schema nodes that are difficult to categorize -- flag them and escalate.
+- Do NOT edit or patch pipeline tooling scripts (such as linter, reconciler, or verify scripts) inside downstream target repositories. Any tooling bugs or feature requests must be escalated and fixed upstream in the pipeline repository.
 
 ---
 
