@@ -1,36 +1,39 @@
-# React Firestore Hybrid Deployment Architecture Blueprint
+# React Hybrid Multi-Source Deployment Architecture Blueprint
 
-This blueprint outlines the simplified architecture for the 3D topology visualization module. It completely eliminates Tauri/wrapper complexity in favor of a unified **Hybrid Flutter Shell + Embedded React** model for web and native desktop (macOS & Windows) deployments, backed by Google Firestore.
+This blueprint outlines the deployment architecture for the 3D topology visualization module. It supports a unified **Hybrid Flutter Shell + Embedded React** model, with swappable data bindings:
+1. **Firestore Web SDK Adapter**: Standard reactive cloud snapshot synchronization.
+2. **Protobuf gRPC-Web Adapter**: High-performance RPC and event stream connectivity.
 
 ---
 
 ## 1. Architectural Strategy
 
-Instead of wrapping a full React application in Tauri (which requires a complex Rust compilation toolchain), the core application shell (auth, navigation, CRUD forms) is implemented in **Flutter** (for both web and native desktop). The specialized React 3D view is embedded as a decoupled micro-frontend running in a native Webview inside the Flutter shell.
+To support swappable data backends, the application utilizes a strict **Hexagonal Architecture (Ports and Adapters)**. The React 3D view is completely decoupled from the data binding layer.
 
 ```mermaid
 graph TD
-    subgraph Host ["Flutter Application Shell (Web/Desktop)"]
-        FlutterUI[Flutter UI Widgets] --> FlutterState[Riverpod/StateNotifier]
-        FlutterState --> FlutterSDK[cloud_firestore SDK]
+    subgraph UI ["User Interface Layer"]
+        ReactUI[React 3D Canvas] --> Ports[Service Ports / Interfaces]
     end
 
-    subgraph Embedded ["Embedded Webview Container"]
-        ReactUI[React 3D Canvas] --> ReactSDK[firebase Firestore JS SDK]
+    subgraph Adapters ["Adapters Layer (Swappable Bindings)"]
+        Ports --> FirestoreAdapter[Firestore Web SDK Adapter]
+        Ports --> ProtoAdapter[Protobuf gRPC-web Adapter]
     end
 
-    subgraph Data ["Database & Synchronization Layer"]
-        FlutterSDK --> SQLiteCache[(Local SQLite Cache)]
-        ReactSDK --> IndexedDBCache[(Local IndexedDB Cache)]
-        
-        SQLiteCache <==> CloudFirestore{{Google Cloud Firestore}}
-        IndexedDBCache <==> CloudFirestore
+    subgraph Data ["Data & Server Layer"]
+        FirestoreAdapter --> CloudFirestore{{Google Cloud Firestore}}
+        ProtoAdapter --> EnvoyProxy{{Envoy gRPC-web Proxy}}
+        EnvoyProxy --> ProtoBackend{{TFS Context Service / gRPC Backend}}
     end
     
-    style Host fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
-    style Embedded fill:#3B4252,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
+    style UI fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
+    style Adapters fill:#3B4252,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
     style Data fill:#4C566A,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
 ```
+
+- **Loose Coupling**: React rendering layers bind exclusively to Ports (abstract TypeScript interfaces like `ITopologyService`).
+- **Swappable Bindings**: Swapping the database from Firestore to a Protobuf API involves only replacing the adapter binding (e.g., injecting `GrpcWebTopologyAdapter` instead of `FirestoreTopologyAdapter`), leaving all UI rendering code entirely unchanged.
 
 ---
 
@@ -38,7 +41,7 @@ graph TD
 
 For local development, testing, and isolated UI work on the 3D topology view, the React module runs as a standalone Vite web project.
 
-### 2.1 Developer Local Offline-First Persistence
+### 2.1 Developer Local Offline-First Persistence (Firestore Mode)
 The React module uses the Firebase Web SDK's offline capabilities (`IndexedDB`) to support disconnected testing:
 
 ```typescript
@@ -85,7 +88,117 @@ Rather than serialization/IPC bridges, data synchronizes reactively:
 
 ---
 
-## 4. Platform Mapping Strategy (React to Flutter)
+## 4. Deployment Archetype 3: Hosted gRPC-Web Cloud Server (Envoy Proxy)
+
+To deploy the topology visualizer in environments using the gRPC-web Protobuf binding, the frontend assets are served alongside an Envoy proxy container. Envoy translates browser HTTP/1.1 gRPC-web requests (binary or base64 text) into native HTTP/2 gRPC requests for the backend microservices.
+
+```
+[React Webview / Browser] ──(gRPC-web HTTP 1.1)──> [Envoy Proxy (Port 8080)] ──(gRPC HTTP 2)──> [TFS Context Service (Port 1010)]
+```
+
+### 4.1 Local Sandbox Testing Compose (`docker-compose.yml`)
+To start the entire topology service with gRPC-web and Envoy proxies locally:
+
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_GRPC_ENDPOINT_URL=http://localhost:8080
+    depends_on:
+      - envoy
+
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml
+    ports:
+      - "8080:8080" # gRPC-web proxy port
+    depends_on:
+      - context-service
+
+  context-service:
+    image: gintatkinson/tfs-v7-golden-context:latest
+    ports:
+      - "1010:1010" # Native gRPC port
+    environment:
+      - DB_CONNECTION_STRING=postgres://db-user:pass@db-host:5432/tfs
+```
+
+### 4.2 Envoy Configuration (`envoy.yaml`)
+Configure Envoy to load the gRPC-web filter, strip CORS headers, and route requests to the `context-service`:
+
+```yaml
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 8080 }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          codec_type: auto
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route:
+                  cluster: tfs_context_service
+                  timeout: 0s
+                  max_stream_duration:
+                    grpc_timeout_header_max: 0s
+              cors:
+                allow_origin_string_match:
+                - safe_regex:
+                    google_re2: {}
+                    regex: ".*"
+                allow_methods: "GET, PUT, POST, DELETE, OPTIONS"
+                allow_headers: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-next,x-grpc-web,grpc-timeout,authorization"
+                max_age: "1728000"
+                expose_headers: "grpc-status,grpc-message"
+          http_filters:
+          - name: envoy.filters.http.cors
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+          - name: envoy.filters.http.grpc_web
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+  - name: tfs_context_service
+    connect_timeout: 0.25s
+    type: logical_dns
+    http2_protocol_options: {} # Enforce HTTP/2 for upstream
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: tfs_context_service
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: context-service
+                port_value: 1010
+```
+
+---
+
+## 5. Platform Mapping Strategy (React to Flutter)
 
 To maintain design parity across the hybrid layers, the React components and hooks correspond directly to Flutter widgets and providers:
 
@@ -101,7 +214,7 @@ To maintain design parity across the hybrid layers, the React components and hoo
 
 ---
 
-## 5. Implementation Action Plan
+## 6. Implementation Action Plan
 
 ```mermaid
 flowchart TD

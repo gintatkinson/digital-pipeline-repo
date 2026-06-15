@@ -41,11 +41,11 @@ last_updated: "2026-06-15"
 All database, networking, and authentication logic must be defined as abstract interfaces ("Ports") implemented by environment-specific modules ("Adapters").
 
 ```
-[React Canvas] ──> [Custom Hook / Port Interface] ──> [Firestore SDK Adapter / Local Cache Adapter]
+[React Canvas] ──> [Custom Hook / Port Interface] ──> [Firestore Adapter / Protobuf API Adapter]
 ```
 
 - **Ports**: Reside under `src/services/interfaces/` (e.g., `IDatabaseService.ts`).
-- **Adapters**: Reside under `src/services/firestore/` or `src/services/mock/`.
+- **Adapters**: Reside under `src/services/firestore/`, `src/services/protobuf/` (for Protobuf-backed APIs), or `src/services/mock/`.
 
 ### 2.2 Firestore Model Typing
 All documents read from or written to Firestore must be mapped using standard TypeScript type guards and validators conforming to `firestore.rules`.
@@ -86,6 +86,14 @@ export const db = initializeFirestore(app, {
   })
 });
 ```
+
+### 2.4 Protobuf & gRPC-Web Mapping Rules
+When implementing adapters targeting Protobuf-backed APIs (such as the TeraFlowSDN `ContextService`):
+- **Domain Decoupling**: Generated Protobuf message classes (from `protoc`) MUST NOT leak into UI or rendering components. They must be mapped directly to clean TypeScript domain interfaces (defined under `src/services/interfaces/`) within the adapter.
+- **Asynchronous Unary RPCs**: Unary calls must be wrapped in standard TypeScript Promises.
+- **gRPC Stream-to-Callback Mapping**: Streaming RPC calls (e.g. `stream TopologyEvent` from `GetTopologyEvents`) must be converted to subscriber models (callback functions or RxJS Observables) in the adapter, returning a cleanup/unsubscribe closure that explicitly calls `stream.cancel()`.
+- **Error Status Translation**: Adapter implementations must translate raw gRPC status codes (e.g., Code 14 - Unavailable, Code 16 - Unauthenticated) into clean domain `Error` instances before rejecting promises or throwing stream errors.
+- **Metadata Authentication**: Auth tokens (e.g., Bearer tokens from local storage) must be injected into the metadata object of each RPC request via interceptors or adapter helper methods.
 
 ---
 
@@ -141,6 +149,23 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 EXPOSE 3000
 CMD ["npx", "tsx", "server.ts"]
 ```
+
+### 4.4 gRPC-Web Proxy Development Settings
+Since web browsers cannot communicate directly with HTTP/2-only gRPC endpoints, a proxy (such as Envoy) is required.
+- **Vite Proxy Configuration**: The local development server must configure proxy rules in `vite.config.ts` to redirect gRPC-web base64/binary calls to the Envoy proxy port:
+  ```typescript
+  export default defineConfig({
+    server: {
+      proxy: {
+        '/context.ContextService': {
+          target: 'http://localhost:8080', // Envoy HTTP/1.1 gRPC-web translation port
+          changeOrigin: true,
+          secure: false,
+        }
+      }
+    }
+  });
+  ```
 
 ---
 
