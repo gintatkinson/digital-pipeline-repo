@@ -82,6 +82,8 @@ Prompt the human with these categories — all must be **platform-independent** 
    - General schema compliance requirements (how constraints, ranges, and patterns are captured)
    - General data model integrity rules (mapping nodes to feature specs, tracking circular dependencies)
    - Semantic invariants (e.g., "every node must resolve to a valid existing parent context")
+   - UML Metamodel & Profile Mapping Standard (explicit mappings from source schemas such as YANG, OpenAPI, and Protobuf to UML Components, Classes, Attributes, Operations, and Constraints)
+   - Universal Model Consistency Rules (declarations enforcing that no element/message may be used in dynamic behavior diagrams like sequence or state diagrams without being defined in the structural class diagrams)
 
 2. **Specification Standards**
    - Epic/Feature granularity rules
@@ -121,6 +123,12 @@ last_updated: "[ISO Date]"
 
 ## Domain Rules
 - [Captured rules]
+
+### UML Metamodel & Profile Mapping Standard
+- [Define rules laying out how incoming schemas (like YANG, OpenAPI, Protobuf) must map to UML Components, Classes, Attributes, Operations, and Constraints]
+
+### Universal Model Consistency Rules
+- [Define consistency rules, including the requirement that no element/message/signal may be used in sequence/state diagrams without being defined in the class diagrams]
 
 ## Specification Standards
 - [Captured standards]

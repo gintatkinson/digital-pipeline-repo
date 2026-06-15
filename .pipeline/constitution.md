@@ -36,7 +36,39 @@ last_updated: "2026-06-15"
 - Cross-module references (leafref, augment, uses) must be explicitly documented with source and target module names.
 - Circular dependencies must be flagged and escalated -- do not silently drop them.
 
-### 1.4 Traceability
+### 1.4 UML Metamodel & Profile Mapping Standard
+
+To maintain rigorous, machine-readable representations, all incoming authoritative schemas MUST map strictly to UML elements according to the following profile rules:
+- **YANG Schema Mappings**:
+  - A YANG `module` or `submodule` maps to a **UML Component**.
+  - A YANG `container`, `list`, or `grouping` maps to a **UML Class**.
+  - A YANG `leaf` or `leaf-list` maps to a **UML Attribute** (with multiplicity `[0..1]` or `[0..*]` respectively).
+  - A YANG `rpc` or `action` maps to a **UML Operation**.
+  - Any YANG `must`, `when`, `range`, `pattern`, or `length` statement maps to a **UML Constraint** (specified in OCL or formal structured text).
+- **OpenAPI Mappings**:
+  - An OpenAPI document or tag group maps to a **UML Component**.
+  - An OpenAPI `Schema Object` maps to a **UML Class**.
+  - An OpenAPI schema property maps to a **UML Attribute** (multiplicity `[1..1]` if required, `[0..1]` otherwise).
+  - An OpenAPI path operation (GET, POST, PUT, DELETE, etc.) maps to a **UML Operation**.
+  - API validation keywords (`minimum`, `maximum`, `pattern`, `enum`) map to a **UML Constraint**.
+- **Protobuf Mappings**:
+  - A Protobuf `package` maps to a **UML Component** or package boundary.
+  - A Protobuf `message` maps to a **UML Class**.
+  - A Protobuf field maps to a **UML Attribute** (multiplicity `[0..*]` for `repeated` fields, `[0..1]` for optional, `[1..1]` for required/implicit).
+  - A Protobuf `service` maps to a **UML Interface** or **UML Component**.
+  - A Protobuf `rpc` definition maps to a **UML Operation**.
+  - Protobuf validation options (e.g., `buf.validate`) map to a **UML Constraint**.
+
+### 1.5 Universal Model Consistency Rules
+
+To prevent semantic divergence between structural design and dynamic behavior:
+- **Dynamic-to-Static Alignment**: No class, component, interface, attribute, operation, signal, or message may be used in dynamic behavior diagrams (such as UML Sequence Diagrams or State Machine Diagrams) unless it is explicitly defined in the structural UML Class Diagrams or Component Diagrams.
+- **Sequence Diagram Lifelines**: Every lifeline in a sequence diagram MUST represent an instance of a defined UML Class or Component.
+- **Message and Call Consistency**: Every message (synchronous, asynchronous, or return) in a sequence diagram must map to an active UML Operation or Signal defined on the target classifier's interface/class definition.
+- **State Transition Events**: Every trigger, event, or action on a UML State Machine transition must be defined as a UML Operation or Signal in the class metamodel.
+- **Auto-verification Failure**: Any diagram or spec that references undefined operations, classes, or signals will violate the quality gates and halt the pipeline.
+
+### 1.6 Traceability
 
 - Every Epic MUST reference the specification section(s) it covers.
 - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths.
