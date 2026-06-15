@@ -32,14 +32,18 @@ For each major system interaction, model a formal Use Case following standard UM
 4. **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
 5. **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows for every Use Case.
    - **Branching Point**: Each flow MUST explicitly identify which step of the Main Success Scenario it branches from.
-   - **Detail Level**: Contain at least 2 numbered steps of system/actor interaction.
+   - **Flow Requirements**: You must have at least 2 alternate/exception flows. Each flow must contain at least 2 numbered steps of system/actor interaction.
    - **Guarantees**: State the resulting state changes, rollback operations, or notifications.
 6. **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. You must define both a Success Guarantee and a Failure/Abort Guarantee.
 7. **UML Use Case & State Machine Diagrams:** Every Use Case MUST include:
-   - A **UML Use Case Diagram** (using Mermaid `graph TD` structured with a system boundary `subgraph` and actors) illustrating the system boundary, actors (both primary and secondary), relationships, and any `<<include>>` or `<<extend>>` linkages.
+   - A **UML Use Case Diagram** (using Mermaid `graph TD`) illustrating the system boundary, actors (both primary and secondary), relationships, and any `<<include>>` or `<<extend>>` linkages.
+     - **System Boundary Constraint**: Group all use case nodes inside a system boundary `subgraph` (e.g., `subgraph System Boundary`) and place all actor nodes outside of it.
+     - **Oval Node Shapes**: Draw all use case nodes using Mermaid's stadium/oval shape: `UC([Use Case Title])` instead of rectangles `UC[Use Case Title]`.
+     - **Undirected Actor Links**: Actor connections to Use Cases must use undirected associations (plain solid lines `---` without arrowheads) rather than directed arrows (`Actor --> UC` or `UC --> SecActor`).
+     - **Correct Extend Arrow Direction**: In UML dependency semantics, the extend arrow points from the extending Use Case (client) to the base Use Case (supplier). e.g., `UC_Ext -. <<extend>> .-> UC` where `UC_Ext` is the extending usecase and `UC` is the base usecase.
+     - **Mermaid Dotted Link Label Syntax Constraint**: Dotted/dashed arrows with labels (e.g., for `<<include>>` or `<<extend>>` relationships) MUST use the `-. label .->` syntax (e.g. `UC -. <<include>> .-> UC_Sub` or `UC_Ext -. <<extend>> .-> UC`). Do NOT use the invalid pipe syntax (like `-.->|label|` or `-.-->|label|`), as it is invalid Mermaid syntax for dotted links and will cause parsing and rendering failures on GitHub.
    - A **UML State Machine Diagram** (using Mermaid `stateDiagram-v2`) showing transition logic from preconditions to final postconditions.
    - Only UML diagrams are allowed; ERDs are strictly forbidden.
-   - **Mermaid Dotted Link Label Syntax Constraint:** Dotted/dashed arrows with labels (e.g., for `<<include>>` or `<<extend>>` relationships) MUST use the `-. label .->` syntax (e.g. `UC -. <<include>> .-> UC_Sub`). Do NOT use the pipe syntax (like `-.->|label|` or `-.-->|label|`), as it is invalid Mermaid syntax for dotted lines and will cause parsing and rendering failures on GitHub.
 
 ### Behavioral Extraction Triggers (Mandatory Use Cases)
 An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD data management) if the normative text or structural schema meets any of the following triggers:
@@ -49,10 +53,12 @@ An agent MUST extract a separate, dedicated System Use Case (in addition to stan
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)
 A System Use Case is realized by User Stories and structural Features.
-1. Execute `gh issue list --label "user-story" --state "all" --json number,title,body` and `gh issue list --label "feature" --state "all" --json number,title,body` to pull the existing inventory.
-2. **Perform Semantic Analysis**: Inspect both titles and content bodies of stories to perform mapping rather than simple title-only matching.
+1. **GitHub Issue Query**: Execute `gh issue list --label "user-story" --state "all" --json number,title,body` to pull both open and closed user stories, and `gh issue list --label "feature" --state "all" --json number,title,body` to pull features.
+2. **Perform Semantic Analysis**: Inspect both titles and content bodies of issues for semantic matching (mapping based on meaning/content) rather than name-only lexical matching.
 3. Determine which User Stories and Features are required to fulfill this specific System Use Case.
-4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)` or `(realizes the authentication scenario)`).**
+4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links.
+   - **Absolute URLs**: Enforce absolute URLs to prevent 404 links on GitHub issues. Reference BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`).
+   - **Realization Checklists & Justification**: Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g., `(provides coordinates schema)` or `(realizes the authentication scenario)`). Parenthetical justifications are strictly required for every single checklist item.
 
 ## Step 4: Markdown Generation
 Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-core-entity.md`). Format strictly:
@@ -99,12 +105,12 @@ spec_source: "[Spec Reference]"
 ```mermaid
 graph TD
     subgraph System Boundary
-        UC[Use Case Title]
-        UC_Ext[Extended Action]
+        UC([Use Case Title])
+        UC_Ext([Extended Action])
     end
-    Actor((Primary Actor)) --> UC
-    UC -. <<extend>> .-> UC_Ext
-    UC --> SecActor((Secondary Actor))
+    Actor((Primary Actor)) --- UC
+    UC_Ext -. <<extend>> .-> UC
+    UC --- SecActor((Secondary Actor))
 ```
 
 ### State Machine Diagram
