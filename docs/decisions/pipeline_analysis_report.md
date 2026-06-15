@@ -182,38 +182,35 @@ This report compiles the exhaustive findings from the three specialized sub-agen
     - `Then` (Postcondition object state)
     - Or standard format: `As an [Actor], I need to [Action/Message] so that [Outcome/State Change].`
  3. Map the story to specific Domain Objects (the structural schema entities affected).
--4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `LocationRegistry`, `CoordinateValidator`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `LocationProvider`).
+-4. **UML Sequence Diagram:** Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g. `domainRegistry`, `businessLogicService`), showing method signatures with camelCase parameters (matching the structural schema leaves) and return types/statuses. Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `clientActor`).
 +4. **UML Sequence Diagram:** Every User Story MUST include a detailed **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor, Domain Objects, and calculation/validation helpers.
-+   - **No Generic Actors**: Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `LocationProvider`).
-+   - **Typed Method Signatures**: Show method signatures with explicit camelCase parameters, each annotated with its type matching the schema definition (e.g., `registerLocation(latitude: Decimal64, longitude: Decimal64)`).
++   - **No Generic Actors**: Naming actor participants as `Actor` is prohibited; use descriptive names (e.g., `clientActor`).
++   - **Typed Method Signatures**: Show method signatures with explicit camelCase parameters, each annotated with its type matching the schema definition (e.g., `operationName(attributeName: DataType)`).
 +   - **Typed Return Signatures**: Show explicit return types or object structures returned on the dashed lines (e.g., `ResponseObject(status: StatusType)`).
 +   - **Validation Loops**: Model validation loops and conditional logic using Mermaid `alt`/`else` or `opt` blocks, showing both success and validation failure/error execution paths.
-+   - **Computation Delegation**: Complex logic, calculations, or validations MUST be delegated to dedicated validator/calculator utility classes (e.g., `CoordinateValidator`, `VelocityCalculator`) and shown explicitly as nested calls (e.g., `LocationRegistry ->> CoordinateValidator: validateCoordinates(...)`).
++   - **Computation Delegation**: Complex logic, calculations, or validations MUST be delegated to dedicated validator/calculator utility classes (e.g., `BusinessLogicService`, `ValidatorHelper`) and shown explicitly as nested calls (e.g., `domainRegistry ->> businessLogicService: validateBounds(...)`).
  
 @@ -75,6 +85,15 @@
  ## UML Sequence Diagram
  ```mermaid
  sequenceDiagram
      autonumber
-     actor LocationProvider
-     participant LocationRegistry
-+    participant CoordinateValidator
-+    participant DistanceCalculator
+     actor clientActor as "clientActor : ClientActor"
+     participant domainRegistry as "domainRegistry : DomainRegistry"
++    participant businessLogicService as "businessLogicService : BusinessLogicService"
      
--    LocationProvider->>LocationRegistry: registerLocation(latitude, longitude)
--    Note over LocationRegistry: Validate coordinate range
--    LocationRegistry-->>LocationProvider: registerLocationResult(success)
-+    LocationProvider->>LocationRegistry: registerLocation(latitude: Decimal64, longitude: Decimal64)
-+    LocationRegistry->>CoordinateValidator: validateCoordinates(latitude: Decimal64, longitude: Decimal64)
-+    alt is valid coordinates
-+        CoordinateValidator-->>LocationRegistry: ValidationResult(isValid: true)
-+        LocationRegistry->>DistanceCalculator: calculateDistance(latitude: Decimal64, longitude: Decimal64)
-+        DistanceCalculator-->>LocationRegistry: DistanceResult(distance: Decimal64)
-+        Note over LocationRegistry: Update internal registry state
-+        LocationRegistry-->>LocationProvider: registerLocationResult(status: SUCCESS, registeredId: UUID)
-+    else is invalid coordinates
-+        CoordinateValidator-->>LocationRegistry: ValidationResult(isValid: false, errorReason: String)
-+        LocationRegistry-->>LocationProvider: registerLocationResult(status: INVALID_COORDINATES, errorReason: String)
+-    clientActor->>domainRegistry: operationName(attributeName)
+-    Note over domainRegistry: Process operation
+-    domainRegistry-->>clientActor: operationResult(success)
++    clientActor->>domainRegistry: operationName(attributeName: DataType)
++    domainRegistry->>businessLogicService: validateBounds(attributeName: DataType)
++    alt [payloadIsValid == true]
++        businessLogicService-->>domainRegistry: ValidationResult(isValid: true)
++        Note over domainRegistry: Store value
++        domainRegistry-->>clientActor: status : Status
++    else [payloadIsValid == false]
++        businessLogicService-->>domainRegistry: ValidationResult(isValid: false, errorReason: String)
++        domainRegistry-->>clientActor: status : Status
 +    end
  ```
 ```
