@@ -7,7 +7,7 @@ created: "2026-06-15"
 last_updated: "2026-06-15"
 ---
 
-# Implementation Profile: React Multi-Deployment Profile
+# Implementation Profile: React 3D Topology Visualization Profile
 
 > This document governs feature implementation on the React platform.
 > Read alongside the functional layer constitution in `.pipeline/constitution.md` (file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md).
@@ -17,20 +17,20 @@ last_updated: "2026-06-15"
 ## 1. Platform & Stack Constraints
 
 ### 1.1 Core Technologies
-- **Frontend Framework**: React 19.0.x (functional components, Hooks, and Suspense)
+- **Frontend Framework**: React 19.0.x (WebGL/Three.js/Canvas components)
 - **Programming Language**: TypeScript 5.8+ (Strict Mode enabled)
 - **Build Tool / Bundler**: Vite 6.x
 - **Styling**: Tailwind CSS v4 (using `@tailwindcss/vite` compiler integration)
 - **Router**: React Router v7 (SPA routing with trailing slash normalization)
 
-### 1.2 Multi-Deployment Wrappers
-- **Standalone Desktop Archetype**: Tauri v2.x (Rust runtime core with native system webview bindings)
-- **Hosted Cloud / Web Archetype**: Express v4.x embedded static server serving `dist/` with SPA fallback routing.
+### 1.2 Deployment Target Mappings
+- **Standalone Development Sandbox**: Vite dev server + Express v4.x embedded static server for local sandbox debugging.
+- **Embedded Production Target**: Compiled into static HTML5 assets served by Express/CDN, or loaded dynamically inside a **Flutter Webview container** (using WebView2 on Windows and WebKit on macOS).
 - **Database Framework**: Firebase / Cloud Firestore Web SDK v12.x.
 
 ### 1.3 Forbidden Dependencies
-- Do NOT use Electron, NW.js, or other thick-browser wrapper runtimes.
-- Do NOT import Node-specific built-ins (`fs`, `path`, `child_process`) directly in React components. System actions must go through the Tauri IPC bridge or HTTP APIs.
+- Do NOT use Electron, Tauri, NW.js, or other thick-desktop wrapper frameworks inside this React repository. Flutter handles the native desktop application shell.
+- Do NOT import Node-specific built-ins (`fs`, `path`, `child_process`) directly in React components. All OS-level or storage interactions must go through the Flutter webview javascript channel or synchronise via Firestore documents.
 - Do NOT install TailwindCSS v3 or legacy PostCSS configuration scripts.
 
 ---
@@ -41,7 +41,7 @@ last_updated: "2026-06-15"
 All database, networking, and authentication logic must be defined as abstract interfaces ("Ports") implemented by environment-specific modules ("Adapters").
 
 ```
-[React Component] ──> [Custom Hook / Port Interface] ──> [Firestore SDK Adapter / Tauri Mock Adapter]
+[React Canvas] ──> [Custom Hook / Port Interface] ──> [Firestore SDK Adapter / Local Cache Adapter]
 ```
 
 - **Ports**: Reside under `src/services/interfaces/` (e.g., `IDatabaseService.ts`).
@@ -93,7 +93,7 @@ export const db = initializeFirestore(app, {
 
 ### 3.1 Frameworks & Coverage
 - **Unit & Integration Testing**: Vitest with React Testing Library.
-- **E2E Testing (Desktop/Web)**: Playwright (for Web UI verification) and WebdriverIO/Tauri-driver (for Tauri automation).
+- **E2E Testing**: Playwright (for standalone Web and embedded Webview integration testing).
 - **Coverage Thresholds**:
   - Statements: 80% minimum.
   - Branches: 75% minimum.
@@ -113,11 +113,11 @@ npm run dev
 # Launches: tsx server.ts (starts Express server wrapping Vite)
 ```
 
-### 4.2 Standalone Desktop Build (Tauri)
-To package the app as a native macOS/Windows application:
+### 4.2 Production Build
+To compile the static assets for CDN distribution or webview embedding:
 ```bash
-npm run tauri build
-# Triggers: vite build && tauri bundler
+npm run build
+# Outputs to: dist/
 ```
 
 ### 4.3 Containerized Cloud Build (Docker)

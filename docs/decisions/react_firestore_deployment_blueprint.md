@@ -1,89 +1,45 @@
-# React Multi-Deployment Firestore Architecture Blueprint
+# React Firestore Hybrid Deployment Architecture Blueprint
 
-This blueprint outlines a unified React architecture supporting two distinct deployment archetypes backed by the Google Firestore framework:
-1. **Standalone Desktop Deployment (Development & Beta Testing)**: Run locally as a lightweight desktop application with offline support.
-2. **Hosted Web / Cloud Server Deployment (Production & Personal Cloud)**: A containerized or cloud-hosted web application serving clients globally.
-
-It also establishes a mapping path for a future transition to a **Flutter** codebase compiled for web and desktop.
+This blueprint outlines the simplified architecture for the 3D topology visualization module. It completely eliminates Tauri/wrapper complexity in favor of a unified **Hybrid Flutter Shell + Embedded React** model for web and native desktop (macOS & Windows) deployments, backed by Google Firestore.
 
 ---
 
 ## 1. Architectural Strategy
 
-To support both standalone desktop and hosted cloud environments from a single codebase, the application utilizes a **Hexagonal Architecture (Ports and Adapters)**. The core application logic and UI are kept completely decoupled from the runtime environment and data delivery mechanism.
+Instead of wrapping a full React application in Tauri (which requires a complex Rust compilation toolchain), the core application shell (auth, navigation, CRUD forms) is implemented in **Flutter** (for both web and native desktop). The specialized React 3D view is embedded as a decoupled micro-frontend running in a native Webview inside the Flutter shell.
 
 ```mermaid
 graph TD
-    subgraph UI ["User Interface Layer (React 19)"]
-        Components[React Components] --> Hooks[Custom React Hooks]
+    subgraph Host ["Flutter Application Shell (Web/Desktop)"]
+        FlutterUI[Flutter UI Widgets] --> FlutterState[Riverpod/StateNotifier]
+        FlutterState --> FlutterSDK[cloud_firestore SDK]
     end
 
-    subgraph ServicePort ["Service Ports (Interfaces)"]
-        Hooks --> DatabaseService["IDatabaseService"]
-        Hooks --> AuthService["IAuthService"]
+    subgraph Embedded ["Embedded Webview Container"]
+        ReactUI[React 3D Canvas] --> ReactSDK[firebase Firestore JS SDK]
     end
 
-    subgraph Adapters ["Adapters Layer"]
-        subgraph DesktopAdapter ["Standalone Desktop Adapter (Tauri)"]
-            TauriAdapter["Tauri IPC + Offline Firestore SDK"]
-        end
-        subgraph CloudAdapter ["Hosted Web Adapter"]
-            WebAdapter["Standard Web SDK / Express API"]
-        end
-    end
-
-    DatabaseService -.-> TauriAdapter
-    DatabaseService -.-> WebAdapter
-    AuthService -.-> TauriAdapter
-    AuthService -.-> WebAdapter
-
-    subgraph Data ["Data Layer"]
-        TauriAdapter --> LocalCache["IndexedDB Local Cache"]
-        LocalCache <==> CloudFirestore["Cloud Firestore (Sync)"]
-        WebAdapter --> CloudFirestore
+    subgraph Data ["Database & Synchronization Layer"]
+        FlutterSDK --> SQLiteCache[(Local SQLite Cache)]
+        ReactSDK --> IndexedDBCache[(Local IndexedDB Cache)]
+        
+        SQLiteCache <==> CloudFirestore{{Google Cloud Firestore}}
+        IndexedDBCache <==> CloudFirestore
     end
     
-    style UI fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
-    style ServicePort fill:#3B4252,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
-    style Adapters fill:#434C5E,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
+    style Host fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
+    style Embedded fill:#3B4252,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
     style Data fill:#4C566A,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
 ```
 
 ---
 
-## 2. Deployment Archetype 1: Standalone Desktop (Tauri)
+## 2. Deployment Archetype 1: Standalone React Dev Sandbox (Vite/Express)
 
-Instead of the resource-heavy Electron framework (which bundles a full Chromium browser and Node.js runtime, adding ~100MB+ per app), we utilize **Tauri**. Tauri leverages the native system webview (Webkit/WKWebView on macOS, WebView2 on Windows) and executes system bindings in a secure Rust runtime, resulting in a bundle size of `< 15MB`.
+For local development, testing, and isolated UI work on the 3D topology view, the React module runs as a standalone Vite web project.
 
-### 2.1 Tauri Configuration
-- **Frontend Assets**: Vite builds static assets (`dist/`) which are baked directly into the Tauri binary.
-- **IPC Bridge**: System actions (filesystem, local shell execution, native menu control) are invoked via Tauri's typed `invoke()` IPC bridge.
-- **Desktop Config (`src-tauri/tauri.conf.json`)**:
-  ```json
-  {
-    "build": {
-      "beforeDevCommand": "npm run dev",
-      "beforeBuildCommand": "npm run build",
-      "devUrl": "http://localhost:5173",
-      "frontendDist": "../dist"
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.cognition.ux",
-      "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.icns", "icons/icon.ico"]
-    },
-    "permissions": [
-      "core:default",
-      "core:path:allow-resource",
-      "core:fs:allow-read",
-      "core:fs:allow-write"
-    ]
-  }
-  ```
-
-### 2.2 Local Offline-First Persistence
-To support developer sandboxing and offline beta testing, the Firestore Web SDK's offline capabilities must be explicitly initialized. Firestore provides automatic local write caching and offline query execution using IndexedDB.
+### 2.1 Developer Local Offline-First Persistence
+The React module uses the Firebase Web SDK's offline capabilities (`IndexedDB`) to support disconnected testing:
 
 ```typescript
 // src/services/firestore-init.ts
@@ -98,205 +54,65 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 
-// Enable persistent local cache with multi-tab support
+// Initialize Firestore with persistent IndexedDB cache
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
 });
 
-// Developer Sandboxing with Firestore Emulator
+// Developer Sandboxing with local emulator
 if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATOR === 'true') {
   connectFirestoreEmulator(db, 'localhost', 8080);
   console.log('Connected to local Firestore emulator (localhost:8080)');
 }
 ```
 
-> [!TIP]
-> **Firestore Offline Write Buffering**: Writes made while offline are immediately visible to local listeners. They are queued and automatically synchronized with the Firestore servers as soon as network connectivity is restored.
+---
+
+## 3. Deployment Archetype 2: Embedded Webview (Production Desktop/Web)
+
+In production, the Flutter application acts as the compile-target host for macOS, Windows, and Web.
+
+### 3.1 Webview Integration
+* **Desktop targets (macOS/Windows)**: Flutter compiles to a native C++ application and embeds the React 3D topology module using native desktop webview widgets (e.g., WebView2 on Windows, WebKit/WKWebView on macOS).
+* **Web targets**: Flutter embeds the React build as a static micro-frontend using an `iframe` element wrapper loaded via Flutter's `HtmlElementView`.
+
+### 3.2 Decoupled Synchronization via Firestore
+Rather than serialization/IPC bridges, data synchronizes reactively:
+* **Write Path**: Any user edit (dragging a node in React or typing in a Flutter form) updates the Firestore `/nodes/{nodeId}` document.
+- **Reactive Repaint**: Both the Flutter shell (via Dart `snapshots()`) and the React canvas (via JS `onSnapshot()`) listen to database changes. When a coordinate changes, the 3D view repaints automatically in real-time.
 
 ---
 
-## 3. Deployment Archetype 2: Hosted Web Server (Express + Vite)
+## 4. Platform Mapping Strategy (React to Flutter)
 
-For cloud and personal cloud deployments (e.g., Docker container on AWS, Google Cloud Run, or a home server), we adopt the dual-mode Express + Vite server pattern proven in `Cognition-UX`.
-
-```
-Development:  [Browser] ---> [Express Server (Vite Middleware)] ---> [HMR / TypeScript compilation]
-Production:   [Browser] ---> [Express Server (Serving dist/)]    ---> [Static Assets / API proxy]
-```
-
-### 3.1 Unified Dev/Prod Server (`server.ts`)
-```typescript
-import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-async function startServer() {
-  const app = express();
-  const PORT = process.env.PORT || 3000;
-
-  app.use(express.json());
-
-  if (process.env.NODE_ENV !== 'production') {
-    // Development mode: Vite serves as middleware for HMR
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    // Production mode: Serve pre-built static assets from dist/
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Application server running on http://localhost:${PORT}`);
-  });
-}
-
-startServer();
-```
-
----
-
-## 4. Firestore Schema & Security Rule Integration
-
-The application schema must align with the core model definitions in `firestore.rules`.
-In particular:
-- **Domains (`/domains/{domainId}`)**: Hierarchical boundary layout parameters (`x`, `y`, `width`, `height`).
-- **Nodes (`/nodes/{nodeId}`)**: Coordinates and labels (`label`, `domainId`, `layer`, `x`, `y`, `uid`).
-- **Links (`/links/{linkId}`)**: Physical and virtual link topologies (`sourceId`, `targetId`, `layer`, `uid`).
-- **Slices (`/slices/{sliceId}`)**: Logical network slicing data.
-
-### 4.1 Security Rules Enforcement
-Client interactions are restricted based on authentication and roles. To prevent hard failures, the frontend checks permissions before triggering writes:
-
-```javascript
-// firestore.rules excerpt
-function isAuthenticated() {
-  return request.auth != null;
-}
-function isOwner(userId) {
-  return isAuthenticated() && request.auth.uid == userId;
-}
-function isValidNode(data) {
-  return data.keys().hasAll(['id', 'label', 'domainId', 'layer', 'x', 'y', 'uid']) &&
-         data.id is string && data.label is string && data.x is number && data.y is number;
-}
-```
-
----
-
-## 5. Future Evolution: Hybrid Flutter & React Webview Architecture
-
-Rather than rewriting the complex WebGL/Three.js 3D topology visualization canvas in Dart (which would introduce immense technical risk and friction), the long-term roadmap implements a **Hybrid Flutter Application Shell** that embeds the specialized **React 3D Topology view** inside a native webview container.
-
-```
-┌────────────────────────────────────────────────────────┐
-│               FLUTTER APPLICATION SHELL                │
-│  (Auth, Navigation, State Management, CRUD Forms)      │
-│                                                        │
-│   ┌────────────────────────────────────────────────┐   │
-│   │           EMBEDDED WEBVIEW CONTAINER           │   │
-│   │                                                │   │
-│   │            REACT 3D TOPOLOGY VIEW              │   │
-│   │         (WebGL / Three.js 3D Rendering)        │   │
-│   └────────────────────────────────────────────────┘   │
-└──────────────────────────┬─────────────────────────────┘
-                           │ Reactive Real-time Sync
-                           ▼
-                 [ Google Firestore ]
-```
-
-### 5.1 Real-Time Synchronization via Firestore
-By using Google Firestore as the shared state coordinator, the Flutter app shell and React 3D view do not require complex, error-prone platform-channel message serialization. Both components run independent reactive listeners:
-- **Write Path**: Any user interaction (e.g., editing coordinates in a Flutter form, or dragging a 3D node in the React canvas) writes updates directly to the Firestore `/nodes/{nodeId}` collection.
-- **Sync Repaint**: Both platforms run live query listeners (using Dart `snapshots()` and JS `onSnapshot()`). Firestore reactively pushes updates to both views simultaneously, causing the 3D canvas to repaint instantly without direct IPC channel bindings.
-
-### 5.2 Webview Container Integration
-- **Desktop Compilation (macOS/Windows)**: Flutter embeds the React build inside the desktop binary using native desktop webview widgets (e.g., WebView2 on Windows, WebKit on macOS).
-- **Web Compilation**: Flutter embeds the React module on the web target using Flutter's `HtmlElementView` to register and load an `iframe` element pointing to the React static assets directory.
-
-### 5.3 Long-Term Rust Integration (Infrastructure & FFI)
-As the infrastructure transitions to Rust, it serves two critical execution layers:
-1. **Cloud & Server Infrastructure**: Replaces the Express web server with a high-performance Rust web server (e.g., using **Axum** or **Actix-web**).
-2. **Flutter Desktop FFI**: Heavy computations, mathematical simulations, or local database processing are compiled into a Rust dynamic library (`.dylib`, `.dll`, or `.so`) and called natively by Flutter using **Dart FFI** (via `flutter_rust_bridge`).
-
-### 5.4 Architecture Mapping Table
+To maintain design parity across the hybrid layers, the React components and hooks correspond directly to Flutter widgets and providers:
 
 | React Concept | Flutter Equivalent | Description |
 |---|---|---|
-| **Vite / Tauri Build** | `flutter build macos` / `web` | Multi-platform native build wrapper |
-| **TailwindCSS CSS Classes** | `ThemeData` + `Widget` styling | Declarative layout styling system |
-| **React Context** | `Provider` (Riverpod / Provider) | Shared dependency injection and state tree |
-| **Custom Hooks (`useAuth`)** | `StateNotifier` / `Notifier` | Encapsulated business and lifecycle logic |
-| **Firebase Web SDK** | `cloud_firestore` / `firebase_auth` | FlutterFire official native plugins |
-| **IndexedDB Cache** | Hive / SQLite / Offline caching | Local persistence engines |
-| **Tauri Rust IPC** | Dart FFI (`flutter_rust_bridge`) | Native Rust library execution bridge |
-
-### 5.5 Flutter Dual-Platform Initialization
-The official FlutterFire SDK supports local offline cache out of the box. The initialization code maps 1-to-1 with our React setup:
-
-```dart
-// lib/services/firebase_service.dart
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
-
-class FirebaseService {
-  static Future<void> initialize() async {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID",
-      ),
-    );
-
-    // Set offline persistence cache size & management
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-    );
-
-    // Setup local emulator for developer sandboxing
-    if (kDebugMode) {
-      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
-      print("Connected to Flutter Firestore local emulator.");
-    }
-  }
-}
-```
+| **Vite Dev Server** | `flutter run` | Local development server |
+| **TailwindCSS Classes** | `ThemeData` + Widget styling | Declarative visual styling |
+| **React Context** | Riverpod `Provider` | Shared state and dependency injection |
+| **Custom Hooks (`useAuth`)** | `Notifier` / `StateNotifier` | Encapsulated business and auth logic |
+| **Firebase Web SDK** | `cloud_firestore` / `firebase_auth` | FlutterFire native plugins |
+| **IndexedDB Cache** | SQLite Cache / Hive | Local persistence engines |
+| **JS/Webview Interface** | Dart `JavascriptChannel` | Host-to-Client fallback communication channel |
 
 ---
 
-## 6. Implementation Action Plan
+## 5. Implementation Action Plan
 
 ```mermaid
 flowchart TD
-    subgraph P1 ["Phase 1: Environment Setup"]
-        p1_1["Configure Tauri Wrapper (1 hour)"] --> p1_2["Write firestore-init Service (30 mins)"]
+    subgraph P1 ["Phase 1: Local Sandbox Setup"]
+        p1_1["Configure Vite Dev Server (1 hour)"] --> p1_2["Implement firestore-init with IndexedDB (30 mins)"]
     end
-    subgraph P2 ["Phase 2: Dual Mode Server"]
-        p1_2 --> p2_1["Adapt Server for Express & Vite (1 hour)"] --> p2_2["Implement Dev/Prod Toggle (30 mins)"]
+    subgraph P2 ["Phase 2: Hybrid Webview Integration"]
+        p1_2 --> p2_1["Embed React view in Flutter WebView (1 hour)"] --> p2_2["Setup Firestore Reactive listeners (1 hour)"]
     end
-    subgraph P3 ["Phase 3: Integration & Testing"]
-        p2_2 --> p3_1["Verify Offline Sync & Rules (1 hour)"] --> p3_2["Conduct Audit & Build Tests (1 hour)"]
+    subgraph P3 ["Phase 3: Verification"]
+        p2_2 --> p3_1["Verify Offline Caching & Sync (1 hour)"] --> p3_2["Run E2E Webview Tests (1 hour)"]
     end
     
     style P1 fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
@@ -304,7 +120,7 @@ flowchart TD
     style P3 fill:#434C5E,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
 ```
 
-1. **Step 1**: Establish Tauri configuration in the root directory under the `src-tauri` workspace.
-2. **Step 2**: Implement the unified `firestore-init.ts` wrapper enabling `persistentLocalCache()`.
-3. **Step 3**: Configure the Express server `server.ts` to support SPA routing fallbacks for production distribution.
-4. **Step 4**: Commit implementation profile `.pipeline/profiles/react.md` to govern quality gates.
+1. **Step 1**: Set up the standalone React Vite configuration for the 3D topology canvas.
+2. **Step 2**: Configure the `firestore-init.ts` wrapper with `persistentLocalCache` for IndexedDB cache management.
+3. **Step 3**: Embed the React webview in the Flutter shell and configure Firestore snapshot synchronizations.
+4. **Step 4**: Verify write synchronizations, offline cache fallbacks, and emulator redirection.
