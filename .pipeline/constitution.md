@@ -23,8 +23,8 @@ last_updated_time: "2026-06-17T01:00:02+08:00"
 
 ### 1.1 Specification Sources
 
-- Primary sources are normative standards documents: IETF RFCs, 3GPP Technical Specifications, IEEE standards, CAMARA APIs, ITU-T Recommendations.
-- Structural schemas (YANG, OpenAPI, Protobuf, ASN.1, SysMLv2) are the authoritative machine-readable models.
+- Primary sources are normative technical specifications and standards documents.
+- Structural schemas and interface definitions are the authoritative machine-readable models.
 - When the normative text and the schema conflict, the schema is authoritative for structural completeness; the normative text is authoritative for behavioral semantics.
 
 ### 1.2 Schema Compliance
@@ -36,12 +36,12 @@ last_updated_time: "2026-06-17T01:00:02+08:00"
 ### 1.3 Data Model Integrity
 
 - Every schema definition, model node, data object, property, variant, custom type, and extension defined in the input schemas MUST map to at least one Feature.
-- Cross-module or external schema references (e.g., leafref/augment/uses in YANG, $ref in OpenAPI, imports in Protobuf/ASN.1) must be explicitly documented with source and target module names.
+- Cross-module or external schema references must be explicitly documented with source and target module names.
 - Circular dependencies must be flagged and escalated -- do not silently drop them.
 
 ### 1.4 UML Metamodel & Profile Mapping Standard
 
-To maintain rigorous, machine-readable representations, all incoming authoritative schemas (regardless of format: e.g., YANG, OpenAPI, Protobuf, ASN.1, XML Schema, ROS messages, or SysMLv2) MUST map strictly to UML elements according to the following universal profile rules:
+To maintain rigorous, machine-readable representations, all incoming authoritative schemas (regardless of format) MUST map strictly to UML elements according to the following universal profile rules:
 
 - **Namespace & Boundary Constructs**: Top-level schema modules, packages, namespaces, or tag groups map to a **UML Component** or **UML Package**.
 - **Structural Entity & Type Definitions**: Message schemas, container types, lists, structural groupings, and objects map to a **UML Class**.

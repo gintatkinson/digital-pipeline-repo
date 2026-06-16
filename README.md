@@ -4,10 +4,10 @@
 
 Welcome to the Digital Systems Engineering Pipeline. This repository contains a suite of autonomous AI Agent "Skills" designed to:
 
-1. **Specification-engineer protocol standards** (IETF, 3GPP, CAMARA, IEEE) into deterministic, behavior-driven Agile tracking matrices in GitHub.
+1. **Specification-engineer protocol standards** into deterministic, behavior-driven Agile tracking matrices in GitHub.
 2. **Implement features** from those backlogs using subagent-driven TDD execution discipline with two-stage review gates.
 
-By feeding these agents a Structural Schema (e.g., YANG, OpenAPI, Protobuf) and its associated Normative Specification Document (e.g., an RFC or Technical Specification), the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
+By feeding these agents a Structural Schema and its associated Normative Specification Document, the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
 
 ## DeepWiki Documentation at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
 
@@ -50,7 +50,7 @@ This toolchain operates on a **Master-Worker architecture** with two distinct pi
 The overarching command-and-control skill. It triggers workers in sequence, enforces strict validation gates between phases, and includes error recovery (halt-and-escalate on failure). See `skills/spec-orchestrator/SKILL.md`.
 
 #### `schema-specification-engineering` (Worker A: Structure)
-Parses raw schemas (e.g., `*.yang`, `*.yaml`). Breaks down structural models into **Epics** and **Features** with exhaustive Given-When-Then acceptance criteria, platform scoping, and verbatim spec context injection. Includes duplicate detection to ensure idempotent re-runs. See `skills/schema-specification-engineering/SKILL.md`.
+Parses raw schemas. Breaks down structural models into **Epics** and **Features** with exhaustive Given-When-Then acceptance criteria, platform scoping, and verbatim spec context injection. Includes duplicate detection to ensure idempotent re-runs. See `skills/schema-specification-engineering/SKILL.md`.
 
 #### `spec-user-story-engineering` (Worker B: Behavior)
 Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on UML OOA/OOD principles. Builds a "Cross-Cutting Matrix" linking scenarios to Features from Worker A. Includes duplicate detection. See `skills/spec-user-story-engineering/SKILL.md`.
@@ -60,7 +60,7 @@ Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Sc
 
 #### Pipeline Utilities (Worker D & Coverage Check)
 * **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries GitHub, syncs checkbox states in local markdown using PyYAML, enforces dependency hallucination checks, and auto-closes completed Epics/Stories/Use Cases.
-* **`scripts/verify_model_coverage.py`**: Automated UML compliance linter. Parses YANG schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
+* **`scripts/verify_model_coverage.py`**: Automated UML compliance linter. Parses input schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
 
 ### Pipeline 2: Feature Implementation
 
