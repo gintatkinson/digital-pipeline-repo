@@ -25,11 +25,10 @@ last_updated: "2026-06-15"
 
 ### 1.2 Deployment Target Mappings
 - **Production Web Deployment**: Compiled static assets served directly via CDN, static hosting platforms (Firebase Hosting, Vercel), or self-hosted NGINX/Express containers.
-- **Desktop Distribution Target (Optional)**: Compiled into static assets wrapped inside a **Tauri** desktop container utilizing native webview bindings.
 - **Database Framework**: Firebase / Cloud Firestore Web SDK v12.x or gRPC-Web client bindings.
 
 ### 1.3 Forbidden Dependencies
-- Do NOT import Node-specific built-ins (`fs`, `path`, `child_process`) directly in React client-side components. Any OS-level or local storage operations must execute via the Tauri FFI IPC bridge (when compiled for desktop) or standard web APIs.
+- Do NOT import Node-specific built-ins (`fs`, `path`, `child_process`) directly in React client-side components. All OS-level or storage operations must execute via defined API services or standard web APIs.
 - Do NOT install TailwindCSS v3 or legacy PostCSS configuration scripts.
 
 ---

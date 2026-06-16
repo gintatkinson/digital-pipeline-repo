@@ -95,12 +95,7 @@ When running in Protobuf mode, browser-based gRPC-web clients translate calls to
 * **CDN / Static Hosting**: The compiled static directory (`dist/`) is deployed directly to static site hosting services (e.g., Firebase Hosting, Vercel, NGINX CDN).
 * **Express Container**: For self-hosted cloud environments, Vite builds static assets served by an Express server.
 
-### 4.2 Archetype 2: Desktop Distribution (Tauri Wrapper - Optional)
-If native desktop applications (macOS, Windows, Linux) are required, the compiled static web assets are wrapped inside a **Tauri** shell:
-* **Single Toolchain**: Tauri uses the native system webview, avoiding the heavy duplicate runtimes of Flutter (no Dart VM, no dual caching).
-* **System FFI**: OS-level bindings are managed through Tauri's lightweight Rust IPC bridge.
-
-### 4.3 Archetype 3: Local Developer Sandbox (`docker-compose.yml`)
+### 4.2 Archetype 2: Local Developer Sandbox (`docker-compose.yml`)
 To spin up the React frontend, Firestore Emulator, and Envoy proxy sidecar:
 
 ```yaml
