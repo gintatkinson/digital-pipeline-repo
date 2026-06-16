@@ -154,3 +154,27 @@ To ensure developers and code-generation tools adhere to these architectural sta
    - Statement coverage must meet the 85% threshold for logic/validators/calculators.
 
 ---
+
+## 8. Domain Extensibility and Design-Time Schema Compilation
+
+The declarative layout schema is structured to scale and support domain-specific variants at design time. This model is clear, workable, and eliminates the historical technical debt of legacy systems:
+
+### 8.1. Separation of Concerns (Core vs. Domain)
+* **The Core UI Engine**: Platform-native UI shells (React, Flutter) only understand generic logical UI components (`SidebarLayout`, `SplitWorkspace`, `TableView`, `TopologyMap`, `PropertyGrid`).
+* **Design-Time Domain Bindings**: At design time, layout declarations bind components to domain-specific schemas using structured data paths:
+  - **Telecom / Network Domain**: Binds to IETF YANG paths (e.g., `yang:network-topology/topology/node`).
+  - **Energy / Power Grid Domain**: Binds to IEC 61970 Common Information Model (CIM) keys (e.g., `cim:PowerSystemResource/ConnectivityNode`).
+  - **Logistics / Marine Ports**: Binds to ISO 15459 container states and RFID coordinates.
+
+### 8.2. Design-Time Compilation & Validation
+To guarantee that declarative layouts are valid and error-free before compiling the production bundle:
+1. **Schema Linter**: During build pipelines, a linter script parses `logical-layout.json` and asserts that all `data_source` paths map directly to allowed nodes in the compiled schema directory (e.g., validating the YANG schemas or OpenAPI specifications).
+2. **Type Safety**: Design-time compilation generates typed bindings for the React and Flutter runtimes. If a property or attribute requested in a layout does not exist in the domain-specific model, compilation fails.
+
+### 8.3. Future Component Extensions
+When a new domain requirement demands a new visualization component (e.g., a time-series line chart or timeline grid):
+1. The new component type is registered in the LUI metamodel spec (`logical-components.md` and the JSON Schema).
+2. Native implementations of the component are coded once inside the React and Flutter engines.
+3. Design-time declarations can immediately begin utilizing the new component, ensuring absolute decoupling between representation and layout configuration.
+
+---
