@@ -7,7 +7,7 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 ## 1. HierarchyTree
 - **Anatomy:** Scrollable view container, parent/child nodes, expansion toggles, context menus, and node drag/drop anchors.
 - **Behavior:** Exposes logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) to be mapped to platform-specific inputs (e.g., keyboard shortcuts, touch gestures) at runtime.
-- **Accessibility:** The component must expose structural hierarchy metadata (such as node depth, expansion state, and parent-child relationships) to allow the platform-specific implementation layer to construct appropriate platform-specific accessibility tags (such as ARIA roles for Web or accessibility nodes for mobile).
+- **Accessibility:** The component must expose structural hierarchy metadata (such as node depth, expansion state, and parent-child relationships) to allow the platform-specific implementation layer to construct appropriate accessibility interfaces.
 - **Event Limits:** Selection updates trigger selection callbacks only on user interaction. Property setters must modify selections silently.
 
 ## 2. ResizableSplitter

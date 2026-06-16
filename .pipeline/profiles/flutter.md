@@ -49,7 +49,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Type Strictness:** Enforce `analysis_options.yaml` (strict-casts, strict-inference, and strict-raw-types enabled). Use of `dynamic` is prohibited in application code. For Firebase (`DocumentSnapshot.data()`) and JSON decoding (`jsonDecode`) which yield dynamic data, developers MUST write typed parsing/mapping functions immediately at the adapter boundaries.
 - **Off-Thread Telemetry Pipeline:**
   - WebSocket/gRPC streams and binary telemetry packet parsing MUST run in a background **Dart Isolate** to prevent blocking the main UI thread.
-  - Implement a double-buffered atomic pointer swap protocol using 256-byte aligned allocations via Dart FFI for sharing coordinates between background isolates and the main UI thread.
+  - Implement a secure off-thread message passing mechanism for sharing coordinates between background isolates and the main UI thread.
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
@@ -59,7 +59,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - **Dynamic Theme & Alarm Mappings:**
     - Hardcoding colors, brand palettes, or standard-specific severity strings is strictly prohibited.
     - All status colors, brand palettes, and spacing attributes must map back to variables loaded dynamically from the dynamic design tokens JSON file (`design-tokens.json`).
-    - The application must inject a dynamic `ThemeProvider` at the application root, which deserializes the design tokens and serves them using a custom `ThemeExtension` (`DynamicThemeColors`) for status colors lookup at runtime.
+    - The application must resolve the design tokens at startup and serve them dynamically using abstract interface themes for status colors lookup at runtime.
     - Component layouts and widgets must be mapped dynamically via a Widget registry that resolves types and schemas from `logical-layout.json`.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
@@ -70,8 +70,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - **Split Workspace Layout (ResizableSplitter):** The main workspace area renders two primary pane slots.
       - **Paint Isolation:** Wrap child views inside the split panes in repaint boundaries to isolate painting boundaries and ensure smooth resizing.
       - **State Preservation:** Leverage state retention on child widgets to prevent widget state destruction when resizing split panes.
-      - **Top Pane (Spatial-Temporal Canvas):** Displays an interactive `TopologyMap` representing the selected managed object's relations in coordinate space. Must support dynamic trajectory path lines, orbital projections, volumetric bounding indicators, and timeline controls. Integrate dynamic synchronization logic to align playback heads between background isolates and the main execution thread.
-      - **Bottom Pane (Details & Relations Pane):** Displays detailed attributes and related child objects grouped under a tabbed container holding tabbed tables.
+      - **primary_slot (Spatial-Temporal Canvas):** Displays an interactive `TopologyMap` representing the selected managed object's relations in coordinate space. Must support dynamic trajectory path lines, orbital projections, volumetric bounding indicators, and timeline controls. Integrate dynamic synchronization logic to align playback heads between background isolates and the main execution thread.
+      - **secondary_slot (Details & Relations Pane):** Displays detailed attributes and related child objects grouped under a tabbed container holding tabbed tables.
     - **PropertyGrid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **NavigationBreadcrumbs:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.

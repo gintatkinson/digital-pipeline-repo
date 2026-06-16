@@ -8,6 +8,16 @@ import json
 import sys
 import yaml
 
+def load_codebase_rules(workspace_dir):
+    rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
+    if os.path.exists(rules_path):
+        try:
+            with open(rules_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to load codebase_rules.json: {e}")
+    return {}
+
 def normalize_title(title):
     if not title:
         return ""
@@ -246,20 +256,34 @@ def main():
     combined_titles.update(story_titles)
     combined_titles.update(usecase_titles)
 
-    # Locate the docs directory
+    # Locate the workspace directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+
+    # Load codebase rules
+    rules = load_codebase_rules(workspace_dir)
+    backlog_dirs = rules.get("backlog_directories", {
+        "epics": "docs/epics",
+        "features": "docs/features",
+        "user_stories": "docs/user-stories",
+        "use_cases": "docs/use-cases"
+    })
+
     if len(sys.argv) > 1:
         docs_dir = os.path.abspath(sys.argv[1])
+        epics_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("epics", "docs/epics")))
+        features_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("features", "docs/features")))
+        stories_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("user_stories", "docs/user-stories")))
+        usecases_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("use_cases", "docs/use-cases")))
+        print(f"Scanning backlog files in {docs_dir}...")
     else:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        docs_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "..", "docs"))
-    if not os.path.exists(docs_dir):
-        print(f"Docs directory not found at: {docs_dir}")
-        sys.exit(1)
-
-    print(f"Scanning backlog files in {docs_dir}...")
+        epics_dir = os.path.join(workspace_dir, backlog_dirs.get("epics", "docs/epics"))
+        features_dir = os.path.join(workspace_dir, backlog_dirs.get("features", "docs/features"))
+        stories_dir = os.path.join(workspace_dir, backlog_dirs.get("user_stories", "docs/user-stories"))
+        usecases_dir = os.path.join(workspace_dir, backlog_dirs.get("use_cases", "docs/use-cases"))
+        print(f"Scanning backlog files...")
 
     # Process Epics
-    epics_dir = os.path.join(docs_dir, "epics")
     if os.path.exists(epics_dir):
         for filename in sorted(os.listdir(epics_dir)):
             if not filename.endswith(".md"):
@@ -288,7 +312,6 @@ def main():
                 print(f"Warning: No GitHub Epic issue found matching: '{title}'")
 
     # Process Features
-    features_dir = os.path.join(docs_dir, "features")
     if os.path.exists(features_dir):
         for filename in sorted(os.listdir(features_dir)):
             if not filename.endswith(".md"):
@@ -310,7 +333,6 @@ def main():
                 print(f"Warning: No GitHub Feature issue found matching: '{title}'")
 
     # Process User Stories
-    stories_dir = os.path.join(docs_dir, "user-stories")
     if os.path.exists(stories_dir):
         for filename in sorted(os.listdir(stories_dir)):
             if not filename.endswith(".md"):
@@ -338,7 +360,6 @@ def main():
                 print(f"Warning: No GitHub User Story issue found matching: '{title}'")
 
     # Process Use Cases
-    usecases_dir = os.path.join(docs_dir, "use-cases")
     if os.path.exists(usecases_dir):
         for filename in sorted(os.listdir(usecases_dir)):
             if not filename.endswith(".md"):

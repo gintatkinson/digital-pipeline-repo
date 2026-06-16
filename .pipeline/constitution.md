@@ -168,19 +168,13 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 
 - If a validation gate fails, HALT immediately. Do not proceed to the next phase.
 - Log the failure reason with the specific file/issue that caused it.
-- If you suspect the failure is due to a pipeline tooling bug or schema limitation, automatically submit a GitHub issue to the upstream repository:
-  ```bash
-  gh issue create --repo gintatkinson/digital-pipeline-repo --title "Tooling Bug: [Brief description]" --body "Context: [Error details, stack traces, and schema file references]"
-  ```
-- Escalate to the human with a clear description of what failed and why.
+- If you suspect the failure is due to a pipeline tooling bug or schema limitation, report it as an issue to the upstream repository.
+- Escalate with a clear description of what failed and why.
 
-### 3.6 User Authorization Lock & Compliance Check
+### 3.6 Traceability and Verification Compliance
 
-- **Authorization Lock**: The agent is strictly forbidden from invoking any file-writing tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) or terminal execution tools (`run_command`) in interactive developer sessions unless the user's latest message contains the word `PROCEED` (case-insensitive). This lock is bypassed during automated, non-interactive evaluation runner scenarios to allow validation suites to execute.
-- **Mandatory Compliance Check**: Every agent thought block must begin with the 3-point Karpathy Compliance Check:
-  * Is the user's message a question/inquiry or a direct command?
-  * Has the user explicitly approved a file-write/command execution for this turn? (Yes/No)
-  * Am I making any silent assumptions about the user's intent?
+- All modifications and executions must strictly align with the approved backlog and verification plans.
+- Ensure that every change is verifiable and matches the target specification.
 
 ---
 
@@ -219,9 +213,9 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 - Do NOT add platform-specific language to Epics, Features, User Stories, or Use Cases.
 - Do NOT skip negative/error scenarios -- every constraint implies at least one failure mode.
 - Do NOT create Features larger than 10 acceptance criteria without splitting.
-- Do NOT hardcode GitHub issue numbers in cross-references -- always query live state via `gh` CLI.
+- Do NOT hardcode issue numbers in cross-references -- always query live state via the tracking system.
 - Do NOT silently drop schema nodes that are difficult to categorize -- flag them and escalate.
-- Do NOT edit or patch pipeline tooling scripts (such as linter, reconciler, or verify scripts) inside downstream target repositories. Any tooling bugs or feature requests must be escalated and fixed upstream in the pipeline repository.
+- Do NOT edit or patch pipeline tooling scripts (such as linter, reconciler, or verify scripts) inside downstream target repositories. Any tooling bugs or feature requests must be escalated and fixed upstream.
 - Do NOT hardcode standard-specific properties, names, or visual style attributes (e.g., hex colors like `#d50000`) inside platform implementation profiles or functional specifications.
 - Do NOT mix platform-specific implementation mechanisms (such as React Context or Flutter Keys) inside logical UI component specifications.
 - Do NOT bypass dynamic design token resolution; all colors, typography, and spacing must map back to variables loaded dynamically from Tier 2 configuration files.

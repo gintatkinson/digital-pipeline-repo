@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0.0",
-    "schema_name": "gke_management_dashboard"
+    "schema_name": "systems_topology_dashboard"
   },
   "theme": {
     "modes": ["light", "dark", "system"],
@@ -54,10 +54,10 @@
           "id": "resource_tree",
           "props": {
             "width": "spacing.layout-sidebar-width",
-            "hierarchy": ["Folder", "Project", "Resource"]
+            "hierarchy": ["Domain", "Subdomain", "Unit"]
           },
           "bindings": {
-            "data_source": "gcp:resource-manager",
+            "data_source": "provider:resource-hierarchy-manager",
             "selection_target": "selected_managed_object"
           }
         },
@@ -82,14 +82,14 @@
                 "allow_pan_zoom": true
               },
               "bindings": {
-                "data_source": "yang:spatial-temporal-topology/topology[@topology-id='selected_managed_object']",
+                "data_source": "schema:spatial-temporal-topology/topology[@topology-id='selected_managed_object']",
                 "selection_target": "active_focused_node",
                 "coordinate_mapping": {
-                  "x": "location/longitude",
-                  "y": "location/latitude",
-                  "z": "location/altitude",
-                  "t": "location/timestamp",
-                  "trajectory": "location/trajectory-vector"
+                  "x": "coordinates/coord_0",
+                  "y": "coordinates/coord_1",
+                  "z": "coordinates/coord_2",
+                  "t": "coordinates/timestamp",
+                  "trajectory": "coordinates/trajectory-vector"
                 },
                 "depth_selector": {
                   "default_hops": 2,
@@ -121,7 +121,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "yang:network-topology/topology/node[@node-id='active_focused_node']/contained-elements"
+                    "data_source": "schema:network-topology/topology/node[@node-id='active_focused_node']/contained-elements"
                   }
                 },
                 {
@@ -135,7 +135,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "yang:alarm-management/alarms[target-resource='active_focused_node']"
+                    "data_source": "schema:alarm-management/alarms[target-resource='active_focused_node']"
                   }
                 },
                 {
@@ -149,7 +149,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "yang:event-log/events[source-resource='active_focused_node']"
+                    "data_source": "schema:event-log/events[source-resource='active_focused_node']"
                   }
                 }
               ]

@@ -55,11 +55,11 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - **Theme Selection:**
     - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
     - The application must use CSS custom properties (variables) prefixing color tokens (e.g., `--color-brand-primary`, matching `design-tokens.json` namespaces) to allow dynamic, reload-free theme switching.
-    - An in-head script must load the theme preference from dynamic local storage or system defaults and apply it to `<html>` prior to page rendering to avoid a Flash of Unstyled Content (FOUC).
+    - The theme preference must be loaded from system defaults or dynamic storage and applied prior to viewport rendering to avoid a Flash of Unstyled Content (FOUC).
   - **Dynamic Design Tokens & Alarm Mappings:**
     - Hardcoding visual parameters (e.g., hex colors, margins) or standard-specific mappings (e.g., specific alarm severities or colors) is strictly forbidden.
     - All status colors, brand palettes, and component styles must be loaded dynamically from the dynamic design tokens JSON file (`design-tokens.json`).
-    - At startup, the application bootstrap loader must dynamically inject root CSS variables parsed directly from the resolved design tokens JSON to prevent theme flashes (FOUC).
+    - At startup, the application loader must dynamically resolve and apply the styling tokens parsed directly from the resolved design tokens configuration to prevent theme flashes (FOUC).
     - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
@@ -71,8 +71,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
       - Default layout: stacked along a configurable split axis. The user can toggle split directions.
       - **Performance Optimization:** Dragging the splitter must update layout variables directly in the configuration and leverage CSS paint/layout boundaries.
       - **Snap-to-Edge:** Support snap-to-edge collapse when dragged within the configured threshold boundaries.
-      - **Top Pane (Spatial-Temporal Canvas):** Displays an interactive `TopologyMap` representing the selected managed object's relations in coordinate space. Must support dynamic trajectory path lines, orbital projections, volumetric bounding indicators, and a timeline control with playback controls. Layout physics calculations are offloaded to an isolated background hardware-accelerated rendering pipeline.
-      - **Bottom Pane (Details & Relations Pane):** Displays detailed attributes and related child objects grouped under a `TabbedContainer` holding tabbed tables.
+      - **primary_slot (Spatial-Temporal Canvas):** Displays an interactive `TopologyMap` representing the selected managed object's relations in coordinate space. Must support dynamic trajectory path lines, orbital projections, volumetric bounding indicators, and a timeline control with playback controls. Layout physics calculations are offloaded to an isolated background hardware-accelerated rendering pipeline.
+      - **secondary_slot (Details & Relations Pane):** Displays detailed attributes and related child objects grouped under a `TabbedContainer` holding tabbed tables.
     - **PropertyGrid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **NavigationBreadcrumbs:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
