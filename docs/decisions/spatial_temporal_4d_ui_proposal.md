@@ -47,11 +47,17 @@ To align aircraft pressure altitude (ADS-B) and marine MSL transponders with the
 1. **Geoid Height Grid**: Cache a compressed $0.25^\circ \times 0.25^\circ$ coordinate grid of the **EGM96** or **EGM2008** model in memory.
 2. **Bilinear Interpolation**: For each geodetic coordinate $(\phi, \lambda)$, look up and bilinearly interpolate to find the geoid undulation $N$, correcting the height before ECEF conversion.
 
-### 2.3. Celestial Reference Frames (Moon & Mars)
-* **Moon (PA to ME)**: Translate Principal Axis (PA) coordinates (used in orbital dynamics) to Mean Earth/Polar Axis (ME) coordinates (used for surface maps) using physical libration rotations:
-  $$\mathbf{r}_{ME} = \mathbf{R}_{lib}(t) \mathbf{r}_{PA}$$
-  Adjust for the $2\text{ km}$ lunar center-of-mass to center-of-figure offset.
-* **Mars (Areoid)**: Implement the biaxial Martian ellipsoid ($f \approx 0.00589$) and correct surface elevations against the MOLA Areoid datum.
+### 2.3. Hierarchical & Celestial Reference Frames (Extensible to Extra-Solar Systems)
+To scale beyond the solar system and support arbitrary coordinate systems (e.g., Earth-centric, Mars-centric, Barycentric, Stellar-centered, or Galactic Coordinate Systems):
+1. **Hierarchical Scene Graph (Nested Reference Frames)**: Coordinates are defined relative to their local parent frame's origin (e.g., Spacecraft $\to$ Lunar Orbit $\to$ Lunar Barycenter $\to$ Earth-Moon Barycenter $\to$ Solar System Barycenter $\to$ Galactic Center).
+2. **Dynamic Origin Shifting (Floating Origin)**: When the camera focus shifts to a new celestial body or deep-space coordinate region, the rendering engine's focal origin is translated to that node's center. All positions are computed recursively relative to the new focal origin to prevent float precision degradation.
+3. **Planetary/Stellar Reference Instances**:
+   * **Earth (WGS84)**: Conversion using standard ellipsoidal parameters.
+   * **Moon (PA to ME)**: Translate Principal Axis (PA) coordinates (used in orbital dynamics) to Mean Earth/Polar Axis (ME) coordinates (used for surface maps) using physical libration rotations:
+     $$\mathbf{r}_{ME} = \mathbf{R}_{lib}(t) \mathbf{r}_{PA}$$
+     Adjust for the $2\text{ km}$ lunar center-of-mass to center-of-figure offset.
+   * **Mars (Areoid)**: Implement the biaxial Martian ellipsoid ($f \approx 0.00589$) and correct surface elevations against the MOLA Areoid datum.
+   * **Extra-Solar / Stellar Barycentric**: Map celestial coordinates (e.g., Right Ascension, Declination, Distance or Galactic coordinates) into local Cartesian frames relative to the parent star's barycenter.
 
 ---
 

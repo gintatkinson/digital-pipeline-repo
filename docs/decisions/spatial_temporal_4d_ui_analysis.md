@@ -34,8 +34,9 @@ flowchart LR
 1. **Geodetic (WGS84)**: Used for aviation and maritime. Represented by Latitude ($\phi$), Longitude ($\lambda$), and Altitude ($h$).
 2. **Earth-Centered Inertial (ECI / J2000)**: Used for orbital mechanics. Spacecraft positions are measured relative to the Earth's center, with axes aligned with distant stars (non-rotating relative to the Earth).
 3. **Body-Fixed Spherical (IAU2000)**: Used for Moon/Mars surface rovers. Longitude, latitude, and local altitude relative to the planet's reference ellipsoid.
+4. **Stellar & Galactic Coordinate Reference Systems**: Used for deep-space and extra-solar systems. Relative coordinates are defined centered on stellar barycenters or the Galactic coordinate center (e.g., Sagittarius A*), resolving coordinates through recursive tree transformation.
 
-### 1.2. Conversion to Cartesian ECEF/ECI
+### 1.2. Conversion to Cartesian ECEF/ECI/Local Frame origin
 To render these positions in a single WebGL/Impeller viewport, coordinates are converted to **Earth-Centered, Earth-Fixed (ECEF)** Cartesian coordinates $(X, Y, Z)$ using:
 
 $$N(\phi) = \frac{a}{\sqrt{1 - e^2 \sin^2\phi}}$$
