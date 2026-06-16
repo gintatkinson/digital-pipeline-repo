@@ -36,19 +36,18 @@ For each major system interaction, model a formal Use Case following standard UM
    - **Guarantees**: State the resulting state changes, rollback operations, or notifications.
 6. **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. You must define both a Success Guarantee and a Failure/Abort Guarantee.
 7. **UML Use Case & State Machine Diagrams:** Every Use Case MUST include:
-   - A **UML Use Case Diagram** (using Mermaid `graph TD`) illustrating the system boundary, actors (both primary and secondary), relationships, and any `<<include>>` or `<<extend>>` linkages.
-     - **System Boundary Constraint**: Group all use case nodes inside a system boundary `subgraph` (e.g., `subgraph System Boundary`) and place all actor nodes outside of it.
-     - **Oval Node Shapes**: Draw all use case nodes using Mermaid's stadium/oval shape: `UC([Use Case Title])` instead of rectangles `UC[Use Case Title]`.
-     - **Undirected Actor Links**: Actor connections to Use Cases must use undirected associations (plain solid lines `---` without arrowheads) rather than directed arrows (`Actor --> UC` or `UC --> SecActor`).
-     - **Correct Extend Arrow Direction**: In UML dependency semantics, the extend arrow points from the extending Use Case (client) to the base Use Case (supplier). e.g., `UC_Ext -. <<extend>> .-> UC` where `UC_Ext` is the extending usecase and `UC` is the base usecase.
-     - **Mermaid Dotted Link Label Syntax Constraint**: Dotted/dashed arrows with labels (e.g., for `<<include>>` or `<<extend>>` relationships) MUST use the `-. label .->` syntax (e.g. `UC -. <<include>> .-> UC_Sub` or `UC_Ext -. <<extend>> .-> UC`). Do NOT use the invalid pipe syntax (like `-.->|label|` or `-.-->|label|`), as it is invalid Mermaid syntax for dotted links and will cause parsing and rendering failures on GitHub.
-   - A **UML State Machine Diagram** (using Mermaid `stateDiagram-v2`) showing transition logic from preconditions to final postconditions.
+   - A **UML Use Case Diagram** (using Mermaid/supported syntax) illustrating the system boundary, actors, relationships, and linkages.
+     - **Syntactic Constraints**: Conform to the dynamic diagram formatting rules parsed from the configuration (e.g., `use_case_stadium_nodes_only`, `use_case_undirected_actor_links_only`, `mermaid_dotted_link_regex` in `codebase_rules.json`).
+     - **System Boundary Constraint**: Group all use case nodes inside a system boundary and place actor nodes outside of it.
+     - **Node Shapes**: Draw use case nodes using stadium/oval shapes rather than rectangles (or as configured).
+     - **Actor Links**: Actor connections to Use Cases must use undirected associations (plain solid lines without arrowheads) rather than directed arrows (or as configured).
+     - **Extend Semantics**: In UML dependency semantics, the extend arrow points from the extending Use Case (client) to the base Use Case (supplier).
+     - **Dotted Link Semantics**: Dotted/dashed arrows with labels must use correct and parsable syntax matching the configured patterns (avoiding pipe syntax like `-.->|label|` which can fail on some platforms).
+   - A **UML State Machine Diagram** (using Mermaid/supported state diagram syntax) showing transition logic from preconditions to final postconditions.
    - Only UML diagrams are allowed; ERDs are strictly forbidden.
 
 ### Behavioral Extraction Triggers (Mandatory Use Cases)
-An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD data management) if the normative text or structural schema meets any of the following triggers:
-- **Algorithmic/Calculation Trigger**: If the specification defines any mathematical formula, equation, conversion, or derivation, it MUST have a dedicated Use Case mapping the inputs, steps of the calculation flow, and potential edge-case validation failure paths.
-- **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (e.g., expiration timestamps or state decay time thresholds) or implies state-decay lifecycles, it MUST have a dedicated Use Case detailing the expiry check flows, transition to expired/stale state, and postconditions for stale data access.
+An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD data management) if the normative text or structural schema matches any of the configured behavioral triggers (e.g. loaded dynamically from `rules/behavioral_triggers.json` or defined in workspace settings). Check these triggers during parsing to identify required Use Cases.
 
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)
@@ -57,7 +56,7 @@ A System Use Case is realized by User Stories and structural Features.
 2. **Perform Semantic Analysis**: Inspect both titles and content bodies of issues for semantic matching (mapping based on meaning/content) rather than name-only lexical matching.
 3. Determine which User Stories and Features are required to fulfill this specific System Use Case.
 4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links.
-   - **Absolute URLs**: Enforce absolute URLs to prevent 404 links on tracker UIs. Reference BOTH the Issue ID and the absolute URL of the feature/user-story documents. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-01.md)`).
+    - **Absolute URLs**: Enforce absolute URLs to prevent 404 links on tracker UIs. Reference BOTH the Issue ID and the absolute URL of the feature/user-story documents. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the repository's URL layout template (e.g. `[Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md` where `<blob_path>` is resolved from configuration).
    - **Realization Checklists & Justification**: Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g., `(provides coordinates schema)` or `(realizes the authentication scenario)`). Parenthetical justifications are strictly required for every single checklist item.
 
 ## Step 4: Markdown Generation
@@ -126,9 +125,9 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #[IssueID] - [User Story Title]([Repository Base URL]/blob/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
 ### Required Features
-- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)

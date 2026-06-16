@@ -8,7 +8,9 @@ import json
 import ast
 
 def load_codebase_rules(workspace_dir):
-    rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
+    rules_path = os.environ.get("CODEBASE_RULES_PATH")
+    if not rules_path:
+        rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
     if os.path.exists(rules_path):
         try:
             with open(rules_path, "r", encoding="utf-8") as f:
@@ -765,11 +767,18 @@ def parse_schema_file(filepath):
 
 def load_behavioral_triggers(schema_dir, script_dir):
     workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
-    search_paths = [
+    rules = load_codebase_rules(workspace_dir)
+    meta = rules.get("meta", {})
+    trig_path = meta.get("behavioral_triggers_path")
+    
+    search_paths = []
+    if trig_path:
+        search_paths.append(os.path.join(workspace_dir, trig_path))
+    search_paths.extend([
         os.path.join(schema_dir, "behavioral_triggers.json"),
         os.path.join(workspace_dir, "rules", "behavioral_triggers.json"),
         os.path.join(script_dir, "behavioral_triggers.json")
-    ]
+    ])
     for path in search_paths:
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
@@ -1536,20 +1545,28 @@ def strip_dart_comments(content):
         return match.group(0)
     return re.sub(pattern, replacer, content, flags=re.DOTALL)
 
-def walk_json_ast_for_compliance(node, target_method="stopPropagation"):
+def walk_json_ast_for_compliance(node, target_method="stopPropagation", ast_rules=None):
+    if not ast_rules:
+        ast_rules = {}
+    call_expr = ast_rules.get("call_expression", "CallExpression")
+    member_expr = ast_rules.get("member_expression", "MemberExpression")
+    callee_key = ast_rules.get("callee", "callee")
+    prop_key = ast_rules.get("property", "property")
+    name_key = ast_rules.get("name", "name")
+    
     if isinstance(node, dict):
-        if node.get("type") == "CallExpression":
-            callee = node.get("callee", {})
-            if callee.get("type") == "MemberExpression":
-                property_name = callee.get("property", {}).get("name")
+        if node.get("type") == call_expr:
+            callee = node.get(callee_key, {})
+            if callee.get("type") == member_expr:
+                property_name = callee.get(prop_key, {}).get(name_key)
                 if property_name == target_method:
                     return True
         for k, v in node.items():
-            if walk_json_ast_for_compliance(v, target_method):
+            if walk_json_ast_for_compliance(v, target_method, ast_rules):
                 return True
     elif isinstance(node, list):
         for item in node:
-            if walk_json_ast_for_compliance(item, target_method):
+            if walk_json_ast_for_compliance(item, target_method, ast_rules):
                 return True
     return False
 
@@ -1789,7 +1806,7 @@ def verify_codebase_compliance(workspace_dir):
                         try:
                             with open(ast_path, "r", encoding="utf-8") as f:
                                 ast_tree = json.load(f)
-                            if not walk_json_ast_for_compliance(ast_tree, react_ast_compliance_method):
+                            if not walk_json_ast_for_compliance(ast_tree, react_ast_compliance_method, react_rules):
                                 errors.append(f"React File '{rel_path}' (AST Verified) fails Event-Echo Guard compliance check.")
                             ast_verified = True
                         except Exception as e:
@@ -1833,8 +1850,9 @@ def verify_codebase_compliance(workspace_dir):
                             is_react_viewport = True
                             break
                     if is_react_viewport:
+                        react_playhead_clamp_range = react_rules.get("playhead_clamp_range", [0.90, 1.10])
                         if not all(re.search(pat, clean_content) for pat in react_playhead_clamp_regex):
-                            errors.append(f"React Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps [0.90, 1.10] for 4D spatial-temporal viewports.")
+                            errors.append(f"React Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {react_playhead_clamp_range} for 4D spatial-temporal viewports.")
 
     # 2. Flutter Desktop/Web Codebase Compliance
     if os.path.exists(flutter_dir):
@@ -1900,8 +1918,9 @@ def verify_codebase_compliance(workspace_dir):
                             is_flutter_viewport = True
                             break
                     if is_flutter_viewport:
+                        flutter_playhead_clamp_range = flutter_rules.get("playhead_clamp_range", [0.90, 1.10])
                         if not all(re.search(pat, clean_content) for pat in flutter_playhead_clamp_regex):
-                            errors.append(f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps [0.90, 1.10] for 4D spatial-temporal viewports.")
+                            errors.append(f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {flutter_playhead_clamp_range} for 4D spatial-temporal viewports.")
                             
                     # FFI Memory Safety and Finalizer registration
                     if any(ffi_kw in clean_content for ffi_kw in flutter_ffi_keywords):
@@ -1911,14 +1930,22 @@ def verify_codebase_compliance(workspace_dir):
                             errors.append(f"Flutter FFI File '{rel_path}' does not implement native allocation reference counting.")
 
     # 3. Python AST-based Hardcoded Constants Audit
-    for root, dirs, files in os.walk(workspace_dir):
-        dirs[:] = [d for d in dirs if d not in python_exclusions]
-        for file in files:
-            if file.endswith(".py"):
-                filepath = os.path.join(root, file)
-                ast_err = verify_python_ast(filepath, forbidden_colors_hex)
-                if ast_err:
-                    errors.append(ast_err)
+    python_scan_dirs = python_rules.get("scan_directories")
+    if not python_scan_dirs:
+        python_scan_dirs = [workspace_dir]
+    else:
+        python_scan_dirs = [os.path.join(workspace_dir, d) for d in python_scan_dirs]
+        
+    for scan_dir in python_scan_dirs:
+        if os.path.exists(scan_dir):
+            for root, dirs, files in os.walk(scan_dir):
+                dirs[:] = [d for d in dirs if d not in python_exclusions]
+                for file in files:
+                    if file.endswith(".py"):
+                        filepath = os.path.join(root, file)
+                        ast_err = verify_python_ast(filepath, forbidden_colors_hex)
+                        if ast_err:
+                            errors.append(ast_err)
 
     # 4. Check specification files for platform/visual leakage
     for spec_rel_path in spec_files:

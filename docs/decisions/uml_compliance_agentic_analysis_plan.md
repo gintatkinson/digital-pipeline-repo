@@ -72,7 +72,7 @@ The 5 adversarial subagents will be deployed concurrently to audit the pipeline 
 
 ## 4. Detailed Outline of the Final Report
 
-The final report will be compiled at `/Users/perkunas/digital-pipeline-repo/docs/uml_compliance_audit_report.md` and structured as follows:
+The final report will be compiled at `docs/uml_compliance_audit_report.md` and structured as follows:
 
 * **Section 1: Executive Summary**
   * Evaluation of the digital pipeline's current UML compliance level in structure, definition, content, and diagrams.

@@ -1,35 +1,32 @@
 [
   {
-    "name": "Spatial-Temporal 4D Telemetry Trigger",
+    "name": "High-Frequency Stream Telemetry Trigger",
     "trigger_nodes": [
-      "latitude",
-      "longitude",
-      "altitude",
-      "velocity",
-      "trajectory",
-      "trajectory-vector",
-      "orbital-parameters"
+      "coordinates",
+      "position-vector",
+      "velocity-vector",
+      "telemetry-stream",
+      "high-frequency-coordinates"
     ],
     "rules": [
       {
         "target_type": "user-story",
         "requires_mermaid_block": "sequenceDiagram",
         "match_terms_in_mermaid": [
-          "OffThreadProcessor",
-          "PropagationGuard",
-          "MutationLock"
+          "OffThreadHandler",
+          "ConcurrencyGuard",
+          "StateLock"
         ],
-        "error_message": "User Story diagrams must illustrate off-thread spatial calculations (OffThreadProcessor) and Event-Echo Guard implementations (PropagationGuard/MutationLock) when 4D spatial-temporal coordinates are present in the schema."
+        "error_message": "User Story diagrams must illustrate off-thread computations (OffThreadHandler) and concurrency control implementations (ConcurrencyGuard/StateLock) when high-frequency coordinate/telemetry streams are present in the schema."
       },
       {
         "target_type": "use-case",
         "match_terms_in_body": [
-          "temporal",
+          "temporal-context",
           "playback",
-          "timeline",
-          "live"
+          "state-transitions"
         ],
-        "error_message": "Use Cases must detail the temporal context state machine (playback controls and live mode transitions) when 4D spatial-temporal telemetry is configured in the schema."
+        "error_message": "Use Cases must detail the temporal context state machine (playback controls and state transitions) when high-frequency telemetry is configured in the schema."
       }
     ]
   }

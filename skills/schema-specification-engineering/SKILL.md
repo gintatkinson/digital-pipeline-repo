@@ -2,7 +2,7 @@
 
 ---
 name: schema-specification-engineering
-description: "Transforms structural schemas and normative specification documents into Agile Epics and Features. Use when you need to extract platform-independent feature specifications from database or protocol schemas with exhaustive constraint parsing and Given-When-Then acceptance criteria."
+description: "Transforms structural schemas and normative specification documents into Agile Epics and Features. Use when you need to extract platform-independent feature specifications from structural schemas with exhaustive constraint parsing and Given-When-Then acceptance criteria."
 compatibility: "Requires issue tracker CLI and git. Works with modern agentic development environments."
 metadata:
   title: "Schema Specification Engineering (Structural Extraction)"
@@ -20,12 +20,12 @@ Use this as the single canonical workflow for translating structural schemas and
 
 > [!IMPORTANT]
 > **EXHAUSTIVE SEMANTIC MODELING MANDATE**
-> Do NOT blindly map every isolated schema attribute (e.g., `x`, `y`, `z`) to a separate Feature. You MUST semantically model the schema by grouping cohesive properties into a single logical Feature (e.g., "Cartesian Coordinates"). However, "zero abstraction" still applies: within that grouped Feature, you MUST exhaustively document EVERY underlying attribute/node, capturing its exact data type, mathematical constraints (fraction-digits, units), defaults, and verbatim specification text. No constraint detail may be lost or summarized away.
+> Do NOT blindly map every isolated schema attribute (e.g., `x`, `y`, `z`) to a separate Feature. You MUST semantically model the schema by grouping cohesive properties into a single logical Feature (e.g., "Cartesian Coordinates"). However, "zero abstraction" still applies: within that grouped Feature, you MUST exhaustively document EVERY underlying attribute/node, capturing its exact data type, mathematical constraints (value ranges, units), defaults, and verbatim specification text. No constraint detail may be lost or summarized away.
 
 ## Step 1: Forensic Audit & Module Decomposition
 
-1. **Parse the Schema:** Read the primary structural schema file (e.g., structural or protocol schema files) and its imports.
-2. **Identify Top-Level Trees:** Decompose the high-level structural attributes (e.g., `/system-config`, `/users`, `/orders`) into discrete logical groupings.
+1. **Parse the Schema:** Read the primary structural schema file and its imports.
+2. **Identify Top-Level Trees:** Decompose the high-level structural attributes (e.g., system configuration, users, orders) into discrete logical groupings.
 3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`). The Epic file MUST contain:
    - An overarching **System-Level UML Class Diagram** using the Mermaid `namespace` keyword to group the subsystem's child classes under a package boundary (UML Package).
    - A **UML Component** representing the subsystem, specifying its provided/required interfaces and operations.
@@ -34,16 +34,16 @@ Use this as the single canonical workflow for translating structural schemas and
 ## Step 2: Exhaustive Feature Extraction
 
 1. **Semantic Feature Breakdown:** Analyze the child structures, alternative choices, or elements. Identify cohesive functional groups (e.g., a "User Profile" containing `first-name`, `last-name`) and map them to a distinct "Feature".
-2. **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns). Platform-specific implementation details are resolved later via the `feature-driven-implementation` skill using implementation profiles (`.pipeline/profiles/<platform>.md`).
+2. **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns). Platform-specific implementation details are resolved later via the `feature-driven-implementation` skill using platform-specific implementation profiles.
 3. **Exhaustive Constraint Parsing:** For EVERY attribute within the grouped feature, analyze and record all structural constraints:
    - conditional clauses
-   - type definitions (fraction-digits, string patterns, references)
+   - type definitions (value ranges, string patterns, references)
    - units and default values
-   - read-only vs configurable state
+   - read-only vs configurable access control
 4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
    - **UML Classifier Mapping**: Feature specifications must map to a single primary UML Class or DataType (instead of a subtree of structural nodes) representing the schema entity.
    - **Choice/Case Representation**: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
-   - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of protocol-specific or custom types (e.g. `uint32`, `decimal64`).
+   - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of format-specific or custom types.
    - **Visibility & Multiplicity**: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
    - **UML Constraints**: Schema-level constraints must map to formal UML `{constraint}` elements or structured notes.
 5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section divided into the following structured sub-sections:
@@ -57,7 +57,7 @@ Use this as the single canonical workflow for translating structural schemas and
 
 ## Step 3: Specification Context Injection (Verbatim)
 
-1. **Locate Normative Text:** Find the canonical normative text document (e.g., IETF RFC, 3GPP TS) associated with the schema.
+1. **Locate Normative Text:** Find the canonical normative text document (e.g. specification standard documents) associated with the schema.
 2. **Extract Line-by-Line Context:** Identify the exact paragraphs and sections that explain the behavioral logic of the specific structural container.
 3. **Embed Context:** Inject this verbatim text directly into the feature specification under a `## Specification Context (Verbatim)` section. This guarantees that implementing sub-agents have ground-truth knowledge and are not hallucinating implementation details.
 
@@ -72,7 +72,7 @@ Use this as the single canonical workflow for translating structural schemas and
    title: "[Title]"
    epic: "[Parent Epic]"
    type: "feature"
-   labels: ["feature", "<protocol-name>"]
+   labels: ["feature", "<domain-name>"]
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
@@ -212,7 +212,7 @@ Use this as the single canonical workflow for translating structural schemas and
 
 5. **Epic Backlog Assembly:**
    - Now that you possess the actual live Issue IDs for all extracted features, inject them into the Epic's checklist.
-   - Ensure the body of the Epic lists its child features as a tasklist referencing the Issue ID and the absolute repository URL of the feature document (relative links resolve incorrectly on tracker UI platforms). You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch (e.g., `[Repository Base URL]/blob/[Branch Name]/docs/features/feat-01.md`).
+   - Ensure the body of the Epic lists its child features as a tasklist referencing the Issue ID and the absolute repository URL of the feature document (relative links resolve incorrectly on tracker UI platforms). You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the configured URL template (e.g., `[Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md` where `<blob_path>` is resolved from configuration).
 
 6. **Epic Backlog Creation LAST:**
    - Finally, register the Epic specification containing the fully resolved tasklist with the active tracker provider.

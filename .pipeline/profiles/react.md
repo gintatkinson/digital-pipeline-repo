@@ -16,8 +16,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 > Read alongside `.pipeline/constitution.md` (functional layer).
 
 ## 1. Platform & Stack
-- **Framework & Version:** React 18, Vite
-- **Language & Version:** TypeScript 5.x (strict mode)
+- **Framework & Version:** React (as resolved from environment configuration)
+- **Language & Version:** TypeScript (strict mode enabled)
 - **Persistence Architecture:** Modular Repository/Adapter pattern.
   - Direct database/API SDK imports are forbidden in React components.
   - Components must depend only on abstract Repository interfaces.
@@ -34,8 +34,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Environment Selection Keys:**
   - Resolved dynamically from the platform configuration metadata (e.g., config keys specifying the active persistence adapter injected at bootstrap).
 - **Dependencies:**
-  - Required: `firebase`, `grpc-web`, `@protobuf-ts/grpcweb-transport`, `axios`, `typescript`, `react`, `react-dom`, `@react-three/fiber`, `three`
-  - DevDependencies: `firebase-tools`, `vite`, `jest`, `@testing-library/react`, `playwright`
+  - Required: Resolved dynamically from the platform configuration file (parsed from the package dependencies config block).
+  - DevDependencies: Resolved dynamically from the platform configuration file.
 
 ## 2. Coding Standards & UI Patterns
 - **Clean Architecture & Decoupling:** Persistence code must be isolated under the designated persistence directory resolved from configuration (e.g., target UI layout configurations):
@@ -55,11 +55,11 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - **Theme Selection:**
     - Must provide a user interface to select from the dynamic list of theme modes defined in the runtime configuration (Tier 2).
     - The application must map styling parameters dynamically to color tokens matching the active design token namespaces resolved from the loaded configuration to allow dynamic, reload-free theme switching.
-    - The theme preference must be loaded dynamically. The application must defer initial rendering until dynamic theme parameters are fully resolved to prevent visual flashes (FOUC).
+    - The theme preference must be resolved dynamically. The application must prevent visual theme flashes (FOUC) using environment-appropriate mechanisms (e.g., an in-head theme script injected before rendering DOM elements, or native splash/theme configurations) to ensure a smooth transition without unnecessarily delaying React's mount cycle.
   - **Dynamic Design Tokens & Alarm Mappings:**
     - Hardcoding visual parameters (e.g., hex colors, margins) or standard-specific mappings (e.g., specific alarm severities or colors) is strictly forbidden.
     - All status colors, brand palettes, and component styles must be loaded dynamically from the active design tokens configuration resolved at runtime.
-    - At startup, the application loader must dynamically resolve and apply styling tokens parsed from the configuration while deferring rendering until resolution is complete to prevent flashes.
+    - At startup, the application must dynamically resolve and apply styling tokens parsed from the configuration, preventing flashes using environment-appropriate blocking scripts or native style rules prior to content layout.
     - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
@@ -83,14 +83,14 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.
 - **TDD Loop Speed:** Unit and widget/component tests must execute against isolated, thread-safe in-memory stubs (Mock Repositories) for fast, sub-second feedback.
 - **Integration/E2E Test Instances:** All integration and E2E tests must execute against real, local database service instances (local emulators/containers) loaded with seeded test data. In-memory stubs are prohibited for these tiers.
-- **E2E Testing:** Playwright E2E tests running against the Vite local dev server and the Local Firebase Emulator Suite (Firestore, Auth) or local API containers during local runs, or targeting a staging/preview deployment URL connected to a staging database environment for hosted runs.
-- **Test Code Statement Coverage Target:** Minimum 85% statement coverage on core business logic, validation schemas, and calculation engines. Exclude simple repository wrappers from the generic 85% line-coverage gate (set to 20% smoke-test baseline) to avoid tautological testing.
+- **E2E Testing:** E2E tests running against the local dev server and the configured local emulator/services suite during local runs, or targeting a staging/preview deployment URL connected to a staging database environment for hosted runs.
+- **Test Code Statement Coverage Target:** Minimum statement coverage targets on core business logic, validation schemas, and calculation engines, excluding simple repository wrappers from the generic line-coverage gate, as defined in configuration.
 
 ## 4. Build & Operations
-- **Lint Command:** `npm run lint` / `npx tsc --noEmit`
-- **Local Dev / Dev Server Command:** `npm run dev`
-- **Local Emulator Command:** `firebase emulators:start --import=./.firebase_export`
-- **Build Command:** `npm run build` (outputs optimized production bundle in `/dist` directory)
+- **Lint Command:** Commands resolved from environment configurations (e.g. `npm run lint` / `npx tsc --noEmit`)
+- **Local Dev / Dev Server Command:** Command resolved from environment configurations (e.g. `npm run dev`)
+- **Local Emulator Command:** Command resolved from environment configurations (e.g. `firebase emulators:start --import=./.firebase_export`)
+- **Build Command:** Command resolved from environment configurations (outputs optimized production bundle in the configured build output directory, e.g. `/dist`)
 - **CI/CD Integration:** Triggered on merge to default branch; builds and deploys to Firebase App Hosting, Vercel, or Docker-based private server. Dockerfiles must run as a non-root user.
 
 ## 5. Security & Credentials

@@ -60,12 +60,12 @@ If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or ne
 > Skip this step if the feature uses well-established patterns already documented in the codebase.
 
 ### Step 2: Checkout & Plan Review ("The Grill")
-1. Checkout a dedicated feature branch from the default branch resolved from configuration using the environment-configured checkout command and branch naming conventions (e.g., checkout branch matching `feat/<Issue_Number>-<short-description>` or as defined by the repository's rules):
+1. Checkout a dedicated feature branch from the default branch resolved from configuration using the environment-configured checkout command and branch naming conventions (e.g. resolved dynamically from configuration):
 2. **Platform Scoping:** The feature spec is platform-independent (functional). Apply the target platform from the implementation profile (`.pipeline/profiles/<platform>.md`, loaded in Step 1) to translate functional requirements into platform-specific design decisions. This is where framework components, UI patterns, and test frameworks are chosen — not during spec generation.
-3. Create/update `implementation_plan.md` outlining a **complete vertical slice** for the target platform:
-   - **Persistence Layer (Test Data):** Specific updates to the unified data persistence repository loaded with test data, including edge cases.
-   - **Transformation Layer:** Type definitions, validation schemas, and hooks to wire the transformation logic into the application flow.
-   - **Interface Layer:** Platform-specific interface component choices, layout changes, styles, and data bindings to render the new attributes.
+3. Create/update `implementation_plan.md` outlining a **complete vertical slice** conforming to the project's configured architecture layers (e.g., as defined in the target platform profile or workspace configuration):
+   - **Data/Persistence Layer:** Configured updates to data persistence or state storage including test data and edge cases.
+   - **Logic/Transformation Layer:** Type definitions, validation schemas, business logic, and hooks to wire transformation logic.
+   - **Presentation/Interface Layer:** Platform-specific interface component choices, layout changes, styles, and data bindings.
    - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code, using the test framework from the implementation profile. Include E2E test specifications where applicable.
    - **Verification Plan:** Detailed manual validation instructions, compiler checks, and tests.
 4. **Micro-Task Breakdown:** Decompose the plan into sequential micro-tasks (2-5 min each). Each task must specify:
@@ -141,9 +141,7 @@ Configure the review method dynamically based on the current agent orchestrator 
 - **Single-Agent Fallback**: The coordinator agent performs both reviews as explicit, sequential self-audit steps: (1) re-read the spec, diff the changes, check compliance point-by-point, and (2) re-read the code, checking design tokens, standards, and conventions. Document all findings in the local tracking checklist before proceeding.
 
 #### 3.4 Data Flow Slicing Order
-- **1. Persistence Layer:** Write test for expected data shape or schema -> implement data persistence logic.
-- **2. Transformation Layer:** Write test for parsing, validation, or state logic -> implement transformations.
-- **3. Interface Layer:** Write test for user interface presentation -> implement components or layout bindings.
+- Implement the vertical slice in the order specified by the platform profile or codebase configuration (e.g., data/persistence layers first, logic/transformation layers second, and presentation/interface layers last). Ensure that tests are written for each layer before its implementation code in accordance with TDD principles.
 
 #### 3.5 Inter-Task Continuation
 - After both reviews pass, mark task complete in tracking list.

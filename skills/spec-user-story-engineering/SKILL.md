@@ -14,13 +14,13 @@ metadata:
 
 # Specification User Story Engineering (Behavioral Extraction)
 
-This skill enables a sub-agent to autonomously read a normative specification document (e.g., IETF RFC, 3GPP TS, CAMARA API Doc) and extract its behavioral deployment scenarios into pure Behavior-Driven Development (BDD) User Stories modeled according to Object-Oriented Analysis and Design (OOA/OOD) principles, linking them dynamically to structural features already defined in the GitHub repository.
+This skill enables a sub-agent to autonomously read a normative specification document (e.g., domain-specific specifications and API documentation) and extract its behavioral deployment scenarios into pure Behavior-Driven Development (BDD) User Stories modeled according to Object-Oriented Analysis and Design (OOA/OOD) principles, linking them dynamically to structural features already defined in the repository.
 
 ## Execution Trigger
 You should invoke this skill ONLY after the structural Features have been extracted using the `schema-specification-engineering` skill.
 
 ### Algorithmic & Calculation Story Extraction Trigger (Mandatory)
-In addition to standard deployment scenarios, you MUST scan the specification and schema for any derived, computed, or calculated values (e.g. deriving speed or heading from a velocity vector, or performing unit conversions, coordinate transformations, validation ranges, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated, mandatory User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
+In addition to standard deployment scenarios, you MUST scan the specification and schema for any derived, computed, or calculated values (e.g. performing unit conversions, coordinate transformations, validation ranges, formulas, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated, mandatory User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
 
 ### Temporal & Lifecycle Expiration Story Extraction Trigger (Mandatory)
 In addition to standard deployment scenarios, you MUST scan the specification and schema for any temporal/lifecycle expirations, state-decay lifecycles, or timeout transitions (e.g. token expiration, data staleness, status-based data access rules, or lifecycle decay). For every temporal or lifecycle expiration identified, you MUST extract a dedicated, mandatory User Story detailing the transition to the expired state and any postconditions for accessing data in that state.
@@ -28,23 +28,23 @@ In addition to standard deployment scenarios, you MUST scan the specification an
 ## Step 1: Context Ingestion (Operational Text & Schemas)
 1. Ingest the target normative specification document AND the target structural schemas (e.g., structural or protocol schemas).
 2. **Scan the structural schema definitions** (specifically node descriptions, comments, type restrictions, and validation constraints) to identify:
-   - Any derived, calculated, or computed data fields (e.g., speed and heading derived from a velocity vector).
+   - Any derived, calculated, or computed data fields.
    - Any mathematical formulas, equations, unit conversions, or derivations.
    - Any temporal attributes or state lifecycles.
 3. Target and analyze the following operational chapters of the normative specification:
-   - **Introduction & Applicability**
-   - **Deployment Scenarios**
-   - **Operational Considerations**
-   - **Security Considerations**
-   - **Algorithmic, Calculation, or Derivation clauses**
+   - Introduction & Applicability
+   - Deployment Scenarios
+   - Operational Considerations
+   - Security Considerations
+   - Algorithmic, Calculation, or Derivation clauses
 
 ## Step 2: Behavioral Modeling (OOA/OOD User Story Extraction)
 For every distinct deployment scenario and behavioral trigger found, model it as a formal User Story integrated with OOA/OOD principles.
 
 ### Behavioral Extraction Triggers (Mandatory User Stories)
 An agent MUST extract a separate, dedicated, and mandatory User Story if the normative text or structural schema meets any of the following triggers:
-- **Algorithmic/Calculation Trigger (Mandatory)**: If the specification or schema defines any mathematical formula, equation, conversion, or derivation (e.g. deriving speed or heading from velocity vectors), it MUST have a dedicated User Story mapping the calculation behavior. BDD scenarios must cover edge cases, rounding, division by zero, and invalid inputs.
-- **Temporal/State Lifecycle Trigger (Mandatory)**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles (e.g. temporal or lifecycle expirations), it MUST have a dedicated User Story detailing the transition to expired/stale state and postconditions for stale data access.
+- **Algorithmic/Calculation Trigger (Mandatory)**: If the specification or schema defines any mathematical formula, equation, conversion, or derivation, it MUST have a dedicated User Story mapping the calculation behavior. BDD scenarios must cover edge cases, rounding, division by zero, and invalid inputs.
+- **Temporal/State Lifecycle Trigger (Mandatory)**: If the schema defines temporal attributes (e.g., configured temporal parameters or elapsed time fields) or implies state-decay lifecycles (e.g. temporal or lifecycle expirations), it MUST have a dedicated User Story detailing the transition to expired/stale state and postconditions for stale data access.
 
 1. Identify the Actor/Role (the object or entity initiating the action).
 2. Formulate the core scenario using strict BDD syntax mapped to object interactions:
@@ -54,7 +54,7 @@ An agent MUST extract a separate, dedicated, and mandatory User Story if the nor
    - Or standard format: `As a [Actor], I want to [Action/Message] so that [Outcome/State Change].`
 3. Map the story to specific Domain Objects (the structural schema entities affected).
 4. **UML Sequence Diagram**: Every User Story MUST include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects (e.g., `[DomainRegistry]`, `[EntityValidator]`).
-   - **Lifeline Notation**: All sequence diagrams must use the standard UML lifeline notation `name : Classifier` or `: Classifier` (e.g., `clientActor : ClientActor` or `: DomainRegistry`) instead of naked classifier names. In Mermaid, define this using the alias syntax: `actor clientActor as "clientActor : ClientActor"` or `participant domainRegistry as "domainRegistry : DomainRegistry"`. Naming actor participants simply as `Actor` is prohibited; use descriptive names.
+   - **Lifeline Notation**: All sequence diagrams must use the standard UML lifeline notation `name : Classifier` or `: Classifier` (e.g., `userActor : UserActor` or `: DomainRegistry`) instead of naked classifier names. In Mermaid, define this using the alias syntax: `actor userActor as "userActor : UserActor"` or `participant domainRegistry as "domainRegistry : DomainRegistry"`. Naming actor participants simply as `Actor` is prohibited; use descriptive names.
    - **Open Return Arrow**: Return/reply messages must use the open arrowhead (`-->` in Mermaid) instead of the filled/closed arrowhead (`-->>`).
    - **Return Value Signatures**: Return messages must represent assignments/return values (e.g. `isValid : Boolean` or `registeredId : UUID`) rather than method/operation calls (e.g. `validationResult(isValid: boolean)`).
    - **Operation Matching**: Every call/message in a sequence diagram must map to a public operation/method (with camelCase signature and typed arguments) on the receiver lifeline's classifier in the class diagrams (e.g., `operationName(attributeName: DataType)`).
@@ -63,7 +63,7 @@ An agent MUST extract a separate, dedicated, and mandatory User Story if the nor
    - **Helper/Calculator Object Delegation**: Do not model the main container handling complex computations directly; instead, illustrate delegation to specialized helper or utility objects (e.g., delegating computations to a `[BusinessLogicService]` utility class).
 5. **UML State Machine Diagram**: Include clear templates and rules for modeling state transitions, guards, events, and actions using Mermaid `stateDiagram-v2`.
    - **State Machine Notation & Rules**:
-     - **States**: States must be written in PascalCase (e.g. `Active`, `Expired`, `Pending`).
+     - **States**: States must be written in PascalCase (e.g., conforming to the configured state space or template placeholders).
      - **Transitions**: Every transition must be annotated with the syntax `event [guard] / action` on the transition arrow. For example: `StateA --> StateB : submitPayload [payloadIsValid == true] / savePayload`.
      - **Initial and Final States**: Use `[*]` for entry and exit points.
      - **Dotted Link Syntax Constraint**: Enforce the use of the `-. label .->` syntax in Mermaid diagrams when referencing secondary or dependency relationships, and strictly prohibit the invalid pipe syntax (`-.->|label|`).
@@ -74,7 +74,7 @@ A User Story requires technical building blocks (Domain Objects/Features) to fun
 1. Query the active tracker provider for all existing feature issues to pull the existing structural inventory.
 2. **Perform Semantic Analysis**: Inspect both titles and content bodies of features to perform mapping rather than simple title-only matching.
 3. Determine exactly which of those `#IssueID`s are prerequisites for your extracted User Story.
-4. Construct a `## Required Features` matrix in your document containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL of the feature document. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)`).**
+4. Construct a `## Required Features` matrix in your document containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL of the feature document. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the repository's URL layout template (e.g., `- [ ] #41 - [Feature 01 Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md)` where `<blob_path>` is resolved from configuration). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)`).**
 
 ## Step 4: Markdown Generation
 Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-register-entity.md`). Format strictly:
@@ -106,22 +106,22 @@ spec_source: "[Spec Reference]"
 ```mermaid
 sequenceDiagram
     autonumber
-    actor clientActor as "clientActor : ClientActor"
+    actor userActor as "userActor : UserActor"
     participant domainRegistry as "domainRegistry : DomainRegistry"
     participant businessLogicService as "businessLogicService : BusinessLogicService"
 
-    clientActor->>domainRegistry: operationName(attributeName: DataType)
+    userActor->>domainRegistry: operationName(attributeName: DataType)
     alt [payloadIsValid == true]
         domainRegistry->>businessLogicService: validateBounds(attributeName: DataType)
         businessLogicService-->domainRegistry: isValid : Boolean
         alt [isValid == true]
             Note over domainRegistry: Store value
-            domainRegistry-->clientActor: status : Status
+            domainRegistry-->userActor: status : Status
         else [isValid == false]
-            domainRegistry-->clientActor: status : Status
+            domainRegistry-->userActor: status : Status
         end
     else [payloadIsValid == false]
-        domainRegistry-->clientActor: status : Status
+        domainRegistry-->userActor: status : Status
     end
 ```
 
@@ -129,18 +129,18 @@ sequenceDiagram
 *(Mandatory if the story involves state transitions or lifecycle expirations)*
 ```mermaid
 stateDiagram-v2
-    [*] --> Pending
-    Pending --> Active : activate [activationCodeIsValid == true] / initializeSession
-    Active --> Expired : expire [timeElapsed >= timeoutLimit] / cleanupResources
-    Expired --> [*]
+    [*] --> InitialState
+    InitialState --> ActiveState : activate [activationCodeIsValid == true] / initializeSession
+    ActiveState --> TerminatedState : expire [timeElapsed >= timeoutLimit] / cleanupResources
+    TerminatedState --> [*]
 ```
 
 ## Operational Context
 [Verbatim operational constraints or deployment scenarios quoted from the specification]
 
 ## Required Features Matrix
-- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
-- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)

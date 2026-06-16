@@ -16,7 +16,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 > Read alongside `.pipeline/constitution.md` (functional layer).
 
 ## 1. Platform & Stack
-- **Framework & Version:** Flutter SDK 3.x (Dart 3.x)
+- **Framework & Version:** Flutter SDK (as resolved from environment configuration)
 - **Target Environments:** Desktop (macOS, Windows, Linux) and Web (HTML5/CanvasKit renderer)
 - **Persistence Architecture:** Modular Repository/Adapter pattern.
   - Direct database/API SDK imports are forbidden in UI widgets.
@@ -29,7 +29,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - Resolved dynamically from the platform configuration metadata (e.g., config keys specifying the active persistence adapter injected at bootstrap).
 - **Dependencies:**
   - Required: Resolved dynamically from the platform configuration file (e.g., libraries parsed from the package dependencies config block).
-  - DevDependencies: `flutter_test`, `integration_test`, `mocktail` or `mockito`, `build_runner`
+  - DevDependencies: Resolved dynamically from the platform configuration file.
 
 ## 2. Coding Standards & UI Patterns
 - **Clean Architecture & Decoupling:** Persistence code must be isolated under the designated persistence directory resolved from configuration:
@@ -81,14 +81,14 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.
 - **TDD Loop Speed:** Unit and widget/component tests must execute against isolated, thread-safe in-memory stubs (Mock Repositories) for fast, sub-second feedback.
 - **Integration/E2E Test Instances:** All integration and E2E tests must execute against real, local database service instances (local emulators/containers) loaded with seeded test data. In-memory stubs are prohibited for these tiers.
-- **E2E Testing:** Executed using the `integration_test` package running against the local emulators/containers during local runs, or targeting a staging/preview deployment URL connected to a staging database environment for hosted runs.
-- **Test Code Statement Coverage Target:** Minimum 85% statement coverage on core business logic, state management (BLoCs), validation schemas, and calculation engines. Exclude simple repository wrappers from the generic 85% line-coverage gate (set to 20% smoke-test baseline) to avoid tautological testing.
+- **E2E Testing:** E2E tests running against the local dev environment/containers during local runs, or targeting a staging/preview deployment URL connected to a staging environment for hosted runs.
+- **Test Code Statement Coverage Target:** Minimum statement coverage targets on core business logic, state management, validation schemas, and calculation engines, excluding simple repository wrappers from the generic line-coverage gate, as defined in configuration.
 
 ## 4. Build & Operations
-- **Lint Command:** `flutter analyze`
-- **Local Dev / Dev Server Command:** `flutter run -d chrome` (web) or `flutter run -d macos` (desktop)
-- **Local Emulator Command:** `firebase emulators:start --import=./.firebase_export`
-- **Build Command:** `flutter build web --release --web-renderer canvaskit` or `flutter build macos --release`
+- **Lint Command:** Command resolved from environment configurations (e.g. `flutter analyze`)
+- **Local Dev / Dev Server Command:** Command resolved from environment configurations (e.g. `flutter run`)
+- **Local Emulator Command:** Command resolved from environment configurations (e.g. `firebase emulators:start`)
+- **Build Command:** Command resolved from environment configurations (e.g. `flutter build`)
 - **CI/CD Integration:** Triggered on merge to default branch; builds and deploys to App Hosting, Web servers, or native desktop distribution pipelines. Dockerfiles must run as a non-root user.
 
 ## 5. Security & Credentials

@@ -74,17 +74,22 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Match both checked and unchecked boxes: e.g., - [ ] #123 or - [x] #123
-    pattern = r"(-\s*\[\s*([ xX])\s*\]\s*(?:#|#\[|\#\s*)(\d+))"
+    # Match both checked and unchecked boxes: e.g., - [ ] #123 or - [x] #123 or - [ ] #PROJ-123
+    pattern = r"(-\s*\[\s*([ xX])\s*\]\s*(?:#|#\[|\#\s*)([A-Za-z0-9\-]+))"
     
     updated_content = content
     all_deps_closed = True
     has_deps = False
     
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    keys = tracker_rules.get("keys", {})
+    state_key = keys.get("state", "state")
+    closed_state = keys.get("closed_state_value", "CLOSED").upper()
+    
     matches = re.findall(pattern, content)
     for full_match, mark, dep_num_str in matches:
         has_deps = True
-        dep_num = int(dep_num_str)
+        dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
         dep_issue = issue_dict.get(dep_num)
         
         if dep_issue is None:
@@ -94,7 +99,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
             sys.exit(1)
             
-        is_closed = (dep_issue["state"].upper() == "CLOSED")
+        is_closed = (str(dep_issue[state_key]).upper() == closed_state)
         target_mark = 'x' if is_closed else ' '
         
         if mark != target_mark:
@@ -146,7 +151,7 @@ def convert_frontmatter_to_table(content):
     table_text = "\n".join(table_lines) + "\n\n"
     return table_text + body_text
 
-def sync_issue_body_to_github(issue_num, filepath, issue_type="Feature", rules=None):
+def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None):
     print(f"  [Sync Issue Body] Syncing #{issue_num} ({issue_type}) to tracker...")
     
     # Check issue body size limit and truncate if needed
@@ -190,8 +195,8 @@ def sync_issue_body_to_github(issue_num, filepath, issue_type="Feature", rules=N
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
-def close_issue_on_github(issue_num, comment, rules=None):
+ 
+def close_issue_on_tracker(issue_num, comment, rules=None):
     print(f"  [Close Issue] Closing issue #{issue_num} on tracker...")
     try:
         tracker_rules = rules.get("tracker_rules", {}) if rules else {}
@@ -264,8 +269,21 @@ def main():
         print("Please ensure issue tracker CLI is authenticated and configured.")
         sys.exit(1)
 
-    # Convert to issue lookup dictionary by issue number
-    issue_dict = {issue["number"]: issue for issue in issues}
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    keys = tracker_rules.get("keys", {})
+    id_key = keys.get("issue_id", "number")
+    title_key = keys.get("title", "title")
+    labels_key = keys.get("labels", "labels")
+
+    # Convert to issue lookup dictionary by issue identifier
+    issue_dict = {}
+    for issue in issues:
+        raw_id = issue[id_key]
+        issue_dict[raw_id] = issue
+        if isinstance(raw_id, str) and raw_id.isdigit():
+            issue_dict[int(raw_id)] = issue
+        elif isinstance(raw_id, int):
+            issue_dict[str(raw_id)] = issue
 
     # Map normalized titles to issue numbers, segregated by labels
     epic_titles = {}
@@ -274,9 +292,12 @@ def main():
     feature_titles = {}
 
     for num, issue in issue_dict.items():
-        norm_title = normalize_title(issue["title"])
+        # Map raw issue keys correctly to prevent duplicate lookups
+        if isinstance(num, str) and num.isdigit() and int(num) in epic_titles:
+            continue
+        norm_title = normalize_title(issue[title_key])
         labels = []
-        for l in issue.get("labels", []):
+        for l in issue.get(labels_key, []):
             if isinstance(l, dict):
                 labels.append(l.get("name", "").lower())
             elif isinstance(l, str):
@@ -342,19 +363,19 @@ def main():
             issue_num = epic_titles.get(norm)
             if issue_num:
                 updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
-                is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
+                is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                 if is_open:
-                    # Sync to keep checkbox states updated on GitHub UI
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="Epic", rules=rules)
+                    # Sync to keep checkbox states updated on tracker UI
+                    sync_issue_body_to_tracker(issue_num, filepath, issue_type="Epic", rules=rules)
                     if completed:
-                        close_issue_on_github(
+                        close_issue_on_tracker(
                             issue_num, 
                             "Epic completed. All constituent features successfully delivered and verified.",
                             rules=rules
                         )
-                        issue_dict[issue_num]["state"] = "CLOSED"
+                        issue_dict[issue_num][state_key] = closed_state
             else:
-                print(f"Warning: No GitHub Epic issue found matching: '{title}'")
+                print(f"Warning: No Epic issue found on tracker matching: '{title}'")
 
     # Process Features
     if os.path.exists(features_dir):
@@ -370,12 +391,12 @@ def main():
             norm = normalize_title(title)
             issue_num = feature_titles.get(norm)
             if issue_num:
-                is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
+                is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                 if is_open:
-                    # Sync to keep feature definition/acceptance criteria updated on GitHub UI
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="Feature", rules=rules)
+                    # Sync to keep feature definition/acceptance criteria updated on tracker UI
+                    sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=rules)
             else:
-                print(f"Warning: No GitHub Feature issue found matching: '{title}'")
+                print(f"Warning: No Feature issue found on tracker matching: '{title}'")
 
     # Process User Stories
     if os.path.exists(stories_dir):
@@ -392,18 +413,18 @@ def main():
             issue_num = story_titles.get(norm)
             if issue_num:
                 _, completed = update_checklist_in_file(filepath, issue_dict, rules)
-                is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
+                is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                 if is_open:
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="User Story", rules=rules)
+                    sync_issue_body_to_tracker(issue_num, filepath, issue_type="User Story", rules=rules)
                     if completed:
-                        close_issue_on_github(
+                        close_issue_on_tracker(
                             issue_num,
                             f"Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
                             rules=rules
                         )
-                        issue_dict[issue_num]["state"] = "CLOSED"
+                        issue_dict[issue_num][state_key] = closed_state
             else:
-                print(f"Warning: No GitHub User Story issue found matching: '{title}'")
+                print(f"Warning: No User Story issue found on tracker matching: '{title}'")
 
     # Process Use Cases
     if os.path.exists(usecases_dir):
@@ -420,18 +441,18 @@ def main():
             issue_num = usecase_titles.get(norm)
             if issue_num:
                 _, completed = update_checklist_in_file(filepath, issue_dict, rules)
-                is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
+                is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                 if is_open:
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="Use Case", rules=rules)
+                    sync_issue_body_to_tracker(issue_num, filepath, issue_type="Use Case", rules=rules)
                     if completed:
-                        close_issue_on_github(
+                        close_issue_on_tracker(
                             issue_num,
                             f"Resolved. All dependent user stories and features for use case '{title}' are completed.",
                             rules=rules
                         )
-                        issue_dict[issue_num]["state"] = "CLOSED"
+                        issue_dict[issue_num][state_key] = closed_state
             else:
-                print(f"Warning: No GitHub Use Case issue found matching: '{title}'")
+                print(f"Warning: No Use Case issue found on tracker matching: '{title}'")
 
     print("Backlog reconciliation complete.")
 
