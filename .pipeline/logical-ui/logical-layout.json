@@ -114,7 +114,8 @@
                   "props": {
                     "sortable": true,
                     "filterable": true,
-                    "high_density": true
+                    "high_density": true,
+                    "display_all_attributes": true
                   },
                   "bindings": {
                     "data_source": "yang:network-topology/topology/link[source/source-node='active_focused_node']"

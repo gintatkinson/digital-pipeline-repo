@@ -31,7 +31,7 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 
 ## 6. DensityTable
 - **Anatomy:** High-density grid containing columns, rows, sort indicators, and multiselect checkboxes.
-- **Columns:** Standard columns for Object Icon, Name, Type, Family, Alarms, Primary State, and Secondary States.
+- **Columns:** Dynamically constructed based on the selected/associated managed object's data schema to display all configured/allowed attributes, properties, and child elements. Includes standard attributes (Object Icon, Name, Type, Family, Alarms, Primary State, Secondary States) alongside all schema-defined attributes.
 - **Performance:** Virtualized row rendering (only viewport rows are rendered in the DOM).
 
 ## 7. ContextualPanel
