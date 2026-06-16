@@ -16,44 +16,41 @@ last_updated: "2026-06-16"
 
 ---
 
-## 1. Domain Rules (IETF RFC 8345 - YANG Network Topology)
+## 1. Domain Rules (Network Topology)
 
 ### 1.1 Specification Sources
-- The primary source is the normative standard: **IETF RFC 8345** ("A YANG Data Model for Network Topologies").
-- The authoritative machine-readable models are the constituent YANG schemas:
-  - `ietf-network` (defines the network and node structures)
-  - `ietf-network-topology` (defines link and termination-point structures)
+- The primary source is the normative standard defining the network topology.
+- The authoritative machine-readable models are the logical schemas defining the network structures (nodes, links, and termination points).
 
 ### 1.2 Schema Compliance
-- Every network data model constraint in the schemas MUST map to at least one Feature's acceptance criteria.
-- Specific RFC 8345 constraints that must be validated:
-  - Unique keys: `network-id` (network), `node-id` (node), `link-id` (link), and `tp-id` (termination-point).
-  - Source (`source-node`, `source-tp`) and destination (`dest-node`, `dest-tp`) existence constraints.
-  - Supporting network, node, and link references for hierarchical layering (virtualization/underlay topology mappings).
+- Every network data model constraint in the logical schemas MUST map to at least one Feature's acceptance criteria.
+- Specific topology constraints that must be validated:
+  - Unique identification keys for networks, nodes, links, and termination points.
+  - Source and destination presence constraints for all links.
+  - Supporting network, node, and link references for hierarchical layering (virtualization/underlay mappings).
 
-### 1.3 Metamodel Alignment (YANG to UML Profile Mapping)
-To maintain platform independence, the YANG elements of RFC 8345 map to UML elements as follows:
-- **YANG Module** (`ietf-network`, `ietf-network-topology`) maps to a **UML Component**.
-- **YANG list** (`network`, `node`, `link`, `termination-point`) maps to a **UML Class**.
-- **YANG leaf / leaf-list** (e.g., `network-id`, `server-provided`) maps to a **UML Attribute** with visibility and multiplicity (e.g. `+networkId : String [1]`).
-- **YANG leafref / constraints** (`must`, `when`) map to a **UML Constraint** (written in OCL or structured text).
-- **YANG grouping** maps to a **UML Class**.
+### 1.3 Metamodel Alignment (Abstract Schema to UML Mapping)
+To maintain platform independence, the logical schema elements map to UML elements as follows:
+- The top-level schema namespaces or modules map to a **UML Component**.
+- Entity definitions (e.g., networks, nodes, links) map to a **UML Class**.
+- Properties and data fields map to a **UML Attribute** with visibility and multiplicity (e.g., `+attributeName : Type [1]`).
+- Logical constraints and conditional rules map to a **UML Constraint** (written in OCL or structured text).
 
 ---
 
 ## 2. Specification Standards
 
 ### 2.1 Epic & Feature Granularity
-- Epics represent major functional areas of RFC 8345 (e.g., `Network Inventory`, `Topology Link Mapping`, `Hierarchical Networks`).
-- Features must be purely functional (e.g., "Display Node Details," "Verify Uniqueness of Link Keys") and contain no React or TypeScript references.
+- Epics represent major functional areas of the topology viewer (e.g., Node Management, Link Mapping, Hierarchical Views).
+- Features must be purely functional and contain no framework or implementation language references.
 
 ### 2.2 BDD Scenario Format
 - All acceptance criteria must use Given-When-Then format.
 - Example:
   ```
-  Given a network topology with network-id "optical-core"
-  When the system receives a new link-id "link-101" referencing source-node "node-99" (which does not exist in the network)
-  Then the system rejects the link payload with a source validation error
+  Given a network topology with network identifier "backbone"
+  When the system receives a new link referencing a source node that does not exist in the network
+  Then the system rejects the link payload with a validation error
   ```
 
 ---
