@@ -76,12 +76,21 @@
               "type": "TopographicalView",
               "id": "topology_pane",
               "props": {
+                "dimensions": 3,
+                "enable_time_playback": true,
                 "interactive": true,
                 "allow_pan_zoom": true
               },
               "bindings": {
-                "data_source": "yang:network-topology/topology[@topology-id='selected_managed_object']",
+                "data_source": "yang:spatial-temporal-topology/topology[@topology-id='selected_managed_object']",
                 "selection_target": "active_focused_node",
+                "coordinate_mapping": {
+                  "x": "location/longitude",
+                  "y": "location/latitude",
+                  "z": "location/altitude",
+                  "t": "location/timestamp",
+                  "trajectory": "location/trajectory-vector"
+                },
                 "depth_selector": {
                   "default_hops": 2,
                   "max_hops": 5
@@ -89,7 +98,8 @@
                 "relationship_filters": [
                   "termination-point-to-node",
                   "link-to-node",
-                  "layer-transition"
+                  "layer-transition",
+                  "orbital-conjunction"
                 ]
               }
             },

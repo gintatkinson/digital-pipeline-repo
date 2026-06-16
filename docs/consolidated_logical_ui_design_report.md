@@ -43,7 +43,7 @@ We define exactly seven core platform-agnostic components:
 2. **ResizableSplitter**: High-performance multi-pane splitter enforcing minimum dimensions (150px), snap-to-edge, and reconfigurable positions without state loss.
 3. **NavigationBreadcrumbs**: Responsive breadcrumb path collapsing middle segments into ellipses (`...`) when widths are exceeded.
 4. **PropertyGrid**: A high-speed key-value display that compiles dynamic JSON schemas into flat, pre-compiled layout descriptors once.
-5. **TopologyMap**: Panning/zooming graphical web viewport representing nodes (managed objects) and links (relationships), highlighting ITU-T alarm outline rings.
+5. **TopologyMap**: A 3D/4D spatial-temporal canvas (WebGL/WebGPU/Impeller) rendering objects in 3D coordinate space, tracking dynamic trajectories, displaying volumetric bounds, and hosting timeline playback controls.
 6. **DensityTable**: A high-density virtualized table dynamically displaying all configured and allowed attributes, properties, and child elements for the associated managed object or element based on its data schema. Supports integration within a bottom-docked `TabbedContainer` hosting multiple tabbed lists (e.g. Elements, Alarms, Events) for the active selected object.
 7. **ContextualPanel**: Slide-out drawer capturing key events like `Escape` for dismissal.
 
@@ -176,5 +176,28 @@ When a new domain requirement demands a new visualization component (e.g., a tim
 1. The new component type is registered in the LUI metamodel spec (`logical-components.md` and the JSON Schema).
 2. Native implementations of the component are coded once inside the React and Flutter engines.
 3. Design-time declarations can immediately begin utilizing the new component, ensuring absolute decoupling between representation and layout configuration.
+
+---
+
+## 9. Spatial-Temporal (4D) Logical Grouping & Visualization
+
+Real-time safety-critical control environments (subsea, air traffic control, satellite telemetry, and extraterrestrial exploration) manage elements that are not static or structured strictly in a parent-child BOM hierarchy. Instead, objects are dynamically moving in 3D coordinate space over time.
+
+To support these movements and trajectories, the framework implements a 4D Spatial-Temporal logical grouping architecture.
+
+### 9.1. Defining Space-Time (4D) Groupings
+* **Non-Structural Aggregation**: Elements can be grouped dynamically based on 3D boundary containers (e.g., atmospheric sectors, orbital inclinations, deep-sea bounding boxes) and time windows $[t_{start}, t_{end}]$.
+* **4D Query Engine**: Rather than loading static trees, the UI query engine issues spatio-temporal range requests (e.g., "return all rovers currently within a 10km radius of the Mars Olympus Base station at time $t$"). The data adapter parses these query boundaries, returning the filtered list of objects and their trajectory vectors.
+
+### 9.2. UI Control & Navigation (Timeline Scrubber & 3D Canvas)
+1. **Interactive Timeline Playback**: The UI shell provides a global simulation/playback controller (play, pause, fast-forward, timeline slider). Modifying the slider updates a global `simulation_time` context variable.
+2. **Dynamic Trajectory Projection**: The `TopographicalView` rendering engine maps latitude, longitude, altitude, and timestamps to draw 3D coordinate paths and predict future conjunctions/positions based on motion vectors.
+3. **Synchronization across Splits**: Selecting a point along an object's trajectory updates the active timeline, updating the dynamic attributes in the `PropertyGrid` and `TableView` to show the telemetry states corresponding to that specific space-time coordinate.
+
+### 9.3. GPGPU Trajectory Computation
+Calculating orbital intersections or collision routes for thousands of moving objects in real-time is computationally intensive. 
+To preserve UI responsiveness:
+* **Background Prediction**: Trajectory extrapolations run in Web Workers (React) or background Isolates (Flutter).
+* **VRAM Coordinate Mapping**: Motion equations (Keplerian elements, spline interpolations) are calculated in parallel via GPU compute shaders, updating the vertex positions in VRAM directly to redraw paths at 60fps without CPU pipeline stalls.
 
 ---
