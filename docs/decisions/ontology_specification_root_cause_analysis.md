@@ -1,6 +1,6 @@
 # Root Cause Analysis: Premature Ontology & Topology Specification
 
-This report details the underlying reasons, structural assumptions, and cognitive biases that led the agent to hardcode Section 2.5 (the domain-specific `ITopologyService` and `GrpcWebTopologyAdapter` code) in the static platform profile [react.md](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md) when no dynamic specifications for the ontology and topology were present in the repository.
+This report details the underlying reasons, structural assumptions, and cognitive biases that led the agent to hardcode Section 2.5 (the domain-specific ports and adapters code) in the static platform profile [react.md](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md) when no dynamic specifications for the ontology and topology were present in the repository.
 
 ---
 
@@ -74,12 +74,12 @@ sequenceDiagram
     A->>P: Fetch react.md architectural rules
     P-->>A: Return Rules (e.g., Ports & Adapters structure)
     Note over A: Agent maps dynamic ontology specs<br/>to react.md structural constraints
-    A->>C: Generate ITopologyService.ts & GrpcWebTopologyAdapter.ts
+    A->>C: Generate I[Service]Port.ts & [Protocol]Adapter.ts
 ```
 
 1. **Static Stage**: The platform profile [react.md](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md) is written to define general constraints (Vite, TypeScript, Tailwind, Vitest, generic Port/Adapter architecture).
 2. **Trigger Stage**: The user or the CI/CD pipeline triggers the runtime execution, passing in the *live specification* (such as a Protobuf schema defining the network elements).
-3. **Execution Stage**: The implementation agent reads the live schema, reads the platform profile rules, and generates the domain-specific files (`ITopologyService.ts`) directly inside the target application repository (e.g., the target React UI repository), **not** the pipeline repository.
+3. **Execution Stage**: The implementation agent reads the live schema, reads the platform profile rules, and generates the domain-specific files (e.g., `I[Service]Port.ts`) directly inside the target application repository (e.g., the target React UI repository), **not** the pipeline repository.
 
 ---
 
