@@ -93,6 +93,275 @@ When implementing adapters targeting Protobuf-backed APIs (such as the TeraFlowS
 - **Error Status Translation**: Adapter implementations must translate raw gRPC status codes (e.g., Code 14 - Unavailable, Code 16 - Unauthenticated) into clean domain `Error` instances before rejecting promises or throwing stream errors.
 - **Metadata Authentication**: Auth tokens (e.g., Bearer tokens from local storage) must be injected into the metadata object of each RPC request via interceptors or adapter helper methods.
 
+### 2.5 Reference Port & Adapter Templates
+Downstream implementation agents must realize the gRPC-web bindings using the following Port and Adapter structures:
+
+#### Port Interface (`src/services/interfaces/ITopologyService.ts`)
+```typescript
+export interface Uuid {
+  uuid: string;
+}
+
+export interface ContextId {
+  contextUuid: Uuid;
+}
+
+export interface TopologyId {
+  contextId: ContextId;
+  topologyUuid: Uuid;
+}
+
+export interface DeviceId {
+  deviceUuid: Uuid;
+}
+
+export interface LinkId {
+  linkUuid: Uuid;
+}
+
+export interface EndPointId {
+  topologyId: TopologyId;
+  deviceId: DeviceId;
+  endpointUuid: Uuid;
+}
+
+export interface GPSPosition {
+  latitude: number;
+  longitude: number;
+}
+
+export interface Location {
+  region?: string;
+  gpsPosition?: GPSPosition;
+  interfaceName?: string;
+  circuitPack?: string;
+}
+
+export interface EndPoint {
+  endpointId: EndPointId;
+  name: string;
+  endpointType: string;
+  kpiSampleTypes?: number[];
+  endpointLocation?: Location;
+}
+
+export interface ConfigRuleCustom {
+  resourceKey: string;
+  resourceValue: string;
+}
+
+export interface ConfigRule {
+  action: number;
+  custom?: ConfigRuleCustom;
+}
+
+export interface DeviceConfig {
+  configRules: ConfigRule[];
+}
+
+export interface Component {
+  componentUuid: Uuid;
+  name: string;
+  type: string;
+  attributes: Record<string, string>;
+  parent?: string;
+}
+
+export enum DeviceOperationalStatusEnum {
+  DEVICEOPERATIONALSTATUS_UNDEFINED = 0,
+  DEVICEOPERATIONALSTATUS_DISABLED = 1,
+  DEVICEOPERATIONALSTATUS_ENABLED = 2,
+}
+
+export enum DeviceDriverEnum {
+  DEVICEDRIVER_UNDEFINED = 0,
+  DEVICEDRIVER_OPENCONFIG = 1,
+  DEVICEDRIVER_TRANSPORT_API = 2,
+  DEVICEDRIVER_P4 = 3,
+  DEVICEDRIVER_IETF_NETWORK_TOPOLOGY = 4,
+  DEVICEDRIVER_ONF_TR_532 = 5,
+  DEVICEDRIVER_XR = 6,
+  DEVICEDRIVER_IETF_L2VPN = 7,
+  DEVICEDRIVER_GNMI_OPENCONFIG = 8,
+  DEVICEDRIVER_OPTICAL_TFS = 9,
+  DEVICEDRIVER_IETF_ACTN = 10,
+  DEVICEDRIVER_OC = 11,
+  DEVICEDRIVER_QKD = 12,
+  DEVICEDRIVER_IETF_L3VPN = 13,
+  DEVICEDRIVER_IETF_SLICE = 14,
+  DEVICEDRIVER_NCE = 15,
+  DEVICEDRIVER_SMARTNIC = 16,
+  DEVICEDRIVER_MORPHEUS = 17,
+  DEVICEDRIVER_RYU = 18,
+  DEVICEDRIVER_GNMI_NOKIA_SRLINUX = 19,
+  DEVICEDRIVER_OPENROADM = 20,
+  DEVICEDRIVER_RESTCONF_OPENCONFIG = 21,
+}
+
+export interface Device {
+  deviceId: DeviceId;
+  name: string;
+  deviceType: string;
+  deviceConfig?: DeviceConfig;
+  deviceOperationalStatus: DeviceOperationalStatusEnum;
+  deviceDrivers: DeviceDriverEnum[];
+  deviceEndpoints: EndPoint[];
+  components: Component[];
+  controllerId?: DeviceId;
+}
+
+export interface LinkAttributes {
+  isBidirectional: boolean;
+  totalCapacityGbps: number;
+  usedCapacityGbps: number;
+}
+
+export enum LinkTypeEnum {
+  LINKTYPE_UNKNOWN = 0,
+  LINKTYPE_COPPER = 1,
+  LINKTYPE_FIBER = 2,
+  LINKTYPE_RADIO = 3,
+  LINKTYPE_VIRTUAL = 4,
+  LINKTYPE_MANAGEMENT = 5,
+  LINKTYPE_REMOTE = 6,
+}
+
+export interface Link {
+  linkId: LinkId;
+  name: string;
+  linkType: LinkTypeEnum;
+  linkEndpointIds: EndPointId[];
+  attributes?: LinkAttributes;
+}
+
+export interface OpticalLinkDetails {
+  length: number;
+  srcPort: string;
+  dstPort: string;
+  localPeerPort: string;
+  remotePeerPort: string;
+  used: boolean;
+  cSlots: Record<string, number>;
+  lSlots: Record<string, number>;
+  sSlots: Record<string, number>;
+}
+
+export interface OpticalLink {
+  name: string;
+  opticalDetails?: OpticalLinkDetails;
+  linkId: LinkId;
+  linkEndpointIds: EndPointId[];
+}
+
+export interface TopologyDetails {
+  topologyId: TopologyId;
+  name: string;
+  devices: Device[];
+  links: Link[];
+  opticalLinks: OpticalLink[];
+}
+
+export enum EventTypeEnum {
+  EVENTTYPE_UNDEFINED = 0,
+  EVENTTYPE_CREATE = 1,
+  EVENTTYPE_UPDATE = 2,
+  EVENTTYPE_REMOVE = 3,
+}
+
+export interface Timestamp {
+  timestamp: number;
+}
+
+export interface Event {
+  timestamp: Timestamp;
+  eventType: EventTypeEnum;
+}
+
+export interface TopologyEvent {
+  event: Event;
+  topologyId: TopologyId;
+}
+
+export interface ITopologyService {
+  getTopologyDetails(contextId: string, topologyId: string): Promise<TopologyDetails>;
+  subscribeTopologyEvents(
+    onEvent: (event: TopologyEvent) => void,
+    onError?: (error: Error) => void
+  ): () => void;
+}
+```
+
+#### gRPC-Web Adapter (`src/services/protobuf/GrpcWebTopologyAdapter.ts`)
+```typescript
+import { 
+  ITopologyService, 
+  TopologyDetails, 
+  TopologyEvent,
+  Device,
+  Link,
+  OpticalLink,
+  DeviceOperationalStatusEnum,
+  DeviceDriverEnum,
+  LinkTypeEnum
+} from '../interfaces/ITopologyService';
+
+// Compiled client types mock
+class MockGrpcWebClient {
+  private endpoint: string;
+  constructor(endpoint: string) { this.endpoint = endpoint; }
+  public getTopologyDetails(request: any, metadata: any, callback: any): void {
+    // Under the hood compiled call...
+  }
+  public getTopologyEvents(request: any, metadata?: any): any {
+    // Under the hood compiled stream...
+  }
+}
+
+export class GrpcWebTopologyAdapter implements ITopologyService {
+  private client: MockGrpcWebClient;
+
+  constructor() {
+    const grpcEndpoint = import.meta.env.VITE_GRPC_ENDPOINT_URL || "http://localhost:8080";
+    this.client = new MockGrpcWebClient(grpcEndpoint);
+  }
+
+  public getTopologyDetails(contextId: string, topologyId: string): Promise<TopologyDetails> {
+    return new Promise((resolve, reject) => {
+      const request = { contextId, topologyId };
+      const metadata = this.getAuthMetadata();
+
+      this.client.getTopologyDetails(request, metadata, (error: any, response: any) => {
+        if (error) return reject(this.translateError(error));
+        try {
+          resolve(this.mapResponse(response));
+        } catch (mapError) {
+          reject(mapError);
+        }
+      });
+    });
+  }
+
+  public subscribeTopologyEvents(
+    onEvent: (event: TopologyEvent) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    const stream = this.client.getTopologyEvents({}, this.getAuthMetadata());
+    stream.on("data", (protoEvent: any) => {
+      onEvent(this.mapEvent(protoEvent));
+    });
+    stream.on("error", (err: any) => {
+      if (onError) onError(this.translateError(err));
+    });
+    return () => stream.cancel();
+  }
+
+  private mapResponse(response: any): TopologyDetails { /* ... mapping logic ... */ return {} as any; }
+  private mapEvent(protoEvent: any): TopologyEvent { /* ... mapping logic ... */ return {} as any; }
+  private getAuthMetadata() { return { Authorization: `Bearer ${localStorage.getItem("auth_token")}` }; }
+  private translateError(err: any) { return new Error(err?.message || "gRPC Error"); }
+}
+```
+
 ---
 
 ## 3. Testing Mandates
