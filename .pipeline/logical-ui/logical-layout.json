@@ -96,29 +96,50 @@
             {
               "type": "TabbedContainer",
               "id": "details_and_relations_tab",
+              "props": {
+                "tab_position": "bottom"
+              },
               "children": [
                 {
-                  "type": "DetailsCard",
-                  "id": "object_details",
-                  "props": {
-                    "columns": 2,
-                    "enable_ubiquitous_links": true
-                  },
-                  "bindings": {
-                    "data_source": "yang:network-topology/topology/node[@node-id='active_focused_node']"
-                  }
-                },
-                {
                   "type": "TableView",
-                  "id": "related_objects_table",
+                  "id": "sub_elements_table",
                   "props": {
+                    "label": "Elements",
                     "sortable": true,
                     "filterable": true,
                     "high_density": true,
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "yang:network-topology/topology/link[source/source-node='active_focused_node']"
+                    "data_source": "yang:network-topology/topology/node[@node-id='active_focused_node']/contained-elements"
+                  }
+                },
+                {
+                  "type": "TableView",
+                  "id": "active_alarms_table",
+                  "props": {
+                    "label": "Alarms",
+                    "sortable": true,
+                    "filterable": true,
+                    "high_density": true,
+                    "display_all_attributes": true
+                  },
+                  "bindings": {
+                    "data_source": "yang:alarm-management/alarms[target-resource='active_focused_node']"
+                  }
+                },
+                {
+                  "type": "TableView",
+                  "id": "historical_events_table",
+                  "props": {
+                    "label": "Events",
+                    "sortable": true,
+                    "filterable": true,
+                    "high_density": true,
+                    "display_all_attributes": true
+                  },
+                  "bindings": {
+                    "data_source": "yang:event-log/events[source-resource='active_focused_node']"
                   }
                 }
               ]

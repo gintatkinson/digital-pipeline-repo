@@ -44,7 +44,7 @@ We define exactly seven core platform-agnostic components:
 3. **NavigationBreadcrumbs**: Responsive breadcrumb path collapsing middle segments into ellipses (`...`) when widths are exceeded.
 4. **PropertyGrid**: A high-speed key-value display that compiles dynamic JSON schemas into flat, pre-compiled layout descriptors once.
 5. **TopologyMap**: Panning/zooming graphical web viewport representing nodes (managed objects) and links (relationships), highlighting ITU-T alarm outline rings.
-6. **DensityTable**: A high-density virtualized table dynamically displaying all configured and allowed attributes, properties, and child elements for the associated managed object or element based on its data schema.
+6. **DensityTable**: A high-density virtualized table dynamically displaying all configured and allowed attributes, properties, and child elements for the associated managed object or element based on its data schema. Supports integration within a bottom-docked `TabbedContainer` hosting multiple tabbed lists (e.g. Elements, Alarms, Events) for the active selected object.
 7. **ContextualPanel**: Slide-out drawer capturing key events like `Escape` for dismissal.
 
 ### 2.3. Declarative Layout Schema
