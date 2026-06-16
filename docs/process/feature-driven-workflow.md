@@ -53,3 +53,24 @@ The final stage of the feature's lifecycle.
   5. The local and remote feature branches are deleted.
   6. **Agentic Epic Closure:** If all constituent features in the local Epic checklist are now completed (`[x]`), the agent must update the Epic issue's body on GitHub and close the Epic issue itself on GitHub using the `gh` CLI with an appropriate summary comment.
 - **Output:** A clean, released feature with fully linked documentation, and any completed parent Epics successfully closed on GitHub, readying the agent to pull the next prioritized feature from Phase 1.
+
+## 3. Multi-Platform Monorepo Support (React & Flutter)
+
+The pipeline supports deploying the same functional specifications across multiple client distributions (e.g., React Web and Flutter Desktop/Web) within a single repository using a monorepo structure.
+
+### Project Layout
+All platform distributions are isolated in their own root directories:
+* `/web_react`: Holds the React web distribution.
+* `/app_flutter`: Holds the Flutter desktop/web distribution.
+* `/docs`: Contains shared, platform-independent functional specifications.
+
+### Execution Flow
+1. **Target Selection:** During Phase 2 ("The Grill"), the developer specifies the target platform.
+2. **Profile Loading:** The agent loads the corresponding profile (`.pipeline/profiles/react.md` or `.pipeline/profiles/flutter.md`) to apply the appropriate build, lint, and testing rules.
+3. **Sequential Branching:** Features are implemented serially per platform using dedicated branches:
+   * React branch: `feat/82-display-node-react`
+   * Flutter branch: `feat/82-display-node-flutter`
+4. **Separate Walkthrough Records:** The agent creates separate solution walkthroughs to preserve independent Code Realization Tables:
+   * `docs/designs/feat-82-react-solution.md`
+   * `docs/designs/feat-82-flutter-solution.md`
+

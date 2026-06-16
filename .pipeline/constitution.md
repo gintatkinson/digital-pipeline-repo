@@ -171,6 +171,16 @@ To prevent semantic divergence between structural design and dynamic behavior:
   * Has the user explicitly approved a file-write/command execution for this turn? (Yes/No)
   * Am I making any silent assumptions about the user's intent?
 
+### 3.7 Multi-Platform & Monorepo Layout
+
+When the repository hosts multiple platform distributions (e.g., a React frontend and a Flutter desktop/web app) within the same project:
+- **Directory Isolation:** Each platform's distribution source code must reside in its own dedicated, root-level subdirectory (e.g., `/web_react` and `/app_flutter`).
+- **Sequential Platform Implementation:** Features must be implemented platform-by-platform sequentially. An agent must never attempt to implement a feature for React and Flutter simultaneously on the same branch or in the same turn.
+- **Platform-Specific Branches:** Separate feature branches must be checked out for each platform's implementation, appending the target platform identifier as a suffix (e.g., `feat/<Issue_Number>-<short-description>-react` and `feat/<Issue_Number>-<short-description>-flutter`).
+- **Independent Walkthrough Documents:** To prevent naming collisions and maintain separate Code Realization Tables, the final solution walkthrough file must include the platform identifier in the filename:
+  `docs/designs/feat-<Issue_Number>-<platform>-solution.md`
+  (e.g., `docs/designs/feat-82-react-solution.md` and `docs/designs/feat-82-flutter-solution.md`).
+
 ---
 
 ## 4. Universal Quality Gates
