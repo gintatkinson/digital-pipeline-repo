@@ -1,1 +1,37 @@
-[]
+[
+  {
+    "name": "Spatial-Temporal 4D Telemetry Trigger",
+    "trigger_nodes": [
+      "latitude",
+      "longitude",
+      "altitude",
+      "velocity",
+      "trajectory",
+      "trajectory-vector",
+      "orbital-parameters"
+    ],
+    "rules": [
+      {
+        "target_type": "user-story",
+        "requires_mermaid_block": "sequenceDiagram",
+        "match_terms_in_mermaid": [
+          "Worker",
+          "Isolate",
+          "stopPropagation",
+          "writeLock"
+        ],
+        "error_message": "User Story diagrams must illustrate off-thread spatial calculations (Worker/Isolate) and Event-Echo Guard implementations (stopPropagation/writeLock) when 4D spatial-temporal coordinates are present in the schema."
+      },
+      {
+        "target_type": "use-case",
+        "match_terms_in_body": [
+          "temporal",
+          "playback",
+          "timeline",
+          "live"
+        ],
+        "error_message": "Use Cases must detail the temporal context state machine (playback controls and live mode transitions) when 4D spatial-temporal telemetry is configured in the schema."
+      }
+    ]
+  }
+]
