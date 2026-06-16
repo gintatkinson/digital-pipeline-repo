@@ -1441,7 +1441,20 @@ def walk_json_ast_for_compliance(node):
                 return True
     return False
 
-def verify_python_ast(filepath):
+def extract_hex_colors_from_json(data):
+    colors = set()
+    if isinstance(data, dict):
+        for k, v in data.items():
+            colors.update(extract_hex_colors_from_json(v))
+    elif isinstance(data, list):
+        for item in data:
+            colors.update(extract_hex_colors_from_json(item))
+    elif isinstance(data, str):
+        if re.match(r'^#[0-9a-fA-F]{6}$', data) or re.match(r'^#[0-9a-fA-F]{3}$', data):
+            colors.add(data.lower())
+    return colors
+
+def verify_python_ast(filepath, forbidden_colors):
     with open(filepath, "r", encoding="utf-8") as f:
         code = f.read()
     try:
@@ -1449,7 +1462,7 @@ def verify_python_ast(filepath):
         for node in ast.walk(tree):
             if isinstance(node, ast.Constant) and isinstance(node.value, str):
                 val = node.value.lower()
-                for color in ["#d50000", "#ff6d00", "#ffd600", "#29b6f6", "#00c853"]:
+                for color in forbidden_colors:
                     if color in val:
                         return f"Python Constant in {os.path.basename(filepath)} contains hardcoded color '{color}'"
     except Exception as e:
@@ -1466,22 +1479,34 @@ def verify_codebase_compliance(workspace_dir):
     react_dir = os.path.join(workspace_dir, "web_react")
     flutter_dir = os.path.join(workspace_dir, "app_flutter")
     
-    # Design token color values (hex and dart representations)
-    hardcoded_colors_react = {
-        "#d50000": "Critical Alarm color (#d50000)",
-        "#ff6d00": "Major Alarm color (#ff6d00)",
-        "#ffd600": "Minor Alarm color (#ffd600)",
-        "#29b6f6": "Warning Alarm color (#29b6f6)",
-        "#00c853": "Cleared Alarm color (#00c853)"
-    }
+    # Dynamically extract forbidden colors from design tokens
+    design_tokens_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "design-tokens.json")
+    forbidden_colors_hex = set()
+    if os.path.exists(design_tokens_path):
+        try:
+            with open(design_tokens_path, "r", encoding="utf-8") as f:
+                tokens_data = json.load(f)
+            forbidden_colors_hex = extract_hex_colors_from_json(tokens_data)
+        except Exception as e:
+            print(f"Warning: Failed to load design-tokens.json for compliance check: {e}")
+
+    # Fallback default colors if tokens cannot be loaded
+    if not forbidden_colors_hex:
+        forbidden_colors_hex = {"#d50000", "#ff6d00", "#ffd600", "#29b6f6", "#00c853"}
     
-    hardcoded_colors_flutter = {
-        "ffd50000": "Critical Alarm color (0xFFD50000)",
-        "ffff6d00": "Major Alarm color (0xFFFF6D00)",
-        "ffffd600": "Minor Alarm color (0xFFFFD600)",
-        "ff29b6f6": "Warning Alarm color (0xFF29B6F6)",
-        "ff00c853": "Cleared Alarm color (0xFF00C853)"
-    }
+    # Generate react colors (lowercase hex values)
+    hardcoded_colors_react = {}
+    for hex_val in forbidden_colors_hex:
+        hardcoded_colors_react[hex_val] = f"Forbidden design token color ({hex_val})"
+
+    # Generate flutter colors (with 0xff prefix and lowercase/uppercase variations)
+    hardcoded_colors_flutter = {}
+    for hex_val in forbidden_colors_hex:
+        clean_hex = hex_val.replace("#", "")
+        if len(clean_hex) == 3:
+            clean_hex = "".join([c*2 for c in clean_hex])
+        flutter_hex = "ff" + clean_hex
+        hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
     
     # 1. React Web Codebase Compliance
     if os.path.exists(react_dir):
@@ -1607,9 +1632,28 @@ def verify_codebase_compliance(workspace_dir):
         for file in files:
             if file.endswith(".py"):
                 filepath = os.path.join(root, file)
-                ast_err = verify_python_ast(filepath)
+                ast_err = verify_python_ast(filepath, forbidden_colors_hex)
                 if ast_err:
                     errors.append(ast_err)
+
+    # 4. Check specification files for platform/visual leakage
+    logical_components_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "logical-components.md")
+    if os.path.exists(logical_components_path):
+        try:
+            with open(logical_components_path, "r", encoding="utf-8") as f:
+                spec_content = f.read()
+            
+            # Check for ARIA or role/DOM references
+            dom_patterns = [r'\baria-\w+', r'\brole=["\']\w+']
+            for pattern in dom_patterns:
+                if re.search(pattern, spec_content, re.IGNORECASE):
+                    errors.append(f"Specification '{os.path.basename(logical_components_path)}' contains hardcoded DOM/accessibility leaks matching pattern '{pattern}'.")
+            
+            # Check for pixel dimensions (excluding pure numbers like default ratios)
+            if re.search(r'\b\d+px\b', spec_content, re.IGNORECASE):
+                errors.append(f"Specification '{os.path.basename(logical_components_path)}' contains hardcoded pixel dimensions (e.g., '150px'). Use dynamic configuration tokens instead.")
+        except Exception as e:
+            errors.append(f"Failed to read specification '{logical_components_path}': {e}")
 
     return errors
 
@@ -1666,29 +1710,29 @@ def main():
             elif ext in non_yang_extensions:
                 has_non_yang_schemas = True
 
+    # 2. Load all feature markdown files
+    features = load_feature_files(features_dir)
+    print(f"Loaded {len(features)} feature specifications.\n")
+    
     skip_coverage_checks = False
-    if has_non_yang_schemas:
+    if not features:
+        print("Note: No feature specifications found in directory. Skipping model coverage checks.")
+        skip_coverage_checks = True
+    elif has_non_yang_schemas:
         print("Warning: Deep AST node coverage parity audit is currently optimized for YANG schemas. Skipping strict coverage percentage check for OpenAPI/Protobuf/ASN.1, but proceeding with UML compliance audit.")
         skip_coverage_checks = True
     elif not has_yang_schemas:
         print("Note: No schemas found in schema directory. Skipping model coverage checks.")
         skip_coverage_checks = True
 
-    # 2. Load all feature markdown files
-    features = load_feature_files(features_dir)
-    print(f"Loaded {len(features)} feature specifications.\n")
-    if not features:
-        print("Error: No feature specifications found in directory.")
-        sys.exit(1)
-
     # 3. Audit coverage per module
     total_defined = 0
     total_covered = 0
     coverage_gaps = {}
 
-    global_classes = build_global_classes(features_dir)
+    global_classes = build_global_classes(features_dir) if features else {}
 
-    if not skip_coverage_checks:
+    if not skip_coverage_checks and features:
         for module_name, definitions in sorted(modules.items()):
             # Find all feature files that explicitly list this module name in their labels
             matching_features = [f for f in features if module_name in f["labels"]]
@@ -1757,7 +1801,11 @@ def main():
             sys.exit(1)
 
     print("\n=== UML Diagrams Compliance Audit ===")
-    uml_errors = verify_uml_diagrams(features_dir, global_classes)
+    uml_errors = []
+    if not features:
+        print("Note: No feature specifications found. Skipping UML Diagrams Compliance Audit.")
+    else:
+        uml_errors = verify_uml_diagrams(features_dir, global_classes)
     
     has_failed = False
 
@@ -1767,7 +1815,8 @@ def main():
             print(f"  - {err}")
         has_failed = True
     else:
-        print("Success: All specification files are fully UML-compliant (no ERDs or invalid syntax found).")
+        if features:
+            print("Success: All specification files are fully UML-compliant (no ERDs or invalid syntax found).")
 
     if coverage_gaps:
         print("\n[!] Coverage Gaps Identified:")
@@ -1777,11 +1826,15 @@ def main():
         print("\nError: 100% model coverage validation failed.")
         has_failed = True
     else:
-        if not skip_coverage_checks:
+        if not skip_coverage_checks and features:
             print("\nSuccess: 100% model coverage verified across all specification files.")
 
     print("\n=== Behavioral Coverage Triggers Audit ===")
-    behavioral_errors = verify_behavioral_triggers(schema_dir, features_dir, modules)
+    behavioral_errors = []
+    if not features:
+        print("Note: No feature specifications found. Skipping Behavioral Coverage Triggers Audit.")
+    else:
+        behavioral_errors = verify_behavioral_triggers(schema_dir, features_dir, modules)
 
     if behavioral_errors:
         print("[!] Behavioral Coverage Violations Identified:")

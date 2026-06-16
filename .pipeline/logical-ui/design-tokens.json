@@ -6,7 +6,8 @@
   "color": {
     "brand": {
       "primary": "#1a73e8",
-      "primary-hover": "#1557b0"
+      "primary-hover": "#1557b0",
+      "temp-forbidden": "#ab12cd"
     },
     "background": {
       "light": "#ffffff",
@@ -28,7 +29,9 @@
     "xs": "4px",
     "sm": "8px",
     "md": "16px",
-    "lg": "24px"
+    "lg": "24px",
+    "layout-sidebar-width": "280px",
+    "layout-min-pane-size": "150px"
   },
   "typography": {
     "font-family": "Outfit, Roboto, sans-serif",

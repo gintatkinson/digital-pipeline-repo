@@ -6,13 +6,13 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 
 ## 1. HierarchyTree
 - **Anatomy:** Scrollable view container, parent/child nodes, expansion toggles, context menus, and node drag/drop anchors.
-- **Behavior:** `ArrowUp`/`ArrowDown` focus navigation. `ArrowRight` expands, `ArrowLeft` collapses.
-- **Accessibility:** In virtualized flat-list implementations, each row must carry `role="treeitem"`, `aria-level="[Depth]"`, and `aria-expanded="[true|false]"` tags. The container must declare `role="tree"`.
-- **Event Limits:** Selection updates trigger `onNodeSelect` only on user interaction. Property setters must modify selections silently.
+- **Behavior:** Exposes logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) to be mapped to platform-specific inputs (e.g., keyboard shortcuts, touch gestures) at runtime.
+- **Accessibility:** The component must expose structural hierarchy metadata (such as node depth, expansion state, and parent-child relationships) to allow the platform-specific implementation layer to construct appropriate platform-specific accessibility tags (such as ARIA roles for Web or accessibility nodes for mobile).
+- **Event Limits:** Selection updates trigger selection callbacks only on user interaction. Property setters must modify selections silently.
 
 ## 2. ResizableSplitter
 - **Anatomy:** Primary and Secondary panes separated by an interactive split bar.
-- **Behavior:** Minimum size constraints (default 150px). Snap-to-edge collapse capabilities. 
+- **Behavior:** Minimum size constraints (default defined by the dynamic layout configuration token). Snap-to-edge collapse capabilities. 
 - **Reconfigurability:** Supports swapping vertical/horizontal axis and pane order without state destruction (using platform-native state preservation mechanics).
 
 
@@ -22,7 +22,7 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 
 ## 4. PropertyGrid
 - **Anatomy:** Key-value attribute grid mapped to a schema.
-- **Behavior:** Input fields validate on blur. Keeps a local change-buffer to prevent triggering global state re-renders on every keystroke.
+- **Behavior:** Input fields validate upon focus loss or editing completion. Keeps a local change-buffer to prevent triggering global state re-renders on every keystroke.
 - **Performance:** JSON-Schemas are compiled *once* at initialization into a flat, typed **Logical Layout Descriptor** list, avoiding render-cycle parsing lag.
 
 ## 5. TopologyMap (3D/4D Spatial-Temporal Canvas)
@@ -34,9 +34,9 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 ## 6. DensityTable
 - **Anatomy:** High-density grid containing columns, rows, sort indicators, and multiselect checkboxes.
 - **Columns:** Dynamically constructed based on the selected/associated managed object's data schema to display all configured/allowed attributes, properties, and child elements. Includes standard attributes (Object Icon, Name, Type, Family, Alarms, Primary State, Secondary States) alongside all schema-defined attributes.
-- **Performance:** Virtualized row rendering (only viewport rows are rendered in the DOM).
+- **Performance:** Supports virtualized list rendering to optimize viewport performance.
 - **Tabbed Layout Integration:** To support legacy (e.g. IBM ILOG JViews TGO) and next-gen workflows, multiple specialized DensityTables (e.g. Elements, Alarms, Events) are organized inside a bottom-docked `TabbedContainer`, dynamically loading lists associated with the selected topological managed object.
 
 ## 7. ContextualPanel
 - **Anatomy:** Side drawer panel sliding from the viewport edges.
-- **Behavior:** Captures keyboard `Escape` key events to trigger dismiss requests.
+- **Behavior:** Captures logical escape triggers to dismiss the panel.
