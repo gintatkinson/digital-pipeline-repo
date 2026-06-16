@@ -1403,6 +1403,16 @@ def verify_codebase_compliance(workspace_dir):
                         if "stopPropagation" not in content:
                             errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call 'stopPropagation()'. This violates the Event-Echo Guard.")
                             
+                    # C. Worker Import Restrictions (Web Workers separation)
+                    if "components/" in rel_path or "views/" in rel_path:
+                        if any(lib in content for lib in ["satellite.js", "satellite-js", "sgp4"]):
+                            errors.append(f"React File '{rel_path}' is a UI view/component but imports SGP4 orbit propagation libraries directly. Orbital calculations must run exclusively in a background Web Worker.")
+
+                    # D. Egress Write-Lock Check (Network-level Echo Guard)
+                    if "io/" in rel_path and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
+                        if not any(lock_kw in content.lower() for lock_kw in ["writelock", "lockwrite", "sendlock", "mutationlock"]):
+                            errors.append(f"React Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
+                            
     # 2. Flutter Desktop/Web Codebase Compliance
     if os.path.exists(flutter_dir):
         for root, dirs, files in os.walk(flutter_dir):
@@ -1438,6 +1448,16 @@ def verify_codebase_compliance(workspace_dir):
                             guard_words = ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"]
                             if not any(g in content_lower for g in guard_words):
                                 errors.append(f"Flutter File '{rel_path}' contains selection setters and triggers updates, but lacks a loop guard variable (e.g. 'userInitiated' or 'programmatic') to satisfy the Event-Echo Guard.")
+                                
+                    # C. Isolate Import Restrictions (Isolates separation)
+                    if "widgets/" in rel_path or "screens/" in rel_path:
+                        if "sgp4" in content_lower or "orbital_propagation" in content_lower:
+                            errors.append(f"Flutter File '{rel_path}' is a UI widget/screen but references SGP4 orbit propagation directly. Orbital calculations must run exclusively in a background Isolate.")
+
+                    # D. Egress Write-Lock Check (Network-level Echo Guard)
+                    if "io/" in rel_path and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
+                        if not any(lock_kw in content_lower for lock_kw in ["writelock", "lockwrite", "sendlock", "mutationlock"]):
+                            errors.append(f"Flutter Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
                                 
     return errors
 

@@ -43,11 +43,15 @@ last_updated: "2026-06-16"
 - **UI & Design Aesthetics (GKE Standards & UI Adapter Pattern):**
   - **The UI Adapter Pattern:** The frontend must not generate raw Dart view files for layouts. Structural layout components (splitter layout, hierarchy tree, topology canvas) are written manually once and optimized. Code generators output static JSON configuration schemas (derived from `.pipeline/logical-ui/logical-layout.json`) which are loaded at runtime.
   - **Design System Tokens:** Style variables (colors, typography, spacing, alarm severities) must be compiled or read directly from `.pipeline/logical-ui/design-tokens.json`, configuring dynamic `ThemeData` tokens at startup.
-  - **Event-Echo Guard:** Property setters must not trigger output event callbacks. Event propagation is restricted exclusively to user-initiated clicks or drag gestures, verified via AST checkers, to prevent infinite rendering loops.
+  - **Event-Echo Guard:** Property setters must not trigger output event callbacks. Event propagation is restricted exclusively to user-initiated clicks or drag gestures, verified via AST checkers, to prevent infinite rendering loops. Additionally, a network-level write lock must be activated on the API gateway client during timeline playback or scrubbing to prevent egress mutations.
   - **Splitter Resizing Optimization:** Resizing drag actions must isolate painting boundaries using `RepaintBoundary` widgets on the Topology Canvas and Details Grid to prevent global rebuilds of unchanged subtrees, maintaining 60fps interaction.
-  - **Real-Time Telemetry Pipeline (Isolates & GPGPU):**
+  - **Real-Time Telemetry & 4D Visualization Pipeline (Isolates & GPGPU):**
     - Sockets, binary packet parsing (gRPC/WebSockets), and telemetry constraint evaluations must run in a background **Dart Isolate**.
-    - For large topology graphs ($10,000+$ nodes), utilize **Impeller custom fragment/compute shaders** executing force-directed layout calculations directly on the GPU using Vulkan/Metal backends.
+    - For large dataset synchronization, coordinates and trajectories must be allocated on the native C-heap using **Dart FFI** (`Pointer<Double>`) and shared directly between the background isolate and the UI thread to avoid heap cloning overhead.
+    - **Double-Single (DS-FP) Shaders**: 3D coordinates must be split on the CPU into high/low `float32` variables and uploaded to static VRAM buffers. Shaders must perform relative-to-eye (RTE) calculations using emulated double-precision subtraction to eliminate rendering jitter.
+    - **GPGPU Collision Detection**: Group distance/conjunction calculations must utilize **Append Buffers** with GPU atomic counters instead of dense $O(N^2)$ distance matrices, and run a CPU-broadphase (Sweep-and-Prune) / GPU-narrowphase execution split.
+    - **Visual Depth Resolution**: The 3D viewport must use a **Reversed-Z** projection matrix (mapping depth $1.0 \to 0.0$) coupled with a 32-bit floating-point depth buffer (`depth32float`) to prevent planetary-scale z-fighting.
+    - **Direct Compute Integration**: Compute shader executions (like orbital propagation and collision warnings) must run via native C++ plugins communicating directly with Vulkan/Metal APIs to bypass Impeller's compute constraints.
   - **Ubiquitous Navigation Links:** Every reference to a managed object/attribute must be a selectable link (using styled `InkWell` or `TextButton`) that updates the global provider selection state, triggering a unidirectional update across the sidebar tree, topology canvas, and detail grids.
   - **Engine Bootstrap FOUC:** Prevent theme flashes during CanvasKit engine loading by maintaining a matching splash screen theme setup in native `index.html`.
 
