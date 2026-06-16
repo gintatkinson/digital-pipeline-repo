@@ -56,14 +56,11 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
     - Configure dynamic `ThemeData` tokens at startup using primary, background, and status colors.
     - Prevent theme flashes during CanvasKit engine loading by maintaining a matching splash screen theme setup in native `index.html` (e.g. using a script to query `localStorage` and set `document.documentElement.className` before engine load).
-  - **Color Palette & Alarm Severities:**
-    - Google Blue (`#1a73e8`) for primary actions and active navigation states.
-    - Implement the 5-color **ITU-T X.733 Alarm Severity** model for status displays and node highlight borders:
-      - `Critical`: Red (`#d50000`)
-      - `Major`: Orange (`#e65100`)
-      - `Minor`: Yellow (`#fbc02d`)
-      - `Warning`: Cyan/Blue (`#0288d1`)
-      - `Cleared`: Green (`#2e7d32`)
+  - **Dynamic Theme & Alarm Mappings:**
+    - Hardcoding colors, brand palettes, or standard-specific severity strings is strictly prohibited.
+    - All status colors, brand palettes, and spacing attributes must map back to variables loaded dynamically from the dynamic design tokens JSON file (`design-tokens.json`).
+    - The application must inject a dynamic `ThemeProvider` at the application root, which deserializes the design tokens and serves them using a custom `ThemeExtension` (`DynamicThemeColors`) for status colors lookup at runtime.
+    - Component layouts and widgets must be mapped dynamically via a Widget registry that resolves types and schemas from `logical-layout.json`.
   - **Layout & Structure:**
     - Left-hand collapsible sidebar navigation with GKE-style hierarchical nesting.
     - **HierarchyTree (Vertical Hierarchy Selector):** Left-side vertical tree selection panel. Must support:

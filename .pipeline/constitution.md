@@ -65,6 +65,27 @@ To prevent semantic divergence between structural design and dynamic behavior:
 - Every User Story MUST link to the Features it validates.
 - Every Use Case MUST link to the User Stories and Features it realizes.
 
+### 1.7 Standard & Platform Parameter Isolation
+
+To ensure that specifications remain reusable and the codebase stays modular, a strict 3-tier boundary architecture MUST be maintained:
+
+1. **Tier 1: Functional Layer (Abstract Specification)**:
+   - Includes: Epics, Features, User Stories, Use Cases, and Logical UI specifications.
+   - Constraints: Must be platform-independent and standard-agnostic. Absolutely no framework keywords (e.g., React, Flutter, BLoC, Context), specific standards designations (e.g., ITU-T X.733, 3GPP TS), or hardcoded visual values (e.g., hex colors, fonts, pixel dimensions) are allowed. Refer to these variables abstractly (e.g., "the active alarm severity state" or "the configured color token").
+   
+2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**:
+   - Includes: `design-tokens.json`, dynamic mapping configurations, translation files.
+   - Constraints: This layer is the single source of truth for standard-specific definitions and visual attributes. Standard states and their physical mappings are declared here, to be read dynamically by implementation layers.
+   
+3. **Tier 3: Platform Implementation Profiles (Technical Execution)**:
+   - Includes: `.pipeline/profiles/<platform>.md` and codebase implementations.
+   - Constraints: Must govern build mechanics, performance patterns (e.g., Web Workers, Dart Isolates), and dependencies. Profiles and implementation source code MUST NOT hardcode standard-specific attributes or colors. They must define the mechanism to dynamically resolve Tier 2 assets (e.g., binding to CSS variables or deserializing runtime JSON).
+
+### 1.8 Unique Backlog Identifiers
+
+To prevent backlog reconciliation matching failures due to title drift, all local specification files MUST include a permanent unique identifier (`issue_id: <int>`) in their YAML frontmatter, mapped directly to their remote issue number. Matching by title normalization is prohibited as a primary selector.
+
+
 ---
 
 ## 2. Specification Standards
@@ -79,7 +100,7 @@ To prevent semantic divergence between structural design and dynamic behavior:
 
 - A Feature represents a single, independently testable functional capability.
 - A Feature should have 3-10 acceptance criteria. Fewer means it lacks specificity; more than 10 means it should be split.
-- Features MUST be platform-independent. No framework names, no UI component names, no implementation technology references.
+- Features MUST be platform-independent and standard-agnostic. No framework names, UI component names, specific standard designations (e.g., "ITU-T X.733"), or hardcoded standard parameters may appear in Epics, Features, User Stories, or acceptance criteria.
 - Feature titles use the format: `[Verb] [Object] [Qualifier]` (e.g., "Display Node Attributes with Constraint Validation").
 
 ### 2.3 BDD Scenario Format
@@ -201,6 +222,9 @@ To prevent semantic divergence between structural design and dynamic behavior:
 - Do NOT hardcode GitHub issue numbers in cross-references -- always query live state via `gh` CLI.
 - Do NOT silently drop schema nodes that are difficult to categorize -- flag them and escalate.
 - Do NOT edit or patch pipeline tooling scripts (such as linter, reconciler, or verify scripts) inside downstream target repositories. Any tooling bugs or feature requests must be escalated and fixed upstream in the pipeline repository.
+- Do NOT hardcode standard-specific properties, names, or visual style attributes (e.g., hex colors like `#d50000`) inside platform implementation profiles or functional specifications.
+- Do NOT mix platform-specific implementation mechanisms (such as React Context or Flutter Keys) inside logical UI component specifications.
+- Do NOT bypass dynamic design token resolution; all colors, typography, and spacing must map back to variables loaded dynamically from Tier 2 configuration files.
 
 ---
 

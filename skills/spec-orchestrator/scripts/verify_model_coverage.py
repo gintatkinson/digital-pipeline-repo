@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import json
+import ast
 
 def parse_lifeline_label(label):
     if not label:
@@ -699,17 +700,108 @@ def parse_yang_file(filepath):
 
     return module_name, definitions
 
+class ISchemaParser:
+    def can_parse(self, filepath: str) -> bool:
+        raise NotImplementedError
+    def parse(self, filepath: str):
+        raise NotImplementedError
+
+class SchemaRouter:
+    def __init__(self):
+        self._parsers = []
+    def register(self, parser: ISchemaParser):
+        self._parsers.append(parser)
+    def parse_schema_file(self, filepath: str):
+        for parser in self._parsers:
+            if parser.can_parse(filepath):
+                return parser.parse(filepath)
+        ext = os.path.splitext(filepath)[1].lower()
+        print(f"Warning: Extensible schema parser not yet implemented for extension '{ext}' in {os.path.basename(filepath)}")
+        return os.path.basename(filepath), set()
+
+class YangSchemaParser(ISchemaParser):
+    def can_parse(self, filepath: str) -> bool:
+        return filepath.lower().endswith(".yang")
+    def parse(self, filepath: str):
+        return parse_yang_file(filepath)
+
+class OpenApiSchemaParser(ISchemaParser):
+    def can_parse(self, filepath: str) -> bool:
+        return filepath.lower().endswith((".yaml", ".yml", ".json"))
+    def parse(self, filepath: str):
+        filename = os.path.basename(filepath)
+        module_name = os.path.splitext(filename)[0]
+        definitions = set()
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            if filepath.lower().endswith(".json"):
+                try:
+                    data = json.loads(content)
+                    def extract_keys(obj):
+                        keys = set()
+                        if isinstance(obj, dict):
+                            for k, v in obj.items():
+                                keys.add(k)
+                                keys.update(extract_keys(v))
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                keys.update(extract_keys(item))
+                        return keys
+                    definitions.update(extract_keys(data))
+                except:
+                    pass
+            else:
+                for match in re.finditer(r'^\s*([a-zA-Z0-9_\-]+)\s*:', content, re.MULTILINE):
+                    definitions.add(match.group(1))
+        except Exception as e:
+            print(f"Warning: OpenApiSchemaParser failed to parse {filepath}: {e}")
+        return module_name, definitions
+
+class ProtobufSchemaParser(ISchemaParser):
+    def can_parse(self, filepath: str) -> bool:
+        return filepath.lower().endswith(".proto")
+    def parse(self, filepath: str):
+        filename = os.path.basename(filepath)
+        module_name = os.path.splitext(filename)[0]
+        definitions = set()
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            for match in re.finditer(r'\b(message|service|enum|rpc)\s+([a-zA-Z0-9_\-]+)', content):
+                definitions.add(match.group(2))
+        except Exception as e:
+            print(f"Warning: ProtobufSchemaParser failed to parse {filepath}: {e}")
+        return module_name, definitions
+
+class Asn1SchemaParser(ISchemaParser):
+    def can_parse(self, filepath: str) -> bool:
+        return filepath.lower().endswith((".asn", ".asn1"))
+    def parse(self, filepath: str):
+        filename = os.path.basename(filepath)
+        module_name = os.path.splitext(filename)[0]
+        definitions = set()
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            for match in re.finditer(r'\b([a-zA-Z0-9_\-]+)\s*::=\s*', content):
+                definitions.add(match.group(1))
+        except Exception as e:
+            print(f"Warning: Asn1SchemaParser failed to parse {filepath}: {e}")
+        return module_name, definitions
+
+schema_router = SchemaRouter()
+schema_router.register(YangSchemaParser())
+schema_router.register(OpenApiSchemaParser())
+schema_router.register(ProtobufSchemaParser())
+schema_router.register(Asn1SchemaParser())
+
 def parse_schema_file(filepath):
     """
     Parses a schema file and extracts definitions depending on file extension.
     Supported extensions: .yang (YANG). Extensible to other formats.
     """
-    ext = os.path.splitext(filepath)[1].lower()
-    if ext == ".yang":
-        return parse_yang_file(filepath)
-    # Extensible to other formats (e.g. .yaml, .proto)
-    print(f"Warning: Extensible schema parser not yet implemented for extension '{ext}' in {os.path.basename(filepath)}")
-    return os.path.basename(filepath), set()
+    return schema_router.parse_schema_file(filepath)
 
 def load_behavioral_triggers(schema_dir, script_dir):
     workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
@@ -1384,13 +1476,58 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
 
     return errors
 
+def strip_js_comments(content):
+    pattern = r'(/\*.*?\*/)|(//[^\n]*)'
+    def replacer(match):
+        if match.group(1): return " "
+        if match.group(2): return " "
+        return match.group(0)
+    return re.sub(pattern, replacer, content, flags=re.DOTALL)
+
+def strip_dart_comments(content):
+    pattern = r'(/\*.*?\*/)|(//[^\n]*)'
+    def replacer(match):
+        if match.group(1): return " "
+        if match.group(2): return " "
+        return match.group(0)
+    return re.sub(pattern, replacer, content, flags=re.DOTALL)
+
+def walk_json_ast_for_compliance(node):
+    if isinstance(node, dict):
+        if node.get("type") == "CallExpression":
+            callee = node.get("callee", {})
+            if callee.get("type") == "MemberExpression":
+                property_name = callee.get("property", {}).get("name")
+                if property_name == "stopPropagation":
+                    return True
+        for k, v in node.items():
+            if walk_json_ast_for_compliance(v):
+                return True
+    elif isinstance(node, list):
+        for item in node:
+            if walk_json_ast_for_compliance(item):
+                return True
+    return False
+
+def verify_python_ast(filepath):
+    with open(filepath, "r", encoding="utf-8") as f:
+        code = f.read()
+    try:
+        tree = ast.parse(code, filename=filepath)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                val = node.value.lower()
+                for color in ["#d50000", "#ff6d00", "#ffd600", "#29b6f6", "#00c853"]:
+                    if color in val:
+                        return f"Python Constant in {os.path.basename(filepath)} contains hardcoded color '{color}'"
+    except Exception as e:
+        return f"Python file {os.path.basename(filepath)} has AST parsing errors: {e}"
+    return None
+
 def verify_codebase_compliance(workspace_dir):
     """
-    Validates that:
-    1. Implementation code does not hardcode alarm colors (critical, major, minor, warning, cleared)
-       defined in design-tokens.json.
-    2. Event-Echo Guard compliance: Event handlers triggering selection state changes must call
-       stopPropagation() (React) or ensure programmatic setters do not trigger callbacks (Flutter).
+    Validates codebase compliance using AST inspection, comment-stripping,
+    pluggable memory safety checks, playhead rate checks, and egress write-lock audits.
     """
     errors = []
     
@@ -1428,33 +1565,54 @@ def verify_codebase_compliance(workspace_dir):
                     except Exception as e:
                         continue
                     
-                    # Skip design tokens metadata files themselves
                     if "design-tokens" in file or "design_tokens" in file:
                         continue
                         
                     # Alarm Color Check
+                    content_lower = content.lower()
                     for color, desc in hardcoded_colors_react.items():
-                        if color in content.lower():
+                        if color in content_lower:
                             errors.append(f"React File '{rel_path}' contains hardcoded alarm color '{color}' ({desc}). Use CSS custom properties or theme tokens instead.")
                             
-                    # Event-Echo Guard Check
-                    # Check if file has user interactions AND selection event dispatches but misses stopPropagation
-                    selection_keywords = ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"]
-                    interaction_keywords = ["onClick", "onDrag", "onMouseDown", "onPointerDown"]
-                    if any(kw in content for kw in selection_keywords) and any(kw in content for kw in interaction_keywords):
-                        if "stopPropagation" not in content:
-                            errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call 'stopPropagation()'. This violates the Event-Echo Guard.")
+                    # Clean/Strip comments for structural/AST logic audits to prevent comment bypasses
+                    clean_content = strip_js_comments(content)
+                    
+                    # Try to inspect using JSON-AST if available
+                    ast_path = filepath + ".json-ast"
+                    ast_verified = False
+                    if os.path.exists(ast_path):
+                        try:
+                            with open(ast_path, "r", encoding="utf-8") as f:
+                                ast_tree = json.load(f)
+                            if not walk_json_ast_for_compliance(ast_tree):
+                                errors.append(f"React File '{rel_path}' (AST Verified) fails Event-Echo Guard compliance check.")
+                            ast_verified = True
+                        except Exception as e:
+                            pass
                             
-                    # C. Worker Import Restrictions (Web Workers separation)
+                    # If not verified by AST JSON, run comment-stripped fallback check
+                    if not ast_verified:
+                        selection_keywords = ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"]
+                        interaction_keywords = ["onClick", "onDrag", "onMouseDown", "onPointerDown"]
+                        if any(kw in clean_content for kw in selection_keywords) and any(kw in clean_content for kw in interaction_keywords):
+                            if "stopPropagation" not in clean_content:
+                                errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call 'stopPropagation()'. This violates the Event-Echo Guard.")
+                                
+                    # Worker Import Restrictions (Web Workers separation)
                     if "components/" in rel_path or "views/" in rel_path:
-                        if any(lib in content for lib in ["satellite.js", "satellite-js", "sgp4"]):
+                        if any(lib in clean_content for lib in ["satellite.js", "satellite-js", "sgp4"]):
                             errors.append(f"React File '{rel_path}' is a UI view/component but imports SGP4 orbit propagation libraries directly. Orbital calculations must run exclusively in a background Web Worker.")
 
-                    # D. Egress Write-Lock Check (Network-level Echo Guard)
+                    # Egress Write-Lock Check (Network-level Echo Guard)
                     if "io/" in rel_path and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
-                        if not any(lock_kw in content.lower() for lock_kw in ["writelock", "lockwrite", "sendlock", "mutationlock"]):
+                        if not any(lock_kw in clean_content.lower() for lock_kw in ["writelock", "lockwrite", "sendlock", "mutationlock"]):
                             errors.append(f"React Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
                             
+                    # Playhead rate clamps [0.90, 1.10] check
+                    if "topologymap" in rel_path.lower() or "viewport" in rel_path.lower():
+                        if not (re.search(r"0\.9\b", clean_content) and re.search(r"1\.1\b", clean_content)):
+                            errors.append(f"React Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps [0.90, 1.10] for 4D spatial-temporal viewports.")
+
     # 2. Flutter Desktop/Web Codebase Compliance
     if os.path.exists(flutter_dir):
         for root, dirs, files in os.walk(flutter_dir):
@@ -1478,29 +1636,49 @@ def verify_codebase_compliance(workspace_dir):
                         if color_val in content_lower:
                             errors.append(f"Flutter File '{rel_path}' contains hardcoded alarm color '0x{color_val.upper()}' ({desc}). Reference ThemeData or design-tokens config instead.")
                             
-                    # Event-Echo Guard Check
-                    # In Flutter, programmatic property setters must not trigger output callbacks.
-                    # We check if selection setters/methods exist and notify listeners, asserting that they must guard against loops
-                    # (e.g. they should check for 'userInitiated' or 'programmatic' or 'fromUser' variables).
+                    clean_content = strip_dart_comments(content)
+                    clean_content_lower = clean_content.lower()
+                    
+                    # Event-Echo Guard Check on comment-stripped code
                     selection_setters = ["set selected", "set active", "set selection", "setSelectedNode", "setActiveNode"]
-                    if any(setter in content for setter in selection_setters):
-                        # If the file also triggers event callbacks or notifyListeners
-                        if any(trigger in content for trigger in ["onChanged", "onSelected", "notifyListeners", "dispatch"]):
-                            # Ensure it has a loop guard variable (e.g. userInitiated, programmatic, fromUser, check)
+                    if any(setter in clean_content for setter in selection_setters):
+                        if any(trigger in clean_content for trigger in ["onChanged", "onSelected", "notifyListeners", "dispatch"]):
                             guard_words = ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"]
-                            if not any(g in content_lower for g in guard_words):
+                            if not any(g in clean_content_lower for g in guard_words):
                                 errors.append(f"Flutter File '{rel_path}' contains selection setters and triggers updates, but lacks a loop guard variable (e.g. 'userInitiated' or 'programmatic') to satisfy the Event-Echo Guard.")
                                 
-                    # C. Isolate Import Restrictions (Isolates separation)
+                    # Isolate Import Restrictions (Isolates separation)
                     if "widgets/" in rel_path or "screens/" in rel_path:
-                        if "sgp4" in content_lower or "orbital_propagation" in content_lower:
+                        if "sgp4" in clean_content_lower or "orbital_propagation" in clean_content_lower:
                             errors.append(f"Flutter File '{rel_path}' is a UI widget/screen but references SGP4 orbit propagation directly. Orbital calculations must run exclusively in a background Isolate.")
 
-                    # D. Egress Write-Lock Check (Network-level Echo Guard)
+                    # Egress Write-Lock Check (Network-level Echo Guard)
                     if "io/" in rel_path and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
-                        if not any(lock_kw in content_lower for lock_kw in ["writelock", "lockwrite", "sendlock", "mutationlock"]):
+                        if not any(lock_kw in clean_content_lower for lock_kw in ["writelock", "lockwrite", "sendlock", "mutationlock"]):
                             errors.append(f"Flutter Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
-                                
+                            
+                    # Playhead rate clamps [0.90, 1.10] check
+                    if "topologymap" in rel_path.lower() or "viewport" in rel_path.lower():
+                        if not (re.search(r"0\.9\b", clean_content) and re.search(r"1\.1\b", clean_content)):
+                            errors.append(f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps [0.90, 1.10] for 4D spatial-temporal viewports.")
+                            
+                    # FFI Memory Safety and Finalizer registration
+                    if "dart:ffi" in clean_content:
+                        if "nativefinalizer" not in clean_content_lower:
+                            errors.append(f"Flutter FFI File '{rel_path}' does not register a 'NativeFinalizer'. This violates memory safety rules.")
+                        if not any(ref_kw in clean_content_lower for ref_kw in ["refcount", "referencecount", "addref", "release", "finalizer"]):
+                            errors.append(f"Flutter FFI File '{rel_path}' does not implement native allocation reference counting.")
+
+    # 3. Python AST-based Hardcoded Constants Audit
+    for root, dirs, files in os.walk(workspace_dir):
+        dirs[:] = [d for d in dirs if d not in {"node_modules", "build", "dist", "coverage", ".git", "skills", ".tessl-plugin"}]
+        for file in files:
+            if file.endswith(".py"):
+                filepath = os.path.join(root, file)
+                ast_err = verify_python_ast(filepath)
+                if ast_err:
+                    errors.append(ast_err)
+
     return errors
 
 def main():

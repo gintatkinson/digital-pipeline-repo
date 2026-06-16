@@ -56,14 +56,11 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
     - The application must use CSS custom properties (variables) prefixing color tokens (e.g., `--color-brand-primary`, matching `design-tokens.json` namespaces) to allow dynamic, reload-free theme switching.
     - An in-head script must load the theme preference from `localStorage` or browser defaults and apply it to `<html>` prior to page rendering to avoid a Flash of Unstyled Content (FOUC).
-  - **Color Palette & Alarm Severities:**
-    - Google Blue (`#1a73e8`) for primary actions and active navigation states.
-    - Implement the 5-color **ITU-T X.733 Alarm Severity** model for status displays and node highlight borders:
-      - `Critical`: Red (`#d50000`)
-      - `Major`: Orange (`#e65100`)
-      - `Minor`: Yellow (`#fbc02d`)
-      - `Warning`: Cyan/Blue (`#0288d1`)
-      - `Cleared`: Green (`#2e7d32`)
+  - **Dynamic Design Tokens & Alarm Mappings:**
+    - Hardcoding visual parameters (e.g., hex colors, fonts, margins) or standard-specific mappings (e.g., specific alarm severities or colors) is strictly forbidden.
+    - All status colors, brand palettes, and component styles must be loaded dynamically from the dynamic design tokens JSON file (`design-tokens.json`).
+    - At startup, the application bootstrap loader must dynamically inject root CSS variables parsed directly from the resolved design tokens JSON to prevent theme flashes (FOUC).
+    - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
     - Left-hand collapsible sidebar navigation with GKE-style hierarchical nesting.
     - **HierarchyTree (Vertical Hierarchy Selector):** Left-side vertical tree selection panel. Must support:

@@ -16,9 +16,9 @@
         "dark": "#202124"
       },
       "status": {
-        "ok": "#00c853",
-        "warning": "#ffd600",
-        "critical": "#d50000"
+        "ok": "color.alarm.cleared",
+        "warning": "color.alarm.minor",
+        "critical": "color.alarm.critical"
       }
     },
     "typography": {

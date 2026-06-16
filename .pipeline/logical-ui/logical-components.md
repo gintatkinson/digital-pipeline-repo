@@ -13,7 +13,8 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 ## 2. ResizableSplitter
 - **Anatomy:** Primary and Secondary panes separated by an interactive split bar.
 - **Behavior:** Minimum size constraints (default 150px). Snap-to-edge collapse capabilities. 
-- **Reconfigurability:** Supports swapping vertical/horizontal axis and pane order without state destruction (using React DOM absolute isolation or Flutter `GlobalKey` state retention).
+- **Reconfigurability:** Supports swapping vertical/horizontal axis and pane order without state destruction (using platform-native state preservation mechanics).
+
 
 ## 3. NavigationBreadcrumbs
 - **Anatomy:** Ordered path segment links with sibling drop-down popover panels.
@@ -25,9 +26,10 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 - **Performance:** JSON-Schemas are compiled *once* at initialization into a flat, typed **Logical Layout Descriptor** list, avoiding render-cycle parsing lag.
 
 ## 5. TopologyMap (3D/4D Spatial-Temporal Canvas)
-- **Anatomy:** 3D WebGL/WebGPU/Impeller viewport displaying nodes and directional links in 3D coordinate space, dynamic trajectory path lines, volumetric bounding indicators (e.g. orbital cones, subsea sectors), and an overlay time-control bar (play/pause, timeline scrubber, playback speed multiplier).
-- **Behavior:** Centers layout focus on selected items. Highlights node outline colors matching active ITU-T X.733 alarm severities. Supports grouping and filtering objects dynamically based on spatial-temporal boundaries (e.g., displaying rovers, satellites, or subsea sensors inside a specific 3D coordinates volume at time $t$ along their projected trajectories).
-- **Performance:** 4D coordinate transformations, orbital path projections, and layout physics are executed off the main thread (Web Workers/Isolates) and accelerated in parallel using WebGPU/Impeller compute shaders.
+- **Anatomy:** A hardware-accelerated viewport displaying nodes and directional links in 3D coordinate space, dynamic trajectory path lines, volumetric bounding indicators (e.g. orbital cones, subsea sectors), and an overlay time-control bar (play/pause, timeline scrubber, playback speed multiplier).
+- **Behavior:** Centers layout focus on selected items. Highlights node outline colors based on the active alarm severity mapping configuration. Supports grouping and filtering objects dynamically based on spatial-temporal boundaries (e.g., displaying rovers, satellites, or subsea sensors inside a specific 3D coordinates volume at time $t$ along their projected trajectories).
+- **Performance:** 4D coordinate transformations, orbital path projections, and layout physics are executed off the main thread (using off-thread execution environments) and accelerated in parallel using GPU compute shaders.
+
 
 ## 6. DensityTable
 - **Anatomy:** High-density grid containing columns, rows, sort indicators, and multiselect checkboxes.
