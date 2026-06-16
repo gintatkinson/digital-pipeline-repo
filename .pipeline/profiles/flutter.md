@@ -24,7 +24,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - Active adapter is injected at application bootstrap based on environment configuration.
 - **Dependency Injection (DI) & State Management:**
   - Standardize on `flutter_bloc` (BLoCs) for core business logic state management.
-  - Standardize on `provider` (or `get_it`) strictly for Dependency Injection of repositories and service locators.
+  - Resolve dependencies/repositories via an abstract service locator (such as `get_it`) at the bootstrap layer or via pure constructor injection in widgets, avoiding direct widget-tree coupling to specific third-party provider libraries.
 - **Allowed Adapters by Environment:**
   - **Local Development / Testing:**
     - `FirebaseEmulatorAdapter`: Connects to local Firebase Emulator Suite containing seeded test data via `firebase_core` / `cloud_firestore`.
@@ -34,7 +34,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - `GrpcAdapter`: Connects to hosted remote gRPC/gRPC-Web backend services.
     - `OpenApiAdapter`: Connects to hosted remote REST/OpenAPI JSON backend services.
 - **Dependencies:**
-  - Required: `firebase_core`, `cloud_firestore`, `firebase_auth`, `grpc`, `dio`, `get_it`, `provider`, `flutter_bloc`
+  - Required: `firebase_core`, `cloud_firestore`, `firebase_auth`, `grpc`, `dio`, `get_it`, `flutter_bloc`
   - DevDependencies: `flutter_test`, `integration_test`, `mocktail` or `mockito`, `build_runner`
 
 ## 2. Coding Standards & UI Patterns
@@ -53,26 +53,25 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
-    - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
+    - Must provide a user interface to select from the dynamic list of theme modes defined in the runtime configuration (Tier 2).
     - Configure dynamic `ThemeData` tokens at startup using primary, background, and status colors.
     - Prevent theme flashes during initialization by maintaining a matching splash screen theme setup in native platforms (using local preferences settings checks prior to initial frame load).
   - **Dynamic Theme & Alarm Mappings:**
     - Hardcoding colors, brand palettes, or standard-specific severity strings is strictly prohibited.
-    - All status colors, brand palettes, and spacing attributes must map back to variables loaded dynamically from the dynamic design tokens JSON file (`design-tokens.json`).
-    - The application must resolve the design tokens at startup and serve them dynamically using abstract interface themes for status colors lookup at runtime.
+    - All status colors, brand palettes, and spacing attributes must map back to variables loaded dynamically from the design tokens configuration resolved at runtime.
+    - The application must resolve the design tokens at startup and serve them dynamically by subclassing Flutter's native `ThemeExtension` for status colors lookup at runtime.
     - Component layouts and widgets must be mapped dynamically via a Widget registry that resolves types and schemas from `logical-layout.json`.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
-    - **HierarchyTree (Hierarchical Selector):** Exposes a primary navigation slot. Must support:
+    - **HierarchyTreeSelector:** Exposes a primary navigation slot. Must support:
       - Mapping physical inputs to logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) dynamically.
       - Virtualized list row rendering.
       - Accessibility Semantics (wrap items in widgets configuring logical tree-view roles).
-    - **Split Workspace Layout (ResizableSplitter):** The main workspace area renders two primary pane slots.
+    - **SplitWorkspace:** The main workspace area renders pane slots dynamically populated with child widgets resolved from `logical-layout.json`.
       - **Paint Isolation:** Wrap child views inside the split panes in repaint boundaries to isolate painting boundaries and ensure smooth resizing.
       - **State Preservation:** Leverage state retention on child widgets to prevent widget state destruction when resizing split panes.
-      - **primary_slot (Spatial-Temporal Canvas):** Displays an interactive `TopologyMap` representing the selected managed object's relations in coordinate space. Must support dynamic trajectory path lines, orbital projections, volumetric bounding indicators, and timeline controls. Integrate dynamic synchronization logic to align playback heads between background isolates and the main execution thread.
-      - **secondary_slot (Details & Relations Pane):** Displays detailed attributes and related child objects grouped under a tabbed container holding tabbed tables.
-    - **PropertyGrid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
+      - Child widgets resolved from layout (e.g. `TopographicalView` representing the selected managed object's relations in coordinate space, and `TabbedContainer` holding `TableView` details) are dynamically rendered inside the Split Workspace containers.
+    - **PropertyGrid:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **NavigationBreadcrumbs:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
     - High information-density tables with sortable, filterable columns, row selections, and status badges.

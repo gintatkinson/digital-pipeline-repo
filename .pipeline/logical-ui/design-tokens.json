@@ -6,8 +6,7 @@
   "color": {
     "brand": {
       "primary": "#1a73e8",
-      "primary-hover": "#1557b0",
-      "temp-forbidden": "#ab12cd"
+      "primary-hover": "#1557b0"
     },
     "background": {
       "light": "#ffffff",

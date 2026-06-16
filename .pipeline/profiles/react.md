@@ -53,27 +53,26 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
-    - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
-    - The application must use CSS custom properties (variables) prefixing color tokens (e.g., `--color-brand-primary`, matching `design-tokens.json` namespaces) to allow dynamic, reload-free theme switching.
-    - The theme preference must be loaded from system defaults or dynamic storage and applied prior to viewport rendering to avoid a Flash of Unstyled Content (FOUC).
+    - Must provide a user interface to select from the dynamic list of theme modes defined in the runtime configuration (Tier 2).
+    - The application must use CSS custom properties (variables) prefixing color tokens matching the active design token namespaces resolved from the loaded configuration to allow dynamic, reload-free theme switching.
+    - The theme preference must be loaded from defaults or dynamic storage. The application must display a native bootstrap state or splash loader boundary that holds viewport display until dynamic theme parameters are fully resolved to prevent visual theme flashes.
   - **Dynamic Design Tokens & Alarm Mappings:**
     - Hardcoding visual parameters (e.g., hex colors, margins) or standard-specific mappings (e.g., specific alarm severities or colors) is strictly forbidden.
-    - All status colors, brand palettes, and component styles must be loaded dynamically from the dynamic design tokens JSON file (`design-tokens.json`).
-    - At startup, the application loader must dynamically resolve and apply the styling tokens parsed directly from the resolved design tokens configuration to prevent theme flashes (FOUC).
+    - All status colors, brand palettes, and component styles must be loaded dynamically from the active design tokens configuration resolved at runtime.
+    - At startup, the application loader must dynamically resolve and apply styling tokens parsed from the configuration while holding rendering in a native bootstrap boundary to prevent flashes.
     - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
-    - **HierarchyTree (Hierarchical Selector):** Exposes a primary navigation slot. Must support:
+    - **HierarchyTreeSelector:** Exposes a primary navigation slot. Must support:
       - Mapping physical inputs to logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) dynamically.
       - Virtualized list row rendering.
       - Dynamic accessibility semantic injection.
-    - **Split Workspace Layout (ResizableSplitter):** The main workspace area renders two primary pane slots.
+    - **SplitWorkspace:** The main workspace area renders pane slots dynamically populated with child widgets resolved from `logical-layout.json`.
       - Default layout: stacked along a configurable split axis. The user can toggle split directions.
       - **Performance Optimization:** Dragging the splitter must update layout variables directly in the configuration and leverage CSS paint/layout boundaries.
       - **Snap-to-Edge:** Support snap-to-edge collapse when dragged within the configured threshold boundaries.
-      - **primary_slot (Spatial-Temporal Canvas):** Displays an interactive `TopologyMap` representing the selected managed object's relations in coordinate space. Must support dynamic trajectory path lines, orbital projections, volumetric bounding indicators, and a timeline control with playback controls. Layout physics calculations are offloaded to an isolated background hardware-accelerated rendering pipeline.
-      - **secondary_slot (Details & Relations Pane):** Displays detailed attributes and related child objects grouped under a `TabbedContainer` holding tabbed tables.
-    - **PropertyGrid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
+      - Child widgets resolved from layout (e.g. `TopographicalView` representing the selected managed object's relations in coordinate space, and `TabbedContainer` holding `TableView` details) are dynamically rendered inside the Split Workspace containers.
+    - **PropertyGrid:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **NavigationBreadcrumbs:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
     - High information-density tables with sortable, filterable columns, row selections, and status badges.

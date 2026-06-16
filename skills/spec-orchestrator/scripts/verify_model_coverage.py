@@ -855,11 +855,21 @@ def verify_uml_diagrams(features_dir, global_classes=None):
     """
     workspace_dir = os.path.abspath(os.path.join(features_dir, "..", ".."))
     rules = load_codebase_rules(workspace_dir)
-    
-    backlog_dirs = rules.get("backlog_directories", {})
-    user_stories_dir = os.path.join(workspace_dir, backlog_dirs.get("user_stories", "docs/user-stories"))
-    use_cases_dir = os.path.join(workspace_dir, backlog_dirs.get("use_cases", "docs/use-cases"))
-    epics_dir = os.path.join(workspace_dir, backlog_dirs.get("epics", "docs/epics"))
+    if not rules:
+        raise ValueError("codebase_rules.json is empty or could not be loaded")
+        
+    backlog_dirs = rules.get("backlog_directories")
+    if not backlog_dirs:
+        raise ValueError("Missing 'backlog_directories' in codebase_rules.json")
+    user_stories_dir = os.path.join(workspace_dir, backlog_dirs.get("user_stories"))
+    if not user_stories_dir:
+        raise ValueError("Missing 'backlog_directories.user_stories' in codebase_rules.json")
+    use_cases_dir = os.path.join(workspace_dir, backlog_dirs.get("use_cases"))
+    if not use_cases_dir:
+        raise ValueError("Missing 'backlog_directories.use_cases' in codebase_rules.json")
+    epics_dir = os.path.join(workspace_dir, backlog_dirs.get("epics"))
+    if not epics_dir:
+        raise ValueError("Missing 'backlog_directories.epics' in codebase_rules.json")
 
     errors = []
 
@@ -873,10 +883,21 @@ def verify_uml_diagrams(features_dir, global_classes=None):
     if global_classes is None:
         global_classes = build_global_classes(features_dir)
 
-    val_rules = rules.get("validation_rules", {})
-    dotted_link_pattern = val_rules.get("mermaid_dotted_link_regex", r"-\.-*->\s*\|")
-    forbidden_diagram_types = val_rules.get("forbidden_diagram_types", ["erDiagram"])
-    required_sections = val_rules.get("required_sections", {})
+    val_rules = rules.get("validation_rules")
+    if not val_rules:
+        raise ValueError("Missing 'validation_rules' in codebase_rules.json")
+    dotted_link_pattern = val_rules.get("mermaid_dotted_link_regex")
+    if dotted_link_pattern is None:
+        raise ValueError("Missing 'validation_rules.mermaid_dotted_link_regex' in codebase_rules.json")
+    forbidden_diagram_types = val_rules.get("forbidden_diagram_types")
+    if forbidden_diagram_types is None:
+        raise ValueError("Missing 'validation_rules.forbidden_diagram_types' in codebase_rules.json")
+    required_sections = val_rules.get("required_sections")
+    if required_sections is None:
+        raise ValueError("Missing 'validation_rules.required_sections' in codebase_rules.json")
+    required_diagrams = val_rules.get("required_diagrams")
+    if required_diagrams is None:
+        raise ValueError("Missing 'validation_rules.required_diagrams' in codebase_rules.json")
 
     # 1. Verify Features
     for filepath in feature_files:
@@ -894,12 +915,9 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 errors.append(f"Feature {filename} contains forbidden '{ftype}' diagram type.")
 
         # Check required sections for feature
-        required_feature_sections = required_sections.get("feature", [
-            ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
-            ["##\\s+Functional\\s+UI\\s+Requirements", "## Functional UI Requirements"],
-            ["###\\s+1\\.\\s+Test\\s+Data\\s+Shape", "### 1. Test Data Shape"],
-            ["###\\s+4\\.\\s+Interactive\\s+Flow\\s+&\\s+States", "### 4. Interactive Flow & States"]
-        ])
+        required_feature_sections = required_sections.get("feature")
+        if required_feature_sections is None:
+            raise ValueError("Missing 'validation_rules.required_sections.feature' in codebase_rules.json")
         
         has_essential_sections = True
         for pattern, header_name in required_feature_sections:
@@ -911,10 +929,21 @@ def verify_uml_diagrams(features_dir, global_classes=None):
         if not has_essential_sections:
             continue
         
-        # Check for Mermaid classDiagram block
+        # Check required diagrams for feature
+        feature_req_diagrams = required_diagrams.get("feature")
+        if feature_req_diagrams is None:
+            raise ValueError("Missing 'validation_rules.required_diagrams.feature' in codebase_rules.json")
+        
+        has_diag_error = False
+        for diag_type in feature_req_diagrams:
+            if not re.search(r"```mermaid\s*\n\s*" + diag_type, content):
+                errors.append(f"Feature {filename} is missing a valid diagram of type '{diag_type}'.")
+                has_diag_error = True
+        if has_diag_error:
+            continue
+            
         class_diagram_match = re.search(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
         if not class_diagram_match:
-            errors.append(f"Feature {filename} is missing a valid '```mermaid classDiagram' block.")
             continue
             
         if not re.search(r"(\*--|o--|<\|--|--|-->)", class_diagram_match.group(1)):
@@ -1044,10 +1073,9 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 errors.append(f"User Story {filename} contains forbidden '{ftype}' diagram type.")
 
         # Check required sections for user story
-        required_story_sections = required_sections.get("user_story", [
-            ["##\\s+UML\\s+Sequence\\s+Diagram", "## UML Sequence Diagram"],
-            ["##\\s+Required\\s+Features", "## Required Features"]
-        ])
+        required_story_sections = required_sections.get("user_story")
+        if required_story_sections is None:
+            raise ValueError("Missing 'validation_rules.required_sections.user_story' in codebase_rules.json")
         
         has_essential_sections = True
         for pattern, header_name in required_story_sections:
@@ -1059,11 +1087,19 @@ def verify_uml_diagrams(features_dir, global_classes=None):
         if not has_essential_sections:
             continue
             
-        # Check for Mermaid sequenceDiagram block(s)
-        seq_diagram_matches = re.finditer(r"```mermaid\s*\n\s*sequenceDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+        # Check required diagrams for user story
+        story_req_diagrams = required_diagrams.get("user_story")
+        if story_req_diagrams is None:
+            raise ValueError("Missing 'validation_rules.required_diagrams.user_story' in codebase_rules.json")
+        
         has_seq = False
+        seq_diagram_matches = []
+        for diag_type in story_req_diagrams:
+            for match in re.finditer(r"```mermaid\s*\n\s*" + diag_type + r"(.*?)(?=```|\Z)", content, re.DOTALL):
+                has_seq = True
+                seq_diagram_matches.append(match)
+                
         for seq_match in seq_diagram_matches:
-            has_seq = True
             seq_code = seq_match.group(0)
             parsed = parse_mermaid_sequence_diagram(seq_code)
             lifelines = parsed["lifelines"]
@@ -1130,7 +1166,7 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                             errors.append(f"User Story {filename} sequence diagram contains a combined fragment '{keyword}' with guard '{guard_part}' that is not enclosed in square brackets [].")
 
         if not has_seq:
-            errors.append(f"User Story {filename} is missing a valid '```mermaid sequenceDiagram' block.")
+            errors.append(f"User Story {filename} is missing a required diagram matching pattern(s): {', '.join(story_req_diagrams)}")
 
         # Enforce BDD Scenario or Story Statement
         bdd_scenario_present = (
@@ -1187,16 +1223,9 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 errors.append(f"Use Case {basename} contains forbidden '{ftype}' diagram type.")
 
         # Check required sections for use case
-        required_usecase_sections = required_sections.get("use_case", [
-            ["##\\s+UML\\s+Diagrams", "## UML Diagrams"],
-            ["##\\s+1\\.\\s+Actors", "## 1. Actors"],
-            ["##\\s+2\\.\\s+Preconditions", "## 2. Preconditions"],
-            ["##\\s+3\\.\\s+Trigger", "## 3. Trigger"],
-            ["##\\s+4\\.\\s+Main\\s+Success\\s+Scenario", "## 4. Main Success Scenario"],
-            ["##\\s+5\\.\\s+Alternate\\s+(?:and|&)\\s+Exception\\s+Flows", "## 5. Alternate and Exception Flows"],
-            ["##\\s+6\\.\\s+Postconditions", "## 6. Postconditions"],
-            ["##\\s+8\\.\\s+Realization\\s+Matrix", "## 8. Realization Matrix"]
-        ])
+        required_usecase_sections = required_sections.get("use_case")
+        if required_usecase_sections is None:
+            raise ValueError("Missing 'validation_rules.required_sections.use_case' in codebase_rules.json")
         
         has_essential_sections = True
         for pattern, header_name in required_usecase_sections:
@@ -1208,81 +1237,82 @@ def verify_uml_diagrams(features_dir, global_classes=None):
         if not has_essential_sections:
             continue
             
-        # Check for Use Case Diagram (flowchart graph)
-        usecase_diagram_matches = list(re.finditer(r"```mermaid\s*\n\s*(?:graph|flowchart)(.*?)(?=```|\Z)", content, re.DOTALL))
-        if not usecase_diagram_matches:
-            errors.append(f"Use Case {basename} is missing a UML Use Case diagram ('```mermaid graph' or 'flowchart').")
-        else:
-            for match in usecase_diagram_matches:
-                diagram_code = match.group(0)
-                parsed = parse_mermaid_flowchart(diagram_code)
-                
-                # 1. Subject Boundary
-                boundary_sub = None
-                for sub_id, sub_info in parsed["subgraphs"].items():
-                    if "boundary" in sub_id.lower() or "system" in sub_id.lower() or \
-                       (sub_info["label"] and ("boundary" in sub_info["label"].lower() or "system" in sub_info["label"].lower())):
-                        boundary_sub = sub_info
-                        break
-                
-                if not boundary_sub:
-                    errors.append(f"Use Case {basename} is missing a system boundary subgraph (e.g. ID or label containing 'boundary' or 'system').")
-                    continue
-                    
-                boundary_sub_id = boundary_sub["id"]
-                
-                # Helper to check if a node is an actor
-                def is_actor_node(node):
-                    if not node:
-                        return False
-                    return (node.get("shape") == "circle") or \
-                           ("actor" in node["id"].lower()) or \
-                           (node.get("label") and "actor" in node["label"].lower())
-                
-                # Assert all usecase / actor nodes placements and shapes
-                for node_id, node in parsed["nodes"].items():
-                    is_actor = is_actor_node(node)
-                    if is_actor:
-                        # Assert actor node is outside boundary_sub (not in any subgraph's nodes)
-                        if node.get("subgraph") is not None:
-                            errors.append(f"Use Case {basename} actor node '{node_id}' must be placed outside the system boundary subgraph (found in subgraph '{node['subgraph']}').")
-                    else:
-                        # Assert usecase node is inside boundary_sub
-                        if node.get("subgraph") != boundary_sub_id:
-                            errors.append(f"Use Case {basename} use case node '{node_id}' must be defined inside the system boundary subgraph '{boundary_sub_id}'.")
-                        
-                        # Assert all use case nodes use stadium/oval shape
-                        if val_rules.get("use_case_stadium_nodes_only", True):
-                            if node.get("shape") != "stadium":
-                                errors.append(f"Use Case {basename} use case node '{node_id}' must use the Mermaid stadium/oval shape ('stadium').")
-                
-                # Assert connections
-                for conn in parsed["connections"]:
-                    src_id = conn["from"]
-                    tgt_id = conn["to"]
-                    src_node = parsed["nodes"].get(src_id)
-                    tgt_node = parsed["nodes"].get(tgt_id)
-                    
-                    src_is_actor = is_actor_node(src_node)
-                    tgt_is_actor = is_actor_node(tgt_node)
-                    
-                    # Undirected Actor Links
-                    if val_rules.get("use_case_undirected_actor_links_only", True):
-                        if (src_is_actor and not tgt_is_actor) or (not src_is_actor and tgt_is_actor):
-                            if "arrow" in conn["style"]:
-                                errors.append(f"Use Case {basename} connection from '{src_id}' to '{tgt_id}' between Actor and Use Case must use an undirected link, not '{conn['style']}'.")
-                    
-                    # Extend Arrow Direction
-                    if val_rules.get("use_case_extend_arrow_direction_check", True):
-                        if conn["label"] and "extend" in conn["label"].lower():
-                            src_has_ext = "extend" in src_id.lower() or "ext" in src_id.lower() or (src_node and src_node.get("label") and ("extend" in src_node["label"].lower() or "ext" in src_node["label"].lower()))
-                            tgt_has_ext = "extend" in tgt_id.lower() or "ext" in tgt_id.lower() or (tgt_node and tgt_node.get("label") and ("extend" in tgt_node["label"].lower() or "ext" in tgt_node["label"].lower()))
-                            if tgt_has_ext and not src_has_ext:
-                                errors.append(f"Use Case {basename} extend arrow from '{src_id}' to '{tgt_id}' is reversed. Extend arrows must point from the extending Use Case (client) to the base Use Case (supplier).")
+        # Check required diagrams for use case
+        usecase_req_diagrams = required_diagrams.get("use_case")
+        if usecase_req_diagrams is None:
+            raise ValueError("Missing 'validation_rules.required_diagrams.use_case' in codebase_rules.json")
             
-        # Check for State Machine Diagram
-        if not re.search(r"```mermaid\s*\n\s*stateDiagram", content):
-            errors.append(f"Use Case {basename} is missing a UML State Machine diagram ('```mermaid stateDiagram').")
+        for diag_type in usecase_req_diagrams:
+            diag_matches = list(re.finditer(r"```mermaid\s*\n\s*" + diag_type + r"(.*?)(?=```|\Z)", content, re.DOTALL))
+            if not diag_matches:
+                errors.append(f"Use Case {basename} is missing a valid diagram matching pattern '{diag_type}'.")
+            elif "graph" in diag_type or "flowchart" in diag_type:
+                for match in diag_matches:
+                    diagram_code = match.group(0)
+                    parsed = parse_mermaid_flowchart(diagram_code)
+                    
+                    # 1. Subject Boundary
+                    boundary_sub = None
+                    for sub_id, sub_info in parsed["subgraphs"].items():
+                        if "boundary" in sub_id.lower() or "system" in sub_id.lower() or \
+                           (sub_info["label"] and ("boundary" in sub_info["label"].lower() or "system" in sub_info["label"].lower())):
+                            boundary_sub = sub_info
+                            break
+                    
+                    if not boundary_sub:
+                        errors.append(f"Use Case {basename} is missing a system boundary subgraph (e.g. ID or label containing 'boundary' or 'system').")
+                        continue
+                        
+                    boundary_sub_id = boundary_sub["id"]
+                    
+                    # Helper to check if a node is an actor
+                    def is_actor_node(node):
+                        if not node:
+                            return False
+                        return (node.get("shape") == "circle") or \
+                               ("actor" in node["id"].lower()) or \
+                               (node.get("label") and "actor" in node["label"].lower())
+                    
+                    # Assert all usecase / actor nodes placements and shapes
+                    for node_id, node in parsed["nodes"].items():
+                        is_actor = is_actor_node(node)
+                        if is_actor:
+                            # Assert actor node is outside boundary_sub (not in any subgraph's nodes)
+                            if node.get("subgraph") is not None:
+                                errors.append(f"Use Case {basename} actor node '{node_id}' must be placed outside the system boundary subgraph (found in subgraph '{node['subgraph']}').")
+                        else:
+                            # Assert usecase node is inside boundary_sub
+                            if node.get("subgraph") != boundary_sub_id:
+                                errors.append(f"Use Case {basename} use case node '{node_id}' must be defined inside the system boundary subgraph '{boundary_sub_id}'.")
+                            
+                            # Assert all use case nodes use stadium/oval shape
+                            if val_rules.get("use_case_stadium_nodes_only", True):
+                                if node.get("shape") != "stadium":
+                                    errors.append(f"Use Case {basename} use case node '{node_id}' must use the Mermaid stadium/oval shape ('stadium').")
+                    
+                    # Assert connections
+                    for conn in parsed["connections"]:
+                        src_id = conn["from"]
+                        tgt_id = conn["to"]
+                        src_node = parsed["nodes"].get(src_id)
+                        tgt_node = parsed["nodes"].get(tgt_id)
+                        
+                        src_is_actor = is_actor_node(src_node)
+                        tgt_is_actor = is_actor_node(tgt_node)
+                        
+                        # Undirected Actor Links
+                        if val_rules.get("use_case_undirected_actor_links_only", True):
+                            if (src_is_actor and not tgt_is_actor) or (not src_is_actor and tgt_is_actor):
+                                if "arrow" in conn["style"]:
+                                    errors.append(f"Use Case {basename} connection from '{src_id}' to '{tgt_id}' between Actor and Use Case must use an undirected link, not '{conn['style']}'.")
+                        
+                        # Extend Arrow Direction
+                        if val_rules.get("use_case_extend_arrow_direction_check", True):
+                            if conn["label"] and "extend" in conn["label"].lower():
+                                src_has_ext = "extend" in src_id.lower() or "ext" in src_id.lower() or (src_node and src_node.get("label") and ("extend" in src_node["label"].lower() or "ext" in src_node["label"].lower()))
+                                tgt_has_ext = "extend" in tgt_id.lower() or "ext" in tgt_id.lower() or (tgt_node and tgt_node.get("label") and ("extend" in tgt_node["label"].lower() or "ext" in tgt_node["label"].lower()))
+                                if tgt_has_ext and not src_has_ext:
+                                    errors.append(f"Use Case {basename} extend arrow from '{src_id}' to '{tgt_id}' is reversed. Extend arrows must point from the extending Use Case (client) to the base Use Case (supplier).")
 
         # Enforce at least 2 alternate flows with at least 2 numbered steps
         flows_block_match = re.search(r"##\s+5\.\s+Alternate\s+(?:and|&)\s+Exception\s+Flows(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
@@ -1356,33 +1386,20 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 errors.append(f"Epic {filename} contains forbidden '{ftype}' diagram type.")
 
         # Check required sections for epic
-        required_epic_sections = required_sections.get("epic", [
-            ["##\\s+1\\.\\s+Context", "## 1. Context"],
-            ["##\\s+2\\.\\s+Requirements\\s+&\\s+Checklist", "## 2. Requirements & Checklist"],
-            ["##\\s+3\\.\\s+Architecture", "## 3. Architecture"],
-            ["##\\s+4\\.\\s+Operational\\s+Considerations", "## 4. Operational Considerations"],
-            ["##\\s+5\\.\\s+Security\\s+&\\s+Governance", "## 5. Security & Governance"],
-            ["##\\s+6\\.\\s+Source\\s+References", "## 6. Source References"]
-        ])
+        required_epic_sections = required_sections.get("epic")
+        if required_epic_sections is None:
+            raise ValueError("Missing 'validation_rules.required_sections.epic' in codebase_rules.json")
         for pattern, header_name in required_epic_sections:
             if not re.search(pattern, content, re.IGNORECASE):
                 errors.append(f"Epic {filename} is missing section '{header_name}'.")
 
-        # Check for ## System-Level UML Class Diagram header
-        if not re.search(r"##\s+System-Level\s+UML\s+Class\s+Diagram", content, re.IGNORECASE):
-            errors.append(f"Epic {filename} is missing a '## System-Level UML Class Diagram' header.")
-
-        # Check for Mermaid classDiagram block
-        if not re.search(r"```mermaid\s*\n\s*classDiagram", content):
-            errors.append(f"Epic {filename} is missing a valid '```mermaid classDiagram' block.")
-
-        # Check for ## System State Machine Diagram header
-        if not re.search(r"##\s+System\s+State\s+Machine\s+Diagram", content, re.IGNORECASE):
-            errors.append(f"Epic {filename} is missing a '## System State Machine Diagram' header.")
-
-        # Check for Mermaid stateDiagram-v2 block
-        if not re.search(r"```mermaid\s*\n\s*stateDiagram-v2", content):
-            errors.append(f"Epic {filename} is missing a valid '```mermaid stateDiagram-v2' block.")
+        # Check required diagrams for epic
+        epic_req_diagrams = required_diagrams.get("epic")
+        if epic_req_diagrams is None:
+            raise ValueError("Missing 'validation_rules.required_diagrams.epic' in codebase_rules.json")
+        for diag_type in epic_req_diagrams:
+            if not re.search(r"```mermaid\s*\n\s*" + diag_type, content):
+                errors.append(f"Epic {filename} is missing a valid diagram of type '{diag_type}'.")
 
     return errors
 
@@ -1616,60 +1633,156 @@ def verify_codebase_compliance(workspace_dir):
     
     # Load rules dynamically from codebase_rules.json
     rules = load_codebase_rules(workspace_dir)
+    if not rules:
+        raise ValueError("codebase_rules.json is empty or could not be loaded")
     
     # Resolve target directories
-    target_dirs = rules.get("target_directories", {})
-    react_dir = os.path.join(workspace_dir, target_dirs.get("react", "web_react"))
-    flutter_dir = os.path.join(workspace_dir, target_dirs.get("flutter", "app_flutter"))
+    target_dirs = rules.get("target_directories")
+    if not target_dirs:
+        raise ValueError("Missing 'target_directories' in codebase_rules.json")
+    react_dir_name = target_dirs.get("react")
+    if not react_dir_name:
+        raise ValueError("Missing 'target_directories.react' in codebase_rules.json")
+    react_dir = os.path.join(workspace_dir, react_dir_name)
+    flutter_dir_name = target_dirs.get("flutter")
+    if not flutter_dir_name:
+        raise ValueError("Missing 'target_directories.flutter' in codebase_rules.json")
+    flutter_dir = os.path.join(workspace_dir, flutter_dir_name)
     
     # Resolve React rules
-    react_rules = rules.get("react_rules", {})
-    react_exts = tuple(react_rules.get("file_extensions", [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"]))
-    react_exclusions = set(react_rules.get("exclusions", ["node_modules", "build", "dist", "coverage", ".git"]))
-    react_forbidden_words = react_rules.get("forbidden_words", ["satellite.js", "satellite-js", "sgp4"])
-    react_write_lock_keywords = react_rules.get("write_lock_keywords", ["writelock", "lockwrite", "sendlock", "mutationlock"])
-    react_selection_keywords = react_rules.get("selection_keywords", ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"])
-    react_interaction_keywords = react_rules.get("interaction_keywords", ["onClick", "onDrag", "onMouseDown", "onPointerDown"])
-    react_playhead_clamp_regex = react_rules.get("playhead_clamp_regex", ["0\\.9\\b", "1\\.1\\b"])
+    react_rules = rules.get("react_rules")
+    if not react_rules:
+        raise ValueError("Missing 'react_rules' in codebase_rules.json")
+    react_exts_list = react_rules.get("file_extensions")
+    if react_exts_list is None:
+        raise ValueError("Missing 'react_rules.file_extensions' in codebase_rules.json")
+    react_exts = tuple(react_exts_list)
+    react_exclusions_list = react_rules.get("exclusions")
+    if react_exclusions_list is None:
+        raise ValueError("Missing 'react_rules.exclusions' in codebase_rules.json")
+    react_exclusions = set(react_exclusions_list)
+    react_forbidden_words = react_rules.get("forbidden_words")
+    if react_forbidden_words is None:
+        raise ValueError("Missing 'react_rules.forbidden_words' in codebase_rules.json")
+    react_write_lock_keywords = react_rules.get("write_lock_keywords")
+    if react_write_lock_keywords is None:
+        raise ValueError("Missing 'react_rules.write_lock_keywords' in codebase_rules.json")
+    react_selection_keywords = react_rules.get("selection_keywords")
+    if react_selection_keywords is None:
+        raise ValueError("Missing 'react_rules.selection_keywords' in codebase_rules.json")
+    react_interaction_keywords = react_rules.get("interaction_keywords")
+    if react_interaction_keywords is None:
+        raise ValueError("Missing 'react_rules.interaction_keywords' in codebase_rules.json")
+    react_playhead_clamp_regex = react_rules.get("playhead_clamp_regex")
+    if react_playhead_clamp_regex is None:
+        raise ValueError("Missing 'react_rules.playhead_clamp_regex' in codebase_rules.json")
+    react_ui_dirs = react_rules.get("ui_directories")
+    if react_ui_dirs is None:
+        raise ValueError("Missing 'react_rules.ui_directories' in codebase_rules.json")
+    react_net_dirs = react_rules.get("network_directories")
+    if react_net_dirs is None:
+        raise ValueError("Missing 'react_rules.network_directories' in codebase_rules.json")
     
     # Resolve Flutter rules
-    flutter_rules = rules.get("flutter_rules", {})
-    flutter_exts = tuple(flutter_rules.get("file_extensions", [".dart"]))
-    flutter_exclusions = set(flutter_rules.get("exclusions", ["build", ".dart_tool", ".git"]))
-    flutter_selection_setters = flutter_rules.get("selection_setters", ["set selected", "set active", "set selection", "setSelectedNode", "setActiveNode"])
-    flutter_selection_triggers = flutter_rules.get("selection_triggers", ["onChanged", "onSelected", "notifyListeners", "dispatch"])
-    flutter_loop_guard_keywords = flutter_rules.get("loop_guard_keywords", ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"])
-    flutter_forbidden_words = flutter_rules.get("forbidden_words", ["sgp4", "orbital_propagation"])
-    flutter_write_lock_keywords = flutter_rules.get("write_lock_keywords", ["writelock", "lockwrite", "sendlock", "mutationlock"])
-    flutter_playhead_clamp_regex = flutter_rules.get("playhead_clamp_regex", ["0\\.9\\b", "1\\.1\\b"])
-    flutter_ffi_keywords = flutter_rules.get("ffi_keywords", ["dart:ffi"])
-    flutter_ffi_finalizer_keywords = flutter_rules.get("ffi_finalizer_keywords", ["nativefinalizer"])
-    flutter_ffi_refcount_keywords = flutter_rules.get("ffi_refcount_keywords", ["refcount", "referencecount", "addref", "release", "finalizer"])
+    flutter_rules = rules.get("flutter_rules")
+    if not flutter_rules:
+        raise ValueError("Missing 'flutter_rules' in codebase_rules.json")
+    flutter_exts_list = flutter_rules.get("file_extensions")
+    if flutter_exts_list is None:
+        raise ValueError("Missing 'flutter_rules.file_extensions' in codebase_rules.json")
+    flutter_exts = tuple(flutter_exts_list)
+    flutter_exclusions_list = flutter_rules.get("exclusions")
+    if flutter_exclusions_list is None:
+        raise ValueError("Missing 'flutter_rules.exclusions' in codebase_rules.json")
+    flutter_exclusions = set(flutter_exclusions_list)
+    flutter_selection_setters = flutter_rules.get("selection_setters")
+    if flutter_selection_setters is None:
+        raise ValueError("Missing 'flutter_rules.selection_setters' in codebase_rules.json")
+    flutter_selection_triggers = flutter_rules.get("selection_triggers")
+    if flutter_selection_triggers is None:
+        raise ValueError("Missing 'flutter_rules.selection_triggers' in codebase_rules.json")
+    flutter_loop_guard_keywords = flutter_rules.get("loop_guard_keywords")
+    if flutter_loop_guard_keywords is None:
+        raise ValueError("Missing 'flutter_rules.loop_guard_keywords' in codebase_rules.json")
+    flutter_forbidden_words = flutter_rules.get("forbidden_words")
+    if flutter_forbidden_words is None:
+        raise ValueError("Missing 'flutter_rules.forbidden_words' in codebase_rules.json")
+    flutter_write_lock_keywords = flutter_rules.get("write_lock_keywords")
+    if flutter_write_lock_keywords is None:
+        raise ValueError("Missing 'flutter_rules.write_lock_keywords' in codebase_rules.json")
+    flutter_playhead_clamp_regex = flutter_rules.get("playhead_clamp_regex")
+    if flutter_playhead_clamp_regex is None:
+        raise ValueError("Missing 'flutter_rules.playhead_clamp_regex' in codebase_rules.json")
+    flutter_ffi_keywords = flutter_rules.get("ffi_keywords")
+    if flutter_ffi_keywords is None:
+        raise ValueError("Missing 'flutter_rules.ffi_keywords' in codebase_rules.json")
+    flutter_ffi_finalizer_keywords = flutter_rules.get("ffi_finalizer_keywords")
+    if flutter_ffi_finalizer_keywords is None:
+        raise ValueError("Missing 'flutter_rules.ffi_finalizer_keywords' in codebase_rules.json")
+    flutter_ffi_refcount_keywords = flutter_rules.get("ffi_refcount_keywords")
+    if flutter_ffi_refcount_keywords is None:
+        raise ValueError("Missing 'flutter_rules.ffi_refcount_keywords' in codebase_rules.json")
+    flutter_ui_dirs = flutter_rules.get("ui_directories")
+    if flutter_ui_dirs is None:
+        raise ValueError("Missing 'flutter_rules.ui_directories' in codebase_rules.json")
+    flutter_net_dirs = flutter_rules.get("network_directories")
+    if flutter_net_dirs is None:
+        raise ValueError("Missing 'flutter_rules.network_directories' in codebase_rules.json")
     
     # Resolve Python rules
-    python_rules = rules.get("python_rules", {})
-    python_exclusions = set(python_rules.get("exclusions", ["node_modules", "build", "dist", "coverage", ".git", "skills", ".tessl-plugin"]))
+    python_rules = rules.get("python_rules")
+    if not python_rules:
+        raise ValueError("Missing 'python_rules' in codebase_rules.json")
+    python_exclusions_list = python_rules.get("exclusions")
+    if python_exclusions_list is None:
+        raise ValueError("Missing 'python_rules.exclusions' in codebase_rules.json")
+    python_exclusions = set(python_exclusions_list)
     
     # Resolve Spec rules
-    spec_rules = rules.get("spec_rules", {})
-    dom_patterns = spec_rules.get("dom_leak_patterns", [r'\baria-\w+', r'\brole=["\']\w+'])
-    pixel_leak_patterns = spec_rules.get("pixel_leak_patterns", [r'\b\d+px\b'])
-    spec_files = spec_rules.get("spec_files", [".pipeline/logical-ui/logical-components.md"])
+    spec_rules = rules.get("spec_rules")
+    if not spec_rules:
+        raise ValueError("Missing 'spec_rules' in codebase_rules.json")
+    dom_patterns = spec_rules.get("dom_leak_patterns")
+    if dom_patterns is None:
+        raise ValueError("Missing 'spec_rules.dom_leak_patterns' in codebase_rules.json")
+    pixel_leak_patterns = spec_rules.get("pixel_leak_patterns")
+    if pixel_leak_patterns is None:
+        raise ValueError("Missing 'spec_rules.pixel_leak_patterns' in codebase_rules.json")
+    spec_files = spec_rules.get("spec_files")
+    if spec_files is None:
+        raise ValueError("Missing 'spec_rules.spec_files' in codebase_rules.json")
     
     # Dynamically extract forbidden colors from design tokens
-    design_tokens_path = os.path.join(workspace_dir, spec_rules.get("design_tokens_path", ".pipeline/logical-ui/design-tokens.json"))
-    forbidden_colors_hex = set()
-    if os.path.exists(design_tokens_path):
-        try:
-            with open(design_tokens_path, "r", encoding="utf-8") as f:
-                tokens_data = json.load(f)
-            forbidden_colors_hex = extract_hex_colors_from_json(tokens_data)
-        except Exception as e:
-            print(f"Warning: Failed to load design-tokens.json for compliance check: {e}")
-
-    # Fallback default colors if tokens cannot be loaded
+    design_tokens_path_rel = spec_rules.get("design_tokens_path")
+    if design_tokens_path_rel is None:
+        raise ValueError("Missing 'spec_rules.design_tokens_path' in codebase_rules.json")
+    design_tokens_path = os.path.join(workspace_dir, design_tokens_path_rel)
+    if not os.path.exists(design_tokens_path):
+        raise ValueError(f"Design tokens file does not exist at path: {design_tokens_path}")
+        
+    try:
+        with open(design_tokens_path, "r", encoding="utf-8") as f:
+            tokens_data = json.load(f)
+        forbidden_colors_hex = extract_hex_colors_from_json(tokens_data)
+    except Exception as e:
+        raise ValueError(f"Failed to load design tokens for compliance check: {e}")
+        
     if not forbidden_colors_hex:
-        forbidden_colors_hex = {"#d50000", "#ff6d00", "#ffd600", "#29b6f6", "#00c853"}
+        raise ValueError(f"No forbidden design token colors could be extracted from design tokens file at: {design_tokens_path}")
+    
+    # Generate react colors (lowercase hex values)
+    hardcoded_colors_react = {}
+    for hex_val in forbidden_colors_hex:
+        hardcoded_colors_react[hex_val] = f"Forbidden design token color ({hex_val})"
+
+    # Generate flutter colors (with 0xff prefix and lowercase/uppercase variations)
+    hardcoded_colors_flutter = {}
+    for hex_val in forbidden_colors_hex:
+        clean_hex = hex_val.replace("#", "")
+        if len(clean_hex) == 3:
+            clean_hex = "".join([c*2 for c in clean_hex])
+        flutter_hex = "ff" + clean_hex
+        hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
     
     # Generate react colors (lowercase hex values)
     hardcoded_colors_react = {}
@@ -1731,12 +1844,22 @@ def verify_codebase_compliance(workspace_dir):
                                 errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call 'stopPropagation()'. This violates the Event-Echo Guard.")
                                 
                     # Worker Import Restrictions (Web Workers separation)
-                    if "components/" in rel_path or "views/" in rel_path:
+                    is_react_ui = False
+                    for d in react_ui_dirs:
+                        if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
+                            is_react_ui = True
+                            break
+                    if is_react_ui:
                         if any(lib in clean_content for lib in react_forbidden_words):
                             errors.append(f"React File '{rel_path}' is a UI view/component but imports SGP4 orbit propagation libraries directly. Orbital calculations must run exclusively in a background Web Worker.")
 
                     # Egress Write-Lock Check (Network-level Echo Guard)
-                    if "io/" in rel_path and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
+                    is_react_net = False
+                    for d in react_net_dirs:
+                        if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
+                            is_react_net = True
+                            break
+                    if is_react_net and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
                         if not any(lock_kw in clean_content.lower() for lock_kw in react_write_lock_keywords):
                             errors.append(f"React Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
                             
@@ -1778,12 +1901,22 @@ def verify_codebase_compliance(workspace_dir):
                                 errors.append(f"Flutter File '{rel_path}' contains selection setters and triggers updates, but lacks a loop guard variable (e.g. 'userInitiated' or 'programmatic') to satisfy the Event-Echo Guard.")
                                 
                     # Isolate Import Restrictions (Isolates separation)
-                    if "widgets/" in rel_path or "screens/" in rel_path:
+                    is_flutter_ui = False
+                    for d in flutter_ui_dirs:
+                        if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
+                            is_flutter_ui = True
+                            break
+                    if is_flutter_ui:
                         if any(lib in clean_content_lower for lib in flutter_forbidden_words):
                             errors.append(f"Flutter File '{rel_path}' is a UI widget/screen but references SGP4 orbit propagation directly. Orbital calculations must run exclusively in a background Isolate.")
 
                     # Egress Write-Lock Check (Network-level Echo Guard)
-                    if "io/" in rel_path and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
+                    is_flutter_net = False
+                    for d in flutter_net_dirs:
+                        if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
+                            is_flutter_net = True
+                            break
+                    if is_flutter_net and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
                         if not any(lock_kw in clean_content_lower for lock_kw in flutter_write_lock_keywords):
                             errors.append(f"Flutter Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
                             
@@ -1835,23 +1968,34 @@ def verify_codebase_compliance(workspace_dir):
 def main():
     workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
+    rules = load_codebase_rules(workspace_dir)
+    if not rules:
+        raise ValueError("codebase_rules.json is empty or could not be loaded")
+        
+    backlog_dirs = rules.get("backlog_directories")
+    if not backlog_dirs:
+        raise ValueError("Missing 'backlog_directories' in codebase_rules.json")
+
     # Allow overriding paths via command-line args or environment variables.
     schema_dir = (
         sys.argv[1] if len(sys.argv) > 1
         else os.environ.get("SCHEMA_DIR", os.environ.get("YANG_DIR", None))
     )
     if not schema_dir:
-        schema_path = os.path.join(workspace_dir, "schema")
-        yang_path = os.path.join(workspace_dir, "yang")
-        if os.path.exists(schema_path):
-            schema_dir = schema_path
-        else:
-            schema_dir = yang_path
+        schema_dir_rel = backlog_dirs.get("schemas")
+        if not schema_dir_rel:
+            raise ValueError("Missing 'backlog_directories.schemas' in codebase_rules.json")
+        schema_dir = os.path.join(workspace_dir, schema_dir_rel)
 
     features_dir = (
         sys.argv[2] if len(sys.argv) > 2
-        else os.environ.get("FEATURES_DIR", os.path.join(workspace_dir, "docs", "features"))
+        else os.environ.get("FEATURES_DIR", None)
     )
+    if not features_dir:
+        features_dir_rel = backlog_dirs.get("features")
+        if not features_dir_rel:
+            raise ValueError("Missing 'backlog_directories.features' in codebase_rules.json")
+        features_dir = os.path.join(workspace_dir, features_dir_rel)
 
     has_failed = False
     print("=== Model Coverage Parity Audit ===")
@@ -2031,8 +2175,11 @@ def main():
         print("Success: Codebase compliance checks passed.")
 
     if has_failed:
+        upstream_repo = rules.get("meta", {}).get("upstream_repository")
+        if not upstream_repo:
+            raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json")
         print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
-        print("    gh issue create --repo gintatkinson/digital-pipeline-repo --title \"Tooling Bug: [Brief description]\" --body \"Context: UML/Coverage validation failed in downstream execution.\"")
+        print(f"    gh issue create --repo {upstream_repo} --title \"Tooling Bug: [Brief description]\" --body \"Context: UML/Coverage validation failed in downstream execution.\"")
         sys.exit(1)
     else:
         print("\nSuccess: All verification checks passed.")

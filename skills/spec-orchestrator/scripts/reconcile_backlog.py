@@ -59,7 +59,7 @@ def get_all_issues():
         raise Exception(f"Failed to fetch issues: {res.stderr.strip()}")
     return json.loads(res.stdout)
 
-def update_checklist_in_file(filepath, issue_dict):
+def update_checklist_in_file(filepath, issue_dict, upstream_repo="gintatkinson/digital-pipeline-repo"):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -79,7 +79,7 @@ def update_checklist_in_file(filepath, issue_dict):
         if dep_issue is None:
             print(f"Error: Invalid/hallucinated dependency reference #{dep_num} in {os.path.basename(filepath)}")
             print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
-            print("    gh issue create --repo gintatkinson/digital-pipeline-repo --title \"Tooling Bug: [Brief description]\" --body \"Context: Reconciler failed due to invalid dependency reference.\"")
+            print(f"    gh issue create --repo {upstream_repo} --title \"Tooling Bug: [Brief description]\" --body \"Context: Reconciler failed due to invalid dependency reference.\"")
             sys.exit(1)
             
         is_closed = (dep_issue["state"].upper() == "CLOSED")
@@ -262,25 +262,37 @@ def main():
 
     # Load codebase rules
     rules = load_codebase_rules(workspace_dir)
-    backlog_dirs = rules.get("backlog_directories", {
-        "epics": "docs/epics",
-        "features": "docs/features",
-        "user_stories": "docs/user-stories",
-        "use_cases": "docs/use-cases"
-    })
+    if not rules:
+        raise ValueError("codebase_rules.json is empty or could not be loaded")
+        
+    backlog_dirs = rules.get("backlog_directories")
+    if not backlog_dirs:
+        raise ValueError("Missing 'backlog_directories' in codebase_rules.json")
+        
+    epics_rel = backlog_dirs.get("epics")
+    features_rel = backlog_dirs.get("features")
+    stories_rel = backlog_dirs.get("user_stories")
+    usecases_rel = backlog_dirs.get("use_cases")
+    
+    if not all([epics_rel, features_rel, stories_rel, usecases_rel]):
+        raise ValueError("Missing epic, features, user_stories, or use_cases path in backlog_directories configuration")
+        
+    upstream_repo = rules.get("meta", {}).get("upstream_repository")
+    if not upstream_repo:
+        raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json")
 
     if len(sys.argv) > 1:
         docs_dir = os.path.abspath(sys.argv[1])
-        epics_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("epics", "docs/epics")))
-        features_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("features", "docs/features")))
-        stories_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("user_stories", "docs/user-stories")))
-        usecases_dir = os.path.join(docs_dir, os.path.basename(backlog_dirs.get("use_cases", "docs/use-cases")))
+        epics_dir = os.path.join(docs_dir, os.path.basename(epics_rel))
+        features_dir = os.path.join(docs_dir, os.path.basename(features_rel))
+        stories_dir = os.path.join(docs_dir, os.path.basename(stories_rel))
+        usecases_dir = os.path.join(docs_dir, os.path.basename(usecases_rel))
         print(f"Scanning backlog files in {docs_dir}...")
     else:
-        epics_dir = os.path.join(workspace_dir, backlog_dirs.get("epics", "docs/epics"))
-        features_dir = os.path.join(workspace_dir, backlog_dirs.get("features", "docs/features"))
-        stories_dir = os.path.join(workspace_dir, backlog_dirs.get("user_stories", "docs/user-stories"))
-        usecases_dir = os.path.join(workspace_dir, backlog_dirs.get("use_cases", "docs/use-cases"))
+        epics_dir = os.path.join(workspace_dir, epics_rel)
+        features_dir = os.path.join(workspace_dir, features_rel)
+        stories_dir = os.path.join(workspace_dir, stories_rel)
+        usecases_dir = os.path.join(workspace_dir, usecases_rel)
         print(f"Scanning backlog files...")
 
     # Process Epics
@@ -297,7 +309,7 @@ def main():
             norm = normalize_title(title)
             issue_num = epic_titles.get(norm)
             if issue_num:
-                updated_content, completed = update_checklist_in_file(filepath, issue_dict)
+                updated_content, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     # Sync to keep checkbox states updated on GitHub UI
@@ -346,7 +358,7 @@ def main():
             norm = normalize_title(title)
             issue_num = story_titles.get(norm)
             if issue_num:
-                _, completed = update_checklist_in_file(filepath, issue_dict)
+                _, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     sync_issue_body_to_github(issue_num, filepath, issue_type="User Story")
@@ -373,7 +385,7 @@ def main():
             norm = normalize_title(title)
             issue_num = usecase_titles.get(norm)
             if issue_num:
-                _, completed = update_checklist_in_file(filepath, issue_dict)
+                _, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     sync_issue_body_to_github(issue_num, filepath, issue_type="Use Case")

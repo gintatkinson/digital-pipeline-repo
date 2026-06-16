@@ -1,13 +1,15 @@
 {
   "meta": {
     "version": "1.0.0",
-    "description": "Dynamic verification rules and parameters for pipeline and codebase compliance"
+    "description": "Dynamic verification rules and parameters for pipeline and codebase compliance",
+    "upstream_repository": "gintatkinson/digital-pipeline-repo"
   },
   "backlog_directories": {
     "epics": "docs/epics",
     "features": "docs/features",
     "user_stories": "docs/user-stories",
-    "use_cases": "docs/use-cases"
+    "use_cases": "docs/use-cases",
+    "schemas": "yang"
   },
   "target_directories": {
     "react": "web_react",
@@ -16,6 +18,8 @@
   "react_rules": {
     "file_extensions": [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"],
     "exclusions": ["node_modules", "build", "dist", "coverage", ".git"],
+    "ui_directories": ["components", "views"],
+    "network_directories": ["io"],
     "forbidden_words": ["satellite.js", "satellite-js", "sgp4"],
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "selection_keywords": ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"],
@@ -26,6 +30,8 @@
   "flutter_rules": {
     "file_extensions": [".dart"],
     "exclusions": ["build", ".dart_tool", ".git"],
+    "ui_directories": ["widgets", "screens"],
+    "network_directories": ["io"],
     "selection_setters": ["set selected", "set active", "set selection", "setSelectedNode", "setActiveNode"],
     "selection_triggers": ["onChanged", "onSelected", "notifyListeners", "dispatch"],
     "loop_guard_keywords": ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"],
@@ -42,9 +48,16 @@
   "spec_rules": {
     "dom_leak_patterns": ["\\baria-\\w+", "\\brole=[\"']\\w+"],
     "pixel_leak_patterns": ["\\b\\d+px\\b"],
-    "spec_files": [".pipeline/logical-ui/logical-components.md"]
+    "spec_files": [".pipeline/logical-ui/logical-components.md"],
+    "design_tokens_path": ".pipeline/logical-ui/design-tokens.json"
   },
   "validation_rules": {
+    "required_diagrams": {
+      "epic": ["classDiagram", "stateDiagram-v2"],
+      "feature": ["classDiagram"],
+      "user_story": ["sequenceDiagram"],
+      "use_case": ["(?:graph|flowchart)", "stateDiagram"]
+    },
     "mermaid_dotted_link_regex": "-\\.-*->\\s*\\|",
     "forbidden_diagram_types": ["erDiagram"],
     "use_case_stadium_nodes_only": true,
@@ -60,7 +73,9 @@
         ["##\\s+3\\.\\s+Architecture", "## 3. Architecture"],
         ["##\\s+4\\.\\s+Operational\\s+Considerations", "## 4. Operational Considerations"],
         ["##\\s+5\\.\\s+Security\\s+&\\s+Governance", "## 5. Security & Governance"],
-        ["##\\s+6\\.\\s+Source\\s+References", "## 6. Source References"]
+        ["##\\s+6\\.\\s+Source\\s+References", "## 6. Source References"],
+        ["##\\s+System-Level\\s+UML\\s+Class\\s+Diagram", "## System-Level UML Class Diagram"],
+        ["##\\s+System\\s+State\\s+Machine\\s+Diagram", "## System State Machine Diagram"]
       ],
       "feature": [
         ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
