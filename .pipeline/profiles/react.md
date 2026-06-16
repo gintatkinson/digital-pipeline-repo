@@ -40,31 +40,17 @@ last_updated: "2026-06-16"
   - camelCase for interface declarations and instances.
   - kebab-case for folders and file names.
 - **Type Strictness:** Strict null checks enabled; use of `any` is strictly prohibited. Every database model must map to a TypeScript interface.
-- **UI & Design Aesthetics (Google Cloud Console / GKE Standards):**
-  - **Visual Identity:** Interfaces must mimic the clean, high-density, professional look of the Google Cloud Console.
-  - **Theme Selection:**
-    - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
-    - The application must use CSS custom properties (variables) to define color tokens for all theme styles, ensuring seamless switching without page reload.
-    - An in-head script must load the theme preference from `localStorage` or browser defaults and apply it to `<html>` prior to page rendering to avoid a Flash of Unstyled Content (FOUC).
-  - **Color Palette:** Curated neutral greys, clean white/dark backgrounds, with specific accent colors:
-    - Google Blue (`#1a73e8`) for primary actions and active navigation states.
-    - Soft red, yellow, and green status chips for resource health indicators (mimicking GKE cluster health states).
-  - **Layout & Structure:**
-    - Left-hand collapsible sidebar navigation with GKE-style hierarchical nesting.
-    - **Vertical Hierarchy Selector:** A dedicated left-side vertical tree selection panel for managed objects, allowing the user to select and drill down through hierarchical parent-child relationships (e.g., Folder > Project > Resource/Managed Object) just like the Google Cloud resource hierarchy selector.
-    - **Split Workspace Layout:** For each selected managed object, the main workspace area must render two primary panes separated by a slider adjuster (split bar).
-      - By default, the panes are stacked vertically (horizontal split). Dragging the slide adjuster vertically must dynamically modify each pane's proportional vertical size.
-      - **Reconfigurability:** The positions and orientation of the two primary panes must be reconfigurable by the user (e.g., allowing the user to swap top/bottom positions or switch the layout axis to a vertical split/side-by-side view).
-      - **Topographical View Pane (Top/Default Pane):** Displays an interactive topographical map representing the selected managed object's topological relations with other managed objects.
-        - Must support **relationship filtering** (filtering which types of relations are displayed).
-        - Must support **depth constraints** (e.g. a hop-count selector to limit the degrees of separation shown in the topology).
-      - **Details & Relations Pane (Bottom/Default Pane):** Shows all detailed attributes of the selected managed object.
-        - Must display lists of contained or related managed objects, with direct navigation shortcuts to select/inspect them.
-    - **Ubiquitous Navigation Links:** Whenever the user interface presents a managed object or attribute (e.g., inside tables, lists, text labels, or nodes in the topographical map), it must be rendered as a selectable, clickable link that directly navigates to that item's detail view, configuration window, or focus context.
-    - Breadcrumbs at the top of the content area for deep-level navigation tracking.
-    - High information-density tables with sortable, filterable columns, row selections, and status badges.
-  - **Typography:** Use clean, professional system fonts or Roboto/Outfit. Avoid default browser sans-serif styles.
-  - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
+- **UI & Design Aesthetics (GKE Standards & UI Adapter Pattern):**
+  - **The UI Adapter Pattern:** The frontend must not generate raw TSX view files for layouts. Structural layout components (splitter layout, hierarchy tree, topology canvas) are written manually once and optimized. Code generators output static JSON configuration schemas (derived from `.pipeline/logical-ui/logical-layout.json`) which are loaded at runtime.
+  - **Design System Tokens:** Style variables (colors, typography, spacing, alarm severities) must be compiled or read directly from `.pipeline/logical-ui/design-tokens.json`, configuring CSS custom properties (variables) on the root `<html>` element.
+  - **Event-Echo Guard:** Property setters must not trigger output event callbacks. Event propagation is restricted exclusively to user-initiated clicks or drag gestures, verified via AST checkers, to prevent infinite rendering loops.
+  - **Splitter Resizing Optimization:** Resizing drag actions must modify CSS custom variables on the grid container directly in the DOM, bypassing the React rendering loop until `onResizeEnd` is fired, ensuring 60fps interaction.
+  - **Real-Time Telemetry Pipeline (Web Workers & WebGPU):**
+    - Sockets, binary packet parsing (gRPC-Web/WebSockets), and telemetry constraint evaluations must run in a background **Web Worker**.
+    - For large topology graphs ($10,000+$ nodes), utilize **WebGPU compute shaders** running force-directed layout calculations directly in parallel on the GPU.
+  - **Ubiquitous Navigation Links:** Every reference to a managed object/attribute must be a selectable link that updates the global React Context selection state, triggering a unidirectional update across the sidebar tree, topology canvas, and detail grids.
+  - **FOUC Theme Script:** Prevent hydration flashes by injecting a blocking theme script in the HTML `<head>` prior to rendering DOM elements.
+
 
 ## 3. Testing Mandates
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.

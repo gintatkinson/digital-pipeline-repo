@@ -1,0 +1,130 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "schema_name": "gke_management_dashboard"
+  },
+  "theme": {
+    "modes": ["light", "dark", "system"],
+    "colors": {
+      "primary_accent": "#1a73e8",
+      "background": {
+        "light": "#ffffff",
+        "dark": "#121212"
+      },
+      "surface": {
+        "light": "#f1f3f4",
+        "dark": "#202124"
+      },
+      "status": {
+        "ok": "#00c853",
+        "warning": "#ffd600",
+        "critical": "#d50000"
+      }
+    },
+    "typography": {
+      "fonts": ["Outfit", "Roboto", "system-ui"],
+      "scale": "high-density"
+    }
+  },
+  "navigation": {
+    "sidebar": {
+      "collapsible": true,
+      "default_expanded": true,
+      "items": [
+        {
+          "label": "Topology Viewer",
+          "route": "/topology",
+          "icon": "hub"
+        },
+        {
+          "label": "Resource Directory",
+          "route": "/resources",
+          "icon": "dns"
+        }
+      ]
+    }
+  },
+  "layout": {
+    "root_container": {
+      "type": "SidebarLayout",
+      "id": "main_shell",
+      "children": [
+        {
+          "type": "HierarchyTreeSelector",
+          "id": "resource_tree",
+          "props": {
+            "width": 280,
+            "hierarchy": ["Folder", "Project", "Resource"]
+          },
+          "bindings": {
+            "data_source": "gcp:resource-manager",
+            "selection_target": "selected_managed_object"
+          }
+        },
+        {
+          "type": "SplitWorkspace",
+          "id": "workspace_split",
+          "props": {
+            "axis": "horizontal",
+            "resizable": true,
+            "default_ratio": 0.4,
+            "reconfigurable": true,
+            "min_size_pixels": 150
+          },
+          "children": [
+            {
+              "type": "TopographicalView",
+              "id": "topology_pane",
+              "props": {
+                "interactive": true,
+                "allow_pan_zoom": true
+              },
+              "bindings": {
+                "data_source": "yang:network-topology/topology[@topology-id='selected_managed_object']",
+                "selection_target": "active_focused_node",
+                "depth_selector": {
+                  "default_hops": 2,
+                  "max_hops": 5
+                },
+                "relationship_filters": [
+                  "termination-point-to-node",
+                  "link-to-node",
+                  "layer-transition"
+                ]
+              }
+            },
+            {
+              "type": "TabbedContainer",
+              "id": "details_and_relations_tab",
+              "children": [
+                {
+                  "type": "DetailsCard",
+                  "id": "object_details",
+                  "props": {
+                    "columns": 2,
+                    "enable_ubiquitous_links": true
+                  },
+                  "bindings": {
+                    "data_source": "yang:network-topology/topology/node[@node-id='active_focused_node']"
+                  }
+                },
+                {
+                  "type": "TableView",
+                  "id": "related_objects_table",
+                  "props": {
+                    "sortable": true,
+                    "filterable": true,
+                    "high_density": true
+                  },
+                  "bindings": {
+                    "data_source": "yang:network-topology/topology/link[source/source-node='active_focused_node']"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

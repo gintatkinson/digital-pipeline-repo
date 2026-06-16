@@ -1342,6 +1342,105 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
 
     return errors
 
+def verify_codebase_compliance(workspace_dir):
+    """
+    Validates that:
+    1. Implementation code does not hardcode alarm colors (critical, major, minor, warning, cleared)
+       defined in design-tokens.json.
+    2. Event-Echo Guard compliance: Event handlers triggering selection state changes must call
+       stopPropagation() (React) or ensure programmatic setters do not trigger callbacks (Flutter).
+    """
+    errors = []
+    
+    react_dir = os.path.join(workspace_dir, "web_react")
+    flutter_dir = os.path.join(workspace_dir, "app_flutter")
+    
+    # Design token color values (hex and dart representations)
+    hardcoded_colors_react = {
+        "#d50000": "Critical Alarm color (#d50000)",
+        "#ff6d00": "Major Alarm color (#ff6d00)",
+        "#ffd600": "Minor Alarm color (#ffd600)",
+        "#29b6f6": "Warning Alarm color (#29b6f6)",
+        "#00c853": "Cleared Alarm color (#00c853)"
+    }
+    
+    hardcoded_colors_flutter = {
+        "ffd50000": "Critical Alarm color (0xFFD50000)",
+        "ffff6d00": "Major Alarm color (0xFFFF6D00)",
+        "ffffd600": "Minor Alarm color (0xFFFFD600)",
+        "ff29b6f6": "Warning Alarm color (0xFF29B6F6)",
+        "ff00c853": "Cleared Alarm color (0xFF00C853)"
+    }
+    
+    # 1. React Web Codebase Compliance
+    if os.path.exists(react_dir):
+        for root, dirs, files in os.walk(react_dir):
+            dirs[:] = [d for d in dirs if d not in {"node_modules", "build", "dist", "coverage", ".git"}]
+            for file in files:
+                if file.endswith((".ts", ".tsx", ".js", ".jsx", ".css", ".scss")):
+                    filepath = os.path.join(root, file)
+                    rel_path = os.path.relpath(filepath, workspace_dir)
+                    try:
+                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                    except Exception as e:
+                        continue
+                    
+                    # Skip design tokens metadata files themselves
+                    if "design-tokens" in file or "design_tokens" in file:
+                        continue
+                        
+                    # Alarm Color Check
+                    for color, desc in hardcoded_colors_react.items():
+                        if color in content.lower():
+                            errors.append(f"React File '{rel_path}' contains hardcoded alarm color '{color}' ({desc}). Use CSS custom properties or theme tokens instead.")
+                            
+                    # Event-Echo Guard Check
+                    # Check if file has user interactions AND selection event dispatches but misses stopPropagation
+                    selection_keywords = ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"]
+                    interaction_keywords = ["onClick", "onDrag", "onMouseDown", "onPointerDown"]
+                    if any(kw in content for kw in selection_keywords) and any(kw in content for kw in interaction_keywords):
+                        if "stopPropagation" not in content:
+                            errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call 'stopPropagation()'. This violates the Event-Echo Guard.")
+                            
+    # 2. Flutter Desktop/Web Codebase Compliance
+    if os.path.exists(flutter_dir):
+        for root, dirs, files in os.walk(flutter_dir):
+            dirs[:] = [d for d in dirs if d not in {"build", ".dart_tool", ".git"}]
+            for file in files:
+                if file.endswith(".dart"):
+                    filepath = os.path.join(root, file)
+                    rel_path = os.path.relpath(filepath, workspace_dir)
+                    try:
+                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                    except Exception as e:
+                        continue
+                        
+                    if "design_tokens" in file:
+                        continue
+                        
+                    # Alarm Color Check
+                    content_lower = content.lower()
+                    for color_val, desc in hardcoded_colors_flutter.items():
+                        if color_val in content_lower:
+                            errors.append(f"Flutter File '{rel_path}' contains hardcoded alarm color '0x{color_val.upper()}' ({desc}). Reference ThemeData or design-tokens config instead.")
+                            
+                    # Event-Echo Guard Check
+                    # In Flutter, programmatic property setters must not trigger output callbacks.
+                    # We check if selection setters/methods exist and notify listeners, asserting that they must guard against loops
+                    # (e.g. they should check for 'userInitiated' or 'programmatic' or 'fromUser' variables).
+                    selection_setters = ["set selected", "set active", "set selection", "setSelectedNode", "setActiveNode"]
+                    if any(setter in content for setter in selection_setters):
+                        # If the file also triggers event callbacks or notifyListeners
+                        if any(trigger in content for trigger in ["onChanged", "onSelected", "notifyListeners", "dispatch"]):
+                            # Ensure it has a loop guard variable (e.g. userInitiated, programmatic, fromUser, check)
+                            guard_words = ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"]
+                            if not any(g in content_lower for g in guard_words):
+                                errors.append(f"Flutter File '{rel_path}' contains selection setters and triggers updates, but lacks a loop guard variable (e.g. 'userInitiated' or 'programmatic') to satisfy the Event-Echo Guard.")
+                                
+    return errors
+
 def main():
     workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -1512,6 +1611,17 @@ def main():
         has_failed = True
     else:
         print("Success: All behavioral coverage triggers passed.")
+
+    print("\n=== Codebase AST / Compliance Audit ===")
+    codebase_errors = verify_codebase_compliance(workspace_dir)
+
+    if codebase_errors:
+        print("[!] Codebase Compliance Violations Identified:")
+        for err in codebase_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Codebase compliance checks passed.")
 
     if has_failed:
         print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")

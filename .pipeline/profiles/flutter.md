@@ -40,30 +40,17 @@ last_updated: "2026-06-16"
   - lowerCamelCase for variables, constants, parameters, and methods.
   - snake_case for directories and file names (Dart convention).
 - **Type Strictness:** Enforce `analysis_options.yaml` with strict-casts, strict-inference, and strict-raw-types enabled. Use of `dynamic` is prohibited unless explicitly justified.
-- **UI & Design Aesthetics (Google Cloud Console / GKE Standards):**
-  - **Visual Identity:** Interfaces must mimic the clean, high-density, professional look of the Google Cloud Console.
-  - **Theme Selection:**
-    - Must provide a user interface to select between **Light**, **Dark**, and **System** themes, utilizing Flutter's native `ThemeMode` and custom `ThemeData` tokens.
-    - Prevent theme flashes on startup by initializing state prior to executing `runApp()`.
-  - **Color Palette:** Curated neutral greys, clean white/dark backgrounds, with specific accent colors:
-    - Google Blue (`Color(0xFF1A73E8)`) for primary actions, selection states, and navigation highlights.
-    - Soft red, yellow, and green status chips for resource health indicators (mimicking GKE cluster health states).
-  - **Layout & Structure:**
-    - Left-hand collapsible sidebar navigation using a styled `NavigationRail` or custom widget.
-    - **Vertical Hierarchy Selector:** A dedicated left-side vertical tree selection panel for managed objects (e.g. using a tree-view package or custom expansion widget), allowing the user to select and drill down through hierarchical parent-child relationships (Folder > Project > Resource) just like the Google Cloud resource hierarchy selector.
-    - **Split Workspace Layout:** For each selected managed object, the main workspace area must render two primary panes separated by a slider adjuster (split bar).
-      - By default, the panes are stacked vertically (horizontal split). Dragging the slide adjuster vertically must dynamically modify each pane's proportional vertical size.
-      - **Reconfigurability:** The positions and orientation of the two primary panes must be reconfigurable by the user (e.g., allowing the user to swap top/bottom positions or switch the layout axis to a vertical split/side-by-side view).
-      - **Topographical View Pane (Top/Default Pane):** Displays an interactive topographical map representing the selected managed object's topological relations with other managed objects.
-        - Must support **relationship filtering** (filtering which types of relations are displayed).
-        - Must support **depth constraints** (e.g. a hop-count selector to limit the degrees of separation shown in the topology).
-      - **Details & Relations Pane (Bottom/Default Pane):** Shows all detailed attributes of the selected managed object.
-        - Must display lists of contained or related managed objects, with direct navigation shortcuts to select/inspect them.
-    - **Ubiquitous Navigation Links:** Whenever the user interface presents a managed object or attribute (e.g., inside tables, lists, text labels, or nodes in the topographical map), it must be rendered as a selectable, clickable link (using styled `InkWell` or `TextButton`) that directly navigates to that item's detail view, configuration window, or focus context.
-    - Breadcrumbs at the top of the content area for deep-level navigation tracking.
-    - High information-density tables with sortable, filterable columns, row selections, and status badges.
-  - **Typography:** Use clean, professional system fonts or Outfit/Roboto.
-  - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
+- **UI & Design Aesthetics (GKE Standards & UI Adapter Pattern):**
+  - **The UI Adapter Pattern:** The frontend must not generate raw Dart view files for layouts. Structural layout components (splitter layout, hierarchy tree, topology canvas) are written manually once and optimized. Code generators output static JSON configuration schemas (derived from `.pipeline/logical-ui/logical-layout.json`) which are loaded at runtime.
+  - **Design System Tokens:** Style variables (colors, typography, spacing, alarm severities) must be compiled or read directly from `.pipeline/logical-ui/design-tokens.json`, configuring dynamic `ThemeData` tokens at startup.
+  - **Event-Echo Guard:** Property setters must not trigger output event callbacks. Event propagation is restricted exclusively to user-initiated clicks or drag gestures, verified via AST checkers, to prevent infinite rendering loops.
+  - **Splitter Resizing Optimization:** Resizing drag actions must isolate painting boundaries using `RepaintBoundary` widgets on the Topology Canvas and Details Grid to prevent global rebuilds of unchanged subtrees, maintaining 60fps interaction.
+  - **Real-Time Telemetry Pipeline (Isolates & GPGPU):**
+    - Sockets, binary packet parsing (gRPC/WebSockets), and telemetry constraint evaluations must run in a background **Dart Isolate**.
+    - For large topology graphs ($10,000+$ nodes), utilize **Impeller custom fragment/compute shaders** executing force-directed layout calculations directly on the GPU using Vulkan/Metal backends.
+  - **Ubiquitous Navigation Links:** Every reference to a managed object/attribute must be a selectable link (using styled `InkWell` or `TextButton`) that updates the global provider selection state, triggering a unidirectional update across the sidebar tree, topology canvas, and detail grids.
+  - **Engine Bootstrap FOUC:** Prevent theme flashes during CanvasKit engine loading by maintaining a matching splash screen theme setup in native `index.html`.
+
 
 ## 3. Testing Mandates
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.
