@@ -143,6 +143,30 @@ $$d_{ij} = \sqrt{(X_i - X_j)^2 + (Y_i - Y_j)^2 + (Z_i - Z_j)^2}$$
 2. If $d_{ij} < \text{threshold}$, the shader writes a conjunction warning into the **Conjunction Matrix Buffer** and flags an alarm state.
 3. The render pipeline reads this state to draw red alarm rings around both nodes.
 
+### 4.3. Mathematical Models for RF & Laser Interference Mapping
+
+The GPGPU collision pipeline can be mathematically extended to evaluate communications line-of-sight (LOS) and electromagnetic interference (EMI) paths in parallel:
+
+#### 1. Laser Line-of-Sight (LOS) Occlusion (Ray-Sphere Intersection)
+Let Emitter $i$ be at position $\mathbf{r}_i$, and Receiver $j$ be at position $\mathbf{r}_j$. The optical link path is the line segment $\mathbf{p}(t) = \mathbf{r}_i + t(\mathbf{r}_j - \mathbf{r}_i)$ for $t \in [0, 1]$.
+For any celestial body or orbital object $k$ centered at $\mathbf{c}_k$ with radius $R_k$, the distance from the body center to the closest point on the ray segment is calculated by:
+1. Define the relative offset vector $\mathbf{v} = \mathbf{c}_k - \mathbf{r}_i$ and the unit direction vector $\mathbf{u} = \frac{\mathbf{r}_j - \mathbf{r}_i}{\|\mathbf{r}_j - \mathbf{r}_i\|}$.
+2. Compute the projection length along the path: $t_{proj} = \mathbf{v} \cdot \mathbf{u}$.
+3. Find the closest point $\mathbf{p}_{close}$ on the bounded segment:
+   $$\mathbf{p}_{close} = \mathbf{r}_i + \max(0, \min(\|\mathbf{r}_j - \mathbf{r}_i\|, t_{proj})) \mathbf{u}$$
+4. The optical link is occluded if:
+   $$\|\mathbf{p}_{close} - \mathbf{c}_k\| < R_k$$
+
+#### 2. RF Co-Channel & Adjacent-Channel Interference (Angular Separation & SINR)
+Let Emitter $i$ transmit to Receiver $j$. Let Emitter $k$ be an active source of interference (jammer or adjacent transmitter).
+1. Compute the signal direction vector: $\mathbf{u}_{sig} = \frac{\mathbf{r}_i - \mathbf{r}_j}{\|\mathbf{r}_i - \mathbf{r}_j\|}$.
+2. Compute the interferer direction vector: $\mathbf{u}_{inf} = \frac{\mathbf{r}_k - \mathbf{r}_j}{\|\mathbf{r}_k - \mathbf{r}_j\|}$.
+3. Calculate the angular separation $\theta_{inf}$ at the receiver:
+   $$\theta_{inf} = \arccos(\mathbf{u}_{sig} \cdot \mathbf{u}_{inf})$$
+4. The Signal-to-Interference-plus-Noise Ratio (SINR) at the receiver is computed using the receiver antenna gain pattern $G_r(\theta)$ and transmit powers $P$:
+   $$\text{SINR} = \frac{\frac{P_i G_t G_r(0)}{d_{ij}^2}}{\frac{P_k G_{t\_inf} G_r(\theta_{inf})}{d_{kj}^2} + N_0}$$
+   If $\text{SINR} < \text{threshold}$, the compute shader flags a communications degradation event.
+
 ---
 
 ## 5. Platform Architecture Comparison: React vs. Flutter

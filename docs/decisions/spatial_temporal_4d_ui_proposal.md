@@ -129,6 +129,22 @@ To avoid $O(N^2)$ brute-force calculations and massive $N \times N$ matrix memor
    - Upload the resulting list of candidate pairs to the GPU.
    - The GPU compute shader executes the narrow-phase exact distance calculation exclusively on these candidate pairs.
 
+### 4.3. Extension to RF & Laser Communication Interference & Observability
+The collision candidate pipeline directly scales to support RF and laser link planning:
+1. **Link Interference Data Structure**: A generalized compute buffer stores link status and co-channel/occlusion event data:
+   ```wgsl
+   struct LinkEvent {
+       source_id: u32,       // Transmitting node
+       target_id: u32,       // Receiving node
+       interferer_id: u32,   // Jamming source or obscuring planetary body (if any)
+       event_type: u32,      // 0 = Clear Link, 1 = Physical Occlusion, 2 = RF Interference
+       signal_metric: f32,   // SINR (dB) for RF, or geometric visibility factor [0.0 - 1.0] for laser
+   }
+   ```
+2. **Line-of-Sight (LOS) Occlusion Shader**: Parallel threads run ray-sphere/ray-ellipsoid intersections checking if the vector path between source and target is blocked by planetary objects.
+3. **RF Angle-of-Arrival (AoA) Jamming Shader**: Evaluates angular separation between the desired signal path and competing emitter vectors to calculate co-channel interference overlays.
+4. **Observability Visualization**: The outputs are written directly to an indirect draw buffer to paint volumetric Link Cones, color-coded link paths (e.g., green for clear, orange for degraded, red for occluded), and interference zones on the 4D canvas.
+
 ---
 
 ## 5. Viewport Interaction & Render Optimizations
