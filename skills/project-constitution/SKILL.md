@@ -28,9 +28,7 @@ Use this skill to establish or update a project's foundational governance docume
 .pipeline/
 ├── constitution.md                  # Tier 1: Functional (shared, platform-agnostic)
 └── profiles/
-    ├── react.md                     # Tier 2: Implementation profile for React
-    ├── flutter.md                   # Tier 2: Implementation profile for Flutter
-    └── dotnet.md                    # Tier 2: Implementation profile for .NET
+    └── [platform].md                # Tier 2: Platform-specific implementation profiles
 ```
 
 **Tier 1 — Functional Constitution** (`.pipeline/constitution.md`)
@@ -238,8 +236,8 @@ last_updated: "[ISO Date]"
 
 #### Updating a Profile
 
-1. Human requests a change: *"Update the React profile to require Playwright E2E tests."*
-2. Agent reads the existing `.pipeline/profiles/react.md`.
+1. Human requests a change: *"Update the [platform] profile to require Playwright E2E tests."*
+2. Agent reads the existing `.pipeline/profiles/<platform>.md`.
 3. Agent proposes the amendment and waits for human approval.
 4. Agent writes the update (append/refine, never destructive overwrite of unrelated sections).
 5. Update `last_updated` in the profile's frontmatter.
@@ -290,13 +288,13 @@ docs/epics/epic-01-network-topology.md          # Functional (shared)
 docs/features/feat-01-node-display.md            # Functional (shared)
 docs/user-stories/us-01-view-node-details.md     # Functional (shared)
 
-# React implementation
-.pipeline/profiles/react.md
-docs/designs/feat-82-solution.md                 # React solution walkthrough
+# [Platform A] implementation
+.pipeline/profiles/[platform_a].md
+docs/designs/feat-82-[platform_a]-solution.md    # Platform A solution walkthrough
 
-# Flutter implementation
-.pipeline/profiles/flutter.md
-docs/designs/feat-82-flutter-solution.md         # Flutter solution walkthrough
+# [Platform B] implementation
+.pipeline/profiles/[platform_b].md
+docs/designs/feat-82-[platform_b]-solution.md    # Platform B solution walkthrough
 ```
 
 The agent implements Feature #82 twice — once per platform — each time loading the appropriate profile. The functional specs (Epics, Features, Stories, Use Cases) are written once and shared.

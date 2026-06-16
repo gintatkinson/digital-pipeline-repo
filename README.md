@@ -33,8 +33,7 @@ For implementation work (Pipeline 2), platform-specific rules live in **Implemen
 .pipeline/
   constitution.md              <-- Governs Pipeline 1 (all agents read this)
   profiles/
-    react.md                   <-- Governs Pipeline 2 for React targets
-    flutter.md                 <-- Governs Pipeline 2 for Flutter targets
+    [platform].md              <-- Governs Pipeline 2 for a specific target stack
 ```
 
 > To customize: edit `.pipeline/constitution.md` directly. The constitution is human-authored, agent-enforced.
