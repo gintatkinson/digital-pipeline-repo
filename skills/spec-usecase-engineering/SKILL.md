@@ -53,11 +53,11 @@ An agent MUST extract a separate, dedicated System Use Case (in addition to stan
 
 ## Step 3: The Realization Matrix (User Story/Feature Linking)
 A System Use Case is realized by User Stories and structural Features.
-1. **GitHub Issue Query**: Execute `gh issue list --label "user-story" --state "all" --json number,title,body` to pull both open and closed user stories, and `gh issue list --label "feature" --state "all" --json number,title,body` to pull features.
+1. **Issue Query**: Query the active tracker provider for all existing user stories and features.
 2. **Perform Semantic Analysis**: Inspect both titles and content bodies of issues for semantic matching (mapping based on meaning/content) rather than name-only lexical matching.
 3. Determine which User Stories and Features are required to fulfill this specific System Use Case.
 4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links.
-   - **Absolute URLs**: Enforce absolute URLs to prevent 404 links on GitHub issues. Reference BOTH the Issue ID and the absolute GitHub URL of the feature/user-story documents (relative links like `../features/...` resolve incorrectly on GitHub issues and cause 404 errors). You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`).
+   - **Absolute URLs**: Enforce absolute URLs to prevent 404 links on tracker UIs. Reference BOTH the Issue ID and the absolute URL of the feature/user-story documents. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-01.md)`).
    - **Realization Checklists & Justification**: Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g., `(provides coordinates schema)` or `(realizes the authentication scenario)`). Parenthetical justifications are strictly required for every single checklist item.
 
 ## Step 4: Markdown Generation
@@ -135,10 +135,9 @@ Structural Schema: [Target Schema File](link-to-schema)
 Normative Specification: [Normative Specification](link-to-specification)
 ```
 
-## Step 5: Zero-Fault GitHub Synchronization
+## Step 5: Zero-Fault Backlog Synchronization
 1. Commit and push the Markdown files to the remote repository.
-2. You MUST verify the `use-case` label exists in the repository. Run `gh label create "use-case" --force`. Do not bypass this.
-3. **Duplicate Detection:** Before creating, run `gh issue list --label "use-case" --state "all" --json number,title` and check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
-4. Create the issue natively in GitHub. You MUST explicitly bind the label:
-   `gh issue create --title "[Use Case Title]" --body-file [path/to/markdown.md] --label "use-case"`
-5. Verify the creation and return the generated GitHub URLs to the Orchestrator or User.
+2. Verify the `use-case` label exists in the tracker repository, bootstrapping it if necessary.
+3. **Duplicate Detection:** Before creating, query the active tracker provider for all existing use case issues to check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
+4. Register the Use Case issue natively with the active tracker provider.
+5. Verify the creation and return the generated issue URLs/IDs to the Orchestrator or User.

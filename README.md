@@ -4,12 +4,12 @@
 
 Welcome to the Digital Systems Engineering Pipeline. This repository contains a suite of autonomous AI Agent "Skills" designed to:
 
-1. **Specification-engineer protocol standards** into deterministic, behavior-driven Agile tracking matrices in GitHub.
+1. **Specification-engineer protocol standards** into deterministic, behavior-driven Agile tracking matrices in the active issue tracker.
 2. **Implement features** from those backlogs using subagent-driven TDD execution discipline with two-stage review gates.
 
 By feeding these agents a Structural Schema and its associated Normative Specification Document, the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
 
-## DeepWiki Documentation at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
+## Documentation at: [Documentation URL]
 
 ---
 
@@ -59,7 +59,7 @@ Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on
 Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Scenarios, Alternate Flows, Postconditions) and maps them to User Stories and Features in a Realization Matrix. Includes duplicate detection. See `skills/spec-usecase-engineering/SKILL.md`.
 
 #### Pipeline Utilities (Worker D & Coverage Check)
-* **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries GitHub, syncs checkbox states in local markdown using PyYAML, enforces dependency hallucination checks, and auto-closes completed Epics/Stories/Use Cases.
+* **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries the active issue tracker provider, syncs checkbox states in local markdown using PyYAML, enforces dependency hallucination checks, and auto-closes completed Epics/Stories/Use Cases.
 * **`scripts/verify_model_coverage.py`**: Automated UML compliance linter. Parses input schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
 
 ### Pipeline 2: Feature Implementation
@@ -79,7 +79,7 @@ The execution engine. Implements features from the backlog using a disciplined, 
 | 3 | Traceability | Closing comments link to solution walkthroughs |
 | 4 | Agentic Epic Closure | Auto-close Epics when all features complete |
 | 5 | No Browser Automation | Manual UI verification (unless project uses Playwright) |
-| 6 | GitHub as Source of Truth | `gh` CLI, never trust local state |
+| 6 | Issue Tracker as Source of Truth | Tracker CLI, never trust local state |
 | 7 | Cumulative Walkthroughs | Append/merge, never destructive overwrite |
 | 8 | Validation Isolation | Separate subagent audit or strict self-audit fallback |
 | 9 | **TDD (RED-GREEN-REFACTOR)** | Failing test before code, always |
@@ -94,7 +94,7 @@ The execution engine. Implements features from the backlog using a disciplined, 
 - **Tech Stack Research:** Optional `research.md` phase before The Grill for unfamiliar frameworks
 - **Parallel Dispatch `[P]`:** Spec-generation phases 2 & 3 can run in parallel on multi-agent runtimes
 - **Systematic Debugging (4-phase):** Reproduce → Diagnose (stack trace, no guessing) → Fix (minimal upstream) → Verify (full suite)
-- **Vertical Slice Order:** Database → Parser/State → UI Components
+- **Data Flow Slicing Order:** Persistence → Transformation → Interface
 
 ---
 
@@ -109,7 +109,7 @@ In addition to skills (loaded on-demand), this pipeline includes **rules** — c
 | **`verification-required`** | Raw proof (pasted output) required. "It works" without evidence is forbidden. |
 | **`constitution-first`** | Read `.pipeline/constitution.md` before any task. Spec workers must NOT read implementation profiles. |
 | **`no-browser-automation`** | No ad-hoc browser scripts. Manual verification or project E2E framework only. |
-| **`github-source-of-truth`** | Use `gh` CLI for issue state. Never trust local files alone. |
+| **`tracker-source-of-truth`** | Use tracker CLI for issue state. Never trust local files alone. |
 | **`platform-independence`** | Specs must be functional. No framework names in features, stories, or use cases. |
 
 These rules live in `rules/` and are packaged into the Tessl plugin alongside skills. Without Tessl, agents can read them directly from the `rules/` directory.
@@ -118,7 +118,7 @@ These rules live in `rules/` and are packaged into the Tessl plugin alongside sk
 
 ## Installation
 
-The pipeline requires Python 3, the `gh` CLI, and `git`. Python scripts require `PyYAML` to parse configuration and issue frontmatter (install via `pip install -r requirements.txt`). Choose the method that fits your team's workflow.
+The pipeline requires Python 3, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter (install via `pip install -r requirements.txt`). Choose the method that fits your team's workflow.
 
 ### Method 1: Direct Copy (Simplest)
 
@@ -126,15 +126,15 @@ Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project rep
 
 ```bash
 # Clone the pipeline repo
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git /tmp/digital-pipeline
+git clone [Upstream Repository URL] [Temporary Directory Path]
 
 # Copy skills, rules, and configurations into your project
-cp -r /tmp/digital-pipeline/skills/ ./skills/
-cp -r /tmp/digital-pipeline/rules/ ./rules/
-cp -r /tmp/digital-pipeline/.pipeline/ ./.pipeline/
+cp -r [Temporary Directory Path]/skills/ ./skills/
+cp -r [Temporary Directory Path]/rules/ ./rules/
+cp -r [Temporary Directory Path]/.pipeline/ ./.pipeline/
 
 # Clean up
-rm -rf /tmp/digital-pipeline
+rm -rf [Temporary Directory Path]
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
@@ -145,7 +145,7 @@ Add the pipeline as a Git submodule so your project tracks a specific version an
 
 ```bash
 # Add as submodule
-git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+git submodule add [Upstream Repository URL] .pipeline-skills
 
 # Your agent reads from .pipeline-skills/skills/ and .pipeline-skills/rules/
 ```
@@ -163,7 +163,7 @@ Use Tessl for version-locked, team-wide distribution with automated rule injecti
 
 ```bash
 tessl init --agent gemini --agent claude-code --agent cursor
-tessl install github:gintatkinson/digital-pipeline-repo
+tessl install [Tessl Package Name]
 ```
 
 ### Setup for Google Antigravity / Gemini CLI
@@ -200,7 +200,7 @@ After installing the pipeline via any method above, configure Gemini to load the
 ```bash
 # If using Tessl (auto-configures CLAUDE.md and MCP):
 tessl init --agent claude-code
-tessl install github:gintatkinson/digital-pipeline-repo
+tessl install [Tessl Package Name]
 
 # If using direct copy, add to CLAUDE.md:
 echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
@@ -275,7 +275,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 ## Expected Outputs
 
 ### Specification Pipeline
-A perfectly synchronized taxonomy on your live GitHub board:
+A perfectly synchronized taxonomy on your live issue tracker board:
 
 1. **Epics (`epic`)**: High-level structural containers.
 2. **Features (`feature`)**: Granular technical building blocks with verbatim spec text and dependency links.
@@ -287,10 +287,10 @@ For each delivered feature:
 
 1. **Solution Walkthrough** (`docs/designs/feat-<Issue_Number>-solution.md`): Cumulative record of changes, testing, and verification, including a **Code Realization Table** mapping features/attributes to implemented source files, classes, and functions.
 2. **Passing test suite**: All tests green with raw output as evidence.
-3. **Closed GitHub Issue**: With direct link to the committed solution walkthrough.
+3. **Closed Tracker Issue**: With direct link to the committed solution walkthrough.
 4. **Updated Epic checklist**: Feature marked `[x]`, Epic auto-closed when all features complete.
 
-*Note: Skills automatically bootstrap repository labels (`epic`, `feature`, `user-story`, `use-case`) via `gh label create --force`.*
+*Note: Skills automatically bootstrap repository labels (epic, feature, user-story, use-case) via the configured label bootstrap command.*
 
 ---
 
@@ -305,10 +305,10 @@ This pipeline's skills conform to the [Agent Skills specification](https://agent
 tessl init --agent claude-code --agent cursor --agent gemini
 
 # Install the full pipeline from GitHub
-tessl install github:gintatkinson/digital-pipeline-repo
+tessl install [Tessl Package Name]
 
 # Or install individual skills
-tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
+tessl install [Tessl Package Name] --skill spec-orchestrator
 ```
 
 ### Publish to a Private Registry
@@ -385,4 +385,4 @@ This pipeline can also be used **alongside** [GitHub Spec Kit](https://github.co
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
-## DeepWiki Documentation at: https://deepwiki.com/gintatkinson/digital-pipeline-repo
+## Documentation at: [Documentation URL]

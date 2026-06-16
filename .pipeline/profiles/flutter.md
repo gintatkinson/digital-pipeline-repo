@@ -21,56 +21,54 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Persistence Architecture:** Modular Repository/Adapter pattern.
   - Direct database/API SDK imports are forbidden in UI widgets.
   - Widgets must depend only on abstract Repository interfaces.
-  - Active adapter is injected at application bootstrap based on environment configuration.
+  - Active adapter is resolved and injected dynamically at application bootstrap based on environment variables or runtime configurations.
 - **Dependency Injection (DI) & State Management:**
-  - Standardize on `flutter_bloc` (BLoCs) for core business logic state management.
-  - Resolve dependencies/repositories via an abstract service locator (such as `get_it`) at the bootstrap layer or via pure constructor injection in widgets, avoiding direct widget-tree coupling to specific third-party provider libraries.
-- **Allowed Adapters by Environment:**
-  - **Local Development / Testing:**
-    - `FirebaseEmulatorAdapter`: Connects to local Firebase Emulator Suite containing seeded test data via `firebase_core` / `cloud_firestore`.
-    - `LocalServiceAdapter`: Connects to local OpenAPI / gRPC database gateway services running on `localhost`.
-  - **Hosted Deployment / Staging / Production:**
-    - `FirebaseHostedAdapter`: Connects to remote hosted production Firebase.
-    - `GrpcAdapter`: Connects to hosted remote gRPC/gRPC-Web backend services.
-    - `OpenApiAdapter`: Connects to hosted remote REST/OpenAPI JSON backend services.
+  - Standardize on dynamic state management models (such as BLoCs) for core business logic.
+  - Resolve dependencies/repositories via an abstract service locator or pure constructor injection in widgets, avoiding direct widget-tree coupling to specific third-party provider libraries.
+- **Environment Selection Keys:**
+  - `PERSISTENCE_ADAPTER`: Configures which concrete adapter is injected at bootstrap (e.g., emulator-based, RPC-based, REST-based).
 - **Dependencies:**
-  - Required: `firebase_core`, `cloud_firestore`, `firebase_auth`, `grpc`, `dio`, `get_it`, `flutter_bloc`
+  - Required: `dio`, `typescript_equivalent_dart_packages` (standard packages listed in configuration).
   - DevDependencies: `flutter_test`, `integration_test`, `mocktail` or `mockito`, `build_runner`
 
 ## 2. Coding Standards & UI Patterns
 - **Clean Architecture & Decoupling:** Persistence code must be isolated under `lib/core/persistence/`:
   - `lib/core/persistence/repository_interface.dart` (defines CRUD and domain-specific query interfaces)
-  - `lib/core/persistence/adapters/` (contains concrete implementations: `firebase_emulator_adapter.dart`, `local_service_adapter.dart`, etc.)
-  - `lib/core/domain/entities/` (defines platform-independent domain model models; adapters must parse dynamic JSON/SDK types and translate/map them into these entities before passing to BLoCs/Widgets)
+  - `lib/core/persistence/adapters/` (contains concrete implementations resolved at runtime)
+  - `lib/core/domain/entities/` (defines platform-independent domain models; adapters must parse dynamic JSON/SDK types and translate/map them into these entities before passing to logic/widgets)
 - **Naming Conventions:**
   - UpperCamelCase for classes, mixins, extensions, and structs.
   - lowerCamelCase for variables, constants, parameters, and methods.
   - snake_case for directories and file names (Dart convention).
-- **Type Strictness:** Enforce `analysis_options.yaml` (strict-casts, strict-inference, and strict-raw-types enabled). Use of `dynamic` is prohibited in application code. For Firebase (`DocumentSnapshot.data()`) and JSON decoding (`jsonDecode`) which yield dynamic data, developers MUST write typed parsing/mapping functions immediately at the adapter boundaries.
+- **Type Strictness:** Enforce `analysis_options.yaml` (strict-casts, strict-inference, and strict-raw-types enabled). Use of `dynamic` is prohibited in application code. Developers MUST write typed parsing/mapping functions immediately at the adapter boundaries.
 - **Off-Thread Telemetry Pipeline:**
-  - WebSocket/gRPC streams and binary telemetry packet parsing MUST run in a background **Dart Isolate** to prevent blocking the main UI thread.
-  - Implement a secure off-thread message passing mechanism for sharing coordinates between background isolates and the main UI thread.
+  - Stream connections and binary telemetry packet parsing MUST run in a background execution context (such as a background Dart Isolate) to prevent blocking the main UI thread.
+  - Pass decoded, normalized domain structures to the main thread via asynchronous message passing or memory buffers.
+- **Off-Thread FFI Memory Safety & Hardware Alignment:**
+  - **Memory Safety**: Direct off-thread C-heap allocations shared with the UI thread must be managed using a `NativeFinalizer` to ensure that native buffers are properly released when their Dart wrappers are garbage collected.
+  - **Memory Alignment**: All shared memory coordinate pointer allocations MUST be aligned to 256-byte boundaries (using standard alignment allocators such as `posix_memalign` on POSIX or `_aligned_malloc` on Windows) to prevent GPU driver validation crashes in native rendering pipelines (such as Impeller's Metal/Vulkan backends).
+  - **Double-Buffering & Mutexes**: Coordinate buffers must use double-buffering and explicit synchronization fences (mutexes/atomic flags) to prevent data tearing between background writers and UI render cycles.
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
     - Must provide a user interface to select from the dynamic list of theme modes defined in the runtime configuration (Tier 2).
     - Configure dynamic `ThemeData` tokens at startup using primary, background, and status colors.
-    - Prevent theme flashes during initialization by maintaining a matching splash screen theme setup in native platforms (using local preferences settings checks prior to initial frame load).
+    - Prevent theme flashes during initialization by maintaining a matching splash screen theme setup in native platforms (checking configuration settings prior to the initial frame load).
   - **Dynamic Theme & Alarm Mappings:**
     - Hardcoding colors, brand palettes, or standard-specific severity strings is strictly prohibited.
     - All status colors, brand palettes, and spacing attributes must map back to variables loaded dynamically from the design tokens configuration resolved at runtime.
     - The application must resolve the design tokens at startup and serve them dynamically by subclassing Flutter's native `ThemeExtension` for status colors lookup at runtime.
-    - Component layouts and widgets must be mapped dynamically via a Widget registry that resolves types and schemas from `logical-layout.json`.
+    - Component layouts and widgets must be mapped dynamically via a Widget registry that resolves types and schemas from the runtime configuration.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
-    - **HierarchyTreeSelector:** Exposes a primary navigation slot. Must support:
+    - **HierarchyTree:** Exposes a primary navigation slot. Must support:
       - Mapping physical inputs to logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) dynamically.
       - Virtualized list row rendering.
       - Accessibility Semantics (wrap items in widgets configuring logical tree-view roles).
-    - **SplitWorkspace:** The main workspace area renders pane slots dynamically populated with child widgets resolved from `logical-layout.json`.
+    - **ResizableSplitter:** The main workspace area renders pane slots dynamically populated with child widgets resolved from the configuration.
       - **Paint Isolation:** Wrap child views inside the split panes in repaint boundaries to isolate painting boundaries and ensure smooth resizing.
       - **State Preservation:** Leverage state retention on child widgets to prevent widget state destruction when resizing split panes.
-      - Child widgets resolved from layout (e.g. `TopographicalView` representing the selected managed object's relations in coordinate space, and `TabbedContainer` holding `TableView` details) are dynamically rendered inside the Split Workspace containers.
+      - Child widgets resolved from layout schemas (such as the topology map, tabbed views, or details tables) are dynamically rendered inside the Split Workspace containers.
     - **PropertyGrid:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **NavigationBreadcrumbs:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
@@ -91,7 +89,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Local Dev / Dev Server Command:** `flutter run -d chrome` (web) or `flutter run -d macos` (desktop)
 - **Local Emulator Command:** `firebase emulators:start --import=./.firebase_export`
 - **Build Command:** `flutter build web --release --web-renderer canvaskit` or `flutter build macos --release`
-- **CI/CD Integration:** Triggered on merge to default branch; builds and deploys to Firebase App Hosting, Web servers, or native desktop distribution pipelines. Dockerfiles must run as a non-root user.
+- **CI/CD Integration:** Triggered on merge to default branch; builds and deploys to App Hosting, Web servers, or native desktop distribution pipelines. Dockerfiles must run as a non-root user.
 
 ## 5. Security & Credentials
 - **Local Configurations:** API credentials and environment configurations are loaded at build time using `--dart-define-from-file` from a secure, local, git-ignored JSON configuration file. Default mock credentials are used for emulators. Raw command-line `--dart-define=KEY=VAL` arguments for sensitive credentials are prohibited to prevent leakage in process tables.

@@ -50,10 +50,11 @@ def extract_title(filepath):
         print(f"Error reading title from {filepath}: {e}")
     return None
 
-def get_all_issues():
-    print("Fetching active and closed issues from GitHub...")
-    # Fetch up to 1000 issues covering all states
-    cmd = ["gh", "issue", "list", "--limit", "1000", "--state", "all", "--json", "number,title,state,labels"]
+def get_all_issues(rules=None):
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    provider = tracker_rules.get("provider", "github")
+    print(f"Fetching active and closed issues from tracker provider '{provider}'...")
+    cmd = tracker_rules.get("commands", {}).get("list_issues", ["gh", "issue", "list", "--limit", "1000", "--state", "all", "--json", "number,title,state,labels"])
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         raise Exception(f"Failed to fetch issues: {res.stderr.strip()}")
@@ -134,19 +135,20 @@ def convert_frontmatter_to_table(content):
     table_text = "\n".join(table_lines) + "\n\n"
     return table_text + body_text
 
-def sync_issue_body_to_github(issue_num, filepath, issue_type="Issue"):
-    print(f"  [{issue_type} Sync] Syncing #{issue_num} body to GitHub...")
-    temp_path = filepath + ".tmp_body"
+def sync_issue_body_to_github(issue_num, filepath, issue_type="Feature", rules=None):
+    print(f"  [Sync Issue Body] Syncing #{issue_num} ({issue_type}) to tracker...")
+    
+    # Check issue body size limit (65356 chars) and truncate if needed
+    temp_path = filepath + ".temp-body"
     try:
-        with open(filepath, "r", encoding="utf-8") as sf:
-            content = sf.read()
-        
-        # Convert YAML frontmatter to a Markdown table for GitHub issue body
-        content = convert_frontmatter_to_table(content)
-        
-        # Prevent GraphQL: Body is too long (updateIssue) errors (limit is 65536 characters)
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+            
         if len(content) > 60000:
-            trunc_index = content.rfind("\n", 0, 60000)
+            # Add a message pointing to the repository file
+            trunc_index = content.find("## Acceptance Criteria")
+            if trunc_index == -1:
+                trunc_index = content.find("## User Stories")
             if trunc_index == -1:
                 trunc_index = 60000
             
@@ -162,17 +164,23 @@ def sync_issue_body_to_github(issue_num, filepath, issue_type="Issue"):
         with open(temp_path, "w", encoding="utf-8") as tf:
             tf.write(content)
         
-        subprocess.run(["gh", "issue", "edit", str(issue_num), "--body-file", temp_path], check=True, capture_output=True)
+        tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+        edit_cmd_template = tracker_rules.get("commands", {}).get("edit_issue", ["gh", "issue", "edit", "{number}", "--body-file", "{temp_path}"])
+        cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
+        subprocess.run(cmd, check=True, capture_output=True)
     except Exception as e:
         print(f"  [Error] Failed to sync #{issue_num} body: {e}")
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-def close_issue_on_github(issue_num, comment):
-    print(f"  [Close Issue] Closing issue #{issue_num} on GitHub...")
+def close_issue_on_github(issue_num, comment, rules=None):
+    print(f"  [Close Issue] Closing issue #{issue_num} on tracker...")
     try:
-        subprocess.run(["gh", "issue", "close", str(issue_num), "--comment", comment], check=True, capture_output=True)
+        tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+        close_cmd_template = tracker_rules.get("commands", {}).get("close_issue", ["gh", "issue", "close", "{number}", "--comment", "{comment}"])
+        cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
+        subprocess.run(cmd, check=True, capture_output=True)
     except Exception as e:
         print(f"  [Error] Failed to close issue #{issue_num}: {e}")
 
@@ -220,12 +228,21 @@ def resolve_issue_ids_in_file(filepath, combined_titles):
     return content
 
 def main():
-    # Verify GitHub CLI authentication
+    # Locate the workspace directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+
+    # Load codebase rules
+    rules = load_codebase_rules(workspace_dir)
+    if not rules:
+        raise ValueError("codebase_rules.json is empty or could not be loaded")
+
+    # Verify tracker/CLI authentication
     try:
-        issues = get_all_issues()
+        issues = get_all_issues(rules)
     except Exception as e:
-        print(f"Error fetching GitHub issues: {e}")
-        print("Please ensure gh CLI is authenticated and configured.")
+        print(f"Error fetching issues: {e}")
+        print("Please ensure issue tracker CLI is authenticated and configured.")
         sys.exit(1)
 
     # Convert to issue lookup dictionary by issue number
@@ -255,15 +272,6 @@ def main():
     combined_titles.update(feature_titles)
     combined_titles.update(story_titles)
     combined_titles.update(usecase_titles)
-
-    # Locate the workspace directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
-
-    # Load codebase rules
-    rules = load_codebase_rules(workspace_dir)
-    if not rules:
-        raise ValueError("codebase_rules.json is empty or could not be loaded")
         
     backlog_dirs = rules.get("backlog_directories")
     if not backlog_dirs:
@@ -313,11 +321,12 @@ def main():
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     # Sync to keep checkbox states updated on GitHub UI
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="Epic")
+                    sync_issue_body_to_github(issue_num, filepath, issue_type="Epic", rules=rules)
                     if completed:
                         close_issue_on_github(
                             issue_num, 
-                            "Epic completed. All constituent features successfully delivered and verified."
+                            "Epic completed. All constituent features successfully delivered and verified.",
+                            rules=rules
                         )
                         issue_dict[issue_num]["state"] = "CLOSED"
             else:
@@ -340,7 +349,7 @@ def main():
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     # Sync to keep feature definition/acceptance criteria updated on GitHub UI
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="Feature")
+                    sync_issue_body_to_github(issue_num, filepath, issue_type="Feature", rules=rules)
             else:
                 print(f"Warning: No GitHub Feature issue found matching: '{title}'")
 
@@ -361,11 +370,12 @@ def main():
                 _, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="User Story")
+                    sync_issue_body_to_github(issue_num, filepath, issue_type="User Story", rules=rules)
                     if completed:
                         close_issue_on_github(
                             issue_num,
-                            f"Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified."
+                            f"Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+                            rules=rules
                         )
                         issue_dict[issue_num]["state"] = "CLOSED"
             else:
@@ -388,11 +398,12 @@ def main():
                 _, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
-                    sync_issue_body_to_github(issue_num, filepath, issue_type="Use Case")
+                    sync_issue_body_to_github(issue_num, filepath, issue_type="Use Case", rules=rules)
                     if completed:
                         close_issue_on_github(
                             issue_num,
-                            f"Resolved. All dependent user stories and features for use case '{title}' are completed."
+                            f"Resolved. All dependent user stories and features for use case '{title}' are completed.",
+                            rules=rules
                         )
                         issue_dict[issue_num]["state"] = "CLOSED"
             else:

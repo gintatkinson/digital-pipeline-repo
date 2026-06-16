@@ -71,10 +71,10 @@ An agent MUST extract a separate, dedicated, and mandatory User Story if the nor
 
 ## Step 3: The Cross-Cutting Matrix (Feature Linking)
 A User Story requires technical building blocks (Domain Objects/Features) to function. You must find the blocks that have already been built.
-1. Execute `gh issue list --label "feature" --state "all" --json number,title,body` to pull the existing structural inventory.
+1. Query the active tracker provider for all existing feature issues to pull the existing structural inventory.
 2. **Perform Semantic Analysis**: Inspect both titles and content bodies of features to perform mapping rather than simple title-only matching.
 3. Determine exactly which of those `#IssueID`s are prerequisites for your extracted User Story.
-4. Construct a `## Required Features` matrix in your document containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute GitHub URL of the feature document. You MUST dynamically determine the remote repository URL by running `git remote get-url origin` and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)`).**
+4. Construct a `## Required Features` matrix in your document containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL of the feature document. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch (e.g., `- [ ] #41 - [Feature 01 Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-01.md)`). **Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g. `(provides coordinates schema)`).**
 
 ## Step 4: Markdown Generation
 Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-register-entity.md`). Format strictly:
@@ -147,10 +147,9 @@ Structural Schema: [Target Schema File](link-to-schema)
 Normative Specification: [Normative Specification](link-to-specification)
 ```
 
-## Step 5: Zero-Fault GitHub Synchronization
+## Step 5: Zero-Fault Backlog Synchronization
 1. Commit and push the Markdown files to the remote repository.
-2. You MUST verify the `user-story` label exists in the repository. Run `gh label create "user-story" --force`. Do not bypass this.
-3. **Duplicate Detection:** Before creating, run `gh issue list --label "user-story" --state "all" --json number,title` and check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
-4. Create the issue natively in GitHub. You MUST explicitly bind the label:
-   `gh issue create --title "[User Story Title]" --body-file [path/to/markdown.md] --label "user-story"`
-5. Verify the creation and return the generated GitHub URLs to the Orchestrator or User.
+2. Verify the `user-story` label exists in the tracker repository, bootstrapping it if necessary.
+3. **Duplicate Detection:** Before creating, query the active tracker provider for all existing user story issues to check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
+4. Register the User Story issue natively with the active tracker provider.
+5. Verify the creation and return the generated issue URLs/IDs to the Orchestrator or User.

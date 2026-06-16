@@ -4,6 +4,14 @@
     "description": "Dynamic verification rules and parameters for pipeline and codebase compliance",
     "upstream_repository": "gintatkinson/digital-pipeline-repo"
   },
+  "tracker_rules": {
+    "provider": "github",
+    "commands": {
+      "list_issues": ["gh", "issue", "list", "--limit", "1000", "--state", "all", "--json", "number,title,state,labels"],
+      "edit_issue": ["gh", "issue", "edit", "{number}", "--body-file", "{temp_path}"],
+      "close_issue": ["gh", "issue", "close", "{number}", "--comment", "{comment}"]
+    }
+  },
   "backlog_directories": {
     "epics": "docs/epics",
     "features": "docs/features",
@@ -25,7 +33,10 @@
     "selection_keywords": ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"],
     "interaction_keywords": ["onClick", "onDrag", "onMouseDown", "onPointerDown"],
     "playhead_clamp_regex": ["0\\.9\\b", "1\\.1\\b"],
-    "playhead_clamp_range": [0.90, 1.10]
+    "playhead_clamp_range": [0.90, 1.10],
+    "ast_compliance_method": "stopPropagation",
+    "viewport_file_patterns": ["topologymap", "viewport"],
+    "network_file_patterns": ["gateway", "socket", "grpc"]
   },
   "flutter_rules": {
     "file_extensions": [".dart"],
@@ -40,7 +51,9 @@
     "playhead_clamp_regex": ["0\\.9\\b", "1\\.1\\b"],
     "ffi_keywords": ["dart:ffi"],
     "ffi_finalizer_keywords": ["nativefinalizer"],
-    "ffi_refcount_keywords": ["refcount", "referencecount", "addref", "release", "finalizer"]
+    "ffi_refcount_keywords": ["refcount", "referencecount", "addref", "release", "finalizer"],
+    "viewport_file_patterns": ["topologymap", "viewport"],
+    "network_file_patterns": ["gateway", "socket", "grpc"]
   },
   "python_rules": {
     "exclusions": ["node_modules", "build", "dist", "coverage", ".git", "skills", ".tessl-plugin"]

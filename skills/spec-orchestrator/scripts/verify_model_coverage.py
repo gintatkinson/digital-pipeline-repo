@@ -1487,81 +1487,7 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
 
     return errors
 
-    docs_dir = os.path.dirname(features_dir)
-    user_stories_dir = os.path.join(docs_dir, "user-stories")
-    use_cases_dir = os.path.join(docs_dir, "use-cases")
-    
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    triggers = load_behavioral_triggers(schema_dir, script_dir)
-    
-    # Collect all definitions from all modules (and normalize their case)
-    all_nodes_normalized = {normalize_case(node) for defs in modules.values() for node in defs}
-        
-    errors = []
-    for trigger in triggers:
-        trigger_nodes = trigger.get("trigger_nodes", [])
-        # Check if the schema contains any of the trigger nodes (case-normalized)
-        normalized_trigger_nodes = [normalize_case(node) for node in trigger_nodes]
-        if not any(node in all_nodes_normalized for node in normalized_trigger_nodes):
-            continue
-            
-        for rule in trigger.get("rules", []):
-            target_type = rule.get("target_type")
-            target_dir = user_stories_dir if target_type == "user-story" else use_cases_dir
-            
-            files = []
-            if os.path.exists(target_dir):
-                files = [os.path.join(target_dir, f) for f in os.listdir(target_dir) if f.endswith(".md")]
 
-            # Find all files that contain any of the trigger nodes
-            trigger_files = []
-            for filepath in files:
-                try:
-                    with open(filepath, "r", encoding="utf-8") as f:
-                        content = f.read()
-                except Exception as e:
-                    print(f"Warning: Failed to read file {filepath}: {e}")
-                    continue
-                
-                norm_content = normalize_case(content)
-                if any(node in norm_content for node in normalized_trigger_nodes):
-                    trigger_files.append((filepath, content))
-
-            if not trigger_files:
-                errors.append(f"Validation failed: No {target_type} files found referencing any trigger nodes: {', '.join(trigger_nodes)}. {rule.get('error_message')}")
-                continue
-
-            for filepath, content in trigger_files:
-                file_valid = True
-
-                # Check mermaid block requirement if specified
-                mermaid_type = rule.get("requires_mermaid_block")
-                if mermaid_type:
-                    mermaid_matches = re.findall(rf"```mermaid\s*\n\s*{mermaid_type}(.*?)\n```", content, re.DOTALL)
-                    if not mermaid_matches:
-                        file_valid = False
-                    else:
-                        mermaid_terms = rule.get("match_terms_in_mermaid", [])
-                        if mermaid_terms:
-                            if not any(any(term in m_content for term in mermaid_terms) for m_content in mermaid_matches):
-                                file_valid = False
-
-                # Check terms in body
-                body_terms = rule.get("match_terms_in_body", [])
-                if body_terms:
-                    if not any(term in content.lower() for term in body_terms):
-                        file_valid = False
-
-                # Check secondary terms in body if specified
-                body_terms_sec = rule.get("match_terms_in_body_secondary", [])
-                if body_terms_sec:
-                    if not any(term in content.lower() for term in body_terms_sec):
-                        file_valid = False
-
-                if not file_valid:
-                    errors.append(f"In {os.path.basename(filepath)}: {rule.get('error_message')}")
-
-    return errors
 
 def strip_js_comments(content):
     pattern = r'(/\*.*?\*/)|(//[^\n]*)'
@@ -1579,20 +1505,20 @@ def strip_dart_comments(content):
         return match.group(0)
     return re.sub(pattern, replacer, content, flags=re.DOTALL)
 
-def walk_json_ast_for_compliance(node):
+def walk_json_ast_for_compliance(node, target_method="stopPropagation"):
     if isinstance(node, dict):
         if node.get("type") == "CallExpression":
             callee = node.get("callee", {})
             if callee.get("type") == "MemberExpression":
                 property_name = callee.get("property", {}).get("name")
-                if property_name == "stopPropagation":
+                if property_name == target_method:
                     return True
         for k, v in node.items():
-            if walk_json_ast_for_compliance(v):
+            if walk_json_ast_for_compliance(v, target_method):
                 return True
     elif isinstance(node, list):
         for item in node:
-            if walk_json_ast_for_compliance(item):
+            if walk_json_ast_for_compliance(item, target_method):
                 return True
     return False
 
@@ -1682,6 +1608,15 @@ def verify_codebase_compliance(workspace_dir):
     react_net_dirs = react_rules.get("network_directories")
     if react_net_dirs is None:
         raise ValueError("Missing 'react_rules.network_directories' in codebase_rules.json")
+    react_ast_compliance_method = react_rules.get("ast_compliance_method")
+    if react_ast_compliance_method is None:
+        raise ValueError("Missing 'react_rules.ast_compliance_method' in codebase_rules.json")
+    react_viewport_file_patterns = react_rules.get("viewport_file_patterns")
+    if react_viewport_file_patterns is None:
+        raise ValueError("Missing 'react_rules.viewport_file_patterns' in codebase_rules.json")
+    react_network_file_patterns = react_rules.get("network_file_patterns")
+    if react_network_file_patterns is None:
+        raise ValueError("Missing 'react_rules.network_file_patterns' in codebase_rules.json")
     
     # Resolve Flutter rules
     flutter_rules = rules.get("flutter_rules")
@@ -1728,6 +1663,12 @@ def verify_codebase_compliance(workspace_dir):
     flutter_net_dirs = flutter_rules.get("network_directories")
     if flutter_net_dirs is None:
         raise ValueError("Missing 'flutter_rules.network_directories' in codebase_rules.json")
+    flutter_viewport_file_patterns = flutter_rules.get("viewport_file_patterns")
+    if flutter_viewport_file_patterns is None:
+        raise ValueError("Missing 'flutter_rules.viewport_file_patterns' in codebase_rules.json")
+    flutter_network_file_patterns = flutter_rules.get("network_file_patterns")
+    if flutter_network_file_patterns is None:
+        raise ValueError("Missing 'flutter_rules.network_file_patterns' in codebase_rules.json")
     
     # Resolve Python rules
     python_rules = rules.get("python_rules")
@@ -1784,20 +1725,6 @@ def verify_codebase_compliance(workspace_dir):
         flutter_hex = "ff" + clean_hex
         hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
     
-    # Generate react colors (lowercase hex values)
-    hardcoded_colors_react = {}
-    for hex_val in forbidden_colors_hex:
-        hardcoded_colors_react[hex_val] = f"Forbidden design token color ({hex_val})"
-
-    # Generate flutter colors (with 0xff prefix and lowercase/uppercase variations)
-    hardcoded_colors_flutter = {}
-    for hex_val in forbidden_colors_hex:
-        clean_hex = hex_val.replace("#", "")
-        if len(clean_hex) == 3:
-            clean_hex = "".join([c*2 for c in clean_hex])
-        flutter_hex = "ff" + clean_hex
-        hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
-    
     # 1. React Web Codebase Compliance
     if os.path.exists(react_dir):
         for root, dirs, files in os.walk(react_dir):
@@ -1831,7 +1758,7 @@ def verify_codebase_compliance(workspace_dir):
                         try:
                             with open(ast_path, "r", encoding="utf-8") as f:
                                 ast_tree = json.load(f)
-                            if not walk_json_ast_for_compliance(ast_tree):
+                            if not walk_json_ast_for_compliance(ast_tree, react_ast_compliance_method):
                                 errors.append(f"React File '{rel_path}' (AST Verified) fails Event-Echo Guard compliance check.")
                             ast_verified = True
                         except Exception as e:
@@ -1840,8 +1767,8 @@ def verify_codebase_compliance(workspace_dir):
                     # If not verified by AST JSON, run comment-stripped fallback check
                     if not ast_verified:
                         if any(kw in clean_content for kw in react_selection_keywords) and any(kw in clean_content for kw in react_interaction_keywords):
-                            if "stopPropagation" not in clean_content:
-                                errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call 'stopPropagation()'. This violates the Event-Echo Guard.")
+                            if react_ast_compliance_method not in clean_content:
+                                errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call '{react_ast_compliance_method}()'. This violates the Event-Echo Guard.")
                                 
                     # Worker Import Restrictions (Web Workers separation)
                     is_react_ui = False
@@ -1852,19 +1779,29 @@ def verify_codebase_compliance(workspace_dir):
                     if is_react_ui:
                         if any(lib in clean_content for lib in react_forbidden_words):
                             errors.append(f"React File '{rel_path}' is a UI view/component but imports SGP4 orbit propagation libraries directly. Orbital calculations must run exclusively in a background Web Worker.")
-
+ 
                     # Egress Write-Lock Check (Network-level Echo Guard)
                     is_react_net = False
                     for d in react_net_dirs:
                         if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
                             is_react_net = True
                             break
-                    if is_react_net and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
+                    is_react_net_file = False
+                    for pat in react_network_file_patterns:
+                        if pat in file.lower():
+                            is_react_net_file = True
+                            break
+                    if is_react_net and is_react_net_file:
                         if not any(lock_kw in clean_content.lower() for lock_kw in react_write_lock_keywords):
                             errors.append(f"React Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
                             
                     # Playhead rate clamps check
-                    if "topologymap" in rel_path.lower() or "viewport" in rel_path.lower():
+                    is_react_viewport = False
+                    for pat in react_viewport_file_patterns:
+                        if pat in rel_path.lower():
+                            is_react_viewport = True
+                            break
+                    if is_react_viewport:
                         if not all(re.search(pat, clean_content) for pat in react_playhead_clamp_regex):
                             errors.append(f"React Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps [0.90, 1.10] for 4D spatial-temporal viewports.")
 
@@ -1916,12 +1853,22 @@ def verify_codebase_compliance(workspace_dir):
                         if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
                             is_flutter_net = True
                             break
-                    if is_flutter_net and ("gateway" in file.lower() or "socket" in file.lower() or "grpc" in file.lower()):
+                    is_flutter_net_file = False
+                    for pat in flutter_network_file_patterns:
+                        if pat in file.lower():
+                            is_flutter_net_file = True
+                            break
+                    if is_flutter_net and is_flutter_net_file:
                         if not any(lock_kw in clean_content_lower for lock_kw in flutter_write_lock_keywords):
                             errors.append(f"Flutter Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
                             
                     # Playhead rate clamps check
-                    if "topologymap" in rel_path.lower() or "viewport" in rel_path.lower():
+                    is_flutter_viewport = False
+                    for pat in flutter_viewport_file_patterns:
+                        if pat in rel_path.lower():
+                            is_flutter_viewport = True
+                            break
+                    if is_flutter_viewport:
                         if not all(re.search(pat, clean_content) for pat in flutter_playhead_clamp_regex):
                             errors.append(f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps [0.90, 1.10] for 4D spatial-temporal viewports.")
                             

@@ -22,7 +22,7 @@
       }
     },
     "typography": {
-      "fonts": ["Outfit", "Roboto", "system-ui"],
+      "fonts": ["token.font.primary", "token.font.secondary", "system-ui"],
       "scale": "high-density"
     }
   },
@@ -82,7 +82,7 @@
                 "allow_pan_zoom": true
               },
               "bindings": {
-                "data_source": "schema:spatial-temporal-topology/topology[@topology-id='selected_managed_object']",
+                "data_source": "query:spatial-temporal-topology[@id='selected_managed_object']",
                 "selection_target": "active_focused_node",
                 "coordinate_mapping": {
                   "x": "coordinates/coord_0",
@@ -121,7 +121,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "schema:network-topology/topology/node[@node-id='active_focused_node']/contained-elements"
+                    "data_source": "query:contained-elements[@node-id='active_focused_node']"
                   }
                 },
                 {
@@ -135,7 +135,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "schema:alarm-management/alarms[target-resource='active_focused_node']"
+                    "data_source": "query:active-alarms[@target-resource='active_focused_node']"
                   }
                 },
                 {
@@ -149,7 +149,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "schema:event-log/events[source-resource='active_focused_node']"
+                    "data_source": "query:historical-events[@source-resource='active_focused_node']"
                   }
                 }
               ]

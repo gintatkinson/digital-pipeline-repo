@@ -132,9 +132,9 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 
 ### 2.6 Labeling Taxonomy
 
-- Exactly four label types: `epic`, `feature`, `user-story`, `use-case`.
-- Labels are bootstrapped via `gh label create --force` to ensure idempotency.
-- Each GitHub issue carries exactly one of these labels.
+- Exactly four label types: `epic`, `feature`, `user-story`, `use-case`, or as defined by the issue tracker configuration.
+- Labels are bootstrapped via the configured label bootstrap command (e.g., using the tracker CLI interface) to ensure idempotency.
+- Each tracker issue carries exactly one of these labels.
 
 ---
 
@@ -142,26 +142,28 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 
 ### 3.1 Commit Format
 
+Commit formats are configured via workflow parameters. By default:
 - Specification commits: `docs: [action] [artifact type] -- [brief description]`
   - Example: `docs: create feature -- display node attributes with validation`
   - Example: `docs: update epic -- add domain-registration features`
-- Implementation commits: `feat:`, `fix:`, `test:`, `refactor:`, `chore:` per Conventional Commits.
+- Implementation commits: `feat:`, `fix:`, `test:`, `refactor:`, `chore:` per Conventional Commits, or as overridden by project repository settings.
 
 ### 3.2 Branch Strategy
 
+Branching strategies are configured via workflow parameters. By default:
 - Specification work: directly on the default branch (e.g. `main`/`master`) or a single `spec/<module>` branch if the change is large.
-- Implementation work: `feat/<issue-number>-<short-description>` branches.
+- Implementation work: `feat/<issue-number>-<short-description>` branches, or as configured by the workflow configuration.
 
 ### 3.3 Documentation Standards
 
 - All generated markdown files include YAML frontmatter.
 - All generated markdown files include a "Source References" section at the bottom.
-- No orphan documents -- every file must be linked from at least one GitHub issue.
+- No orphan documents -- every file must be linked from at least one tracker issue.
 
 ### 3.4 Idempotency
 
 - Re-running any pipeline skill MUST NOT create duplicate issues or documents.
-- Duplicate detection uses normalized title matching against existing GitHub issues.
+- Duplicate detection uses normalized title matching against existing tracker issues.
 - If a duplicate is found, skip creation and log a note.
 
 ### 3.5 Error Handling
@@ -185,7 +187,7 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 - **Post-Worker A (Schema Extraction):** Every schema node maps to at least one Feature. Coverage = 100%.
 - **Post-Worker B (User Stories):** Every User Story links to at least one Feature via the Required Features Matrix.
 - **Post-Worker C (Use Cases):** Every Use Case links to at least one User Story and one Feature via the Realization Matrix.
-- **Post-Worker D (Reconciliation):** All local markdown checklist states match GitHub issue states. All completed items are closed.
+- **Post-Worker D (Reconciliation):** All local markdown checklist states match tracker issue states. All completed items are closed.
 
 ### 4.2 Model Coverage Verification
 
@@ -194,7 +196,7 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 
 ### 4.3 Cross-Reference Integrity
 
-- No broken issue links (all `#N` references must resolve to existing GitHub issues).
+- No broken issue links (all `#N` references must resolve to existing tracker issues).
 - No orphan Features (every Feature belongs to exactly one Epic).
 - No orphan User Stories (every Story links to at least one Feature).
 

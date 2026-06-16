@@ -35,7 +35,7 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 - **Anatomy:** High-density grid containing columns, rows, sort indicators, and multiselect checkboxes.
 - **Columns:** Dynamically constructed based on the selected/associated managed object's data schema to display all configured/allowed attributes, properties, and child elements. Includes standard attributes (Object Icon, Name, Type, Family, Alarms, Primary State, Secondary States) alongside all schema-defined attributes.
 - **Performance:** Supports virtualized list rendering to optimize viewport performance.
-- **Tabbed Layout Integration:** To support legacy (e.g. IBM ILOG JViews TGO) and next-gen workflows, multiple specialized DensityTables (e.g. Elements, Alarms, Events) are organized inside a bottom-docked `TabbedContainer`, dynamically loading lists associated with the selected topological managed object.
+- **Tabbed Layout Integration:** To support legacy industrial state visualizations and next-gen workflows, multiple specialized DensityTables (e.g. Elements, Alarms, Events) are organized inside a bottom-docked `TabbedContainer`, dynamically loading lists associated with the selected topological managed object.
 
 ## 7. ContextualPanel
 - **Anatomy:** Side drawer panel sliding from the viewport edges.
