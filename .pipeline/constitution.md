@@ -165,7 +165,7 @@ To prevent semantic divergence between structural design and dynamic behavior:
 
 ### 3.6 User Authorization Lock & Compliance Check
 
-- **Authorization Lock**: The agent is strictly forbidden from invoking any file-writing tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) or terminal execution tools (`run_command`) in interactive developer sessions unless the user's latest message contains the word `PROCEED` (case-insensitive). This lock is bypassed during automated, non-interactive evaluation runner scenarios to allow validation suites to execute.
+- **Authorization Lock**: The agent is strictly forbidden from invoking any file-writing tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) or terminal execution tools (`run_command`) unless the user's latest message contains the word `PROCEED` (case-insensitive).
 - **Mandatory Compliance Check**: Every agent thought block must begin with the 3-point Karpathy Compliance Check:
   * Is the user's message a question/inquiry or a direct command?
   * Has the user explicitly approved a file-write/command execution for this turn? (Yes/No)
