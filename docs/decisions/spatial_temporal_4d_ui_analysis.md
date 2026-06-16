@@ -13,10 +13,10 @@ Safety-critical command and control systems manage moving objects across differe
 
 ```mermaid
 flowchart LR
-    subgraph Input Coordinate Reference Systems
-        A[Air (WGS84 / Geodetic)]
-        B[Orbit (ICRF / J2000 Cartesian)]
-        C[Body-Fixed (IAU2000 Mars/Moon)]
+    subgraph "Input Coordinate Reference Systems"
+        A["Air (WGS84 / Geodetic)"]
+        B["Orbit (ICRF / J2000 Cartesian)"]
+        C["Body-Fixed (IAU2000 Mars/Moon)"]
     end
 
     D[Unified ECEF / ECI Cartesian Frame]
