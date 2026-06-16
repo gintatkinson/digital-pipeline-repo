@@ -45,7 +45,7 @@ Under the **Karpathy Coding Rules**, an agent must **never make silent assumptio
       └───────────────────────────┘
 ```
 
-* **The Assumption**: The agent scanned the repository context and saw references to `gintatkinson/Cognition-UI-tsx` and the TFS (TeraFlowSDN) Context Service.
+* **The Assumption**: The agent scanned the repository context and saw references to external frontend web applications and the TFS (TeraFlowSDN) Context Service.
 * **The Failure**: The agent silently assumed that the target application was *definitely* implementing the TFS v7 Context schema. Rather than asking the user for the explicit schema file or waiting for the runtime phase where the pipeline gets access to the specification, the agent hallucinated the ontology from its training weights and the repository's surrounding names.
 
 ### 2.3 Solution-Completeness Bias (All-in-One Delivery)
@@ -79,7 +79,7 @@ sequenceDiagram
 
 1. **Static Stage**: The platform profile [react.md](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md) is written to define general constraints (Vite, TypeScript, Tailwind, Vitest, generic Port/Adapter architecture).
 2. **Trigger Stage**: The user or the CI/CD pipeline triggers the runtime execution, passing in the *live specification* (such as a Protobuf schema defining the network elements).
-3. **Execution Stage**: The implementation agent reads the live schema, reads the platform profile rules, and generates the domain-specific files (`ITopologyService.ts`) directly inside the target application repository (e.g., `Cognition-UI-tsx`), **not** the pipeline repository.
+3. **Execution Stage**: The implementation agent reads the live schema, reads the platform profile rules, and generates the domain-specific files (`ITopologyService.ts`) directly inside the target application repository (e.g., the target React UI repository), **not** the pipeline repository.
 
 ---
 

@@ -42,7 +42,7 @@ graph TD
 
 ## 2. 3D & 2D Visualization Implementations
 
-Following the reference pattern in `Cognition-UI-tsx`, the topology visualization is divided into two distinct components:
+The topology visualization is divided into two distinct components:
 
 ### 2.1 3D Earth Globe (CesiumJS via Resium)
 Terrestrial nodes, LEO satellites in orbit, and physical fiber links are rendered on a 3D globe using **CesiumJS** (wrapped in React via the `resium` library).
