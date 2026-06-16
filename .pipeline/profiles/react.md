@@ -24,13 +24,12 @@ last_updated: "2026-06-15"
 - **Router**: React Router v7 (SPA routing with trailing slash normalization)
 
 ### 1.2 Deployment Target Mappings
-- **Standalone Development Sandbox**: Vite dev server + Express v4.x embedded static server for local sandbox debugging.
-- **Embedded Production Target**: Compiled into static HTML5 assets served by Express/CDN, or loaded dynamically inside a **Flutter Webview container** (using WebView2 on Windows and WebKit on macOS).
-- **Database Framework**: Firebase / Cloud Firestore Web SDK v12.x.
+- **Production Web Deployment**: Compiled static assets served directly via CDN, static hosting platforms (Firebase Hosting, Vercel), or self-hosted NGINX/Express containers.
+- **Desktop Distribution Target (Optional)**: Compiled into static assets wrapped inside a **Tauri** desktop container utilizing native webview bindings.
+- **Database Framework**: Firebase / Cloud Firestore Web SDK v12.x or gRPC-Web client bindings.
 
 ### 1.3 Forbidden Dependencies
-- Do NOT use Electron, Tauri, NW.js, or other thick-desktop wrapper frameworks inside this React repository. Flutter handles the native desktop application shell.
-- Do NOT import Node-specific built-ins (`fs`, `path`, `child_process`) directly in React components. All OS-level or storage interactions must go through the Flutter webview javascript channel or synchronise via Firestore documents.
+- Do NOT import Node-specific built-ins (`fs`, `path`, `child_process`) directly in React client-side components. Any OS-level or local storage operations must execute via the Tauri FFI IPC bridge (when compiled for desktop) or standard web APIs.
 - Do NOT install TailwindCSS v3 or legacy PostCSS configuration scripts.
 
 ---

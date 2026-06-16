@@ -1,19 +1,19 @@
-# React Hybrid Multi-Source Deployment Architecture Blueprint
+# React Web-Centric Single-Stack Deployment Architecture Blueprint (Option A)
 
-This blueprint outlines the deployment architecture for the 3D topology visualization module. It supports a unified **Hybrid Flutter Shell + Embedded React** model, with swappable data bindings:
-1. **Firestore Web SDK Adapter**: Standard reactive cloud snapshot synchronization.
-2. **Protobuf gRPC-Web Adapter**: High-performance RPC and event stream connectivity.
+This blueprint outlines the simplified web-centric architecture for the 3D topology visualization module. Following the adversarial audit critique, this blueprint establishes a **Single-Runtime React Web Application** (Option A), completely eliminating the hybrid Flutter shell wrapper and double-runtime WebView complexities.
 
 ---
 
 ## 1. Architectural Strategy
 
-To support swappable data backends, the application utilizes a strict **Hexagonal Architecture (Ports and Adapters)**. The React 3D view is completely decoupled from the data binding layer.
+To maintain maximum runtime efficiency and a unified TypeScript/JavaScript toolchain, the entire application executes inside a single browser or native web runtime context. Data retrieval and visualization are decoupled using a strict **Hexagonal Architecture (Ports and Adapters)**.
 
 ```mermaid
 graph TD
-    subgraph UI ["User Interface Layer"]
-        ReactUI[React 3D Canvas] --> Ports[Service Ports / Interfaces]
+    subgraph UI ["User Interface Layer (React 19 + Vite)"]
+        ReactUI[React App Shell & Router] --> CesiumView[CesiumJS 3D Globe View]
+        ReactUI --> D3View[D3.js 2D Layer Cake View]
+        ReactUI --> Ports[ITopologyService Port]
     end
 
     subgraph Adapters ["Adapters Layer (Swappable Bindings)"]
@@ -22,7 +22,9 @@ graph TD
     end
 
     subgraph Data ["Data & Server Layer"]
-        FirestoreAdapter --> CloudFirestore{{Google Cloud Firestore}}
+        FirestoreAdapter --> LocalCache[(IndexedDB Offline Cache)]
+        LocalCache <==> CloudFirestore{{Google Cloud Firestore}}
+        
         ProtoAdapter --> EnvoyProxy{{Envoy gRPC-web Proxy}}
         EnvoyProxy --> ProtoBackend{{TFS Context Service / gRPC Backend}}
     end
@@ -32,94 +34,103 @@ graph TD
     style Data fill:#4C566A,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
 ```
 
-- **Loose Coupling**: React rendering layers bind exclusively to Ports (abstract TypeScript interfaces like `ITopologyService`).
-- **Swappable Bindings**: Swapping the database from Firestore to a Protobuf API involves only replacing the adapter binding (e.g., injecting `GrpcWebTopologyAdapter` instead of `FirestoreTopologyAdapter`), leaving all UI rendering code entirely unchanged.
+- **Single Runtime**: Eliminates the Dart VM / Flutter C++ wrapper. Observability, debugging, and styling (Tailwind CSS v4) are unified inside a single JavaScript context.
+- **Loose Coupling**: Rendering layers (CesiumJS and D3.js) bind exclusively to clean TypeScript Port interfaces (like `ITopologyService`), keeping them 100% database-agnostic.
+- **Swappable Bindings**: The application can swap its data source from Firestore to a gRPC/Protobuf API simply by swapping the injected Adapter, leaving the UI components completely unchanged.
 
 ---
 
-## 2. Deployment Archetype 1: Standalone React Dev Sandbox (Vite/Express)
+## 2. 3D & 2D Visualization Implementations
 
-For local development, testing, and isolated UI work on the 3D topology view, the React module runs as a standalone Vite web project.
+Following the reference pattern in `Cognition-UI-tsx`, the topology visualization is divided into two distinct components:
 
-### 2.1 Developer Local Offline-First Persistence (Firestore Mode)
-The React module uses the Firebase Web SDK's offline capabilities (`IndexedDB`) to support disconnected testing:
+### 2.1 3D Earth Globe (CesiumJS via Resium)
+Terrestrial nodes, LEO satellites in orbit, and physical fiber links are rendered on a 3D globe using **CesiumJS** (wrapped in React via the `resium` library).
+* **High-DPI Sharp Rendering**: The viewer uses custom pixel ratio overrides to prevent blurriness on Retina/4K screens:
+  ```typescript
+  viewer.resolutionScale = Math.min(window.devicePixelRatio || 1.0, 2.0);
+  viewer.useBrowserRecommendedResolution = false;
+  ```
+* **Anti-Aliasing**: Fast Approximate Anti-Aliasing (FXAA) post-processing is enabled for crisp line rendering:
+  ```typescript
+  if (viewer.scene.postProcessStages.fxaa) {
+    viewer.scene.postProcessStages.fxaa.enabled = true;
+  }
+  ```
+* **Terrain & Elevation**: Globe rendering enables depth-testing against 3D terrain to show realistic elevations:
+  ```typescript
+  viewer.scene.globe.depthTestAgainstTerrain = true;
+  ```
 
-```typescript
-// src/services/firestore-init.ts
-import { initializeApp } from 'firebase/app';
-import { 
-  initializeFirestore, 
-  persistentLocalCache, 
-  persistentMultipleTabManager,
-  connectFirestoreEmulator
-} from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
-
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore with persistent IndexedDB cache
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
-
-// Developer Sandboxing with local emulator
-if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATOR === 'true') {
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  console.log('Connected to local Firestore emulator (localhost:8080)');
-}
-```
+### 2.2 2D Layer Cake (D3.js Force Layout)
+To represent logical interfaces, VLAN configurations, and QKD keys, a horizontal "Layer Cake" view is drawn using SVG and **D3.js dynamic force layouts**.
+* **Planes**: Nodes are partitioned into five horizontal bands:
+  1. Space (LEO Orbit / Infrastructure)
+  2. Layer 3 (IP/MPLS Core)
+  3. Layer 2 (Carrier Access & Ethernet Switches)
+  4. Layer 1/0 (Optical ROADM / Transport)
+  5. QKD Plane (Quantum Key Distribution)
+* **Alignment Forces**: Custom Y-axis alignment forces keep nodes inside their respective horizontal plane bands, while X-axis alignment forces distribute terrestrial nodes by longitude and satellites evenly across the space lane.
 
 ---
 
-## 3. Deployment Archetype 2: Embedded Webview (Production Desktop/Web)
+## 3. Persistence & Local Cache
 
-In production, the Flutter application acts as the compile-target host for macOS, Windows, and Web.
+Persistence rules map directly to the `NetworkService` database singleton structure:
 
-### 3.1 Webview Integration
-* **Desktop targets (macOS/Windows)**: Flutter compiles to a native C++ application and embeds the React 3D topology module using native desktop webview widgets (e.g., WebView2 on Windows, WebKit/WKWebView on macOS).
-* **Web targets**: Flutter embeds the React build as a static micro-frontend using an `iframe` element wrapper loaded via Flutter's `HtmlElementView`.
+### 3.1 Firestore Adapter & IndexedDB Caching
+When running in Firestore mode, the Firebase Web SDK manages connection states and offline persistence.
+* **IndexedDB Cache Persistence**: Offline writes and queries are buffered locally using the browser's IndexedDB cache. Writes are immediately reflected to local React snapshot listeners (`onSnapshot`) and automatically synced to the cloud upon reconnection.
+* **Sandbox Configuration**: In developer sandboxes, the connection redirects to a local Firestore emulator running on port `8080`.
 
-### 3.2 Decoupled Synchronization via Firestore
-Rather than serialization/IPC bridges, data synchronizes reactively:
-* **Write Path**: Any user edit (dragging a node in React or typing in a Flutter form) updates the Firestore `/nodes/{nodeId}` document.
-- **Reactive Repaint**: Both the Flutter shell (via Dart `snapshots()`) and the React canvas (via JS `onSnapshot()`) listen to database changes. When a coordinate changes, the 3D view repaints automatically in real-time.
+### 3.2 gRPC-Web Adapter & Envoy Proxy
+When running in Protobuf mode, browser-based gRPC-web clients translate calls to HTTP/1.1. An Envoy proxy container terminates HTTP/1.1 and routes native HTTP/2 gRPC requests to the TFS `ContextService` container on port `1010`.
+* **CORS & Headers**: Envoy handles CORS headers and allows authorization bearer tokens to pass through RPC metadata headers.
 
 ---
 
-## 4. Deployment Archetype 3: Hosted gRPC-Web Cloud Server (Envoy Proxy)
+## 4. Deployment Archetypes
 
-To deploy the topology visualizer in environments using the gRPC-web Protobuf binding, the frontend assets are served alongside an Envoy proxy container. Envoy translates browser HTTP/1.1 gRPC-web requests (binary or base64 text) into native HTTP/2 gRPC requests for the backend microservices.
+### 4.1 Archetype 1: Production Web Deployment (CDN or Container)
+* **CDN / Static Hosting**: The compiled static directory (`dist/`) is deployed directly to static site hosting services (e.g., Firebase Hosting, Vercel, NGINX CDN).
+* **Express Container**: For self-hosted cloud environments, Vite builds static assets served by an Express server.
 
-```
-[React Webview / Browser] ──(gRPC-web HTTP 1.1)──> [Envoy Proxy (Port 8080)] ──(gRPC HTTP 2)──> [TFS Context Service (Port 1010)]
-```
+### 4.2 Archetype 2: Desktop Distribution (Tauri Wrapper - Optional)
+If native desktop applications (macOS, Windows, Linux) are required, the compiled static web assets are wrapped inside a **Tauri** shell:
+* **Single Toolchain**: Tauri uses the native system webview, avoiding the heavy duplicate runtimes of Flutter (no Dart VM, no dual caching).
+* **System FFI**: OS-level bindings are managed through Tauri's lightweight Rust IPC bridge.
 
-### 4.1 Local Sandbox Testing Compose (`docker-compose.yml`)
-To start the entire topology service with gRPC-web and Envoy proxies locally:
+### 4.3 Archetype 3: Local Developer Sandbox (`docker-compose.yml`)
+To spin up the React frontend, Firestore Emulator, and Envoy proxy sidecar:
 
 ```yaml
 version: '3.8'
 
 services:
-  frontend:
+  frontend-dev:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
+      - VITE_USE_EMULATOR=true
       - VITE_GRPC_ENDPOINT_URL=http://localhost:8080
     depends_on:
-      - envoy
+      - firestore-emulator
+      - envoy-proxy
 
-  envoy:
+  firestore-emulator:
+    image: mtlynch/firestore-emulator:latest
+    ports:
+      - "8080:8080" # Firestore emulator port
+
+  envoy-proxy:
     image: envoyproxy/envoy:v1.28-latest
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml
     ports:
-      - "8080:8080" # gRPC-web proxy port
+      - "8082:8082" # gRPC-web proxy port
     depends_on:
       - context-service
 
@@ -127,113 +138,34 @@ services:
     image: gintatkinson/tfs-v7-golden-context:latest
     ports:
       - "1010:1010" # Native gRPC port
-    environment:
-      - DB_CONNECTION_STRING=postgres://db-user:pass@db-host:5432/tfs
-```
-
-### 4.2 Envoy Configuration (`envoy.yaml`)
-Configure Envoy to load the gRPC-web filter, strip CORS headers, and route requests to the `context-service`:
-
-```yaml
-static_resources:
-  listeners:
-  - name: listener_0
-    address:
-      socket_address: { address: 0.0.0.0, port_value: 8080 }
-    filter_chains:
-    - filters:
-      - name: envoy.filters.network.http_connection_manager
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-          codec_type: auto
-          stat_prefix: ingress_http
-          route_config:
-            name: local_route
-            virtual_hosts:
-            - name: local_service
-              domains: ["*"]
-              routes:
-              - match: { prefix: "/" }
-                route:
-                  cluster: tfs_context_service
-                  timeout: 0s
-                  max_stream_duration:
-                    grpc_timeout_header_max: 0s
-              cors:
-                allow_origin_string_match:
-                - safe_regex:
-                    google_re2: {}
-                    regex: ".*"
-                allow_methods: "GET, PUT, POST, DELETE, OPTIONS"
-                allow_headers: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-next,x-grpc-web,grpc-timeout,authorization"
-                max_age: "1728000"
-                expose_headers: "grpc-status,grpc-message"
-          http_filters:
-          - name: envoy.filters.http.cors
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
-          - name: envoy.filters.http.grpc_web
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
-          - name: envoy.filters.http.router
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-
-  clusters:
-  - name: tfs_context_service
-    connect_timeout: 0.25s
-    type: logical_dns
-    http2_protocol_options: {} # Enforce HTTP/2 for upstream
-    lb_policy: round_robin
-    load_assignment:
-      cluster_name: tfs_context_service
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: context-service
-                port_value: 1010
 ```
 
 ---
 
-## 5. Platform Mapping Strategy (React to Flutter)
-
-To maintain design parity across the hybrid layers, the React components and hooks correspond directly to Flutter widgets and providers:
-
-| React Concept | Flutter Equivalent | Description |
-|---|---|---|
-| **Vite Dev Server** | `flutter run` | Local development server |
-| **TailwindCSS Classes** | `ThemeData` + Widget styling | Declarative visual styling |
-| **React Context** | Riverpod `Provider` | Shared state and dependency injection |
-| **Custom Hooks (`useAuth`)** | `Notifier` / `StateNotifier` | Encapsulated business and auth logic |
-| **Firebase Web SDK** | `cloud_firestore` / `firebase_auth` | FlutterFire native plugins |
-| **IndexedDB Cache** | SQLite Cache / Hive | Local persistence engines |
-| **JS/Webview Interface** | Dart `JavascriptChannel` | Host-to-Client fallback communication channel |
-
----
-
-## 6. Implementation Action Plan
+## 5. Implementation Action Plan
 
 ```mermaid
 flowchart TD
-    subgraph P1 ["Phase 1: Local Sandbox Setup"]
-        p1_1["Configure Vite Dev Server (1 hour)"] --> p1_2["Implement Ports & Swappable Adapters (1.5 hours)"]
+    subgraph P1 ["Phase 1: React & Dev Sandbox Setup"]
+        p1_1["Setup React 19 + Vite + Tailwind v4 (1 hour)"] --> p1_2["Configure local Firestore Emulator (30 mins)"]
     end
-    subgraph P2 ["Phase 2: WebView & Proxy Integration"]
-        p1_2 --> p2_1["Embed React view in Flutter WebView (1 hour)"] --> p2_2["Configure Firestore Sync & Envoy routing (1.5 hours)"]
+    subgraph P2 ["Phase 2: Visualization Layers"]
+        p1_2 --> p2_1["Implement CesiumJS 3D Globe with FXAA (2 hours)"] --> p2_2["Implement D3.js 2D Layer Cake force layout (2 hours)"]
     end
-    subgraph P3 ["Phase 3: Verification"]
-        p2_2 --> p3_1["Verify Offline Caching & gRPC Calls (1 hour)"] --> p3_2["Run E2E WebView & API Tests (1.5 hours)"]
+    subgraph P3 ["Phase 3: Service Adapters & Persistence"]
+        p2_2 --> p3_1["Write ITopologyService Ports (1 hour)"] --> p3_2["Implement Firestore & gRPC-Web Adapters (2 hours)"]
+    end
+    subgraph P4 ["Phase 4: E2E Verification"]
+        p3_2 --> p4_1["Verify IndexedDB Caching & Envoy Proxy (1 hour)"] --> p4_2["Run Vitest & Playwright E2E checks (1.5 hours)"]
     end
     
     style P1 fill:#2A2D34,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
     style P2 fill:#3B4252,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
     style P3 fill:#434C5E,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
+    style P4 fill:#4C566A,stroke:#4C566A,stroke-width:2px,color:#ECEFF4
 ```
 
-1. **Step 1**: Set up the standalone React Vite configuration for the 3D topology canvas.
-2. **Step 2**: Define the abstract Port interfaces (`ITopologyService`) and code the concrete implementations (`FirestoreTopologyAdapter` and `GrpcWebTopologyAdapter`).
-3. **Step 3**: Embed the React assets inside the Flutter WebView container, configuring real-time Firestore snapshots and the Envoy proxy container for HTTP/1.1 gRPC-web routing.
-4. **Step 4**: Execute manual and automated E2E tests validating offline Firestore mutations and active gRPC streaming event handlers.
+1. **Step 1**: Initialize the Vite workspace using TailwindCSS v4 and configure Firestore Emulator redirections.
+2. **Step 2**: Import the `resium` wrapper and configure D3 force alignment vectors for the Layer Cake plane separation.
+3. **Step 3**: Establish the `ITopologyService` Port interface and write swappable database adapter classes (Firebase Web SDK vs. gRPC-web client classes).
+4. **Step 4**: Run E2E test suites verifying that the map correctly caches and renders in offline states.
