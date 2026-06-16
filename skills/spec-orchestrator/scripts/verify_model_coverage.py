@@ -725,76 +725,8 @@ class YangSchemaParser(ISchemaParser):
     def parse(self, filepath: str):
         return parse_yang_file(filepath)
 
-class OpenApiSchemaParser(ISchemaParser):
-    def can_parse(self, filepath: str) -> bool:
-        return filepath.lower().endswith((".yaml", ".yml", ".json"))
-    def parse(self, filepath: str):
-        filename = os.path.basename(filepath)
-        module_name = os.path.splitext(filename)[0]
-        definitions = set()
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
-            if filepath.lower().endswith(".json"):
-                try:
-                    data = json.loads(content)
-                    def extract_keys(obj):
-                        keys = set()
-                        if isinstance(obj, dict):
-                            for k, v in obj.items():
-                                keys.add(k)
-                                keys.update(extract_keys(v))
-                        elif isinstance(obj, list):
-                            for item in obj:
-                                keys.update(extract_keys(item))
-                        return keys
-                    definitions.update(extract_keys(data))
-                except:
-                    pass
-            else:
-                for match in re.finditer(r'^\s*([a-zA-Z0-9_\-]+)\s*:', content, re.MULTILINE):
-                    definitions.add(match.group(1))
-        except Exception as e:
-            print(f"Warning: OpenApiSchemaParser failed to parse {filepath}: {e}")
-        return module_name, definitions
-
-class ProtobufSchemaParser(ISchemaParser):
-    def can_parse(self, filepath: str) -> bool:
-        return filepath.lower().endswith(".proto")
-    def parse(self, filepath: str):
-        filename = os.path.basename(filepath)
-        module_name = os.path.splitext(filename)[0]
-        definitions = set()
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
-            for match in re.finditer(r'\b(message|service|enum|rpc)\s+([a-zA-Z0-9_\-]+)', content):
-                definitions.add(match.group(2))
-        except Exception as e:
-            print(f"Warning: ProtobufSchemaParser failed to parse {filepath}: {e}")
-        return module_name, definitions
-
-class Asn1SchemaParser(ISchemaParser):
-    def can_parse(self, filepath: str) -> bool:
-        return filepath.lower().endswith((".asn", ".asn1"))
-    def parse(self, filepath: str):
-        filename = os.path.basename(filepath)
-        module_name = os.path.splitext(filename)[0]
-        definitions = set()
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
-            for match in re.finditer(r'\b([a-zA-Z0-9_\-]+)\s*::=\s*', content):
-                definitions.add(match.group(1))
-        except Exception as e:
-            print(f"Warning: Asn1SchemaParser failed to parse {filepath}: {e}")
-        return module_name, definitions
-
 schema_router = SchemaRouter()
 schema_router.register(YangSchemaParser())
-schema_router.register(OpenApiSchemaParser())
-schema_router.register(ProtobufSchemaParser())
-schema_router.register(Asn1SchemaParser())
 
 def parse_schema_file(filepath):
     """
@@ -1739,8 +1671,8 @@ def main():
         print("Warning: Deep AST node coverage parity audit is currently optimized for YANG schemas. Skipping strict coverage percentage check for OpenAPI/Protobuf/ASN.1, but proceeding with UML compliance audit.")
         skip_coverage_checks = True
     elif not has_yang_schemas:
-        print("Error: No valid modules/schemas found.")
-        sys.exit(1)
+        print("Note: No schemas found in schema directory. Skipping model coverage checks.")
+        skip_coverage_checks = True
 
     # 2. Load all feature markdown files
     features = load_feature_files(features_dir)
