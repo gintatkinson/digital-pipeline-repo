@@ -789,6 +789,31 @@ def build_global_classes(features_dir):
                         global_classes[class_name]["methods"].append(method)
     return global_classes
 
+def build_classes_from_features(matching_features):
+    classes = {}
+    for feat in matching_features:
+        content = feat["content"]
+        class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+        for match in class_diagram_matches:
+            parsed_cd = parse_mermaid_class_diagram(match.group(0))
+            for class_name, class_info in parsed_cd["classes"].items():
+                if class_name not in classes:
+                    classes[class_name] = {
+                        "name": class_name,
+                        "attributes": [],
+                        "methods": []
+                    }
+                # Merge attributes and methods avoiding duplicates
+                existing_attrs = {a["name"] for a in classes[class_name]["attributes"]}
+                for attr in class_info["attributes"]:
+                    if attr["name"] not in existing_attrs:
+                        classes[class_name]["attributes"].append(attr)
+                existing_methods = {m["name"] for m in classes[class_name]["methods"]}
+                for method in class_info["methods"]:
+                    if method["name"] not in existing_methods:
+                        classes[class_name]["methods"].append(method)
+    return classes
+
 def verify_uml_diagrams(features_dir, global_classes=None):
     """
     Validates that UML diagrams exist in all generated specs and conform to UML-only rules.
@@ -1277,6 +1302,11 @@ def verify_uml_diagrams(features_dir, global_classes=None):
 
     return errors
 
+def normalize_case(name):
+    if not name:
+        return ""
+    return name.lower().replace('-', '').replace('_', '').replace(' ', '')
+
 def verify_behavioral_triggers(schema_dir, features_dir, modules):
     docs_dir = os.path.dirname(features_dir)
     user_stories_dir = os.path.join(docs_dir, "user-stories")
@@ -1285,60 +1315,72 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     triggers = load_behavioral_triggers(schema_dir, script_dir)
     
-    # Collect all definitions from all modules
-    all_nodes = set()
-    for defs in modules.values():
-        all_nodes.update(defs)
+    # Collect all definitions from all modules (and normalize their case)
+    all_nodes_normalized = {normalize_case(node) for defs in modules.values() for node in defs}
         
     errors = []
     for trigger in triggers:
         trigger_nodes = trigger.get("trigger_nodes", [])
-        # Check if the schema contains any of the trigger nodes
-        if not any(node in all_nodes for node in trigger_nodes):
+        # Check if the schema contains any of the trigger nodes (case-normalized)
+        normalized_trigger_nodes = [normalize_case(node) for node in trigger_nodes]
+        if not any(node in all_nodes_normalized for node in normalized_trigger_nodes):
             continue
             
         for rule in trigger.get("rules", []):
             target_type = rule.get("target_type")
             target_dir = user_stories_dir if target_type == "user-story" else use_cases_dir
             
-            found_match = False
             files = []
             if os.path.exists(target_dir):
                 files = [os.path.join(target_dir, f) for f in os.listdir(target_dir) if f.endswith(".md")]
 
+            # Find all files that contain any of the trigger nodes
+            trigger_files = []
             for filepath in files:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    content = f.read()
+                try:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        content = f.read()
+                except Exception as e:
+                    print(f"Warning: Failed to read file {filepath}: {e}")
+                    continue
+                
+                norm_content = normalize_case(content)
+                if any(node in norm_content for node in normalized_trigger_nodes):
+                    trigger_files.append((filepath, content))
+
+            if not trigger_files:
+                errors.append(f"Validation failed: No {target_type} files found referencing any trigger nodes: {', '.join(trigger_nodes)}. {rule.get('error_message')}")
+                continue
+
+            for filepath, content in trigger_files:
+                file_valid = True
 
                 # Check mermaid block requirement if specified
                 mermaid_type = rule.get("requires_mermaid_block")
                 if mermaid_type:
                     mermaid_matches = re.findall(rf"```mermaid\s*\n\s*{mermaid_type}(.*?)\n```", content, re.DOTALL)
                     if not mermaid_matches:
-                        continue
-                    
-                    mermaid_terms = rule.get("match_terms_in_mermaid", [])
-                    if mermaid_terms:
-                        if not any(any(term in m_content for term in mermaid_terms) for m_content in mermaid_matches):
-                            continue
+                        file_valid = False
+                    else:
+                        mermaid_terms = rule.get("match_terms_in_mermaid", [])
+                        if mermaid_terms:
+                            if not any(any(term in m_content for term in mermaid_terms) for m_content in mermaid_matches):
+                                file_valid = False
 
                 # Check terms in body
                 body_terms = rule.get("match_terms_in_body", [])
                 if body_terms:
                     if not any(term in content.lower() for term in body_terms):
-                        continue
+                        file_valid = False
 
                 # Check secondary terms in body if specified
                 body_terms_sec = rule.get("match_terms_in_body_secondary", [])
                 if body_terms_sec:
                     if not any(term in content.lower() for term in body_terms_sec):
-                        continue
+                        file_valid = False
 
-                found_match = True
-                break
-
-            if not found_match:
-                errors.append(rule.get("error_message", f"Failed validation rule in {trigger.get('name')}"))
+                if not file_valid:
+                    errors.append(f"In {os.path.basename(filepath)}: {rule.get('error_message')}")
 
     return errors
 
@@ -1501,22 +1543,26 @@ def main():
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
 
+    non_yang_extensions = {".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"}
+    has_yang_schemas = False
+    has_non_yang_schemas = False
+    if os.path.exists(schema_dir):
+        for filename in os.listdir(schema_dir):
+            if os.path.isdir(os.path.join(schema_dir, filename)):
+                continue
+            ext = os.path.splitext(filename)[1].lower()
+            if ext == ".yang":
+                has_yang_schemas = True
+            elif ext in non_yang_extensions:
+                has_non_yang_schemas = True
+
     skip_coverage_checks = False
-    if not modules:
-        non_yang_extensions = {".yaml", ".yml", ".json", ".proto"}
-        has_non_yang_schemas = False
-        if os.path.exists(schema_dir):
-            for filename in os.listdir(schema_dir):
-                ext = os.path.splitext(filename)[1].lower()
-                if ext in non_yang_extensions:
-                    has_non_yang_schemas = True
-                    break
-        if has_non_yang_schemas:
-            print("Warning: Deep AST node coverage parity audit is currently optimized for YANG schemas. Skipping strict coverage percentage check for OpenAPI/Protobuf, but proceeding with UML compliance audit.")
-            skip_coverage_checks = True
-        else:
-            print("Error: No valid modules/schemas found.")
-            sys.exit(1)
+    if has_non_yang_schemas:
+        print("Warning: Deep AST node coverage parity audit is currently optimized for YANG schemas. Skipping strict coverage percentage check for OpenAPI/Protobuf/ASN.1, but proceeding with UML compliance audit.")
+        skip_coverage_checks = True
+    elif not has_yang_schemas:
+        print("Error: No valid modules/schemas found.")
+        sys.exit(1)
 
     # 2. Load all feature markdown files
     features = load_feature_files(features_dir)
@@ -1541,12 +1587,15 @@ def main():
             if not matching_features:
                 continue
 
+            # Build classes only from the matching features
+            local_classes = build_classes_from_features(matching_features)
+
             module_defined = len(definitions)
             module_covered = 0
             missing = []
 
             for name in sorted(definitions):
-                # Verify node coverage against class/attribute/method names in global_classes
+                # Verify node coverage against class/attribute/method names in local_classes
                 # Support camelCase and PascalCase variations from kebab-case / snake_case
                 variants = {name}
                 if '-' in name or '_' in name or '.' in name:
@@ -1559,10 +1608,10 @@ def main():
                         variants.add(name[0].upper() + name[1:])
 
                 found = False
-                if any(v in global_classes for v in variants):
+                if any(v in local_classes for v in variants):
                     found = True
                 else:
-                    for cls_info in global_classes.values():
+                    for cls_info in local_classes.values():
                         if any(attr["name"] in variants for attr in cls_info["attributes"]):
                             found = True
                             break

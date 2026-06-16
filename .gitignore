@@ -6,3 +6,9 @@ __pycache__/
 .tessl/
 scratch/
 
+# Credentials & local env configuration
+.env
+.env.local
+.env.*
+*define*.json
+config.json

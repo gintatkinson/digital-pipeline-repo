@@ -7,8 +7,8 @@ tier: functional
 version: "1.0.0"
 created: "2025-06-13"
 created_time: "2025-06-13T00:00:00+00:00"
-last_updated: "2026-06-16"
-last_updated_time: "2026-06-16T22:48:33+08:00"
+last_updated: "2026-06-17"
+last_updated_time: "2026-06-17T01:00:02+08:00"
 ---
 
 # Project Constitution: Digital Systems Engineering Pipeline
@@ -36,16 +36,16 @@ last_updated_time: "2026-06-16T22:48:33+08:00"
 ### 1.3 Data Model Integrity
 
 - Every schema definition, model node, data object, property, variant, custom type, and extension defined in the input schemas MUST map to at least one Feature.
-- Cross-module references (leafref, augment, uses) must be explicitly documented with source and target module names.
+- Cross-module or external schema references (e.g., leafref/augment/uses in YANG, $ref in OpenAPI, imports in Protobuf/ASN.1) must be explicitly documented with source and target module names.
 - Circular dependencies must be flagged and escalated -- do not silently drop them.
 
 ### 1.4 UML Metamodel & Profile Mapping Standard
 
 To maintain rigorous, machine-readable representations, all incoming authoritative schemas (regardless of format: e.g., YANG, OpenAPI, Protobuf, ASN.1, XML Schema, ROS messages, or SysMLv2) MUST map strictly to UML elements according to the following universal profile rules:
 
-- **Namespace & Boundary Constructs**: Top-level schema modules, packages, namespaces, or tag groups map to a **UML Component** or package boundary.
+- **Namespace & Boundary Constructs**: Top-level schema modules, packages, namespaces, or tag groups map to a **UML Component** or **UML Package**.
 - **Structural Entity & Type Definitions**: Message schemas, container types, lists, structural groupings, and objects map to a **UML Class**.
-- **Data Properties & Leaf Nodes**: Individual fields, properties, elements, attributes, or variables map to a **UML Attribute** with appropriate visibility, type, and multiplicity (e.g. `[0..1]`, `[1..1]`, or `[0..*]`).
+- **Data Properties & Leaf Nodes**: Individual fields, properties, elements, attributes, or variables map to a **UML Property** (or owned attribute of a class) with appropriate visibility, type, and multiplicity (e.g. `[0..1]`, `[1..1]`, or `[0..*]`).
 - **Interfaces & Operations**: Services, RPC methods, actions, or operational paths map to a **UML Operation** defined on the target classifier.
 - **Rules & Validation Logic**: Any syntax constraints, range checks, pattern validations, conditional dependencies, or length constraints map to a **UML Constraint** (specified in OCL or formal structured text).
 
@@ -54,8 +54,8 @@ To maintain rigorous, machine-readable representations, all incoming authoritati
 To prevent semantic divergence between structural design and dynamic behavior:
 - **Dynamic-to-Static Alignment**: No class, component, interface, attribute, operation, signal, or message may be used in dynamic behavior diagrams (such as UML Sequence Diagrams or State Machine Diagrams) unless it is explicitly defined in the structural UML Class Diagrams or Component Diagrams.
 - **Sequence Diagram Lifelines**: Every lifeline in a sequence diagram MUST represent an instance of a defined UML Class or Component.
-- **Message and Call Consistency**: Every message (synchronous, asynchronous, or return) in a sequence diagram must map to an active UML Operation or Signal defined on the target classifier's interface/class definition.
-- **State Transition Events**: Every trigger, event, or action on a UML State Machine transition must be defined as a UML Operation or Signal in the class metamodel.
+- **Message and Call Consistency**: Every message (synchronous, asynchronous, or return) in a sequence diagram must map to an active UML Operation or Signal defined on the target classifier's interface/class definition. Note that return/reply messages (represented by dashed lines) are excluded from this operation mapping requirement, as they represent the return of control and output values from an already active operation.
+- **State Transition Events**: Every trigger, event, or action on a UML State Machine transition must be defined as a UML Operation or Signal in the class metamodel. Note that transition effects represent UML Behaviors (such as OpaqueBehavior or Activity) which can invoke operations or send signals, but the effects themselves are not directly defined as operations in the class definition.
 - **Auto-verification Failure**: Any diagram or spec that references undefined operations, classes, or signals will violate the quality gates and halt the pipeline.
 
 ### 1.6 Traceability
