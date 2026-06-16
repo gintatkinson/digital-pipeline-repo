@@ -3,8 +3,11 @@ title: "Implementation Profile — Flutter Platform (Desktop & Web)"
 project: "Digital Systems Engineering Pipeline"
 tier: implementation
 platform: "flutter"
+version: "1.0.0"
 created: "2026-06-16"
+created_time: "2026-06-16T09:52:35Z"
 last_updated: "2026-06-16"
+last_updated_time: "2026-06-16T22:48:33+08:00"
 ---
 
 # Implementation Profile: Flutter Platform (Desktop & Web)
@@ -40,21 +43,30 @@ last_updated: "2026-06-16"
   - lowerCamelCase for variables, constants, parameters, and methods.
   - snake_case for directories and file names (Dart convention).
 - **Type Strictness:** Enforce `analysis_options.yaml` with strict-casts, strict-inference, and strict-raw-types enabled. Use of `dynamic` is prohibited unless explicitly justified.
-- **UI & Design Aesthetics (GKE Standards & UI Adapter Pattern):**
-  - **The UI Adapter Pattern:** The frontend must not generate raw Dart view files for layouts. Structural layout components (splitter layout, hierarchy tree, topology canvas) are written manually once and optimized. Code generators output static JSON configuration schemas (derived from `.pipeline/logical-ui/logical-layout.json`) which are loaded at runtime.
-  - **Design System Tokens:** Style variables (colors, typography, spacing, alarm severities) must be compiled or read directly from `.pipeline/logical-ui/design-tokens.json`, configuring dynamic `ThemeData` tokens at startup.
-  - **Event-Echo Guard:** Property setters must not trigger output event callbacks. Event propagation is restricted exclusively to user-initiated clicks or drag gestures, verified via AST checkers, to prevent infinite rendering loops. Additionally, a network-level write lock must be activated on the API gateway client during timeline playback or scrubbing to prevent egress mutations.
-  - **Splitter Resizing Optimization:** Resizing drag actions must isolate painting boundaries using `RepaintBoundary` widgets on the Topology Canvas and Details Grid to prevent global rebuilds of unchanged subtrees, maintaining 60fps interaction.
-  - **Real-Time Telemetry & 4D Visualization Pipeline (Isolates & GPGPU):**
-    - Sockets, binary packet parsing (gRPC/WebSockets), and telemetry constraint evaluations must run in a background **Dart Isolate**.
-    - For large dataset synchronization, coordinates and trajectories must be allocated on the native C-heap using **Dart FFI** (`Pointer<Double>`) and shared directly between the background isolate and the UI thread to avoid heap cloning overhead.
-    - **Double-Single (DS-FP) Shaders**: 3D coordinates must be split on the CPU into high/low `float32` variables and uploaded to static VRAM buffers. Shaders must perform relative-to-eye (RTE) calculations using emulated double-precision subtraction to eliminate rendering jitter.
-    - **GPGPU Collision Detection**: Group distance/conjunction calculations must utilize **Append Buffers** with GPU atomic counters instead of dense $O(N^2)$ distance matrices, and run a CPU-broadphase (Sweep-and-Prune) / GPU-narrowphase execution split.
-    - **Visual Depth Resolution**: The 3D viewport must use a **Reversed-Z** projection matrix (mapping depth $1.0 \to 0.0$) coupled with a 32-bit floating-point depth buffer (`depth32float`) to prevent planetary-scale z-fighting.
-    - **Direct Compute Integration**: Compute shader executions (like orbital propagation and collision warnings) must run via native C++ plugins communicating directly with Vulkan/Metal APIs to bypass Impeller's compute constraints.
-  - **Ubiquitous Navigation Links:** Every reference to a managed object/attribute must be a selectable link (using styled `InkWell` or `TextButton`) that updates the global provider selection state, triggering a unidirectional update across the sidebar tree, topology canvas, and detail grids.
-  - **Engine Bootstrap FOUC:** Prevent theme flashes during CanvasKit engine loading by maintaining a matching splash screen theme setup in native `index.html`.
-
+- **UI & Design Aesthetics (Google Cloud Console / GKE Standards):**
+  - **Visual Identity:** Interfaces must mimic the clean, high-density, professional look of the Google Cloud Console.
+  - **Theme Selection:**
+    - Must provide a user interface to select between **Light**, **Dark**, and **System** (OS/browser default) themes.
+    - Configure dynamic `ThemeData` tokens at startup using primary, background, and status colors.
+    - Prevent theme flashes during CanvasKit engine loading by maintaining a matching splash screen theme setup in native `index.html`.
+  - **Color Palette:** Curated neutral greys, clean white/dark backgrounds, with specific accent colors:
+    - Google Blue (`#1a73e8`) for primary actions and active navigation states.
+    - Soft red, yellow, and green status chips for resource health indicators.
+  - **Layout & Structure:**
+    - Left-hand collapsible sidebar navigation with hierarchical nesting.
+    - **Vertical Hierarchy Selector:** A dedicated left-side vertical tree selection panel for managed objects, allowing the user to select and drill down through hierarchical parent-child relationships.
+    - **Split Workspace Layout:** For each selected managed object, the main workspace area must render two primary panes separated by a slider adjuster (split bar).
+      - By default, the panes are stacked vertically (horizontal split).
+      - **Reconfigurability:** The positions and orientation of the two primary panes must be reconfigurable by the user.
+      - **Topographical View Pane (Top/Default Pane):** Displays an interactive topographical map representing the selected managed object's topological relations.
+        - Must support relationship filtering and depth constraints.
+      - **Details & Relations Pane (Bottom/Default Pane):** Shows all detailed attributes of the selected managed object.
+        - Must display lists of contained or related managed objects, with direct navigation shortcuts.
+    - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
+    - Breadcrumbs at the top of the content area for deep-level navigation tracking.
+    - High information-density tables with sortable, filterable columns, row selections, and status badges.
+  - **Typography:** Use clean, professional system fonts or Roboto/Outfit.
+  - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
 
 ## 3. Testing Mandates
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.
