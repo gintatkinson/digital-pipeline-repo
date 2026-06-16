@@ -2,8 +2,8 @@
 
 ---
 name: spec-user-story-engineering
-description: "Extracts BDD User Stories from normative specification documents using OOA/OOD modeling. Use when you need to derive behavioral scenarios (Given-When-Then) from protocol specs and matrix them against existing GitHub Feature issues."
-compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+description: "Extracts BDD User Stories from normative specification documents using OOA/OOD modeling. Use when you need to derive behavioral scenarios (Given-When-Then) from protocol specs and matrix them against existing Feature issues in the repository."
+compatibility: "Requires issue tracker CLI and git. Works with modern agentic development environments."
 metadata:
   title: "Specification User Story Engineering (Behavioral Extraction)"
   category: architecture
@@ -26,7 +26,7 @@ In addition to standard deployment scenarios, you MUST scan the specification an
 In addition to standard deployment scenarios, you MUST scan the specification and schema for any temporal/lifecycle expirations, state-decay lifecycles, or timeout transitions (e.g. token expiration, data staleness, status-based data access rules, or lifecycle decay). For every temporal or lifecycle expiration identified, you MUST extract a dedicated, mandatory User Story detailing the transition to the expired state and any postconditions for accessing data in that state.
 
 ## Step 1: Context Ingestion (Operational Text & Schemas)
-1. Ingest the target normative specification document AND the target structural schemas (e.g., YANG, OpenAPI, Protobuf).
+1. Ingest the target normative specification document AND the target structural schemas (e.g., structural or protocol schemas).
 2. **Scan the structural schema definitions** (specifically node descriptions, comments, type restrictions, and validation constraints) to identify:
    - Any derived, calculated, or computed data fields (e.g., speed and heading derived from a velocity vector).
    - Any mathematical formulas, equations, unit conversions, or derivations.
@@ -139,8 +139,8 @@ stateDiagram-v2
 [Verbatim operational constraints or deployment scenarios quoted from the specification]
 
 ## Required Features Matrix
-- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md) (semantic linkage justification)
-- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)

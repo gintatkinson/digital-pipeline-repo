@@ -2,8 +2,8 @@
 
 ---
 name: schema-specification-engineering
-description: "Transforms structural schemas (YANG, OpenAPI, Protobuf) and normative specification documents into Agile Epics and Features. Use when you need to extract platform-independent feature specifications from protocol schemas with exhaustive constraint parsing and Given-When-Then acceptance criteria."
-compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+description: "Transforms structural schemas and normative specification documents into Agile Epics and Features. Use when you need to extract platform-independent feature specifications from database or protocol schemas with exhaustive constraint parsing and Given-When-Then acceptance criteria."
+compatibility: "Requires issue tracker CLI and git. Works with modern agentic development environments."
 metadata:
   title: "Schema Specification Engineering (Structural Extraction)"
   risk: medium
@@ -20,34 +20,34 @@ Use this as the single canonical workflow for translating structural schemas and
 
 > [!IMPORTANT]
 > **EXHAUSTIVE SEMANTIC MODELING MANDATE**
-> Do NOT blindly map every isolated leaf node (e.g., `x`, `y`, `z`) to a separate Feature. You MUST semantically model the schema by grouping cohesive properties into a single logical Feature (e.g., "Cartesian Coordinates"). However, "zero abstraction" still applies: within that grouped Feature, you MUST exhaustively document EVERY underlying leaf node, capturing its exact data type, mathematical constraints (fraction-digits, units), defaults, and verbatim RFC text. No constraint detail may be lost or summarized away.
+> Do NOT blindly map every isolated schema attribute (e.g., `x`, `y`, `z`) to a separate Feature. You MUST semantically model the schema by grouping cohesive properties into a single logical Feature (e.g., "Cartesian Coordinates"). However, "zero abstraction" still applies: within that grouped Feature, you MUST exhaustively document EVERY underlying attribute/node, capturing its exact data type, mathematical constraints (fraction-digits, units), defaults, and verbatim specification text. No constraint detail may be lost or summarized away.
 
 ## Step 1: Forensic Audit & Module Decomposition
 
-1. **Parse the Schema:** Read the primary structural schema file (e.g., `*.yang`, `*.yaml`, `*.proto`) and its imports.
-2. **Identify Top-Level Trees:** Decompose the high-level structural containers (e.g., `/system-config`, `/users`, `/orders`) into discrete logical groupings.
-3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic GitHub issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`). The Epic file MUST contain:
+1. **Parse the Schema:** Read the primary structural schema file (e.g., structural or protocol schema files) and its imports.
+2. **Identify Top-Level Trees:** Decompose the high-level structural attributes (e.g., `/system-config`, `/users`, `/orders`) into discrete logical groupings.
+3. **Establish Epics:** Map these high-level structures directly into Agile "Epics". Do not create the Epic issue yet. First, document it locally as a markdown file (e.g., `docs/epics/epic-01-name.md`). The Epic file MUST contain:
    - An overarching **System-Level UML Class Diagram** using the Mermaid `namespace` keyword to group the subsystem's child classes under a package boundary (UML Package).
    - A **UML Component** representing the subsystem, specifying its provided/required interfaces and operations.
    - A **System State Machine Diagram** representing the macro-level domain, combining the individual structures and lifecycles that will be broken down into child features.
 
 ## Step 2: Exhaustive Feature Extraction
 
-1. **Semantic Feature Breakdown:** Analyze the child containers, choices, or elements. Identify cohesive functional groups (e.g., a "User Profile" containing `first-name`, `last-name`) and map them to a distinct "Feature".
+1. **Semantic Feature Breakdown:** Analyze the child structures, alternative choices, or elements. Identify cohesive functional groups (e.g., a "User Profile" containing `first-name`, `last-name`) and map them to a distinct "Feature".
 2. **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns). Platform-specific implementation details are resolved later via the `feature-driven-implementation` skill using implementation profiles (`.pipeline/profiles/<platform>.md`).
-3. **Exhaustive Constraint Parsing:** For EVERY leaf node within the grouped feature, analyze and record all structural constraints:
-   - `when` and `must` clauses
-   - `type` definitions (fraction-digits, string patterns, identityrefs)
-   - `units` and `default` values
-   - `config false` (operational vs configuration state)
+3. **Exhaustive Constraint Parsing:** For EVERY attribute within the grouped feature, analyze and record all structural constraints:
+   - conditional clauses
+   - type definitions (fraction-digits, string patterns, references)
+   - units and default values
+   - read-only vs configurable state
 4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
-   - **UML Classifier Mapping**: Feature specifications must map to a single primary UML Class or DataType (instead of a subtree of containers) representing the schema node.
-   - **Choice/Case Representation**: Model schema `choice` structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent `case` containers as classes inheriting (`<|--`) from the choice class.
-   - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of YANG or custom types (e.g. `string`, `uint32`, `decimal64`).
+   - **UML Classifier Mapping**: Feature specifications must map to a single primary UML Class or DataType (instead of a subtree of structural nodes) representing the schema entity.
+   - **Choice/Case Representation**: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
+   - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of protocol-specific or custom types (e.g. `uint32`, `decimal64`).
    - **Visibility & Multiplicity**: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
-   - **UML Constraints**: YANG `must` and `when` constraints must map to formal UML `{constraint}` elements or structured notes.
+   - **UML Constraints**: Schema-level constraints must map to formal UML `{constraint}` elements or structured notes.
 5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section divided into the following structured sub-sections:
-   - **1. Test Data Shape (JSON Payload Example)**: A concrete, copy-pasteable JSON payload schema example block showing the exact structure of the test data (including nested objects, leaf types, and default values).
+   - **1. Test Data Shape (JSON Payload Example)**: A concrete, copy-pasteable JSON payload schema example block showing the exact structure of the test data (including nested objects, attribute types, and default values).
    - **2. Validation & Constraints**: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions (e.g., "must-after", "if-then").
    - **3. Visual Layout & Arrangement**: A detailed, platform-independent description of the visual layout. Detail the visual grouping (e.g., layout sections, information density, visual hierarchy, primary vs secondary rows) without naming framework-specific components.
    - **4. Interactive Flow & States**: Detail system states (read-only, edit, empty, loading, error highlighting).
@@ -137,7 +137,7 @@ Use this as the single canonical workflow for translating structural schemas and
     [Verbatim schema grouping/container descriptions from the normative specification]
 
     ## 6. Source References
-    YANG Schema: [Schema File Name]
+    Structural Schema: [Schema File Name]
     Normative Specification: [RFC/Standard Name]
     ```
 

@@ -15,7 +15,7 @@ By feeding these agents a Structural Schema and its associated Normative Specifi
 
 ## Governance: The Functional Constitution
 
-This pipeline ships with a **default functional constitution** at `.pipeline/constitution.md` that governs all specification generation (Pipeline 1). It defines:
+This pipeline ships with a **default functional constitution** (located at the configured pipeline configuration directory, e.g., `<pipeline_dir>/constitution.md`) that governs all specification generation (Pipeline 1). It defines:
 
 | Section | What it governs |
 |---|---|
@@ -27,16 +27,16 @@ This pipeline ships with a **default functional constitution** at `.pipeline/con
 
 The constitution is **read by all skills before execution**. It is the single source of truth for specification quality decisions.
 
-For implementation work (Pipeline 2), platform-specific rules live in **Implementation Profiles** at `.pipeline/profiles/<platform>.md`. These are created per-project, per-platform, and are never read by specification workers.
+For implementation work (Pipeline 2), platform-specific rules live in **Implementation Profiles** (e.g., `<pipeline_dir>/profiles/<platform>.md`). These are created per-project, per-platform, and are never read by specification workers.
 
 ```
-.pipeline/
+<pipeline_dir>/
   constitution.md              <-- Governs Pipeline 1 (all agents read this)
   profiles/
     [platform].md              <-- Governs Pipeline 2 for a specific target stack
 ```
 
-> To customize: edit `.pipeline/constitution.md` directly. The constitution is human-authored, agent-enforced.
+> To customize: edit the constitution file directly. The constitution is human-authored, agent-enforced.
 
 ---
 
@@ -46,29 +46,29 @@ This toolchain operates on a **Master-Worker architecture** with two distinct pi
 
 ### Pipeline 1: Specification Generation (Orchestrator + Workers A-D)
 
-#### `spec-orchestrator` (The Master)
-The overarching command-and-control skill. It triggers workers in sequence, enforces strict validation gates between phases, and includes error recovery (halt-and-escalate on failure). See `skills/spec-orchestrator/SKILL.md`.
+#### Orchestration Module (The Master)
+The overarching command-and-control module. It triggers workers in sequence, enforces strict validation gates between phases, and includes error recovery (halt-and-escalate on failure). Configured via the orchestration skill guides.
 
-#### `schema-specification-engineering` (Worker A: Structure)
-Parses raw schemas. Breaks down structural models into **Epics** and **Features** with exhaustive Given-When-Then acceptance criteria, platform scoping, and verbatim spec context injection. Includes duplicate detection to ensure idempotent re-runs. See `skills/schema-specification-engineering/SKILL.md`.
+#### Structural Spec Engineering Module (Worker A: Structure)
+Parses raw schemas. Breaks down structural models into **Epics** and **Features** with exhaustive Given-When-Then acceptance criteria, platform scoping, and verbatim spec context injection. Includes duplicate detection to ensure idempotent re-runs.
 
-#### `spec-user-story-engineering` (Worker B: Behavior)
-Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on UML OOA/OOD principles. Builds a "Cross-Cutting Matrix" linking scenarios to Features from Worker A. Includes duplicate detection. See `skills/spec-user-story-engineering/SKILL.md`.
+#### Behavioral Spec Engineering Module (Worker B: Behavior)
+Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on UML OOA/OOD principles. Builds a "Cross-Cutting Matrix" linking scenarios to Features. Includes duplicate detection.
 
-#### `spec-usecase-engineering` (Worker C: System Interaction)
-Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Scenarios, Alternate Flows, Postconditions) and maps them to User Stories and Features in a Realization Matrix. Includes duplicate detection. See `skills/spec-usecase-engineering/SKILL.md`.
+#### System Interaction Spec Engineering Module (Worker C: System Interaction)
+Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Scenarios, Alternate Flows, Postconditions) and maps them to User Stories and Features in a Realization Matrix. Includes duplicate detection.
 
 #### Pipeline Utilities (Worker D & Coverage Check)
-* **`scripts/reconcile_backlog.py`**: Zero-trust consistency audit. Queries the active issue tracker provider, syncs checkbox states in local markdown using PyYAML, enforces dependency hallucination checks, and auto-closes completed Epics/Stories/Use Cases.
-* **`scripts/verify_model_coverage.py`**: Automated UML compliance linter. Parses input schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
+* **Backlog Reconciliation Tool**: Zero-trust consistency audit. Queries the active issue tracker provider, syncs checkbox states in local markdown configuration, enforces dependency checks, and auto-closes completed Epics/Stories/Use Cases.
+* **UML Compliance Linter**: Automated UML compliance linter. Parses input schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
 
 ### Pipeline 2: Feature Implementation
 
-#### `project-constitution` (Governance & Persistent Memory)
-Establishes a project's governing principles (platform constraints, coding standards, testing mandates, domain rules) as a persistent file (`.pipeline/constitution.md`). All other skills read this before execution. See `skills/project-constitution/SKILL.md`.
+#### Governance & Persistent Memory Module
+Establishes a project's governing principles (platform constraints, coding standards, testing mandates, domain rules) as a persistent constitution file (e.g. `<pipeline_dir>/constitution.md`). All other skills read this before execution.
 
-#### `feature-driven-implementation` (v2.0 — Subagent-Driven TDD Delivery)
-The execution engine. Implements features from the backlog using a disciplined, verifiable process. Includes an optional **tech stack research phase** for features involving unfamiliar or rapidly-evolving frameworks. See `skills/feature-driven-implementation/SKILL.md`.
+#### Feature Implementation Module
+The execution engine. Implements features from the backlog using a disciplined, verifiable process. Includes an optional tech stack research phase (configured e.g. in `research.md` or as designated) for features involving unfamiliar or rapidly-evolving frameworks.
 
 **Core execution discipline (14 mandates):**
 
@@ -100,19 +100,19 @@ The execution engine. Implements features from the backlog using a disciplined, 
 
 ## Always-Loaded Governance Rules
 
-In addition to skills (loaded on-demand), this pipeline includes **rules** — constraints injected into every agent session regardless of which skill is active. When installed via Tessl, these rules are automatically distributed to agent-specific config files (`.cursor/rules/`, `CLAUDE.md`, `AGENTS.md`).
+In addition to skills (loaded on-demand), this pipeline includes **rules** — constraints injected into every agent session regardless of which skill is active. When installed via Tessl, these rules are automatically distributed to agent-specific config files (such as `.cursor/rules/`, `CLAUDE.md`, `AGENTS.md`).
 
 | Rule | Enforcement |
 |---|---|
 | **`serial-execution`** | One feature at a time. No parallel feature work. |
 | **`tdd-mandate`** | RED-GREEN-REFACTOR cycle required. Code before test must be deleted. |
 | **`verification-required`** | Raw proof (pasted output) required. "It works" without evidence is forbidden. |
-| **`constitution-first`** | Read `.pipeline/constitution.md` before any task. Spec workers must NOT read implementation profiles. |
+| **`constitution-first`** | Read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task. Spec workers must NOT read implementation profiles. |
 | **`no-browser-automation`** | No ad-hoc browser scripts. Manual verification or project E2E framework only. |
-| **`tracker-source-of-truth`** | Use tracker CLI for issue state. Never trust local files alone. |
+| **`tracker-source-of-truth`** | Use the issue tracker's CLI tool resolved from configuration to query issue state. |
 | **`platform-independence`** | Specs must be functional. No framework names in features, stories, or use cases. |
 
-These rules live in `rules/` and are packaged into the Tessl plugin alongside skills. Without Tessl, agents can read them directly from the `rules/` directory.
+These rules live in the rules directory (e.g. `rules/`) and are packaged into the Tessl plugin alongside skills. Without Tessl, agents can read them directly from the configured rules directory.
 
 ---
 
@@ -187,10 +187,10 @@ After installing the pipeline via any method above, configure Gemini to load the
 
    ## Pipeline Skills
    This project uses the Digital Systems Engineering Pipeline.
-   - Skills: read all SKILL.md files in `skills/` (or `.pipeline-skills/skills/` if submodule)
-   - Rules: read all files in `rules/` (or `.pipeline-skills/rules/` if submodule) -- these are mandatory constraints that apply to every task
-   - Constitution: read `.pipeline/constitution.md` before any task
-   - Implementation profiles: read `.pipeline/profiles/<platform>.md` before implementing features
+   - Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/` or `.pipeline-skills/skills/`)
+   - Rules: read all files in the configured rules directory (e.g., `rules/` or `.pipeline-skills/rules/`) -- these are mandatory constraints that apply to every task
+   - Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
+   - Implementation profiles: read the implementation profile (e.g. `<pipeline_dir>/profiles/<platform>.md`) before implementing features
    ```
 
 3. **Subagent dispatch.** Gemini CLI supports subagent tool calls with curated context. The `feature-driven-implementation` skill includes Gemini-specific dispatch instructions in Step 3.
@@ -233,14 +233,14 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ## How to Run the Specification Pipeline
 
-**Prerequisites:** AI agent framework capable of reading `.md` skill files + executing CLI commands (`gh`, `git`).
+**Prerequisites:** AI agent framework capable of reading `.md` skill files + executing CLI commands required by the configured tracker (e.g. git, tracker CLI).
 
-1. Ensure your AI agent has access to this `/skills/` directory.
+1. Ensure your AI agent has access to the configured skills directory.
 2. Provide your agent with the following prompt:
 
 > **Specification Generation Prompt:**
 >
-> "Adopt the `spec-orchestrator` skill. I want to specification-engineer [Protocol Standard, e.g., RFC 8345].
+> "Adopt the specification orchestrator skill. I want to specification-engineer [Protocol Standard, e.g., RFC 8345].
 >
 > 1. The structural schemas are located at `[path to schemas]`.
 > 2. The normative specification documents are located at `[path to specs]`.
@@ -253,10 +253,10 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 > **Feature Implementation Prompt:**
 >
-> "Adopt the `feature-driven-implementation` skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
+> "Adopt the feature driven implementation skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
 >
 > Execute the full delivery workflow with TDD execution discipline:
-> 1. Map dependencies from the backlog (`docs/epics/`, `docs/features/`).
+> 1. Map dependencies from the backlog directory (e.g. `docs/epics/`, `docs/features/`).
 > 2. Draft an implementation plan covering the full vertical slice:
 >    - Database Layer (test data with edge cases)
 >    - Logic & Parser Layer (types, validation, hooks)
@@ -285,7 +285,7 @@ A perfectly synchronized taxonomy on your live issue tracker board:
 ### Implementation Pipeline
 For each delivered feature:
 
-1. **Solution Walkthrough** (`docs/designs/feat-<Issue_Number>-solution.md`): Cumulative record of changes, testing, and verification, including a **Code Realization Table** mapping features/attributes to implemented source files, classes, and functions.
+1. **Solution Walkthrough** (`<walkthrough_dir>/feat-<Issue_Number>-solution.md` or as configured): Cumulative record of changes, testing, and verification, including a **Code Realization Table** mapping features/attributes to implemented source files, classes, and functions.
 2. **Passing test suite**: All tests green with raw output as evidence.
 3. **Closed Tracker Issue**: With direct link to the committed solution walkthrough.
 4. **Updated Epic checklist**: Feature marked `[x]`, Epic auto-closed when all features complete.
@@ -368,7 +368,7 @@ Agents pull version-locked context from the registry via MCP instead of parsing 
 │  verification    │  │ feature-impl     │
 │  constitution    │  │ constitution     │
 │  platform-indep  │  │                  │
-│  github-sot      │  │                  │
+│  tracker-sot     │  │                  │
 │  no-browser      │  │                  │
 └──────────────────┘  └──────────────────┘
      Always loaded       Loaded per task
@@ -378,10 +378,10 @@ Agents pull version-locked context from the registry via MCP instead of parsing 
 
 ## Spec Kit Compatibility
 
-This pipeline can also be used **alongside** [GitHub Spec Kit](https://github.com/github/spec-kit) without conflict:
+This pipeline can also be used **alongside** [Spec Kit](https://github.com/github/spec-kit) without conflict:
 
 - **`specify init`** can bootstrap agent-specific config files (`.claude/`, `.windsurf/`, etc.) in project repos.
-- **`.specify/memory/constitution.md`** is analogous to this pipeline's `.pipeline/constitution.md` — use whichever convention your project prefers.
+- **`.specify/memory/constitution.md`** is analogous to this pipeline's constitution — use whichever convention your project prefers.
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 

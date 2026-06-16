@@ -3,7 +3,7 @@
 ---
 name: spec-usecase-engineering
 description: "Extracts formal UML System Use Cases from normative specification documents using OOA/OOD methodology. Use when you need to derive Actors, Preconditions, Main Success Scenarios, and Realization Matrices linking Use Cases to User Stories and Features."
-compatibility: "Requires gh CLI and git. Works with Claude Code, Gemini CLI, Cursor, Copilot, Cascade."
+compatibility: "Requires issue tracker CLI and git. Works with modern agentic development environments."
 metadata:
   title: "Specification Use Case Engineering (System Interaction)"
   category: architecture
@@ -116,9 +116,9 @@ graph TD
 ### State Machine Diagram
 ```mermaid
 stateDiagram-v2
-    [*] --> [InitialState]
-    [InitialState] --> [State1] : [Event/Transition]
-    [State1] --> [State2] : [Event/Transition]
+    [*] --> InitialState
+    InitialState --> State1 : Event/Transition
+    State1 --> State2 : Event/Transition
 ```
 
 ## 7. Operational Context
@@ -126,9 +126,9 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #[IssueID] - [User Story Title](https://github.com/owner/repo/blob/branch_name/docs/user-stories/us-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [User Story Title]([Repository Base URL]/blob/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
 ### Required Features
-- [ ] #[IssueID] - [Feature Title](https://github.com/owner/repo/blob/branch_name/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/blob/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)

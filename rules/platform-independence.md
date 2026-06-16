@@ -16,7 +16,7 @@
 
 - Implementation profiles: `.pipeline/profiles/<platform>.md`
 - Implementation plans: `implementation_plan.md` created during The Grill (Step 2 of feature-driven-implementation)
-- Solution walkthroughs: `docs/designs/feat-<N>-solution.md`
+- Solution walkthroughs: paths defined by design and implementation guidelines (e.g. `<walkthrough_dir>/feat-<N>-solution.md` or as configured)
 
 ## Why
 

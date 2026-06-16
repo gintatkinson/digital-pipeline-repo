@@ -660,6 +660,17 @@ def parse_mermaid_sequence_diagram(mermaid_code):
         "fragments": fragments
     }
 
+def find_workspace_dir(path):
+    curr = os.path.abspath(path)
+    while True:
+        if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+            return curr
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
 def parse_yang_file(filepath):
     """
     Parses a YANG file and extracts all defined names (typedefs, containers, lists, leaves, choices, cases, identities).
@@ -701,12 +712,18 @@ def parse_yang_file(filepath):
         r'\baction\s+([a-zA-Z0-9_\-]+)'
     ]
 
+    workspace_dir = find_workspace_dir(filepath)
+    rules = load_codebase_rules(workspace_dir)
+    yang_exclude_keywords = set(rules.get("validation_rules", {}).get("yang_exclude_keywords", [
+        "description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"
+    ]))
+
     definitions = set()
     for pattern in patterns:
         for match in re.finditer(pattern, content):
             name = match.group(1)
             # Filter out any accidental matches with common keywords if matched
-            if name not in {"description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"}:
+            if name not in yang_exclude_keywords:
                 definitions.add(name)
 
     return module_name, definitions
@@ -899,6 +916,13 @@ def verify_uml_diagrams(features_dir, global_classes=None):
     if required_diagrams is None:
         raise ValueError("Missing 'validation_rules.required_diagrams' in codebase_rules.json")
 
+    uml_primitives = set(val_rules.get("uml_primitives", ["String", "Integer", "Real", "Boolean"]))
+    visibility_prefixes = set(val_rules.get("visibility_prefixes", ["+", "-", "#", "~"]))
+    relationship_connectors = val_rules.get("relationship_connectors", r"(\*--|o--|<\|--|--|-->)")
+    choice_stereotypes = val_rules.get("choice_stereotypes", ["<<choice>>"])
+    multiplicity_regex = val_rules.get("multiplicity_regex", r"\[[^\]]+\]")
+    essential_feature_sections = val_rules.get("essential_feature_sections", ["Class Diagram", "Functional UI"])
+
     # 1. Verify Features
     for filepath in feature_files:
         filename = os.path.basename(filepath)
@@ -923,7 +947,7 @@ def verify_uml_diagrams(features_dir, global_classes=None):
         for pattern, header_name in required_feature_sections:
             if not re.search(pattern, content, re.IGNORECASE):
                 errors.append(f"Feature {filename} is missing section '{header_name}'.")
-                if "Class Diagram" in header_name or "Functional UI" in header_name:
+                if any(essential in header_name for essential in essential_feature_sections):
                     has_essential_sections = False
 
         if not has_essential_sections:
@@ -946,7 +970,7 @@ def verify_uml_diagrams(features_dir, global_classes=None):
         if not class_diagram_match:
             continue
             
-        if not re.search(r"(\*--|o--|<\|--|--|-->)", class_diagram_match.group(1)):
+        if not re.search(relationship_connectors, class_diagram_match.group(1)):
             errors.append(f"Feature {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
 
         # Semantic Class Diagram Validation
@@ -986,7 +1010,6 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 errors.append(f"Feature {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.")
 
         # Primitives check
-        valid_primitives = {"String", "Integer", "Real", "Boolean"}
         for cls_name, cls_info in classes.items():
             for attr in cls_info["attributes"]:
                 if attr["raw"] and "<<" in attr["raw"] and ">>" in attr["raw"]:
@@ -995,25 +1018,28 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 if not attr_type:
                     errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a type.")
                     continue
-                if attr_type not in valid_primitives and attr_type not in classes:
-                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' has invalid type '{attr_type}'. UML primitive types must be String, Integer, Real, or Boolean (case-sensitive), or reference another class.")
+                if attr_type not in uml_primitives and attr_type not in classes:
+                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' has invalid type '{attr_type}'. UML primitive types must be {', '.join(sorted(uml_primitives))} (case-sensitive), or reference another class.")
 
         # Stereotype & Generalization check
         choice_classes = set()
         for line in class_diagram_match.group(0).splitlines():
             line_clean = line.strip()
-            m1 = re.search(r"<<choice>>\s*([a-zA-Z0-9_\-.:]+)", line_clean, re.IGNORECASE)
-            if m1:
-                choice_classes.add(m1.group(1))
-            m2 = re.search(r"class\s+([a-zA-Z0-9_\-.:]+)\s+.*<<choice>>", line_clean, re.IGNORECASE)
-            if m2:
-                choice_classes.add(m2.group(1))
+            for st in choice_stereotypes:
+                st_esc = re.escape(st)
+                m1 = re.search(st_esc + r"\s*([a-zA-Z0-9_\-.:]+)", line_clean, re.IGNORECASE)
+                if m1:
+                    choice_classes.add(m1.group(1))
+                m2 = re.search(r"class\s+([a-zA-Z0-9_\-.:]+)\s+.*" + st_esc, line_clean, re.IGNORECASE)
+                if m2:
+                    choice_classes.add(m2.group(1))
         for cls_name, cls_info in classes.items():
-            if "<<choice>>" in cls_name:
-                choice_classes.add(cls_name)
-            for attr in cls_info["attributes"]:
-                if attr["raw"] and "<<choice>>" in attr["raw"]:
+            for st in choice_stereotypes:
+                if st in cls_name:
                     choice_classes.add(cls_name)
+                for attr in cls_info["attributes"]:
+                    if attr["raw"] and st in attr["raw"]:
+                        choice_classes.add(cls_name)
 
         for choice_cls in choice_classes:
             has_subclass = False
@@ -1035,18 +1061,18 @@ def verify_uml_diagrams(features_dir, global_classes=None):
             for attr in cls_info["attributes"]:
                 if attr["raw"] and "<<" in attr["raw"] and ">>" in attr["raw"]:
                     continue
-                if attr["visibility"] not in {"+", "-", "#", "~"}:
-                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a valid UML visibility prefix (+, -, #, ~).")
+                if attr["visibility"] not in visibility_prefixes:
+                    errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
                 if not attr["multiplicity"]:
                     errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr['name']}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).")
 
             for method in cls_info["methods"]:
-                if method["visibility"] not in {"+", "-", "#", "~"}:
-                    errors.append(f"Feature {filename} class '{cls_name}' method '{method['name']}' is missing a valid UML visibility prefix (+, -, #, ~).")
+                if method["visibility"] not in visibility_prefixes:
+                    errors.append(f"Feature {filename} class '{cls_name}' method '{method['name']}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
                 has_mult = False
-                if method["return_type"] and re.search(r'\[[^\]]+\]', method["return_type"]):
+                if method["return_type"] and re.search(multiplicity_regex, method["return_type"]):
                     has_mult = True
-                elif re.search(r'\)\s*\[[^\]]+\]', method["raw"]) or re.search(r'\]\s*$', method["raw"]):
+                elif re.search(r'\)\s*' + multiplicity_regex, method["raw"]) or re.search(multiplicity_regex + r'\s*$', method["raw"]):
                     has_mult = True
                 if not has_mult:
                     errors.append(f"Feature {filename} class '{cls_name}' method '{method['name']}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
@@ -1142,8 +1168,9 @@ def verify_uml_diagrams(features_dir, global_classes=None):
 
                 # Return Arrow Check
                 if msg["arrow_type"] == "reply":
-                    if msg["arrow"] != "-->":
-                        errors.append(f"User Story {filename} sequence diagram return message '{msg['raw']}' uses invalid reply arrow '{msg['arrow']}'. Return arrows must strictly use standard open arrowhead '-->'.")
+                    sequence_replies = val_rules.get("sequence_replies", ["-->"])
+                    if msg["arrow"] not in sequence_replies:
+                        errors.append(f"User Story {filename} sequence diagram return message '{msg['raw']}' uses invalid reply arrow '{msg['arrow']}'. Return arrows must strictly use standard open arrowhead {', '.join(sequence_replies)}.")
                     
                     # Return Signature Check
                     raw_msg_text = msg["raw"].split(":", 1)[1].strip() if ":" in msg["raw"] else msg["raw"]
@@ -1156,7 +1183,9 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 line_clean = re.sub(r'%%.*$', '', line_clean).strip()
                 if not line_clean:
                     continue
-                frag_match = re.match(r'^\s*(alt|loop|opt|par|critical|else|option)(?:\s+(.*))?$', line_clean, re.IGNORECASE)
+                fragment_keywords = val_rules.get("fragment_keywords", ["alt", "loop", "opt", "par", "critical", "else", "option"])
+                frag_pattern = r'^\s*(' + '|'.join(re.escape(k) for k in fragment_keywords) + r')(?:\s+(.*))?$'
+                frag_match = re.match(frag_pattern, line_clean, re.IGNORECASE)
                 if frag_match:
                     keyword = frag_match.group(1).lower()
                     guard_part = frag_match.group(2)
@@ -1319,13 +1348,15 @@ def verify_uml_diagrams(features_dir, global_classes=None):
         if flows_block_match:
             flows_block = flows_block_match.group(1)
             flows = re.findall(r"-\s+\*\*\d[a-zA-Z]\..*?(?=-\s+\*\*\d[a-zA-Z]\.|\Z)", flows_block, re.DOTALL)
-            if len(flows) < 2:
-                errors.append(f"Use Case {basename} must contain at least 2 detailed Alternate/Exception flows.")
+            use_case_flow_limit = val_rules.get("use_case_flow_limit", 2)
+            use_case_step_limit = val_rules.get("use_case_step_limit", 2)
+            if len(flows) < use_case_flow_limit:
+                errors.append(f"Use Case {basename} must contain at least {use_case_flow_limit} detailed Alternate/Exception flows.")
             else:
                 for idx, flow in enumerate(flows):
                     steps = re.findall(r"\b\d+\.\s+\S+", flow)
-                    if len(steps) < 2:
-                        errors.append(f"Use Case {basename} alternate flow {idx+1} is too thin (must contain at least 2 numbered steps).")
+                    if len(steps) < use_case_step_limit:
+                        errors.append(f"Use Case {basename} alternate flow {idx+1} is too thin (must contain at least {use_case_step_limit} numbered steps).")
         else:
             errors.append(f"Use Case {basename} is missing '## 5. Alternate and Exception Flows' content block.")
 

@@ -32,16 +32,16 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - `GrpcAdapter`: Connects to hosted remote gRPC/gRPC-Web backend services.
     - `OpenApiAdapter`: Connects to hosted remote REST/OpenAPI JSON backend services.
 - **Environment Selection Keys:**
-  - `VITE_PERSISTENCE_ADAPTER`: Configures which concrete adapter is injected at bootstrap (e.g. `firebase-emulator`, `grpc`, `openapi`).
+  - Resolved dynamically from the platform configuration metadata (e.g., config keys specifying the active persistence adapter injected at bootstrap).
 - **Dependencies:**
   - Required: `firebase`, `grpc-web`, `@protobuf-ts/grpcweb-transport`, `axios`, `typescript`, `react`, `react-dom`, `@react-three/fiber`, `three`
   - DevDependencies: `firebase-tools`, `vite`, `jest`, `@testing-library/react`, `playwright`
 
 ## 2. Coding Standards & UI Patterns
-- **Clean Architecture & Decoupling:** Persistence code must be isolated under `src/core/persistence/`:
-  - `src/core/persistence/repository.interface.ts` (defines CRUD and domain-specific query interfaces)
-  - `src/core/persistence/adapters/` (contains concrete implementations: `firebase-emulator.adapter.ts`, `local-service.adapter.ts`, etc.)
-  - `src/core/persistence/testing/` (contains mock implementations for fast unit testing stubs)
+- **Clean Architecture & Decoupling:** Persistence code must be isolated under the designated persistence directory resolved from configuration (e.g., target UI layout configurations):
+  - Repository interfaces defining CRUD and domain-specific query interfaces.
+  - Concrete adapter implementations.
+  - Mock implementations for fast unit testing stubs.
 - **Naming Conventions:**
   - PascalCase for React components and class-based Adapters.
   - camelCase for interface declarations and instances.
@@ -63,19 +63,19 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
-    - **HierarchyTree:** Exposes a primary navigation slot. Must support:
+    - **Hierarchy Navigation Component:** (e.g. hierarchy tree or navigation slot resolved from configuration). Exposes a primary navigation slot. Must support:
       - Mapping physical inputs to logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) dynamically.
       - Virtualized list row rendering.
       - Dynamic accessibility semantic injection.
-    - **ResizableSplitter:** The main workspace area renders pane slots dynamically populated with child components resolved from the runtime layout configuration registry.
+    - **Resizable Splitter Component:** The main workspace area renders pane slots dynamically populated with child components resolved from the runtime layout configuration registry.
       - Default layout: stacked along a configurable split axis. The user can toggle split directions.
       - **Performance Optimization:** Dragging the splitter must update layout variables directly in the configuration and leverage rendering/paint boundaries.
       - **Snap-to-Edge:** Support snap-to-edge collapse when dragged within the configured threshold boundaries.
       - Child components resolved from the layout configuration (such as the topology map, tabbed views, or details tables) are dynamically rendered inside the workspace containers.
-    - **PropertyGrid:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
-    - **NavigationBreadcrumbs:** Exposes a breadcrumb path resolved from the current selection. Collapses middle segments dynamically when the path length exceeds available container space.
+    - **Property Grid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
+    - **Navigation Breadcrumbs Component:** Exposes a breadcrumb path resolved from the current selection. Collapses middle segments dynamically when the path length exceeds available container space.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
-    - **DensityTable:** High information-density tables with sortable, filterable columns, row selections, and status badges.
+    - **Density Table Component:** High information-density tables with sortable, filterable columns, row selections, and status badges.
   - **Typography:** Resolved dynamically from the typography design tokens.
   - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
 

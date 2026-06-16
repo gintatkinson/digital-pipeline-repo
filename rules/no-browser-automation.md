@@ -14,7 +14,7 @@
 
 - Provide step-by-step manual verification instructions in the solution walkthrough.
 - Include screenshots or describe the expected visual state.
-- If E2E tests exist in the project, run them via the project's test runner (e.g., `npx playwright test`).
+- If E2E tests exist in the project, run them via the project's test runner command (e.g. `npm run test:e2e` or similar command specified in the implementation profile).
 
 ## Why
 

@@ -51,16 +51,26 @@ def extract_title(filepath):
     return None
 
 def get_all_issues(rules=None):
-    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-    provider = tracker_rules.get("provider", "github")
+    if not rules:
+        raise ValueError("Configuration rules are missing.")
+    tracker_rules = rules.get("tracker_rules")
+    if not tracker_rules:
+        raise ValueError("Missing 'tracker_rules' in codebase_rules.json")
+    provider = tracker_rules.get("provider")
+    if not provider:
+        raise ValueError("Missing 'tracker_rules.provider' in codebase_rules.json")
+    commands = tracker_rules.get("commands")
+    if not commands or "list_issues" not in commands:
+        raise ValueError("Missing 'tracker_rules.commands.list_issues' in codebase_rules.json")
+    
     print(f"Fetching active and closed issues from tracker provider '{provider}'...")
-    cmd = tracker_rules.get("commands", {}).get("list_issues", ["gh", "issue", "list", "--limit", "1000", "--state", "all", "--json", "number,title,state,labels"])
+    cmd = commands["list_issues"]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         raise Exception(f"Failed to fetch issues: {res.stderr.strip()}")
     return json.loads(res.stdout)
 
-def update_checklist_in_file(filepath, issue_dict, upstream_repo="gintatkinson/digital-pipeline-repo"):
+def update_checklist_in_file(filepath, issue_dict, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -79,8 +89,9 @@ def update_checklist_in_file(filepath, issue_dict, upstream_repo="gintatkinson/d
         
         if dep_issue is None:
             print(f"Error: Invalid/hallucinated dependency reference #{dep_num} in {os.path.basename(filepath)}")
-            print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
-            print(f"    gh issue create --repo {upstream_repo} --title \"Tooling Bug: [Brief description]\" --body \"Context: Reconciler failed due to invalid dependency reference.\"")
+            upstream_repo = rules.get("meta", {}).get("upstream_repository", "unknown") if rules else "unknown"
+            troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
+            print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
             sys.exit(1)
             
         is_closed = (dep_issue["state"].upper() == "CLOSED")
@@ -138,34 +149,40 @@ def convert_frontmatter_to_table(content):
 def sync_issue_body_to_github(issue_num, filepath, issue_type="Feature", rules=None):
     print(f"  [Sync Issue Body] Syncing #{issue_num} ({issue_type}) to tracker...")
     
-    # Check issue body size limit (65356 chars) and truncate if needed
+    # Check issue body size limit and truncate if needed
     temp_path = filepath + ".temp-body"
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
             
-        if len(content) > 60000:
+        val_rules = rules.get("validation_rules", {}) if rules else {}
+        max_body_chars = val_rules.get("max_body_characters", 65536)
+        trunc_limit = max_body_chars - 5536
+        
+        if len(content) > trunc_limit:
             # Add a message pointing to the repository file
             trunc_index = content.find("## Acceptance Criteria")
             if trunc_index == -1:
                 trunc_index = content.find("## User Stories")
             if trunc_index == -1:
-                trunc_index = 60000
+                trunc_index = trunc_limit
             
             project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
             rel_path = os.path.relpath(filepath, project_root)
             
             content = content[:trunc_index] + (
                 f"\n\n---\n> [!NOTE]\n"
-                f"> This issue body has been truncated because it exceeds GitHub's size limit of 65,536 characters.\n"
-                f"> Please refer to the full specification file in the repository at `{rel_path}` for the complete details (such as exhaustive auto-generated schema tables).\n"
+                f"> This issue body has been truncated because it exceeds tracker size limit of {max_body_chars} characters.\n"
+                f"> Please refer to the full specification file in the repository at `{rel_path}` for the complete details.\n"
             )
             
         with open(temp_path, "w", encoding="utf-8") as tf:
             tf.write(content)
         
         tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-        edit_cmd_template = tracker_rules.get("commands", {}).get("edit_issue", ["gh", "issue", "edit", "{number}", "--body-file", "{temp_path}"])
+        edit_cmd_template = tracker_rules.get("commands", {}).get("edit_issue")
+        if not edit_cmd_template:
+            raise ValueError("Missing 'tracker_rules.commands.edit_issue' in codebase_rules.json")
         cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
         subprocess.run(cmd, check=True, capture_output=True)
     except Exception as e:
@@ -178,7 +195,9 @@ def close_issue_on_github(issue_num, comment, rules=None):
     print(f"  [Close Issue] Closing issue #{issue_num} on tracker...")
     try:
         tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-        close_cmd_template = tracker_rules.get("commands", {}).get("close_issue", ["gh", "issue", "close", "{number}", "--comment", "{comment}"])
+        close_cmd_template = tracker_rules.get("commands", {}).get("close_issue")
+        if not close_cmd_template:
+            raise ValueError("Missing 'tracker_rules.commands.close_issue' in codebase_rules.json")
         cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
         subprocess.run(cmd, check=True, capture_output=True)
     except Exception as e:
@@ -256,7 +275,12 @@ def main():
 
     for num, issue in issue_dict.items():
         norm_title = normalize_title(issue["title"])
-        labels = [l["name"].lower() for l in issue.get("labels", [])]
+        labels = []
+        for l in issue.get("labels", []):
+            if isinstance(l, dict):
+                labels.append(l.get("name", "").lower())
+            elif isinstance(l, str):
+                labels.append(l.lower())
         
         if "epic" in labels:
             epic_titles[norm_title] = num
@@ -317,7 +341,7 @@ def main():
             norm = normalize_title(title)
             issue_num = epic_titles.get(norm)
             if issue_num:
-                updated_content, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
+                updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     # Sync to keep checkbox states updated on GitHub UI
@@ -367,7 +391,7 @@ def main():
             norm = normalize_title(title)
             issue_num = story_titles.get(norm)
             if issue_num:
-                _, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
+                _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     sync_issue_body_to_github(issue_num, filepath, issue_type="User Story", rules=rules)
@@ -395,7 +419,7 @@ def main():
             norm = normalize_title(title)
             issue_num = usecase_titles.get(norm)
             if issue_num:
-                _, completed = update_checklist_in_file(filepath, issue_dict, upstream_repo)
+                _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                 is_open = issue_dict[issue_num]["state"].upper() == "OPEN"
                 if is_open:
                     sync_issue_body_to_github(issue_num, filepath, issue_type="Use Case", rules=rules)

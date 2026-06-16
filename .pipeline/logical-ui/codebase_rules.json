@@ -2,7 +2,8 @@
   "meta": {
     "version": "1.0.0",
     "description": "Dynamic verification rules and parameters for pipeline and codebase compliance",
-    "upstream_repository": "gintatkinson/digital-pipeline-repo"
+    "upstream_repository": "gintatkinson/digital-pipeline-repo",
+    "troubleshooting_instruction": "If you believe this failure is due to a bug in the pipeline tooling, please report it to: {upstream_repo}"
   },
   "tracker_rules": {
     "provider": "github",
@@ -65,6 +66,18 @@
     "design_tokens_path": ".pipeline/logical-ui/design-tokens.json"
   },
   "validation_rules": {
+    "uml_primitives": ["String", "Integer", "Real", "Boolean"],
+    "visibility_prefixes": ["+", "-", "#", "~"],
+    "relationship_connectors": "(\\*--|o--|<\\|--|--|-->)",
+    "choice_stereotypes": ["<<choice>>"],
+    "sequence_replies": ["-->"],
+    "fragment_keywords": ["alt", "loop", "opt", "par", "critical", "else", "option"],
+    "use_case_flow_limit": 2,
+    "use_case_step_limit": 2,
+    "max_body_characters": 65536,
+    "yang_exclude_keywords": ["description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"],
+    "multiplicity_regex": "\\[[^\\]]+\\]",
+    "essential_feature_sections": ["Class Diagram", "Functional UI"],
     "required_diagrams": {
       "epic": ["classDiagram", "stateDiagram-v2"],
       "feature": ["classDiagram"],
