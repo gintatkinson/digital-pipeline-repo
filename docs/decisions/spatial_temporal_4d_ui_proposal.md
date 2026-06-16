@@ -81,12 +81,12 @@ Relying on UI-level checks is fragile. The Echo Guard is enforced at the network
 
 ```mermaid
 flowchart TD
-    subgraph CPU Background Thread (Web Worker / Dart Isolate)
+    subgraph "CPU Background Thread (Web Worker / Dart Isolate)"
         A[Incoming Telemetry] --> B[Sliding-Window Sorted Queue]
         B -->|Broadphase Sweep-and-Prune| C[Active Collision Candidates]
     end
 
-    subgraph GPU VRAM (WebGPU / Metal)
+    subgraph "GPU VRAM (WebGPU / Metal)"
         D[TLE / Trajectory Double-Single Buffer] --> E[SGP4/Spline Compute Shader]
         E -->|Write Local coordinates| F[Vertex Buffer]
         C -->|Upload Candidate Pairs| G[Conjunction Compute Shader]
