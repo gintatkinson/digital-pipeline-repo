@@ -1130,7 +1130,7 @@ def verify_uml_diagrams(features_dir, global_classes=None):
 
         # Block check under Test Data Shape
         if re.search(test_data_shape_regex, content, re.IGNORECASE):
-            if not re.search(test_data_shape_regex + r".*" + test_data_block_regex, content, re.DOTALL | re.IGNORECASE):
+            if not re.search(test_data_shape_regex + r".*?" + test_data_block_regex, content, re.DOTALL | re.IGNORECASE):
                 errors.append(f"Feature {filename} is missing a payload example ({test_data_block_regex} block) under Test Data Shape.")
 
     # 2. Verify User Stories
@@ -1526,8 +1526,13 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
                     print(f"Warning: Failed to read file {filepath}: {e}")
                     continue
                 
-                norm_content = normalize_case(content)
-                if any(node in norm_content for node in normalized_trigger_nodes):
+                has_any_node = False
+                for node in trigger_nodes:
+                    escaped_node = re.escape(node).replace(r'\-', r'[\s\-_]').replace(r'\_', r'[\s\-_]')
+                    if re.search(rf'\b{escaped_node}\b', content, re.IGNORECASE):
+                        has_any_node = True
+                        break
+                if has_any_node:
                     trigger_files.append((filepath, content))
 
             if not trigger_files:
@@ -1536,6 +1541,15 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
 
             for filepath, content in trigger_files:
                 file_valid = True
+                
+                is_target = False
+                for node in trigger_nodes:
+                    escaped_node = re.escape(node).replace(r'\-', r'[\s\-_]').replace(r'\_', r'[\s\-_]')
+                    if re.search(rf'\b{escaped_node}\b', content, re.IGNORECASE):
+                        is_target = True
+                        break
+                if not is_target:
+                    continue
 
                 # Check mermaid block requirement if specified
                 mermaid_type = rule.get("requires_mermaid_block")
@@ -1568,21 +1582,20 @@ def verify_behavioral_triggers(schema_dir, features_dir, modules):
 
 
 
-def strip_js_comments(content):
-    pattern = r'(/\*.*?\*/)|(//[^\n]*)'
+def strip_c_style_comments(content):
+    # Group 1: strings (double, single, backtick). Group 2: block comments. Group 3: line comments.
+    pattern = r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|`(?:\\.|[^`\\])*`)|(/\*.*?\*/)|(//[^\n]*)'
+    
     def replacer(match):
-        if match.group(1): return " "
-        if match.group(2): return " "
-        return match.group(0)
+        if match.group(2) or match.group(3): 
+            return " "  # Replace matched comments with space
+        return match.group(1)  # Return strings entirely untouched
+        
     return re.sub(pattern, replacer, content, flags=re.DOTALL)
 
-def strip_dart_comments(content):
-    pattern = r'(/\*.*?\*/)|(//[^\n]*)'
-    def replacer(match):
-        if match.group(1): return " "
-        if match.group(2): return " "
-        return match.group(0)
-    return re.sub(pattern, replacer, content, flags=re.DOTALL)
+# Deprecate old functions by pointing to the safe one
+strip_js_comments = strip_c_style_comments
+strip_dart_comments = strip_c_style_comments
 
 def check_banned_imports(content, forbidden_words, file_ext):
     if not forbidden_words:
@@ -1608,7 +1621,7 @@ def check_banned_imports(content, forbidden_words, file_ext):
                     found_banned.append(word)
     return list(set(found_banned))
 
-def walk_json_ast_for_compliance(node, target_method="stopPropagation", ast_rules=None):
+def walk_json_ast_for_compliance(ast_tree, target_method="stopPropagation", ast_rules=None):
     if not ast_rules:
         ast_rules = {}
     call_expr = ast_rules.get("call_expression", "CallExpression")
@@ -1617,20 +1630,22 @@ def walk_json_ast_for_compliance(node, target_method="stopPropagation", ast_rule
     prop_key = ast_rules.get("property", "property")
     name_key = ast_rules.get("name", "name")
     
-    if isinstance(node, dict):
-        if node.get("type") == call_expr:
-            callee = node.get(callee_key, {})
-            if callee.get("type") == member_expr:
-                property_name = callee.get(prop_key, {}).get(name_key)
-                if property_name == target_method:
-                    return True
-        for k, v in node.items():
-            if walk_json_ast_for_compliance(v, target_method, ast_rules):
-                return True
-    elif isinstance(node, list):
-        for item in node:
-            if walk_json_ast_for_compliance(item, target_method, ast_rules):
-                return True
+    stack = [ast_tree]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            if node.get("type") == call_expr:
+                callee = node.get(callee_key, {})
+                if callee.get("type") == member_expr:
+                    property_name = callee.get(prop_key, {}).get(name_key)
+                    if property_name == target_method:
+                        return True
+            # Push dict values to stack
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            # Push array items to stack
+            stack.extend(node)
+            
     return False
 
 def extract_hex_colors_from_json(data):
@@ -1759,10 +1774,17 @@ def verify_codebase_compliance(workspace_dir):
     # Generate flutter colors (with 0xff prefix and lowercase/uppercase variations)
     hardcoded_colors_flutter = {}
     for hex_val in forbidden_colors_hex:
-        clean_hex = hex_val.replace("#", "")
+        clean_hex = hex_val.replace("#", "").lower()
+        
         if len(clean_hex) == 3:
             clean_hex = "".join([c*2 for c in clean_hex])
-        flutter_hex = "ff" + clean_hex
+            
+        if len(clean_hex) == 8:
+            # CSS is RRGGBBAA. Flutter (Dart) is AARRGGBB.
+            flutter_hex = clean_hex[6:8] + clean_hex[0:6]
+        else:
+            flutter_hex = "ff" + clean_hex # Fallback 100% opacity
+            
         hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
     
     # 1. React Web Codebase Compliance
@@ -1774,9 +1796,13 @@ def verify_codebase_compliance(workspace_dir):
                     filepath = os.path.join(root, file)
                     rel_path = os.path.relpath(filepath, workspace_dir)
                     try:
-                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                        with open(filepath, "r", encoding="utf-8") as f:
                             content = f.read()
-                    except Exception as e:
+                    except UnicodeDecodeError as e:
+                        errors.append(f"Compliance Bypass Risk: '{rel_path}' is not valid UTF-8. Binary files are not permitted.")
+                        continue
+                    except OSError as e:
+                        errors.append(f"System Error: Failed to open '{rel_path}' for compliance read: {e}")
                         continue
                     
                     if "design-tokens" in file or "design_tokens" in file:
@@ -1857,9 +1883,13 @@ def verify_codebase_compliance(workspace_dir):
                     filepath = os.path.join(root, file)
                     rel_path = os.path.relpath(filepath, workspace_dir)
                     try:
-                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                        with open(filepath, "r", encoding="utf-8") as f:
                             content = f.read()
-                    except Exception as e:
+                    except UnicodeDecodeError as e:
+                        errors.append(f"Compliance Bypass Risk: '{rel_path}' is not valid UTF-8. Binary files are not permitted.")
+                        continue
+                    except OSError as e:
+                        errors.append(f"System Error: Failed to open '{rel_path}' for compliance read: {e}")
                         continue
                         
                     if "design_tokens" in file:
