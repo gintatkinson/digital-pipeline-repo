@@ -20,9 +20,13 @@ class CodebaseValidator(IValidator):
         
         react_dir_name = target_dirs.react
         react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
+        if react_dir_name and not os.path.exists(react_dir):
+            errors.append(f"Compliance Bypass Loophole: Configured React directory '{react_dir_name}' does not exist on disk.")
         
         flutter_dir_name = target_dirs.flutter
         flutter_dir = os.path.join(workspace_dir, flutter_dir_name) if flutter_dir_name else None
+        if flutter_dir_name and not os.path.exists(flutter_dir):
+            errors.append(f"Compliance Bypass Loophole: Configured Flutter directory '{flutter_dir_name}' does not exist on disk.")
         
         react_rules = rules.react_rules
         flutter_rules = rules.flutter_rules

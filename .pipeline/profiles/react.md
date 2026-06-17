@@ -23,14 +23,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - Components must depend only on abstract Repository interfaces.
   - Active adapter is injected at application bootstrap resolved dynamically from the loaded runtime configuration metadata rather than build-time environment variables.
 - **Dependency Injection (DI):** Standardize on React Context Hooks for dependency resolution at the application root.
-- **Allowed Adapters by Environment:**
-  - **Local Development / Testing:**
-    - `FirebaseEmulatorAdapter`: Connects to local Firebase Emulator Suite containing seeded test data.
-    - `LocalServiceAdapter`: Connects to local OpenAPI / gRPC database gateway services running on `localhost`.
-  - **Hosted Deployment / Staging / Production:**
-    - `FirebaseHostedAdapter`: Connects to remote hosted production Firebase.
-    - `GrpcAdapter`: Connects to hosted remote gRPC/gRPC-Web backend services.
-    - `OpenApiAdapter`: Connects to hosted remote REST/OpenAPI JSON backend services.
+- **Allowed Adapters:**
+  - Transport and database adapters must register themselves dynamically at application bootstrap. The platform profile does not restrict the allowed adapter types; any class implementing the target Repository interface is permitted, enabling dynamic runtime resolution of any protocol or database client (e.g. REST, gRPC, WebSocket, GraphQL, or local storage).
 - **Environment Selection Keys:**
   - Resolved dynamically from the platform configuration metadata (e.g., config keys specifying the active persistence adapter injected at bootstrap).
 - **Dependencies:**
@@ -47,16 +41,12 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - camelCase for interface declarations and instances.
   - kebab-case for folders and file names.
 - **Type Strictness:** Strict null checks enabled; use of `any` is strictly prohibited. Every database model must map to a TypeScript interface.
-- **Off-Thread Telemetry Pipeline:**
-  - To prevent main-thread UI starvation during high-frequency data streaming, all stream connections, binary packet decoding, and telemetry JSON deserialization MUST execute off-thread inside a background execution context (such as a worker thread or native background context).
-  - Pass decoded, normalized domain structures to the main thread via asynchronous message passing or memory buffers.
-- **WebGPU Memory & Lifecycles:**
-  - WebGPU memory must be managed explicitly to prevent VRAM leakage. Components must call `.destroy()` on unmounted buffers and textures within React cleanup hooks (e.g., `useEffect` return functions).
-  - Pre-allocate and reuse GPU memory blocks using a `GPUBuffers` pool or `GPURingBuffer` architecture to avoid continuous runtime memory allocation.
-- **WGSL Struct Alignment:**
-  - To prevent memory alignment corruption on the GPU, flat TypedArrays and WGSL struct definitions must adhere strictly to 16-byte alignment boundaries. Float arrays representing 3D/4D coordinates must include explicit padding (e.g., padding vec3 positions with a 4-byte padding field) matching GPU memory layouts.
-- **Timeline Playhead Synchronization:**
-  - Synchronization between the playhead position and telemetry streams must utilize a digital Phase-Locked Loop (PLL) combined with low-pass filters to filter playhead clamp rate changes, preventing time-reversal, integrator windup, or derivative kicks when frames are dropped.
+- **Off-Thread Processing:**
+  - To prevent main-thread UI starvation during high-frequency data streaming or heavy parsing, all intensive computation and data deserialization MUST execute off the main thread inside a background execution context (such as Web Workers).
+  - Pass normalized domain structures to the main thread via asynchronous message passing.
+- **Resource Management:**
+  - Explicitly manage runtime memory lifecycles for hardware-accelerated viewports or large buffers, releasing memory in component cleanup hooks to prevent leaks.
+  - Pre-allocate and reuse memory blocks where possible to avoid continuous runtime memory allocation.
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
@@ -76,12 +66,12 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
       - Dynamic accessibility semantic injection.
     - **Resizable Splitter Component:** The main workspace area renders pane slots dynamically populated with child components resolved from the runtime layout configuration registry.
       - Default layout: stacked along a configurable split axis. The user can toggle split directions.
-      - **DOM State Preservation during Reparenting:** Swapping split axis orientations (vertical/horizontal) or changing pane order must preserve component state. The layout must use structural virtual DOM stability (e.g. keeping container elements persistently mounted in a fixed tree structure and using CSS Flexbox/Grid direction variables) rather than conditional JSX element branching/unmounting to prevent DOM state destruction (such as WebGPU contexts, text input focus, or iframe reloads).
+      - **DOM State Preservation during Reparenting:** Swapping split axis orientations (vertical/horizontal) or changing pane order must preserve component state. The layout must use structural virtual DOM stability (e.g. keeping container elements persistently mounted in a fixed tree structure and using CSS Flexbox/Grid direction variables) rather than conditional JSX element branching/unmounting to prevent DOM state destruction (such as text input focus, active playback state, or embedded frame/iframe contexts).
       - **Isolating Reflows:** All panel containers within resizable splitters must use CSS Container Queries (`@container`) and layout/paint containment (`contain: size layout paint; container-type: inline-size;`) on the splitter containers to isolate layout reflows during active dragging.
       - **Virtual DOM State Resizing:** Resizing interactions must update layout state variables or CSS custom properties managed through React state/context or a decoupled state provider, rather than directly mutating the physical DOM bypassing the React virtual DOM tree, ensuring headless testing compatibility (except during active drag gestures where direct DOM inline custom property mutations are permitted solely for 60fps painting optimization).
       - **Snap-to-Edge:** Support snap-to-edge collapse when dragged within the configured threshold boundaries.
-      - Child components resolved from the layout configuration (such as the topology map, tabbed views, or details tables) are dynamically rendered inside the workspace containers.
-    - **Property Grid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
+      - Child components resolved from the layout configuration (such as viewports, attribute grids, or lists) are dynamically rendered inside the workspace containers.
+    - **Property Grid Component:** Key-value attribute grid mapped to a schema. Validation schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **Navigation Breadcrumbs Component:** Exposes a breadcrumb path resolved from the current selection. Collapses middle segments dynamically when the path length exceeds available container space.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
     - **Density Table Component:** High information-density tables with sortable, filterable columns, row selections, and status badges.

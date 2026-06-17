@@ -307,6 +307,11 @@ def main():
     id_key = keys.get("issue_id", "number")
     title_key = keys.get("title", "title")
     labels_key = keys.get("labels", "labels")
+    
+    close_comments = tracker_rules.get("close_comments", {})
+    epic_comment = close_comments.get("epic", "Epic completed. All constituent features successfully delivered and verified.")
+    story_comment_template = close_comments.get("user_story", "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.")
+    usecase_comment_template = close_comments.get("use_case", "Resolved. All dependent user stories and features for use case '{title}' are completed.")
 
     # Convert to issue lookup dictionary by issue identifier
     issue_dict = {}
@@ -409,7 +414,7 @@ def main():
                     if completed:
                         close_issue_on_tracker(
                             issue_num, 
-                            "Epic completed. All constituent features successfully delivered and verified.",
+                            epic_comment,
                             rules=rules
                         )
                         issue_dict[issue_num][state_key] = closed_state
@@ -458,7 +463,7 @@ def main():
                     if completed:
                         close_issue_on_tracker(
                             issue_num,
-                            f"Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+                            story_comment_template.format(title=title),
                             rules=rules
                         )
                         issue_dict[issue_num][state_key] = closed_state
@@ -486,7 +491,7 @@ def main():
                     if completed:
                         close_issue_on_tracker(
                             issue_num,
-                            f"Resolved. All dependent user stories and features for use case '{title}' are completed.",
+                            usecase_comment_template.format(title=title),
                             rules=rules
                         )
                         issue_dict[issue_num][state_key] = closed_state

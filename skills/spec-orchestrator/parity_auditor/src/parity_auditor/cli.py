@@ -24,7 +24,7 @@ def main():
     
     schema_dir = args.schema_dir
     if not schema_dir:
-        schema_dir = os.environ.get("SCHEMA_DIR", os.environ.get("YANG_DIR"))
+        schema_dir = os.environ.get("SCHEMA_DIR")
     if not schema_dir:
         schema_dir_rel = backlog_dirs.schemas
         if not schema_dir_rel:
@@ -63,18 +63,23 @@ def main():
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
                 
-    non_yang_extensions = set(rules.validation_rules.non_yang_extensions)
-    has_yang_schemas = False
-    has_non_yang_schemas = False
+    alternative_extensions = set(rules.validation_rules.alternative_schema_extensions)
+    has_parseable_schemas = False
+    has_alternative_schemas = False
+    
+    from .parsers.schema_router import SchemaRouter
+    router = SchemaRouter(repo)
+    
     if os.path.exists(schema_dir):
         for filename in os.listdir(schema_dir):
-            if os.path.isdir(os.path.join(schema_dir, filename)):
+            filepath = os.path.join(schema_dir, filename)
+            if os.path.isdir(filepath):
                 continue
             ext = os.path.splitext(filename)[1].lower()
-            if ext == ".yang":
-                has_yang_schemas = True
-            elif ext in non_yang_extensions:
-                has_non_yang_schemas = True
+            if router.can_parse(filepath):
+                has_parseable_schemas = True
+            elif ext in alternative_extensions:
+                has_alternative_schemas = True
                 
     # 2. Load all feature markdown files
     features = repo.get_feature_files(features_dir)
@@ -84,10 +89,10 @@ def main():
     if not features:
         print("Note: No feature specifications found in directory. Skipping model coverage checks.")
         skip_coverage_checks = True
-    elif has_non_yang_schemas:
+    elif has_alternative_schemas:
         print("Warning: Deep AST node coverage parity audit is currently optimized for primary schemas. Skipping strict coverage percentage check for other schema formats, but proceeding with UML compliance audit.")
         skip_coverage_checks = True
-    elif not has_yang_schemas:
+    elif not has_parseable_schemas:
         print("Note: No schemas found in schema directory. Skipping model coverage checks.")
         skip_coverage_checks = True
         

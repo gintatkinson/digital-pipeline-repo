@@ -1,13 +1,13 @@
 import os
 from typing import List, Tuple, Set, Optional
 from .base import IParser
-from .yang import YangParser
+from .regex import RegexSchemaParser
 from ..core.workspace import WorkspaceRepository
 
 class SchemaRouter(IParser):
     def __init__(self, workspace_repo: WorkspaceRepository):
         self.workspace_repo = workspace_repo
-        self._parsers: List[IParser] = [YangParser(workspace_repo)]
+        self._parsers: List[IParser] = [RegexSchemaParser(workspace_repo)]
 
     def register(self, parser: IParser):
         self._parsers.append(parser)

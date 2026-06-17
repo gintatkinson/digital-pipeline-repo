@@ -20,7 +20,7 @@ class BacklogDirectories:
     features: str = "docs/features"
     user_stories: str = "docs/user-stories"
     use_cases: str = "docs/use-cases"
-    schemas: str = "yang"
+    schemas: str = "schema"
 
 @dataclass
 class TargetDirectories:
@@ -87,7 +87,7 @@ class ValidationRules:
     use_case_flow_limit: int = 2
     use_case_step_limit: int = 2
     max_body_characters: int = 65536
-    yang_exclude_keywords: List[str] = field(default_factory=lambda: ["description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"])
+    schema_exclude_keywords: List[str] = field(default_factory=lambda: ["description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"])
     multiplicity_regex: str = "\\[[^\\]]+\\]"
     essential_feature_sections: List[str] = field(default_factory=lambda: ["Class Diagram", "Interface Requirements"])
     required_diagrams: Dict[str, List[str]] = field(default_factory=lambda: {
@@ -118,7 +118,28 @@ class ValidationRules:
     realization_matrix_header: str = "## 8. Realization Matrix"
     realization_stories_header: str = "### Required User Stories"
     realization_features_header: str = "### Required Features"
-    non_yang_extensions: List[str] = field(default_factory=lambda: [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"])
+    alternative_schema_extensions: List[str] = field(default_factory=lambda: [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"])
+    schema_patterns: Dict[str, Any] = field(default_factory=lambda: {
+        ".yang": {
+            "name_regex": "\\bmodule\\s+([a-zA-Z0-9_\\-]+)",
+            "patterns": [
+                "\\btypedef\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bleaf\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bleaf-list\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bcontainer\\s+([a-zA-Z0-9_\\-]+)",
+                "\\blist\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bgrouping\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bchoice\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bcase\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bidentity\\s+([a-zA-Z0-9_\\-]+)",
+                "\\banydata\\s+([a-zA-Z0-9_\\-]+)",
+                "\\banyxml\\s+([a-zA-Z0-9_\\-]+)",
+                "\\brpc\\s+([a-zA-Z0-9_\\-]+)",
+                "\\bnotification\\s+([a-zA-Z0-9_\\-]+)",
+                "\\baction\\s+([a-zA-Z0-9_\\-]+)"
+            ]
+        }
+    })
     required_sections: Dict[str, List[List[str]]] = field(default_factory=lambda: {})
 
 @dataclass

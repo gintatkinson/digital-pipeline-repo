@@ -45,7 +45,7 @@
     "features": "docs/features",
     "user_stories": "docs/user-stories",
     "use_cases": "docs/use-cases",
-    "schemas": "yang"
+    "schemas": "schema"
   },
   "target_directories": {
     "react": "web_react",
@@ -105,7 +105,7 @@
     "use_case_flow_limit": 2,
     "use_case_step_limit": 2,
     "max_body_characters": 65536,
-    "yang_exclude_keywords": ["description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"],
+    "schema_exclude_keywords": ["description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"],
     "multiplicity_regex": "\\[[^\\]]+\\]",
     "essential_feature_sections": ["Class Diagram", "Interface Requirements"],
     "required_diagrams": {
@@ -136,7 +136,28 @@
     "realization_matrix_header": "## 8. Realization Matrix",
     "realization_stories_header": "### Required User Stories",
     "realization_features_header": "### Required Features",
-    "non_yang_extensions": [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"],
+    "schema_patterns": {
+      ".yang": {
+        "name_regex": "\\bmodule\\s+([a-zA-Z0-9_\\-]+)",
+        "patterns": [
+          "\\btypedef\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bleaf\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bleaf-list\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bcontainer\\s+([a-zA-Z0-9_\\-]+)",
+          "\\blist\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bgrouping\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bchoice\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bcase\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bidentity\\s+([a-zA-Z0-9_\\-]+)",
+          "\\banydata\\s+([a-zA-Z0-9_\\-]+)",
+          "\\banyxml\\s+([a-zA-Z0-9_\\-]+)",
+          "\\brpc\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bnotification\\s+([a-zA-Z0-9_\\-]+)",
+          "\\baction\\s+([a-zA-Z0-9_\\-]+)"
+        ]
+      }
+    },
+    "alternative_schema_extensions": [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"],
     "required_sections": {
       "epic": [
         ["##\\s+1\\.\\s+Context", "## 1. Context"],

@@ -23,17 +23,17 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 ## 4. PropertyGrid
 - **Anatomy:** Key-value attribute grid mapped to a schema.
 - **Behavior:** Input fields validate upon focus loss or editing completion. Keeps a local change-buffer to prevent triggering global state re-renders on every keystroke.
-- **Performance:** JSON-Schemas are compiled *once* at initialization into a flat, typed **Logical Layout Descriptor** list, avoiding render-cycle parsing lag.
+- **Performance:** Validation schemas are compiled *once* at initialization into a flat, typed **Logical Layout Descriptor** list, avoiding render-cycle parsing lag.
 
-## 5. TopologyMap (3D/4D Spatial-Temporal Canvas)
-- **Anatomy:** A hardware-accelerated viewport displaying nodes and directional links in 3D coordinate space, dynamic trajectory path lines, volumetric bounding indicators (e.g. spatial coordinate boundaries), and an overlay time-control bar (play/pause, timeline scrubber, playback speed multiplier).
-- **Behavior:** Centers layout focus on selected items. Highlights node outline colors based on the active alarm severity mapping configuration. Supports grouping and filtering objects dynamically based on spatial-temporal boundaries (e.g., displaying managed objects inside a specific 3D coordinates volume at time $t$ along their projected trajectories).
-- **Performance:** 4D coordinate transformations, orbital path projections, and layout physics are executed off the main thread (using off-thread execution environments) and accelerated in parallel using GPU compute shaders.
+## 5. TopologyMap (Multi-Dimensional Canvas)
+- **Anatomy:** A hardware-accelerated viewport displaying nodes and directional links in the configured coordinate space, dynamic trajectory indicators, volumetric bounding envelopes (e.g. spatial coordinate boundaries), and an overlay time-control bar (play/pause, timeline scrubber, playback speed multiplier).
+- **Behavior:** Centers layout focus on selected items. Highlights node outline colors based on the active state severity mapping configuration. Supports grouping and filtering objects dynamically based on configured spatial-temporal boundaries (e.g., displaying managed objects inside a specific coordinates volume at time $t$ along their projected vectors).
+- **Performance:** Coordinate transformations, trajectory projections, and layout physics are executed off the main thread (using off-thread execution environments) and accelerated in parallel using GPU compute shaders.
 
 
 ## 6. DensityTable
 - **Anatomy:** High-density grid containing columns, rows, sort indicators, and multiselect checkboxes.
-- **Columns:** Dynamically constructed based on the selected/associated managed object's data schema to display all configured/allowed attributes, properties, and child elements. Includes standard attributes (Object Icon, Name, Type, Family, Alarms, Primary State, Secondary States) alongside all schema-defined attributes.
+- **Columns:** Dynamically constructed based on the selected/associated managed object's data schema to display all configured/allowed attributes, properties, and child elements. Includes generic visualization attributes (such as visual icon, name, type, grouping category, and status indicators) mapped dynamically from layout configuration mappings.
 - **Performance:** Supports virtualized list rendering to optimize viewport performance.
 - **Tabbed Layout Integration:** To support legacy industrial state visualizations and next-gen workflows, multiple specialized DensityTables (as defined in the layout configuration) are dynamically mounted inside a bottom-docked `TabbedContainer`, dynamically loading lists associated with the selected topological managed object.
 

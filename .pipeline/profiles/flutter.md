@@ -22,7 +22,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - Direct database/API SDK imports are forbidden in UI widgets.
   - Widgets must depend only on abstract Repository interfaces.
   - Active adapter is resolved and injected dynamically at application bootstrap based on environment variables or runtime configurations.
-  - **Allowed Adapters:** `FirebaseEmulatorAdapter`, `LocalServiceAdapter`, `FirebaseHostedAdapter`, `GrpcAdapter`, `OpenApiAdapter` (must match the React profile allowed list).
+  - **Allowed Adapters:**
+  - Transport and database adapters must register themselves dynamically at application bootstrap. The platform profile does not restrict the allowed adapter types; any class implementing the target Repository interface is permitted, enabling dynamic runtime resolution of any protocol or database client (e.g. REST, gRPC, WebSocket, GraphQL, or local storage).
 - **Dependency Injection (DI) & State Management:**
   - Standardize on dynamic state management models (such as BLoCs) for core business logic.
   - Explicitly restrict coupling UI views directly to state provider packages, enforcing abstract constructor parameters or dynamic service locators instead to avoid direct widget-tree coupling to specific third-party provider libraries.
@@ -42,13 +43,12 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
   - lowerCamelCase for variables, constants, parameters, and methods.
   - snake_case for directories and file names (Dart convention).
 - **Type Strictness:** Enforce `analysis_options.yaml` (strict-casts, strict-inference, and strict-raw-types enabled). Use of `dynamic` is prohibited in application code. Developers MUST write typed parsing/mapping functions immediately at the adapter boundaries.
-- **Off-Thread Telemetry Pipeline:**
-  - Stream connections and binary telemetry packet parsing MUST run in a background execution context (such as a background Dart Isolate) to prevent blocking the main UI thread.
-  - Pass decoded, normalized domain structures to the main thread via asynchronous message passing or memory buffers.
-- **Web-Safe Zero-Copy Telemetry & Hardware Alignment:**
-  - **Zero-Copy Telemetry**: FFI-based pointer swapping is deprecated. Telemetry pipeline must utilize zero-copy `TransferableTypedData` byte buffers passed over Dart standard `SendPort`/`ReceivePort` communication, which is fully compatible with both Flutter Desktop (native isolates) and Flutter Web (using web workers/service workers via JS-interop).
-  - **Memory Alignment**: If native memory is accessed, all allocations MUST be aligned dynamically based on queries to the hardware device alignment requirements at runtime (using dynamic alignment queries on POSIX or Windows APIs) rather than assuming a static 256-byte boundary, preventing GPU driver validation crashes in native rendering pipelines (such as Impeller's Metal/Vulkan backends).
-  - **Double-Buffering & Mutexes**: Coordinate buffers must use double-buffering and explicit synchronization fences (mutexes/atomic flags) to prevent data tearing between background writers and UI render cycles.
+- **Off-Thread Processing:**
+  - To prevent main-thread UI starvation during high-frequency data streaming or heavy parsing, all intensive computation and data deserialization MUST execute off the main thread inside a background execution context (such as background Dart Isolates or Web Workers).
+  - Pass normalized domain structures to the main thread via asynchronous message passing.
+- **Resource Management:**
+  - Explicitly manage runtime memory lifecycles for hardware-accelerated viewports or large buffers, releasing memory in component cleanup hooks to prevent leaks.
+  - Pre-allocate and reuse memory blocks where possible to avoid continuous runtime memory allocation.
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
@@ -69,8 +69,8 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - **Resizable Splitter Widget:** The main workspace area renders pane slots dynamically populated with child widgets resolved from the configuration.
       - **Paint Isolation & Caching Bypass:** Wrap child views inside the split panes in repaint boundaries to isolate painting boundaries and ensure smooth resizing. Caching on `RepaintBoundary` must be temporarily disabled or bypassed during active resizing drag gestures to prevent frame-by-frame texture invalidations on the GPU (GPU layer thrashing).
       - **State Preservation:** Leverage state retention on child widgets to prevent widget state destruction when resizing split panes.
-      - Child widgets resolved from layout schemas (such as the topology map, tabbed views, or details tables) are dynamically rendered inside the Split Workspace containers.
-    - **Property Grid Widget:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
+      - Child widgets resolved from layout schemas (such as viewports, attribute grids, or lists) are dynamically rendered inside the Split Workspace containers.
+    - **Property Grid Widget:** Key-value attribute grid mapped to a schema. Validation schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **Navigation Breadcrumbs Widget:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
     - High information-density tables with sortable, filterable columns, row selections, and status badges.
