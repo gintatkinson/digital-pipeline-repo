@@ -89,83 +89,120 @@ def main():
     if not features:
         print("Note: No feature specifications found in directory. Skipping model coverage checks.")
         skip_coverage_checks = True
-    elif has_alternative_schemas:
-        print("Warning: Deep AST node coverage parity audit is currently optimized for primary schemas. Skipping strict coverage percentage check for other schema formats, but proceeding with UML compliance audit.")
-        skip_coverage_checks = True
-    elif not has_parseable_schemas:
-        print("Note: No schemas found in schema directory. Skipping model coverage checks.")
-        skip_coverage_checks = True
         
-    # 3. Audit coverage per module
+    # 3. Audit codebase coverage of UML classes
     total_defined = 0
     total_covered = 0
-    coverage_gaps = {}
+    coverage_gaps = []
     
     uml_validator = UmlValidator()
     global_classes = uml_validator.build_global_classes(repo, features_dir) if features else {}
     
     if not skip_coverage_checks and features:
-        # Convert FeatureFile list to list of dicts to match original build_classes_from_features signature/contract
-        # or we can pass List[FeatureFile] directly. Since we refactored it, build_classes_from_features accepts List[FeatureFile]
-        for module_name, definitions in sorted(modules.items()):
-            matching_features = [f for f in features if module_name in f.labels]
-            if not matching_features:
-                continue
-                
-            local_classes = uml_validator.build_classes_from_features(matching_features, repo)
-            
-            module_defined = len(definitions)
-            module_covered = 0
-            missing = []
-            
-            for name in sorted(definitions):
-                variants = {name}
-                if '-' in name or '_' in name or '.' in name:
-                    parts = re.split(r'[-_.]', name)
-                    variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
-                    variants.add("".join(p.capitalize() for p in parts))
-                else:
-                    if name:
-                        variants.add(name[0].lower() + name[1:])
-                        variants.add(name[0].upper() + name[1:])
-                        
-                found = False
-                if any(v in local_classes for v in variants):
-                    found = True
-                else:
-                    for cls_info in local_classes.values():
-                        if any(attr["name"] in variants for attr in cls_info["attributes"]):
-                            found = True
-                            break
-                        if any(method["name"] in variants for method in cls_info["methods"]):
-                            found = True
-                            break
-                            
-                if found:
-                    module_covered += 1
-                else:
-                    missing.append(name)
-                    
-            total_defined += module_defined
-            total_covered += module_covered
-            
-            if missing:
-                coverage_gaps[module_name] = missing
-                
-            if module_defined > 0:
-                pct = (module_covered / module_defined) * 100
-                print(f"Module '{module_name}': {module_covered}/{module_defined} nodes covered ({pct:.2f}%)")
+        # Read codebase source files
+        codebase_contents = []
+        
+        # React
+        react_dir_name = rules.target_directories.react
+        if react_dir_name:
+            react_dir = os.path.join(repo.workspace_dir, react_dir_name)
+            if os.path.exists(react_dir):
+                react_exts = tuple(rules.react_rules.file_extensions)
+                react_exclusions = set(rules.react_rules.exclusions)
+                for root, dirs, files in os.walk(react_dir):
+                    dirs[:] = [d for d in dirs if d not in react_exclusions]
+                    for file in files:
+                        if file.endswith(react_exts):
+                            try:
+                                with open(os.path.join(root, file), "r", encoding="utf-8") as f:
+                                    codebase_contents.append(f.read())
+                            except Exception:
+                                pass
+                                
+        # Flutter
+        flutter_dir_name = rules.target_directories.flutter
+        if flutter_dir_name:
+            flutter_dir = os.path.join(repo.workspace_dir, flutter_dir_name)
+            if os.path.exists(flutter_dir):
+                flutter_exts = tuple(rules.flutter_rules.file_extensions)
+                flutter_exclusions = set(rules.flutter_rules.exclusions)
+                for root, dirs, files in os.walk(flutter_dir):
+                    dirs[:] = [d for d in dirs if d not in flutter_exclusions]
+                    for file in files:
+                        if file.endswith(flutter_exts):
+                            try:
+                                with open(os.path.join(root, file), "r", encoding="utf-8") as f:
+                                    codebase_contents.append(f.read())
+                            except Exception:
+                                pass
+
+        # Helper to generate variants for a name
+        def get_variants(name: str) -> Set[str]:
+            variants = {name}
+            if '-' in name or '_' in name or '.' in name:
+                parts = re.split(r'[-_.]', name)
+                variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
+                variants.add("".join(p.capitalize() for p in parts))
+                variants.add("_".join(p.lower() for p in parts))
             else:
-                print(f"Module '{module_name}': 0 nodes defined")
-                
+                if name:
+                    variants.add(name[0].lower() + name[1:])
+                    variants.add(name[0].upper() + name[1:])
+            return variants
+
+        for cls_name, cls_info in sorted(global_classes.items()):
+            # Check class name
+            cls_variants = get_variants(cls_name)
+            cls_found = False
+            for content in codebase_contents:
+                if any(v in content for v in cls_variants):
+                    cls_found = True
+                    break
+            
+            total_defined += 1
+            if cls_found:
+                total_covered += 1
+            else:
+                coverage_gaps.append(f"Class '{cls_name}'")
+
+            # Check attributes
+            for attr in cls_info["attributes"]:
+                attr_name = attr["name"]
+                attr_variants = get_variants(attr_name)
+                attr_found = False
+                for content in codebase_contents:
+                    if any(v in content for v in attr_variants):
+                        attr_found = True
+                        break
+                total_defined += 1
+                if attr_found:
+                    total_covered += 1
+                else:
+                    coverage_gaps.append(f"Attribute '{cls_name}.{attr_name}'")
+
+            # Check methods
+            for method in cls_info["methods"]:
+                method_name = method["name"]
+                method_variants = get_variants(method_name)
+                method_found = False
+                for content in codebase_contents:
+                    if any(v in content for v in method_variants):
+                        method_found = True
+                        break
+                total_defined += 1
+                if method_found:
+                    total_covered += 1
+                else:
+                    coverage_gaps.append(f"Method '{cls_name}.{method_name}'")
+
         print("\n=== Audit Summary ===")
         if total_defined > 0:
             overall_pct = (total_covered / total_defined) * 100
-            print(f"Total Schema Nodes Defined: {total_defined}")
-            print(f"Total Schema Nodes Covered: {total_covered}")
+            print(f"Total UML Elements Defined: {total_defined}")
+            print(f"Total UML Elements Covered: {total_covered}")
             print(f"Overall Model Coverage:     {overall_pct:.2f}%")
         else:
-            print("No target schema nodes found to verify.")
+            print("No UML elements found in specifications to verify.")
             sys.exit(1)
             
     print("\n=== UML Diagrams Compliance Audit ===")
@@ -185,10 +222,9 @@ def main():
             print("Success: All specification files are fully UML-compliant (no ERDs or invalid syntax found).")
             
     if coverage_gaps:
-        print("\n[!] Coverage Gaps Identified:")
-        for module_name, missing in sorted(coverage_gaps.items()):
-            print(f"  Module '{module_name}' is missing {len(missing)} nodes:")
-            print(f"    Missing: {', '.join(missing)}")
+        print("\n[!] Codebase Coverage Gaps Identified:")
+        for gap in sorted(coverage_gaps):
+            print(f"  - {gap}")
         print("\nError: 100% model coverage validation failed.")
         has_failed = True
     else:

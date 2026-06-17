@@ -232,7 +232,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 > **Specification Generation Prompt:**
 >
-> "Adopt the specification orchestrator skill. I want to specification-engineer [Protocol Standard, e.g., RFC 8345].
+> "Adopt the specification orchestrator skill. I want to specification-engineer [Protocol Standard, e.g., standard protocol schemas].
 >
 > 1. The structural schemas are located at `[path to schemas]`.
 > 2. The normative specification documents are located at `[path to specs]`.

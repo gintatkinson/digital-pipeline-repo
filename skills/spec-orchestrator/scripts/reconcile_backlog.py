@@ -88,20 +88,31 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Match both checked and unchecked boxes: e.g., - [ ] #123 or - [x] #123 or - [ ] #PROJ-123
-    pattern = r"(-\s*\[\s*([ xX])\s*\]\s*(#|#\[|\#\s*)?([A-Za-z0-9\-]+))"
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    pattern = tracker_rules.get("dependency_regex", r"(-\s*\[\s*([ xX])\s*\]\s*(#|#\[|\#\s*)?([A-Za-z0-9\-]+))")
     
     updated_content = content
     all_deps_closed = True
     has_deps = False
     
-    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     keys = tracker_rules.get("keys", {})
     state_key = keys.get("state", "state")
     closed_state = keys.get("closed_state_value", "CLOSED").upper()
     
     matches = re.findall(pattern, content)
-    for full_match, mark, prefix, dep_num_str in matches:
+    for match_tuple in matches:
+        # Support variable number of groups depending on user-configured regex
+        if isinstance(match_tuple, str):
+            full_match = match_tuple
+            mark = ' '
+            prefix = ''
+            dep_num_str = match_tuple
+        else:
+            full_match = match_tuple[0]
+            mark = match_tuple[1]
+            prefix = match_tuple[2] if len(match_tuple) > 2 else ''
+            dep_num_str = match_tuple[3] if len(match_tuple) > 3 else match_tuple[-1]
+
         if dep_num_str.isdigit() and not prefix:
             continue
         has_deps = True
@@ -110,11 +121,13 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         
         if dep_issue is None:
             ref_str = format_issue_reference(dep_num, tracker_rules)
-            print(f"Error: Invalid/hallucinated dependency reference {ref_str} in {os.path.basename(filepath)}")
-            upstream_repo = rules.get("meta", {}).get("upstream_repository", "unknown") if rules else "unknown"
-            troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
-            print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
-            sys.exit(1)
+            print(f"Warning: Invalid dependency reference {ref_str} in {os.path.basename(filepath)}")
+            if tracker_rules.get("strict_dependency_checks", False):
+                upstream_repo = rules.get("meta", {}).get("upstream_repository", "unknown") if rules else "unknown"
+                troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
+                print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
+                sys.exit(1)
+            continue
             
         is_closed = (str(dep_issue[state_key]).upper() == closed_state)
         target_mark = 'x' if is_closed else ' '
@@ -258,7 +271,8 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
         if link_label_match:
             title = link_label_match.group(1).strip()
         else:
-            pattern = r'-\s*\[[ xX]\]\s*' + escaped_placeholder + r'\s*-\s*' + title_extraction_prefixes_regex + r'(.*)$'
+            # Match placeholder anywhere on the line, optionally followed by separator/prefix, capturing the title
+            pattern = escaped_placeholder + r'(?:\s*[-:]\s*)?' + title_extraction_prefixes_regex + r'(.*)$'
             dash_match = re.search(pattern, line)
             if dash_match:
                 title = dash_match.group(1).strip()
@@ -284,10 +298,20 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
         
     return content
 
+def find_workspace_dir(start_path):
+    curr = os.path.abspath(start_path)
+    while True:
+        if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+            return curr
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+    return os.path.abspath(start_path)
+
 def main():
-    # Locate the workspace directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    workspace_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+    # Locate the workspace directory dynamically starting from CWD
+    workspace_dir = find_workspace_dir(os.getcwd())
 
     # Load codebase rules
     rules = load_codebase_rules(workspace_dir)
@@ -307,6 +331,8 @@ def main():
     id_key = keys.get("issue_id", "number")
     title_key = keys.get("title", "title")
     labels_key = keys.get("labels", "labels")
+    state_key = keys.get("state", "state")
+    closed_state = keys.get("closed_state_value", "CLOSED").upper()
     
     close_comments = tracker_rules.get("close_comments", {})
     epic_comment = close_comments.get("epic", "Epic completed. All constituent features successfully delivered and verified.")

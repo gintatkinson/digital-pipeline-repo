@@ -20,7 +20,7 @@ Use this skill to establish or update a project's foundational governance docume
 - **Implementation** (code, tests, deployment) is **platform-specific** and may have multiple variants.
 
 > [!IMPORTANT]
-> Epics, Features, User Stories, and Use Cases derived from protocol specifications (IETF RFC, 3GPP TS, YANG schemas, etc.) describe *what* the system must do — never *how* it is built. A single set of functional specs can drive implementations on React, Flutter, .NET, or any other platform simultaneously.
+> Epics, Features, User Stories, and Use Cases derived from structural schemas and specifications describe *what* the system must do — never *how* it is built. A single set of functional specs can drive implementations on any target platform, language, or framework simultaneously.
 
 ## Architecture: Two Tiers
 
@@ -80,8 +80,8 @@ Prompt the human with these categories — all must be **platform-independent** 
    - General schema compliance requirements (how constraints, ranges, and patterns are captured)
    - General data model integrity rules (mapping nodes to feature specs, tracking circular dependencies)
    - Semantic invariants (e.g., "every node must resolve to a valid existing parent context")
-   - UML Metamodel & Profile Mapping Standard (explicit mappings from source schemas such as YANG, OpenAPI, and Protobuf to UML Components, Classes, Attributes, Operations, and Constraints)
-   - Universal Model Consistency Rules (declarations enforcing that no element/message may be used in dynamic behavior diagrams like sequence or state diagrams without being defined in the structural class diagrams)
+   - Model Metamodel & Profile Mapping Standard (explicit mappings from source schemas such as YANG, OpenAPI, or Protobuf to target logical modeling elements: Components, Classes, Attributes, Operations, and Constraints)
+   - Universal Model Consistency Rules (declarations enforcing that no element/message may be used in dynamic behavior specifications like sequence or state diagrams without being defined in the structural models)
 
 2. **Specification Standards**
    - Epic/Feature granularity rules
@@ -122,11 +122,11 @@ last_updated: "[ISO Date]"
 ## Domain Rules
 - [Captured rules]
 
-### UML Metamodel & Profile Mapping Standard
-- [Define rules laying out how incoming schemas (like YANG, OpenAPI, Protobuf) must map to UML Components, Classes, Attributes, Operations, and Constraints]
+### Model Metamodel & Profile Mapping Standard
+- [Define rules laying out how incoming schemas (like YANG, OpenAPI, Protobuf) must map to target logical elements: Components, Classes, Attributes, Operations, and Constraints]
 
 ### Universal Model Consistency Rules
-- [Define consistency rules, including the requirement that no element/message/signal may be used in sequence/state diagrams without being defined in the class diagrams]
+- [Define consistency rules, including the requirement that no element/message/signal may be used in dynamic behavior specifications without being defined in the structural models]
 
 ## Specification Standards
 - [Captured standards]
@@ -143,27 +143,27 @@ last_updated: "[ISO Date]"
 For each target platform, prompt the human:
 
 1. **Platform & Stack Constraints**
-   - Target framework and version (e.g., React 18, Flutter 3.24, .NET 9)
-   - Language and version (e.g., TypeScript 5.x, Dart 3.x, C# 12)
+   - Target framework and version (e.g., `<target-framework> <version>`)
+   - Language and version (e.g., `<target-language> <version>`)
    - Forbidden dependencies or patterns
    - Required dependencies
 
 2. **Coding Standards**
-   - Type strictness level (e.g., no `any`, strict null checks)
-   - Naming conventions (e.g., PascalCase components, kebab-case files)
+   - Type strictness level (e.g., strict null checks, type safety rules)
+   - Naming conventions (e.g., casing rules for files, directories, and classes)
    - Module/component architecture pattern (e.g., feature-based, layered)
 
 3. **Testing Mandates**
-   - Required test types (unit, widget, integration, E2E)
-   - Test framework(s) (e.g., Jest, Playwright, flutter_test)
-   - Coverage thresholds (e.g., 80% line coverage)
+   - Required test types (unit, widget/component, integration, E2E)
+   - Test framework(s) (e.g., `<test-framework>`, `<e2e-framework>`)
+   - Coverage thresholds (e.g., line and branch coverage limits)
    - TDD enforcement level (mandatory per micro-task, or per feature)
 
 4. **Build & Deployment**
-   - Build command (e.g., `npm run build`, `flutter build`)
-   - Lint command (e.g., `npm run lint`, `flutter analyze`)
-   - CI/CD pipeline (e.g., GitHub Actions, Vercel)
-   - Deployment target (e.g., Netlify, App Store, Azure)
+   - Build command (e.g., `<build-command>`)
+   - Lint command (e.g., `<lint-command>`)
+   - CI/CD pipeline (e.g., `<ci-cd-service>`)
+   - Deployment target (e.g., `<cloud-provider>`, `<app-store>`)
 
 5. **Security & Ops**
    - API key management
@@ -310,8 +310,8 @@ If a Feature's acceptance criteria need platform-specific variants, add them as 
 - Given a network node, When the user selects it, Then the detail panel displays all attributes.
 
 ### Platform-Specific
-- **[react]**: The detail panel uses a `<Drawer>` component with CSS transitions.
-- **[flutter]**: The detail panel uses a `showModalBottomSheet` with Material 3 theming.
+- **[web]**: The detail panel uses a sliding drawer component with smooth transitions.
+- **[mobile]**: The detail panel transitions from the bottom of the viewport with brand-specific styling.
 ```
 
 The spec-generation workers write only the "Functional" criteria. Platform-specific criteria are added during implementation planning (Step 2 of `feature-driven-implementation`).

@@ -22,7 +22,7 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 2. **The Grill Approval:** Create an implementation plan and obtain explicit human approval BEFORE modifying any source files.
 3. **Traceability:** All closed issues MUST have a closing comment referencing the relative path or GitHub URL of the committed solution walkthrough.
 4. **Agentic Epic Closure:** When all constituent features of an Epic are closed, the agent must check off the items in the local Epic markdown, update the Epic issue's body on GitHub, and close the Epic issue itself.
-5. **No Browser Automation:** All web UI verification must be performed manually unless the project explicitly uses automated E2E testing. Do not use automated browser subagents or headless testing for UI verification unless the project's test suite mandates it.
+5. **Verification Isolation:** Verification of the implemented feature must follow the specific testing frameworks and execution models defined in the platform profile (e.g., E2E, unit, or integration tests). Refrain from using unapproved browser automation, headless engines, or scripts unless explicitly allowed by the project profile.
 6. **Issue Tracker as Source of Truth:** Do not rely on local files or checklist documentation for feature definitions or backlog status as they may be contaminated or contain broken links. Always query the official issue tracker provider as the canonical source of truth.
 7. **Cumulative Walkthroughs & Document Integrity:** When writing or updating living artifacts (such as implementation plans, task lists, and verification walkthroughs), you MUST NOT perform destructive overwrites. Always read the existing file first. Append or merge new details so the historical record remains fully intact.
 8. **Validation Isolation & Separate Subagent Audit:** The primary agent MUST NOT self-verify database changes or documentation links without a strict checklist. Dispatch a separate **Validator Subagent** if available. In single-agent contexts, perform a strict, isolated self-audit (Step 4.5 fallback) verifying that every structural identifier and link target referenced in the walkthrough resolves and exists in the unified data repository.
@@ -61,13 +61,11 @@ If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or ne
 
 ### Step 2: Checkout & Plan Review ("The Grill")
 1. Checkout a dedicated feature branch from the default branch resolved from configuration using the environment-configured checkout command and branch naming conventions (e.g. resolved dynamically from configuration):
-2. **Platform Scoping:** The feature spec is platform-independent (functional). Apply the target platform from the implementation profile (`.pipeline/profiles/<platform>.md`, loaded in Step 1) to translate functional requirements into platform-specific design decisions. This is where framework components, UI patterns, and test frameworks are chosen — not during spec generation.
-3. Create/update `implementation_plan.md` outlining a **complete vertical slice** conforming to the project's configured architecture layers (e.g., as defined in the target platform profile or workspace configuration):
-   - **Data/Persistence Layer:** Configured updates to data persistence or state storage including test data and edge cases.
-   - **Logic/Transformation Layer:** Type definitions, validation schemas, business logic, and hooks to wire transformation logic.
-   - **Presentation/Interface Layer:** Platform-specific interface component choices, layout changes, styles, and data bindings.
-   - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code, using the test framework from the implementation profile. Include E2E test specifications where applicable.
-   - **Verification Plan:** Detailed manual validation instructions, compiler checks, and tests.
+2. **Platform Scoping:** The feature spec is platform-independent (functional). Apply the target platform from the implementation profile (`.pipeline/profiles/<platform>.md`, loaded in Step 1) to translate the abstract UML-mapped functional specifications into concrete platform-specific design decisions. This is where framework-specific libraries, language choices, structural patterns, and test frameworks are chosen.
+3. Create/update `implementation_plan.md` outlining a **complete vertical slice** conforming to the architectural layers defined in the target platform profile (e.g., database, serialization, API, logic, or UI presentation layers):
+   - **Architectural Layers:** Map the UML classes, components, operations, and attributes to their corresponding layer locations in the target codebase stack.
+   - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code, using the test framework and runners specified in the platform profile.
+   - **Verification Plan:** Detailed verification instructions, compiler checks, and test runner executions.
 4. **Micro-Task Breakdown:** Decompose the plan into sequential micro-tasks (2-5 min each). Each task must specify:
    - Target file(s) and line ranges
    - What changes
@@ -140,8 +138,8 @@ Configure the review method dynamically based on the current agent orchestrator 
 - **Multi-Agent Environments**: Dispatch separate spec compliance and code quality reviewer subagents with the diff and specification documents.
 - **Single-Agent Fallback**: The coordinator agent performs both reviews as explicit, sequential self-audit steps: (1) re-read the spec, diff the changes, check compliance point-by-point, and (2) re-read the code, checking design tokens, standards, and conventions. Document all findings in the local tracking checklist before proceeding.
 
-#### 3.4 Data Flow Slicing Order
-- Implement the vertical slice in the order specified by the platform profile or codebase configuration (e.g., data/persistence layers first, logic/transformation layers second, and presentation/interface layers last). Ensure that tests are written for each layer before its implementation code in accordance with TDD principles.
+#### 3.4 Slicing Execution Order
+- Implement the vertical slice in the architectural order specified by the target platform profile (e.g., bottom-up or data-first mapping). Ensure that TDD tests are written and verified red for each component before writing the minimal passing code.
 
 #### 3.5 Inter-Task Continuation
 - After both reviews pass, mark task complete in tracking list.
@@ -167,19 +165,19 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 3. **Fix:** Apply the minimal upstream fix. Prefer single-line changes. Do not add workarounds downstream. Do not "fix" by weakening or deleting the test.
 4. **Verify:** Run the full test suite (not just the fixed test) to confirm no regressions. Only proceed when all tests pass.
 
-### Step 4: Verification & Testing (Human & Assertion-Based Verification)
-1. **Assertion-Based Automation:** When writing or updating widget/unit tests, do not rely on basic smoke tests that only verify the app launches. Add explicit assertions that query the rendering tree for the presence of the new fields or text tokens.
-2. Run local tests or build checks using the environment-configured commands.
+### Step 4: Verification & Testing
+1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties.
+2. Run local tests or build checks using the command runners specified in the platform profile.
 3. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.
-4. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands/actions to run, which interface element to navigate to, what actions to perform, and what visual output to inspect to verify that the implementation is 100% correct.
+4. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands, scripts, or interface interactions to execute, what inputs to feed, and what specific output (e.g., payload, log entry, UI state change, database record) to inspect to verify correctness.
 5. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):**
-   - **Multi-Agent Mode:** Dispatch a separate **Validator Subagent** to read the draft walkthrough and cross-reference every referenced structural identifier and link target. The Validator subagent must independently locate these elements in the unified data repository to confirm they exist and match the interface navigation targets. Fail the validation step if there is any mismatch.
-   - **Single-Agent Fallback:** The agent must step out of the implementation context and systematically audit its own draft walkthrough. Perform exact search lookups to verify that every single structural identifier and link target referenced in the walkthrough exists verbatim in the data repository. Document the results of this check explicitly before requesting user approval.
+   - **Multi-Agent Mode:** Dispatch a separate **Validator Subagent** to read the draft walkthrough and cross-reference every referenced structural identifier and link target. The Validator subagent must independently locate these elements in the codebase to confirm they exist and match the logical specifications. Fail the validation step if there is any mismatch.
+   - **Single-Agent Fallback:** The agent must step out of the implementation context and systematically audit its own draft walkthrough. Perform exact search lookups to verify that every single structural identifier and link target referenced in the walkthrough exists verbatim in the codebase. Document the results of this check explicitly before requesting user approval.
 6. Apply any feedback iteratively on the feature branch.
 
 ### Step 5: Release & Closure (CRITICAL)
 1. Merge the feature branch into the configured default branch resolved from configuration rules using the configured merge command template.
-2. Create or update a cumulative solution walkthrough document under the configured design directory (e.g. `docs/designs/feat-<Issue_Number>-solution.md`) summarizing the changes, testing, and validations. This document must include a Code Realization Table that explicitly maps each feature and its attributes to the implemented source files, classes, methods, and functions. Do not delete or overwrite sections for previously implemented sub-features or related components. Ensure the document is a cumulative record of all changes.
+2. Create or update a cumulative solution walkthrough document under the configured design directory (e.g. `docs/designs/feat-<Issue_Number>-solution.md`) summarizing the changes, testing, and validations. This document must include a Code Realization Table that explicitly maps each feature and its attributes to the implemented source files, classes, methods, and functions matching the target platform's file extensions (e.g., `.tsx` for React, `.dart` for Flutter, `.cs` for C#, `.py` for Python). Do not delete or overwrite sections for previously implemented sub-features or related components. Ensure the document is a cumulative record of all changes.
    > [!IMPORTANT]
    > **DO NOT USE THE FEATURE INDEX NUMBER** in the solution filename if the tracker issue number is different. The solution filename MUST strictly use the tracker issue number (e.g., `feat-<Issue_Number>-solution.md`).
    >

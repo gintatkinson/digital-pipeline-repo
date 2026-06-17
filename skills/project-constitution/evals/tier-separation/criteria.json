@@ -18,7 +18,7 @@
     },
     {
       "name": "implementation_profile_created",
-      "description": "Agent creates .pipeline/profiles/react.md with correct YAML frontmatter including tier: implementation and platform: react",
+      "description": "Agent creates .pipeline/profiles/{platform}.md with correct YAML frontmatter including tier: implementation and platform: {platform}",
       "weight": 2
     },
     {

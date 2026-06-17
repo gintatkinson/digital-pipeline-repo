@@ -92,7 +92,8 @@
     "dom_leak_patterns": ["\\baria-\\w+", "\\brole=[\"']\\w+"],
     "pixel_leak_patterns": ["\\b\\d+px\\b"],
     "spec_files": [".pipeline/logical-ui/logical-components.md"],
-    "design_tokens_path": ".pipeline/logical-ui/design-tokens.json"
+    "design_tokens_path": ".pipeline/logical-ui/design-tokens.json",
+    "forbidden_standards_blocklist": ["X.733", "ITU-T", "3GPP", "RFC 8345"]
   },
   "validation_rules": {
     "uml_primitives": ["String", "Integer", "Real", "Boolean"],
@@ -186,15 +187,15 @@
         ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
         ["##\\s+Interface\\s+Requirements", "## Interface Requirements"],
         ["###\\s+1\\.\\s+Payload\\s+Schema", "### 1. Payload Schema"],
-        ["###\\s+3\\.\\s+Protocol\\s+&\\s+Endpoint\\s+Definitions", "### 3. Protocol & Endpoint Definitions"],
-        ["###\\s+4\\.\\s+Error\\s+Handling\\s+&\\s+Codes", "### 4. Error Handling & Codes"]
+        ["###\\s+3\\.\\s+Logical\\s+Operations\\s+&\\s+Interface\\s+Messages", "### 3. Logical Operations & Interface Messages"],
+        ["###\\s+4\\.\\s+Logical\\s+Exception\\s+States\\s+&\\s+Validation\\s+Failures", "### 4. Logical Exception States & Validation Failures"]
       ],
       "feature_m2m": [
         ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
         ["##\\s+Interface\\s+Requirements", "## Interface Requirements"],
         ["###\\s+1\\.\\s+Payload\\s+Schema", "### 1. Payload Schema"],
-        ["###\\s+3\\.\\s+Protocol\\s+&\\s+Endpoint\\s+Definitions", "### 3. Protocol & Endpoint Definitions"],
-        ["###\\s+4\\.\\s+Error\\s+Handling\\s+&\\s+Codes", "### 4. Error Handling & Codes"]
+        ["###\\s+3\\.\\s+Logical\\s+Operations\\s+&\\s+Interface\\s+Messages", "### 3. Logical Operations & Interface Messages"],
+        ["###\\s+4\\.\\s+Logical\\s+Exception\\s+States\\s+&\\s+Validation\\s+Failures", "### 4. Logical Exception States & Validation Failures"]
       ],
       "user_story": [
         ["##\\s+UML\\s+Sequence\\s+Diagram", "## UML Sequence Diagram"],
@@ -235,10 +236,10 @@
     "hierarchy": ["Level1", "Level2", "Level3"],
     "data_sources": {
       "resource_tree": "provider:generic-hierarchy-provider",
-      "topology": "schema:generic-topology/topology[@id='selected_managed_object']",
-      "sub_elements": "schema:generic-topology/topology/node[@id='active_focused_node']/child-elements",
-      "active_alarms": "schema:generic-status/status[target='active_focused_node']",
-      "historical_events": "schema:generic-events/events[source='active_focused_node']"
+      "topology": "schema:generic-topology/topology[@id='selected_entity']",
+      "sub_elements": "schema:generic-topology/topology/element[@id='active_focused_element']/child-elements",
+      "active_alarms": "schema:generic-status/status[target='active_focused_element']",
+      "historical_events": "schema:generic-events/events[source='active_focused_element']"
     },
     "coordinate_mapping": {
       "x": "position/dim_0",

@@ -54,11 +54,10 @@ Use this as the single canonical workflow for translating structural schemas and
      - `4. Interactive Flow & States`: System states (read-only, edit, empty, loading, error highlighting).
    - **For API or M2M Interfaces (`interface_type: api` or `m2m`)**:
      - `1. Payload Schema (JSON Schema/Protobuf)`: Target request/response payload definition.
-     - `2. Validation & Constraints`: Protocol constraints, rate limits, schema field constraints.
-     - `3. Protocol & Endpoint Definitions`: Abstract definitions of endpoints, methods (GET/POST/Publish/Subscribe), paths, or channels.
-     - `4. Error Handling & Codes`: Expected HTTP status/error codes, timeouts, and exception/failure flows.
+     - `2. Validation & Constraints`: Schema field constraints, type validations, and logical conditions.
+     - `3. Logical Operations & Interface Messages`: Abstract definitions of logical endpoints, methods (GET/POST/Publish/Subscribe or read/write operations), logical paths, or routing channels.
+     - `4. Logical Exception States & Validation Failures`: Expected logical error states, exception/failure flows, and timeouts.
 6. **Acceptance Criteria Translation:** Transform these programmatic constraints and interface requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains active records... When the user inspects the node... Then the detail view displays the record attributes"). Do not reference specific UI components or frameworks.
-7. **Code Realization Table:** Every feature solution walkthrough/implementation document MUST include a Code Realization Table mapping features/attributes to implemented source files, classes, and functions.
 8. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 
 ## Step 3: Specification Context Injection (Verbatim)
@@ -177,16 +176,11 @@ Use this as the single canonical workflow for translating structural schemas and
      ### 2. Validation & Constraints
      - [Field constraints, ranges, patterns, protocol/payload limits]
 
-     ### 3. Visual Layout / Protocol & Endpoint Definitions
-     - [For UI: abstract grouping, zoning, hierarchy guidelines. For API/M2M: methods, paths, transport/channel specs]
+     ### 3. Visual Layout / Logical Operations & Interface Messages
+     - [For UI: abstract grouping, zoning, hierarchy guidelines. For API/M2M: logical methods, operations, abstract paths, or channels]
 
-     ### 4. Interactive Flow & States / Error Handling & Codes
-     - [For UI: states, errors, loading. For API/M2M: error codes, timeouts, exception flows]
-
-   ## Code Realization Table
-   | Feature/Attribute | Source File | Class/Type | Function/Method | Notes |
-   |---|---|---|---|---|
-   | [Attribute or feature] | [Path to source file] | [Class or type name] | [Function or method name] | [Details] |
+     ### 4. Interactive Flow & States / Logical Exception States & Validation Failures
+     - [For UI: states, errors, loading. For API/M2M: logical error states, timeouts, exception flows]
 
    ## Given-When-Then Acceptance Criteria
    [BDD scenarios]

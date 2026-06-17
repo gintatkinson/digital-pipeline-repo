@@ -74,6 +74,7 @@ class SpecRules:
     pixel_leak_patterns: List[str] = field(default_factory=lambda: ["\\b\\d+px\\b"])
     spec_files: List[str] = field(default_factory=lambda: [".pipeline/logical-ui/logical-components.md"])
     design_tokens_path: str = ".pipeline/logical-ui/design-tokens.json"
+    forbidden_standards_blocklist: List[str] = field(default_factory=list)
 
 @dataclass
 class ValidationRules:
@@ -119,27 +120,7 @@ class ValidationRules:
     realization_stories_header: str = "### Required User Stories"
     realization_features_header: str = "### Required Features"
     alternative_schema_extensions: List[str] = field(default_factory=lambda: [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"])
-    schema_patterns: Dict[str, Any] = field(default_factory=lambda: {
-        ".yang": {
-            "name_regex": "\\bmodule\\s+([a-zA-Z0-9_\\-]+)",
-            "patterns": [
-                "\\btypedef\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bleaf\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bleaf-list\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bcontainer\\s+([a-zA-Z0-9_\\-]+)",
-                "\\blist\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bgrouping\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bchoice\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bcase\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bidentity\\s+([a-zA-Z0-9_\\-]+)",
-                "\\banydata\\s+([a-zA-Z0-9_\\-]+)",
-                "\\banyxml\\s+([a-zA-Z0-9_\\-]+)",
-                "\\brpc\\s+([a-zA-Z0-9_\\-]+)",
-                "\\bnotification\\s+([a-zA-Z0-9_\\-]+)",
-                "\\baction\\s+([a-zA-Z0-9_\\-]+)"
-            ]
-        }
-    })
+    schema_patterns: Dict[str, Any] = field(default_factory=dict)
     required_sections: Dict[str, List[List[str]]] = field(default_factory=lambda: {})
 
 @dataclass

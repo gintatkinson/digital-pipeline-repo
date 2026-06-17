@@ -71,7 +71,7 @@ To ensure that specifications remain reusable and the codebase stays modular, a 
 
 1. **Tier 1: Functional Layer (Abstract Specification)**:
    - Includes: Epics, Features, User Stories, Use Cases, and Logical UI specifications.
-   - Constraints: Must be platform-independent and standard-agnostic. Absolutely no framework keywords (e.g., React, Flutter, BLoC, Context), specific standards designations (e.g., ITU-T X.733, 3GPP TS), or hardcoded visual values (e.g., hex colors, fonts, pixel dimensions) are allowed. Refer to these variables abstractly (e.g., "the active alarm severity state" or "the configured color token").
+   - Constraints: Must be platform-independent and standard-agnostic. Absolutely no framework keywords (e.g., React, Flutter, BLoC, Context), specific standards designations (e.g., legacy network standards, telecom specifications), or hardcoded visual values (e.g., hex colors, fonts, pixel dimensions) are allowed. Refer to these variables abstractly (e.g., "the active alarm severity state" or "the configured color token").
    
 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**:
    - Includes: `design-tokens.json`, dynamic mapping configurations, translation files.
@@ -100,7 +100,7 @@ To prevent backlog reconciliation matching failures due to title drift, all loca
 
 - A Feature represents a single, independently testable functional capability.
 - A Feature should have 3-10 acceptance criteria. Fewer means it lacks specificity; more than 10 means it should be split.
-- Features MUST be platform-independent and standard-agnostic. No framework names, UI component names, specific standard designations (e.g., "ITU-T X.733"), or hardcoded standard parameters may appear in Epics, Features, User Stories, or acceptance criteria.
+- Features MUST be platform-independent and standard-agnostic. No framework names, UI component names, specific standard designations (e.g., legacy standards), or hardcoded standard parameters may appear in Epics, Features, User Stories, or acceptance criteria.
 - Feature titles use the format: `[Verb] [Object] [Qualifier]` (e.g., "Display Node Attributes with Constraint Validation").
 
 ### 2.3 BDD Scenario Format
