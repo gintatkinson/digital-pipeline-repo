@@ -107,7 +107,7 @@
     "max_body_characters": 65536,
     "yang_exclude_keywords": ["description", "reference", "organization", "contact", "revision", "import", "prefix", "namespace", "yang-version"],
     "multiplicity_regex": "\\[[^\\]]+\\]",
-    "essential_feature_sections": ["Class Diagram", "Functional UI"],
+    "essential_feature_sections": ["Class Diagram", "Interface Requirements"],
     "required_diagrams": {
       "epic": ["classDiagram", "stateDiagram-v2"],
       "feature": ["classDiagram"],
@@ -150,9 +150,30 @@
       ],
       "feature": [
         ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
-        ["##\\s+Functional\\s+UI\\s+Requirements", "## Functional UI Requirements"],
+        ["##\\s+Interface\\s+Requirements", "## Interface Requirements"],
         ["###\\s+1\\.\\s+Test\\s+Data\\s+Shape", "### 1. Test Data Shape"],
         ["###\\s+4\\.\\s+Interactive\\s+Flow\\s+&\\s+States", "### 4. Interactive Flow & States"]
+      ],
+      "feature_ui": [
+        ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
+        ["##\\s+Interface\\s+Requirements", "## Interface Requirements"],
+        ["###\\s+1\\.\\s+Test\\s+Data\\s+Shape", "### 1. Test Data Shape"],
+        ["###\\s+3\\.\\s+Visual\\s+Layout\\s+&\\s+Arrangement", "### 3. Visual Layout & Arrangement"],
+        ["###\\s+4\\.\\s+Interactive\\s+Flow\\s+&\\s+States", "### 4. Interactive Flow & States"]
+      ],
+      "feature_api": [
+        ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
+        ["##\\s+Interface\\s+Requirements", "## Interface Requirements"],
+        ["###\\s+1\\.\\s+Payload\\s+Schema", "### 1. Payload Schema"],
+        ["###\\s+3\\.\\s+Protocol\\s+&\\s+Endpoint\\s+Definitions", "### 3. Protocol & Endpoint Definitions"],
+        ["###\\s+4\\.\\s+Error\\s+Handling\\s+&\\s+Codes", "### 4. Error Handling & Codes"]
+      ],
+      "feature_m2m": [
+        ["##\\s+UML\\s+Class\\s+Diagram", "## UML Class Diagram"],
+        ["##\\s+Interface\\s+Requirements", "## Interface Requirements"],
+        ["###\\s+1\\.\\s+Payload\\s+Schema", "### 1. Payload Schema"],
+        ["###\\s+3\\.\\s+Protocol\\s+&\\s+Endpoint\\s+Definitions", "### 3. Protocol & Endpoint Definitions"],
+        ["###\\s+4\\.\\s+Error\\s+Handling\\s+&\\s+Codes", "### 4. Error Handling & Codes"]
       ],
       "user_story": [
         ["##\\s+UML\\s+Sequence\\s+Diagram", "## UML Sequence Diagram"],

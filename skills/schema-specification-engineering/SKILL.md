@@ -46,12 +46,18 @@ Use this as the single canonical workflow for translating structural schemas and
    - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of format-specific or custom types.
    - **Visibility & Multiplicity**: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
    - **UML Constraints**: Schema-level constraints must map to formal UML `{constraint}` elements or structured notes.
-5. **Functional UI Requirements:** Every feature spec MUST explicitly include a `## Functional UI Requirements` section divided into the following structured sub-sections:
-   - **1. Test Data Shape (JSON Payload Example)**: A concrete, copy-pasteable JSON payload schema example block showing the exact structure of the test data (including nested objects, attribute types, and default values).
-   - **2. Validation & Constraints**: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions (e.g., "must-after", "if-then").
-   - **3. Visual Layout & Arrangement**: A detailed, platform-independent description of the visual layout. Detail the visual grouping (e.g., layout sections, information density, visual hierarchy, primary vs secondary rows) without naming framework-specific components.
-   - **4. Interactive Flow & States**: Detail system states (read-only, edit, empty, loading, error highlighting).
-6. **Acceptance Criteria Translation:** Transform these programmatic constraints and functional UI requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains active records... When the user inspects the node... Then the detail view displays the record attributes"). Do not reference specific UI components or frameworks.
+5. **Interface Requirements:** Every feature spec MUST explicitly include a `## Interface Requirements` section divided into dynamic structured sub-sections based on the `interface_type` (defined in frontmatter as `ui`, `api`, or `m2m`):
+   - **For UI Interfaces (`interface_type: ui`)**:
+     - `1. Test Data Shape (JSON Payload Example)`: A concrete, copy-pasteable JSON payload schema example block.
+     - `2. Validation & Constraints`: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions.
+     - `3. Visual Layout & Arrangement`: Detailed, platform-independent description of the visual layout and hierarchy.
+     - `4. Interactive Flow & States`: System states (read-only, edit, empty, loading, error highlighting).
+   - **For API or M2M Interfaces (`interface_type: api` or `m2m`)**:
+     - `1. Payload Schema (JSON Schema/Protobuf)`: Target request/response payload definition.
+     - `2. Validation & Constraints`: Protocol constraints, rate limits, schema field constraints.
+     - `3. Protocol & Endpoint Definitions`: Abstract definitions of endpoints, methods (GET/POST/Publish/Subscribe), paths, or channels.
+     - `4. Error Handling & Codes`: Expected HTTP status/error codes, timeouts, and exception/failure flows.
+6. **Acceptance Criteria Translation:** Transform these programmatic constraints and interface requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent (e.g., "Given the database contains active records... When the user inspects the node... Then the detail view displays the record attributes"). Do not reference specific UI components or frameworks.
 7. **Code Realization Table:** Every feature solution walkthrough/implementation document MUST include a Code Realization Table mapping features/attributes to implemented source files, classes, and functions.
 8. **Draft the Feature Specs:** Write each Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 
@@ -72,6 +78,7 @@ Use this as the single canonical workflow for translating structural schemas and
    title: "[Title]"
    epic: "[Parent Epic]"
    type: "feature"
+   interface_type: "ui" # Options: ui, api, m2m
    labels: ["feature", "<domain-name>"]
    ---
    ```
@@ -159,22 +166,22 @@ Use this as the single canonical workflow for translating structural schemas and
         }
     ```
 
-    ## Functional UI Requirements
-    ### 1. Test Data Shape (JSON Payload Example)
-    ```json
-    {
-      "example_key": "example_value"
-    }
-    ```
+     ## Interface Requirements
+     ### 1. Test Data Shape / Payload Schema (JSON Example)
+     ```json
+     {
+       "example_key": "example_value"
+     }
+     ```
 
-    ### 2. Validation & Constraints
-    - [Field constraints, ranges, patterns]
+     ### 2. Validation & Constraints
+     - [Field constraints, ranges, patterns, protocol/payload limits]
 
-    ### 3. Visual Layout & Arrangement
-    - [Detailed grouping, zoning, typographic hierarchy, and information density guidelines]
+     ### 3. Visual Layout / Protocol & Endpoint Definitions
+     - [For UI: abstract grouping, zoning, hierarchy guidelines. For API/M2M: methods, paths, transport/channel specs]
 
-    ### 4. Interactive Flow & States
-    - [Behavior in read-only vs editable mode, validation error indicators, loading/empty states]
+     ### 4. Interactive Flow & States / Error Handling & Codes
+     - [For UI: states, errors, loading. For API/M2M: error codes, timeouts, exception flows]
 
    ## Code Realization Table
    | Feature/Attribute | Source File | Class/Type | Function/Method | Notes |

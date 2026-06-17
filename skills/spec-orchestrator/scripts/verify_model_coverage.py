@@ -945,7 +945,7 @@ def verify_uml_diagrams(features_dir, global_classes=None):
     relationship_connectors = val_rules.get("relationship_connectors", r"(\*--|o--|<\|--|--|-->)")
     choice_stereotypes = val_rules.get("choice_stereotypes", ["<<choice>>"])
     multiplicity_regex = val_rules.get("multiplicity_regex", r"\[[^\]]+\]")
-    essential_feature_sections = val_rules.get("essential_feature_sections", ["Class Diagram", "Functional UI"])
+    essential_feature_sections = val_rules.get("essential_feature_sections", ["Class Diagram", "Interface Requirements"])
     
     test_data_shape_regex = val_rules.get("test_data_shape_regex", r"###\s+1\.\s+Test\s+Data\s+Shape")
     test_data_block_regex = val_rules.get("test_data_block_regex", r"```json")
@@ -974,10 +974,25 @@ def verify_uml_diagrams(features_dir, global_classes=None):
             if re.search(ftype, content):
                 errors.append(f"Feature {filename} contains forbidden '{ftype}' diagram type.")
 
-        # Check required sections for feature
-        required_feature_sections = required_sections.get("feature")
+        # Parse interface type from frontmatter (defaulting to ui)
+        interface_type = "ui"
+        frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+        if frontmatter_match:
+            frontmatter_text = frontmatter_match.group(1)
+            for fm_line in frontmatter_text.splitlines():
+                if ":" in fm_line:
+                    fm_parts = fm_line.split(":", 1)
+                    fm_key = fm_parts[0].strip()
+                    fm_val = fm_parts[1].strip().strip('"').strip("'")
+                    if fm_key in ("interface_type", "interface-type"):
+                        interface_type = fm_val.lower()
+
+        req_key = f"feature_{interface_type}"
+        required_feature_sections = required_sections.get(req_key)
         if required_feature_sections is None:
-            raise ValueError("Missing 'validation_rules.required_sections.feature' in codebase_rules.json")
+            required_feature_sections = required_sections.get("feature")
+        if required_feature_sections is None:
+            raise ValueError(f"Missing '{req_key}' or 'feature' in codebase_rules.json required_sections")
         
         has_essential_sections = True
         for pattern, header_name in required_feature_sections:

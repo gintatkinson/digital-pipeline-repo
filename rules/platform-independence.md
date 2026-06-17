@@ -10,7 +10,7 @@
 - Feature specs MUST NOT contain framework-specific component names (e.g., no `<Drawer>`, no `showModalBottomSheet`).
 - Feature specs MUST NOT contain a `platform` field in their YAML frontmatter.
 - Acceptance criteria MUST be platform-independent (e.g., "the detail view displays the address" — not "the React Drawer component renders the address").
-- The `Functional UI Requirements` section describes data and layout logically, without referencing specific UI frameworks.
+- The `Interface Requirements` section describes data, payloads, layout, or protocols logically, without referencing specific frameworks or transport libraries.
 
 ## Where platform-specific details belong
 
