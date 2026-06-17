@@ -50,16 +50,23 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Off-Thread Telemetry Pipeline:**
   - To prevent main-thread UI starvation during high-frequency data streaming, all stream connections, binary packet decoding, and telemetry JSON deserialization MUST execute off-thread inside a background execution context (such as a worker thread or native background context).
   - Pass decoded, normalized domain structures to the main thread via asynchronous message passing or memory buffers.
+- **WebGPU Memory & Lifecycles:**
+  - WebGPU memory must be managed explicitly to prevent VRAM leakage. Components must call `.destroy()` on unmounted buffers and textures within React cleanup hooks (e.g., `useEffect` return functions).
+  - Pre-allocate and reuse GPU memory blocks using a `GPUBuffers` pool or `GPURingBuffer` architecture to avoid continuous runtime memory allocation.
+- **WGSL Struct Alignment:**
+  - To prevent memory alignment corruption on the GPU, flat TypedArrays and WGSL struct definitions must adhere strictly to 16-byte alignment boundaries. Float arrays representing 3D/4D coordinates must include explicit padding (e.g., padding vec3 positions with a 4-byte padding field) matching GPU memory layouts.
+- **Timeline Playhead Synchronization:**
+  - Synchronization between the playhead position and telemetry streams must utilize a digital Phase-Locked Loop (PLL) combined with low-pass filters to filter playhead clamp rate changes, preventing time-reversal, integrator windup, or derivative kicks when frames are dropped.
 - **UI & Design Aesthetics (Professional High-Density Console Standards):**
   - **Visual Identity:** Interfaces must mimic a clean, high-density, professional management console.
   - **Theme Selection:**
     - Must provide a user interface to select from the dynamic list of theme modes defined in the runtime configuration (Tier 2).
     - The application must map styling parameters dynamically to color tokens matching the active design token namespaces resolved from the loaded configuration to allow dynamic, reload-free theme switching.
-    - The theme preference must be resolved dynamically. The application must prevent visual theme flashes (FOUC) using environment-appropriate mechanisms (e.g., an in-head theme script injected before rendering DOM elements, or native splash/theme configurations) to ensure a smooth transition without unnecessarily delaying React's mount cycle.
+    - The theme preference must be resolved dynamically in an SSR-safe and hydration-compatible manner. Visual theme flashes (FOUC) must be prevented using environment-appropriate mechanisms (such as CSS custom properties or native style rules mapped from theme preferences during hydration) that do not require blocking HTML `<head>` script injections utilizing browser globals (`window`, `document`, `localStorage`) to ensure compatibility with Server-Side Rendering (SSR) environments and headless Node-based unit testing environments.
   - **Dynamic Design Tokens & Alarm Mappings:**
     - Hardcoding visual parameters (e.g., hex colors, margins) or standard-specific mappings (e.g., specific alarm severities or colors) is strictly forbidden.
     - All status colors, brand palettes, and component styles must be loaded dynamically from the active design tokens configuration resolved at runtime.
-    - At startup, the application must dynamically resolve and apply styling tokens parsed from the configuration, preventing flashes using environment-appropriate blocking scripts or native style rules prior to content layout.
+    - At startup, the application must dynamically resolve and apply styling tokens parsed from the configuration in a testing-safe, headless-compatible manner. The configuration resolution must not rely on blocking head script injection or assume browser-specific DOM API access during startup or unit-test verification loops.
     - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
     - Navigation architecture aligned with hierarchical layout slot containers.
@@ -69,7 +76,9 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
       - Dynamic accessibility semantic injection.
     - **Resizable Splitter Component:** The main workspace area renders pane slots dynamically populated with child components resolved from the runtime layout configuration registry.
       - Default layout: stacked along a configurable split axis. The user can toggle split directions.
-      - **Performance Optimization:** Dragging the splitter must update layout variables directly in the configuration and leverage rendering/paint boundaries.
+      - **DOM State Preservation during Reparenting:** Swapping split axis orientations (vertical/horizontal) or changing pane order must preserve component state. The layout must use structural virtual DOM stability (e.g. keeping container elements persistently mounted in a fixed tree structure and using CSS Flexbox/Grid direction variables) rather than conditional JSX element branching/unmounting to prevent DOM state destruction (such as WebGPU contexts, text input focus, or iframe reloads).
+      - **Isolating Reflows:** All panel containers within resizable splitters must use CSS Container Queries (`@container`) and layout/paint containment (`contain: size layout paint; container-type: inline-size;`) on the splitter containers to isolate layout reflows during active dragging.
+      - **Virtual DOM State Resizing:** Resizing interactions must update layout state variables or CSS custom properties managed through React state/context or a decoupled state provider, rather than directly mutating the physical DOM bypassing the React virtual DOM tree, ensuring headless testing compatibility.
       - **Snap-to-Edge:** Support snap-to-edge collapse when dragged within the configured threshold boundaries.
       - Child components resolved from the layout configuration (such as the topology map, tabbed views, or details tables) are dynamically rendered inside the workspace containers.
     - **Property Grid Component:** Key-value attribute grid mapped to a schema. JSON-schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
@@ -95,7 +104,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 
 ## 5. Security & Credentials
 - **Local Configurations:** API credentials and environment configurations are loaded from a secure, local, git-ignored `.env.local` file. Default mock credentials are used for emulators.
-- **Hosted Configurations:** Production API credentials and URLs are compiled into the build using production environment variables at build/deployment time. Keys must never be committed to git.
+- **Hosted Configurations:** To support the "Build Once, Deploy Anywhere" pattern, production API credentials and environment configurations must be loaded dynamically at runtime (e.g., via a runtime config JSON file fetch at bootstrap or a dynamic config service endpoint) rather than compiling credentials or backend URLs into the client bundle at build/deployment time. Keys must never be committed to git.
 - **Secrets Scope & Boundaries:**
   - **ONLY public-facing keys** (such as Firebase client keys that have domain/IP origin restrictions configured on the provider console) are permitted to be compiled into client-side bundles.
   - **Administrative secrets** (such as database write passwords, service account private keys, or API private keys) must **never** be compiled into the frontend. They must be managed via a secure backend vault (like GCP Secret Manager) and accessed through secure backend endpoints with proper IAM controls.
