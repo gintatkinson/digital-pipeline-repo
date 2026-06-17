@@ -125,15 +125,10 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository:
 
 ```bash
-# Clone the pipeline repo into a local temporary folder inside the workspace
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-
-# Copy skills, rules, and configurations into your project
 cp -r ./.tmp-pipeline/skills/ ./skills/
 cp -r ./.tmp-pipeline/rules/ ./rules/
 cp -r ./.tmp-pipeline/.pipeline/ ./.pipeline/
-
-# Clean up local temporary folder
 rm -rf ./.tmp-pipeline
 ```
 
@@ -144,10 +139,7 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates:
 
 ```bash
-# Add as submodule
 git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
-
-# Your agent reads from .pipeline-skills/skills/ and .pipeline-skills/rules/
 ```
 
 To update to the latest version:
@@ -301,13 +293,8 @@ This pipeline's skills conform to the [Agent Skills specification](https://agent
 ### Install Skills via Tessl
 
 ```bash
-# Initialize Tessl in your project repo
 tessl init --agent claude-code --agent cursor --agent gemini
-
-# Install the full pipeline from GitHub
 tessl install github:gintatkinson/digital-pipeline-repo
-
-# Or install individual skills
 tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
 ```
 
