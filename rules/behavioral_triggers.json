@@ -1,12 +1,12 @@
 [
   {
-    "name": "High-Frequency Stream Telemetry Trigger",
+    "name": "High-Frequency Stream Data Trigger",
     "trigger_nodes": [
-      "coordinates",
-      "position-vector",
-      "velocity-vector",
-      "telemetry-stream",
-      "high-frequency-coordinates"
+      "stream-data",
+      "real-time-stream",
+      "high-frequency-data",
+      "sensor-stream",
+      "telemetry-data"
     ],
     "rules": [
       {
@@ -17,7 +17,7 @@
           "ConcurrencyGuard",
           "StateLock"
         ],
-        "error_message": "User Story diagrams must illustrate off-thread computations (OffThreadHandler) and concurrency control implementations (ConcurrencyGuard/StateLock) when high-frequency coordinate/telemetry streams are present in the schema."
+        "error_message": "User Story diagrams must illustrate off-thread computations (OffThreadHandler) and concurrency control implementations (ConcurrencyGuard/StateLock) when high-frequency data streams are present in the schema."
       },
       {
         "target_type": "use-case",
@@ -26,7 +26,7 @@
           "playback",
           "state-transitions"
         ],
-        "error_message": "Use Cases must detail the temporal context state machine (playback controls and state transitions) when high-frequency telemetry is configured in the schema."
+        "error_message": "Use Cases must detail the temporal context state machine (playback controls and state transitions) when high-frequency stream data is configured in the schema."
       }
     ]
   }
