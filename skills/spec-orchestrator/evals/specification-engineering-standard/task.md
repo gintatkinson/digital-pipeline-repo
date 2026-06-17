@@ -2,19 +2,19 @@
 
 # Task: Specification-Engineer a Protocol Standard
 
-You are given a YANG schema file and its associated RFC normative text document.
+You are given a structural schema file and its associated normative specification document.
 
 Using the `spec-orchestrator` skill, execute the full digital engineering pipeline:
 
-1. Parse the YANG schema and extract Epics and Features (Worker A)
+1. Parse the structural schema and extract Epics and Features (Worker A)
 2. Extract BDD User Stories from the normative text (Worker B)
 3. Extract UML Use Cases from the normative text (Worker C)
 4. Run backlog reconciliation and model coverage verification (Worker D)
 
 ## Inputs
 
-- YANG schema: `inputs/example-schema.yang`
-- Normative text: `inputs/example-rfc.txt`
+- Structural schema: `inputs/schema.[ext]`
+- Normative text: `inputs/specification.txt`
 
 ## Expected Outputs
 
