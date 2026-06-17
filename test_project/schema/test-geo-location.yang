@@ -1,0 +1,143 @@
+module test-geo-location {
+  yang-version 1.1;
+  namespace "urn:test:geo-location";
+  prefix tgl;
+
+  organization "Test Org";
+  contact "test@example.com";
+  description "Test Geodetic Location Schema";
+  revision 2026-06-18 {
+    description "Initial test revision";
+  }
+
+  container geo-location {
+    description "Root container representing geographic location";
+
+    container reference-frame {
+      description "Coordinate reference system definitions";
+
+      leaf alternate-system {
+        type string;
+        description "Name of alternate coordinate system if any";
+      }
+
+      leaf astronomical-body {
+        type string;
+        default "earth";
+        description "The astronomical body where measurements apply";
+      }
+
+      container geodetic-system {
+        description "Geodetic system definitions";
+
+        leaf geodetic-datum {
+          type string;
+          default "wgs-84";
+          description "Name of the reference datum";
+        }
+
+        leaf coord-accuracy {
+          type decimal64 {
+            fraction-digits 6;
+          }
+          description "Dynamic measurement accuracy of the coordinates";
+        }
+
+        leaf height-accuracy {
+          type decimal64 {
+            fraction-digits 6;
+          }
+          description "Dynamic measurement accuracy of the height";
+        }
+      }
+    }
+
+    choice location {
+      mandatory true;
+      description "Coordinate case definition";
+
+      case ellipsoid {
+        container ellipsoid-location {
+          leaf latitude {
+            type decimal64 {
+              fraction-digits 16;
+              range "-90.0 .. 90.0";
+            }
+            mandatory true;
+          }
+          leaf longitude {
+            type decimal64 {
+              fraction-digits 16;
+              range "-180.0 .. 180.0";
+            }
+            mandatory true;
+          }
+          leaf height {
+            type decimal64 {
+              fraction-digits 6;
+            }
+          }
+        }
+      }
+
+      case cartesian {
+        container cartesian-location {
+          leaf x {
+            type decimal64 {
+              fraction-digits 6;
+            }
+            mandatory true;
+          }
+          leaf y {
+            type decimal64 {
+              fraction-digits 6;
+            }
+            mandatory true;
+          }
+          leaf z {
+            type decimal64 {
+              fraction-digits 6;
+            }
+            mandatory true;
+          }
+        }
+      }
+
+      case named-location {
+        leaf location-name {
+          type string;
+          mandatory true;
+        }
+      }
+    }
+
+    container velocity {
+      description "Instantaneous velocity vector";
+      leaf v-north {
+        type decimal64 {
+          fraction-digits 12;
+        }
+      }
+      leaf v-east {
+        type decimal64 {
+          fraction-digits 12;
+        }
+      }
+      leaf v-up {
+        type decimal64 {
+          fraction-digits 12;
+        }
+      }
+    }
+
+    container temporal-metadata {
+      description "Temporal validity";
+      leaf timestamp {
+        type string;
+      }
+      leaf valid-until {
+        type string;
+      }
+    }
+  }
+}

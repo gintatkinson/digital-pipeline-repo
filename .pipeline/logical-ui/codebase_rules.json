@@ -133,7 +133,7 @@
     "checkbox_syntax_regex": "-\\s+\\[[ xX]\\]\\s+.*",
     "use_case_alternate_flows_header": "## 5. Alternate and Exception Flows",
     "use_case_numbered_step_regex": "\\b\\d+\\.\\s+\\S+",
-    "use_case_flow_list_regex": "-\\s+\\*\\*\\d[a-zA-Z]\\..*?",
+    "use_case_flow_list_regex": "-\\s+\\*\\*\\d[a-zA-Z]\\..*?(?=(?:-\\s+\\*\\*\\d[a-zA-Z]\\.)|\\Z)",
     "realization_matrix_header": "## 8. Realization Matrix",
     "realization_stories_header": "### Required User Stories",
     "realization_features_header": "### Required Features",
