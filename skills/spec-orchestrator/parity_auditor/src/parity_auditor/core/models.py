@@ -83,7 +83,7 @@ class ValidationRules:
     playhead_rate_limits: List[float] = field(default_factory=lambda: [0.90, 1.10])
     relationship_connectors: str = "(\\*--|o--|<\\|--|--|-->)"
     choice_stereotypes: List[str] = field(default_factory=lambda: ["<<choice>>"])
-    sequence_replies: List[str] = field(default_factory=lambda: ["-->"])
+    sequence_replies: List[str] = field(default_factory=lambda: ["-->", "-->>"])
     fragment_keywords: List[str] = field(default_factory=lambda: ["alt", "loop", "opt", "par", "critical", "else", "option"])
     use_case_flow_limit: int = 2
     use_case_step_limit: int = 2

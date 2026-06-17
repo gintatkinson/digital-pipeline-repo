@@ -44,6 +44,9 @@ def main():
     else:
         features_dir = os.path.abspath(features_dir)
         
+    epics_dir_rel = backlog_dirs.epics
+    epics_dir = os.path.join(repo.workspace_dir, epics_dir_rel) if epics_dir_rel else None
+        
     has_failed = False
     print("=== Model Coverage Parity Audit ===")
     print(f"Scanning schemas in: {schema_dir}")
@@ -96,7 +99,7 @@ def main():
     coverage_gaps = []
     
     uml_validator = UmlValidator()
-    global_classes = uml_validator.build_global_classes(repo, features_dir) if features else {}
+    global_classes = uml_validator.build_global_classes(repo, features_dir, epics_dir) if features else {}
     
     if not skip_coverage_checks and features:
         # Read codebase source files

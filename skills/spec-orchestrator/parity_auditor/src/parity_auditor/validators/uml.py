@@ -117,111 +117,11 @@ class UmlValidator(IValidator):
             if has_diag_error:
                 continue
                 
-            class_diagram_match = re.search(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
-            if not class_diagram_match:
-                continue
-                
-            if not re.search(relationship_connectors, class_diagram_match.group(1)):
-                errors.append(f"Feature {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
-                
-            parsed_cd = class_parser.parse(class_diagram_match.group(0))
-            classes = parsed_cd.classes
-            relationships = parsed_cd.relationships
-            
-            adj = {c: set() for c in classes}
-            for rel in relationships:
-                u = rel.from_class
-                v = rel.to_class
-                if u not in adj:
-                    adj[u] = set()
-                if v not in adj:
-                    adj[v] = set()
-                adj[u].add(v)
-                adj[v].add(u)
-                
-            for c, neighbors in adj.items():
-                if len(neighbors) == 0:
-                    errors.append(f"Feature {filename} contains class '{c}' with zero relationships. Isolated classes are prohibited.")
-                    
-            if classes:
-                start_node = next(iter(classes))
-                visited = set()
-                queue = [start_node]
-                visited.add(start_node)
-                while queue:
-                    curr = queue.pop(0)
-                    for neighbor in adj.get(curr, []):
-                        if neighbor not in visited:
-                            visited.add(neighbor)
-                            queue.append(neighbor)
-                unvisited = set(classes.keys()) - visited
-                if unvisited:
-                    errors.append(f"Feature {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.")
-                    
-            for cls_name, cls_info in classes.items():
-                for attr in cls_info.attributes:
-                    if attr.raw and "<<" in attr.raw and ">>" in attr.raw:
-                        continue
-                    attr_type = attr.type
-                    if not attr_type:
-                        errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr.name}' is missing a type.")
-                        continue
-                    if attr_type not in uml_primitives and attr_type not in classes:
-                        errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr.name}' has invalid type '{attr_type}'. UML primitive types must be {', '.join(sorted(uml_primitives))} (case-sensitive), or reference another class.")
-                        
-            choice_classes = set()
-            for line in class_diagram_match.group(0).splitlines():
-                line_clean = line.strip()
-                for st in choice_stereotypes:
-                    st_esc = re.escape(st)
-                    m1 = re.search(st_esc + r"\s*([a-zA-Z0-9_\-.:]+)", line_clean, re.IGNORECASE)
-                    if m1:
-                        choice_classes.add(m1.group(1))
-                    m2 = re.search(r"class\s+([a-zA-Z0-9_\-.:]+)\s+.*" + st_esc, line_clean, re.IGNORECASE)
-                    if m2:
-                        choice_classes.add(m2.group(1))
-            for cls_name, cls_info in classes.items():
-                for st in choice_stereotypes:
-                    if st in cls_name:
-                        choice_classes.add(cls_name)
-                    for attr in cls_info.attributes:
-                        if attr.raw and st in attr.raw:
-                            choice_classes.add(cls_name)
-                            
-            for choice_cls in choice_classes:
-                has_subclass = False
-                for rel in relationships:
-                    if rel.type == "generalization":
-                        is_parent = False
-                        if rel.direction == "backward" and rel.from_class == choice_cls:
-                            is_parent = True
-                        elif rel.direction == "forward" and rel.to_class == choice_cls:
-                            is_parent = True
-                        if is_parent:
-                            has_subclass = True
-                            break
-                if not has_subclass:
-                    errors.append(f"Feature {filename} choice class '{choice_cls}' must have at least one subclass inheriting from it via generalization (<|--).")
-                    
-            for cls_name, cls_info in classes.items():
-                for attr in cls_info.attributes:
-                    if attr.raw and "<<" in attr.raw and ">>" in attr.raw:
-                        continue
-                    if attr.visibility not in visibility_prefixes:
-                        errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
-                    if not attr.multiplicity:
-                        errors.append(f"Feature {filename} class '{cls_name}' attribute '{attr.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).")
-                        
-                for method in cls_info.methods:
-                    if method.visibility not in visibility_prefixes:
-                        errors.append(f"Feature {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
-                    has_mult = False
-                    if method.return_type and re.search(multiplicity_regex, method.return_type):
-                        has_mult = True
-                    elif re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw):
-                        has_mult = True
-                    if not has_mult:
-                        errors.append(f"Feature {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
+            self._validate_class_diagram(
+                "Feature", filename, content, errors, class_parser, val_rules,
+                uml_primitives, visibility_prefixes, relationship_connectors,
+                choice_stereotypes, multiplicity_regex
+            )
                         
             if re.search(test_data_shape_regex, content, re.IGNORECASE):
                 if not re.search(test_data_shape_regex + r".*?" + test_data_block_regex, content, re.DOTALL | re.IGNORECASE):
@@ -550,10 +450,129 @@ class UmlValidator(IValidator):
             for diag_type in epic_req_diagrams:
                 if not re.search(r"```mermaid\s*\n\s*" + diag_type, content):
                     errors.append(f"Epic {filename} is missing a valid diagram of type '{diag_type}'.")
+                elif diag_type == "classDiagram":
+                    self._validate_class_diagram(
+                        "Epic", filename, content, errors, class_parser, val_rules,
+                        uml_primitives, visibility_prefixes, relationship_connectors,
+                        choice_stereotypes, multiplicity_regex
+                    )
                     
         return errors
+
+    def _validate_class_diagram(self, doc_type: str, filename: str, content: str, errors: List[str], class_parser, val_rules, uml_primitives, visibility_prefixes, relationship_connectors, choice_stereotypes, multiplicity_regex):
+        class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+        for match in class_diagram_matches:
+            diagram_body = match.group(1)
+            diagram_full = match.group(0)
+            
+            if not re.search(relationship_connectors, diagram_body):
+                errors.append(f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
+                
+            try:
+                parsed_cd = class_parser.parse(diagram_full)
+            except Exception as e:
+                errors.append(f"{doc_type} {filename} contains an unparsable UML Class Diagram: {e}")
+                continue
+                
+            classes = parsed_cd.classes
+            relationships = parsed_cd.relationships
+            
+            adj = {c: set() for c in classes}
+            for rel in relationships:
+                u = rel.from_class
+                v = rel.to_class
+                if u not in adj:
+                    adj[u] = set()
+                if v not in adj:
+                    adj[v] = set()
+                adj[u].add(v)
+                adj[v].add(u)
+                
+            for c, neighbors in adj.items():
+                if len(neighbors) == 0:
+                    errors.append(f"{doc_type} {filename} contains class '{c}' with zero relationships. Isolated classes are prohibited.")
+                    
+            if classes:
+                start_node = next(iter(classes))
+                visited = set()
+                queue = [start_node]
+                visited.add(start_node)
+                while queue:
+                    curr = queue.pop(0)
+                    for neighbor in adj.get(curr, []):
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append(neighbor)
+                unvisited = set(classes.keys()) - visited
+                if unvisited:
+                    errors.append(f"{doc_type} {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.")
+                    
+            for cls_name, cls_info in classes.items():
+                for attr in cls_info.attributes:
+                    if attr.raw and "<<" in attr.raw and ">>" in attr.raw:
+                        continue
+                    attr_type = attr.type
+                    if not attr_type:
+                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a type.")
+                        continue
+                    if attr_type not in uml_primitives and attr_type not in classes:
+                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' has invalid type '{attr_type}'. UML primitive types must be {', '.join(sorted(uml_primitives))} (case-sensitive), or reference another class.")
+                        
+            choice_classes = set()
+            for line in diagram_full.splitlines():
+                line_clean = line.strip()
+                for st in choice_stereotypes:
+                    st_esc = re.escape(st)
+                    m1 = re.search(st_esc + r"\s*([a-zA-Z0-9_\-.:]+)", line_clean, re.IGNORECASE)
+                    if m1:
+                        choice_classes.add(m1.group(1))
+                    m2 = re.search(r"class\s+([a-zA-Z0-9_\-.:]+)\s+.*" + st_esc, line_clean, re.IGNORECASE)
+                    if m2:
+                        choice_classes.add(m2.group(1))
+            for cls_name, cls_info in classes.items():
+                for st in choice_stereotypes:
+                    if st in cls_name:
+                        choice_classes.add(cls_name)
+                    for attr in cls_info.attributes:
+                        if attr.raw and st in attr.raw:
+                            choice_classes.add(cls_name)
+                            
+            for choice_cls in choice_classes:
+                has_subclass = False
+                for rel in relationships:
+                    if rel.type == "generalization":
+                        is_parent = False
+                        if rel.direction == "backward" and rel.from_class == choice_cls:
+                            is_parent = True
+                        elif rel.direction == "forward" and rel.to_class == choice_cls:
+                            is_parent = True
+                        if is_parent:
+                            has_subclass = True
+                            break
+                if not has_subclass:
+                    errors.append(f"{doc_type} {filename} choice class '{choice_cls}' must have at least one subclass inheriting from it via generalization (<|--).")
+                    
+            for cls_name, cls_info in classes.items():
+                for attr in cls_info.attributes:
+                    if attr.raw and "<<" in attr.raw and ">>" in attr.raw:
+                        continue
+                    if attr.visibility not in visibility_prefixes:
+                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
+                    if not attr.multiplicity:
+                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).")
+                        
+                for method in cls_info.methods:
+                    if method.visibility not in visibility_prefixes:
+                        errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
+                    has_mult = False
+                    if method.return_type and re.search(multiplicity_regex, method.return_type):
+                        has_mult = True
+                    elif re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw):
+                        has_mult = True
+                    if not has_mult:
+                        errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
         
-    def build_global_classes(self, repo: WorkspaceRepository, features_dir: str) -> Dict[str, Any]:
+    def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:
         global_classes = {}
         feature_files = repo.get_feature_files(features_dir)
         parser = MermaidClassDiagramParser(repo)
@@ -591,6 +610,46 @@ class UmlValidator(IValidator):
                                 "constraints": method.constraints,
                                 "raw": method.raw
                             })
+        if epics_dir and os.path.exists(epics_dir):
+            epic_files = [os.path.join(epics_dir, f) for f in os.listdir(epics_dir) if f.endswith(".md")]
+            for ep_path in epic_files:
+                try:
+                    with open(ep_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                except Exception:
+                    continue
+                class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
+                for match in class_diagram_matches:
+                    parsed_cd = parser.parse(match.group(0))
+                    for class_name, class_info in parsed_cd.classes.items():
+                        if class_name not in global_classes:
+                            global_classes[class_name] = {
+                                "name": class_name,
+                                "attributes": [],
+                                "methods": []
+                            }
+                        existing_attrs = {a["name"] for a in global_classes[class_name]["attributes"]}
+                        for attr in class_info.attributes:
+                            if attr.name not in existing_attrs:
+                                global_classes[class_name]["attributes"].append({
+                                    "name": attr.name,
+                                    "visibility": attr.visibility,
+                                    "type": attr.type,
+                                    "multiplicity": attr.multiplicity,
+                                    "constraints": attr.constraints,
+                                    "raw": attr.raw
+                                })
+                        existing_methods = {m["name"] for m in global_classes[class_name]["methods"]}
+                        for method in class_info.methods:
+                            if method.name not in existing_methods:
+                                global_classes[class_name]["methods"].append({
+                                    "name": method.name,
+                                    "visibility": method.visibility,
+                                    "parameters": method.parameters,
+                                    "return_type": method.return_type,
+                                    "constraints": method.constraints,
+                                    "raw": method.raw
+                                })
         return global_classes
         
     def build_classes_from_features(self, matching_features: List[FeatureFile], repo: WorkspaceRepository) -> Dict[str, Any]:

@@ -178,6 +178,14 @@ Branching strategies are configured via workflow parameters. By default:
 - All modifications and executions must strictly align with the approved backlog and verification plans.
 - Ensure that every change is verifiable and matches the target specification.
 
+### 3.7 Strict Planning Mode Gate (Insurmountable Approval Gate)
+
+> [!CAUTION]
+> **INSURMOUNTABLE CODE MODIFICATION BLOCK**
+> * Under NO circumstances may the agent invoke any file-writing, file-modifying, or command-running tools that alter the codebase/repository files unless the user has explicitly typed "Proceed", "Approved", or "Approve plan" in the conversation history of the current turn sequence.
+> * If a plan (`implementation_plan.md`) is written, the agent MUST immediately terminate its turn and stop calling tools to wait for approval. Bypassing this gate, making silent assumptions, or executing modifications prior to user confirmation is a direct violation of the constitution.
+> * This rule is absolute, overrides all other instructions, and has zero exceptions.
+
 ---
 
 ## 4. Universal Quality Gates

@@ -137,8 +137,8 @@ Use this as the single canonical workflow for translating structural schemas and
     ## System State Machine Diagram
     ```mermaid
     stateDiagram-v2
-        [*] --> [Initial]
-        [High-level module state transitions]
+        [*] --> InitialState
+        InitialState --> [*] : Event / Action
     ```
 
     ## 5. Specification Context
