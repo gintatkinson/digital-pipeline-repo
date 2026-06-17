@@ -9,7 +9,7 @@ Welcome to the Digital Systems Engineering Pipeline. This repository contains a 
 
 By feeding these agents a Structural Schema and its associated Normative Specification Document, the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
 
-## Documentation at: [Documentation URL]
+## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
 
 ---
 
@@ -125,16 +125,16 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository:
 
 ```bash
-# Clone the pipeline repo
-git clone [Upstream Repository URL] [Temporary Directory Path]
+# Clone the pipeline repo into a local temporary folder inside the workspace
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 
 # Copy skills, rules, and configurations into your project
-cp -r [Temporary Directory Path]/skills/ ./skills/
-cp -r [Temporary Directory Path]/rules/ ./rules/
-cp -r [Temporary Directory Path]/.pipeline/ ./.pipeline/
+cp -r ./.tmp-pipeline/skills/ ./skills/
+cp -r ./.tmp-pipeline/rules/ ./rules/
+cp -r ./.tmp-pipeline/.pipeline/ ./.pipeline/
 
-# Clean up
-rm -rf [Temporary Directory Path]
+# Clean up local temporary folder
+rm -rf ./.tmp-pipeline
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
@@ -145,7 +145,7 @@ Add the pipeline as a Git submodule so your project tracks a specific version an
 
 ```bash
 # Add as submodule
-git submodule add [Upstream Repository URL] .pipeline-skills
+git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
 
 # Your agent reads from .pipeline-skills/skills/ and .pipeline-skills/rules/
 ```
@@ -163,7 +163,7 @@ Use Tessl for version-locked, team-wide distribution with automated rule injecti
 
 ```bash
 tessl init --agent gemini --agent claude-code --agent cursor
-tessl install [Tessl Package Name]
+tessl install github:gintatkinson/digital-pipeline-repo
 ```
 
 ### Setup for Google Antigravity / Gemini CLI
@@ -200,7 +200,7 @@ After installing the pipeline via any method above, configure Gemini to load the
 ```bash
 # If using Tessl (auto-configures CLAUDE.md and MCP):
 tessl init --agent claude-code
-tessl install [Tessl Package Name]
+tessl install github:gintatkinson/digital-pipeline-repo
 
 # If using direct copy, add to CLAUDE.md:
 echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
@@ -305,10 +305,10 @@ This pipeline's skills conform to the [Agent Skills specification](https://agent
 tessl init --agent claude-code --agent cursor --agent gemini
 
 # Install the full pipeline from GitHub
-tessl install [Tessl Package Name]
+tessl install github:gintatkinson/digital-pipeline-repo
 
 # Or install individual skills
-tessl install [Tessl Package Name] --skill spec-orchestrator
+tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
 ```
 
 ### Publish to a Private Registry
@@ -385,4 +385,4 @@ This pipeline can also be used **alongside** [Spec Kit](https://github.com/githu
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
-## Documentation at: [Documentation URL]
+## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
