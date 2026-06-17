@@ -56,7 +56,7 @@
     "exclusions": ["node_modules", "build", "dist", "coverage", ".git"],
     "ui_directories": ["components", "views"],
     "network_directories": ["io"],
-    "forbidden_words": ["sgp4", "satellite"],
+    "forbidden_words": [],
     "forbidden_words_message": "UI view/component but imports forbidden libraries directly. Calculations must run exclusively in a background Web Worker.",
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "selection_keywords": ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"],
@@ -75,7 +75,7 @@
     "selection_setters": ["set selected", "set active", "set selection", "setSelectedNode", "setActiveNode"],
     "selection_triggers": ["onChanged", "onSelected", "notifyListeners", "dispatch"],
     "loop_guard_keywords": ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"],
-    "forbidden_words": ["sgp4", "satellite"],
+    "forbidden_words": [],
     "forbidden_words_message": "UI widget/screen but references forbidden libraries directly. Calculations must run exclusively in a background Isolate.",
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "playhead_clamp_regex": ["0\\.9\\b", "1\\.1\\b"],
@@ -194,38 +194,37 @@
   "navigation": {
     "sidebar": {
       "items": [
-        { "label": "Topology Viewer", "route": "/topology", "icon": "hub" },
-        { "label": "Resource Directory", "route": "/resources", "icon": "dns" }
+        { "label": "Main Dashboard", "route": "/dashboard", "icon": "dashboard" }
       ]
     }
   },
   "layout_properties": {
-    "default_ratio": 0.4,
-    "dimensions": 3,
-    "default_hops": 2,
-    "max_hops": 5,
-    "relationship_filters": ["termination-point-to-node", "link-to-node", "layer-transition", "orbital-conjunction"]
+    "default_ratio": 0.5,
+    "dimensions": 2,
+    "default_hops": 1,
+    "max_hops": 3,
+    "relationship_filters": ["parent", "child", "peer"]
   },
   "layout_mappings": {
     "labels": {
-      "elements": "Elements",
-      "alarms": "Alarms",
-      "events": "Events"
+      "elements": "Items",
+      "alarms": "Status",
+      "events": "Activity"
     },
-    "hierarchy": ["Domain", "Subdomain", "Unit"],
+    "hierarchy": ["Level1", "Level2", "Level3"],
     "data_sources": {
-      "resource_tree": "provider:resource-hierarchy-manager",
-      "topology": "schema:spatial-temporal-topology/topology[@topology-id='selected_managed_object']",
-      "sub_elements": "schema:network-topology/topology/node[@node-id='active_focused_node']/contained-elements",
-      "active_alarms": "schema:alarm-management/alarms[target-resource='active_focused_node']",
-      "historical_events": "schema:event-log/events[source-resource='active_focused_node']"
+      "resource_tree": "provider:generic-hierarchy-provider",
+      "topology": "schema:generic-topology/topology[@id='selected_managed_object']",
+      "sub_elements": "schema:generic-topology/topology/node[@id='active_focused_node']/child-elements",
+      "active_alarms": "schema:generic-status/status[target='active_focused_node']",
+      "historical_events": "schema:generic-events/events[source='active_focused_node']"
     },
     "coordinate_mapping": {
-      "x": "coordinates/coord_0",
-      "y": "coordinates/coord_1",
-      "z": "coordinates/coord_2",
-      "t": "coordinates/timestamp",
-      "trajectory": "coordinates/trajectory-vector"
+      "x": "position/dim_0",
+      "y": "position/dim_1",
+      "z": "position/dim_2",
+      "t": "position/time_index",
+      "trajectory": "position/vector"
     }
   }
 }
