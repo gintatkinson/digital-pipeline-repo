@@ -108,7 +108,7 @@ graph TD
         UC_Ext([Extended Action])
     end
     Actor((Primary Actor)) --- UC
-    UC_Ext -. <<extend>> .-> UC
+    UC_Ext -. "<<extend>>" .-> UC
     UC --- SecActor((Secondary Actor))
 ```
 

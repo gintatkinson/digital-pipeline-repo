@@ -41,7 +41,7 @@ Use this as the single canonical workflow for translating structural schemas and
    - units and default values
    - read-only vs configurable access control
 4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
-   - **UML Classifier Mapping**: Feature specifications must map to a single primary UML Class or DataType (instead of a subtree of structural nodes) representing the schema entity.
+    - **UML Classifier Mapping**: Feature specifications must map to a primary UML Class or DataType representing the schema entity, and MUST illustrate its relationship (e.g. composition `*--` or aggregation `o--`) to its parent container class or its child components to ensure no isolated classes exist.
    - **Choice/Case Representation**: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
    - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of format-specific or custom types.
    - **Visibility & Multiplicity**: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
@@ -117,6 +117,9 @@ Use this as the single canonical workflow for translating structural schemas and
     ## System-Level UML Class Diagram
     ```mermaid
     classDiagram
+        class SubsystemComponent {
+            <<component>>
+        }
         class FeatureClassifier1 {
             +String attributeOne [1]
             -Boolean attributeTwo [0..1]
@@ -125,7 +128,8 @@ Use this as the single canonical workflow for translating structural schemas and
             +Integer attributeThree [0..*]
             +operationOne(input : String) : Boolean [1]
         }
-        SubsystemComponent ..> FeatureClassifier1 : realizes
+        SubsystemComponent *-- FeatureClassifier1
+        SubsystemComponent *-- FeatureClassifier2
     ```
 
     ## 4. State Machine Definitions
@@ -152,16 +156,20 @@ Use this as the single canonical workflow for translating structural schemas and
    ## Description
    [Functional description of the feature]
 
-    ## UML Class Diagram
-    ```mermaid
-    classDiagram
-        class FeatureClassifier {
-            +String primaryAttribute [1]
-            -Boolean optionalAttribute [0..1] {constraintText}
-            +Integer listAttribute [0..*]
-            +doSomething(param : String) : Boolean [1]
-        }
-    ```
+     ## UML Class Diagram
+     ```mermaid
+     classDiagram
+         class ParentContainer {
+             +FeatureClassifier featureClassifier [1]
+         }
+         class FeatureClassifier {
+             +String primaryAttribute [1]
+             -Boolean optionalAttribute [0..1] {constraintText}
+             +Integer listAttribute [0..*]
+             +doSomething(param : String) : Boolean [1]
+         }
+         ParentContainer *-- FeatureClassifier
+     ```
 
      ## Interface Requirements
      ### 1. Test Data Shape / Payload Schema (JSON Example)
