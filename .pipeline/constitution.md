@@ -221,6 +221,7 @@ Branching strategies are configured via workflow parameters. By default:
 - Do NOT hardcode standard-specific properties, names, or visual style attributes (e.g., hex colors like `#d50000`) inside platform implementation profiles or functional specifications.
 - Do NOT mix platform-specific implementation mechanisms (such as React Context or Flutter Keys) inside logical UI component specifications.
 - Do NOT bypass dynamic design token resolution; all colors, typography, and spacing must map back to variables loaded dynamically from Tier 2 configuration files.
+- Do NOT allow documentation drift. All interdependent documents (including README.md, platform profiles, and metadata rules) must be updated in sync with any configuration or rule changes.
 
 ---
 

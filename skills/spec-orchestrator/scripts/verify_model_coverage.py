@@ -1966,6 +1966,52 @@ def verify_codebase_compliance(workspace_dir):
     return errors
 
 
+def verify_documentation_consistency(workspace_dir):
+    """
+    Scans major documentation files (README.md, constitution.md, and platform profiles)
+    to ensure they are free from obsolete references (such as color.alarm, ITU-T X.733, JViews TGO).
+    """
+    errors = []
+    doc_files = [
+        "README.md",
+        ".pipeline/constitution.md",
+        ".pipeline/profiles/react.md",
+        ".pipeline/profiles/flutter.md"
+    ]
+    
+    obsolete_patterns = [
+        (r"color\.alarm\b", "color.alarm (obsolete token namespace)"),
+        (r"alarm\.cleared\b", "alarm.cleared (obsolete token namespace)"),
+        (r"alarm\.minor\b", "alarm.minor (obsolete token namespace)"),
+        (r"alarm\.critical\b", "alarm.critical (obsolete token namespace)"),
+    ]
+    
+    for rel_path in doc_files:
+        filepath = os.path.join(workspace_dir, rel_path)
+        if not os.path.exists(filepath):
+            continue
+        try:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+        except Exception as e:
+            continue
+            
+        # Run obsolete pattern checks
+        for pattern, name in obsolete_patterns:
+            if re.search(pattern, content, re.IGNORECASE):
+                errors.append(f"Documentation file '{rel_path}' contains obsolete reference '{name}'. Please update it to standard-agnostic status mappings.")
+                
+        # Specifically enforce that no ITU-T X.733 color mappings are declared as a requirement
+        if "react.md" in rel_path or "flutter.md" in rel_path or "README.md" in rel_path:
+            if "X.733" in content:
+                errors.append(f"Documentation file '{rel_path}' contains hardcoded reference to 'X.733'. Target profiles and READMEs must remain strictly standard-agnostic.")
+                
+    return errors
+
+
+
+
+
 def main():
     workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -2174,6 +2220,17 @@ def main():
         has_failed = True
     else:
         print("Success: Codebase compliance checks passed.")
+
+    print("\n=== Documentation Consistency Audit ===")
+    doc_errors = verify_documentation_consistency(workspace_dir)
+
+    if doc_errors:
+        print("[!] Documentation Consistency Violations Identified:")
+        for err in doc_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Documentation consistency checks passed.")
 
     if has_failed:
         upstream_repo = rules.get("meta", {}).get("upstream_repository")
