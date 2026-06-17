@@ -13,6 +13,16 @@
   },
   "tracker_rules": {
     "provider": "github",
+    "issue_id_placeholder": "#[IssueID]",
+    "prefix_normalization_regex": "^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\\d+\\s*[:\\-]?|:)\\s*",
+    "title_extraction_prefixes_regex": "(?:Feature\\s+\\d+\\s*:\\s*|Use\\s+Case\\s+\\d+\\s*:\\s*|User\\s+Story\\s+\\d+\\s*:\\s*)?",
+    "truncation_headers": ["## Acceptance Criteria", "## User Stories"],
+    "labels": {
+      "epic": "epic",
+      "feature": "feature",
+      "user_story": "user-story",
+      "use_case": "use-case"
+    },
     "commands": {
       "list_issues": ["gh", "issue", "list", "--limit", "1000", "--state", "all", "--json", "number,title,state,labels"],
       "edit_issue": ["gh", "issue", "edit", "{number}", "--body-file", "{temp_path}"],
@@ -36,6 +46,7 @@
     "ui_directories": ["components", "views"],
     "network_directories": ["io"],
     "forbidden_words": [],
+    "forbidden_words_message": "UI view/component but imports forbidden libraries directly. Calculations must run exclusively in a background Web Worker.",
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "selection_keywords": ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"],
     "interaction_keywords": ["onClick", "onDrag", "onMouseDown", "onPointerDown"],
@@ -54,6 +65,7 @@
     "selection_triggers": ["onChanged", "onSelected", "notifyListeners", "dispatch"],
     "loop_guard_keywords": ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"],
     "forbidden_words": [],
+    "forbidden_words_message": "UI widget/screen but references forbidden libraries directly. Calculations must run exclusively in a background Isolate.",
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "playhead_clamp_regex": ["0\\.9\\b", "1\\.1\\b"],
     "ffi_keywords": ["dart:ffi"],
@@ -98,6 +110,21 @@
     "naming_conventions": {
       "use_case": "^uc-\\d{2}-[a-z0-9\\-]+\\.md$"
     },
+    "test_data_shape_regex": "###\\s+1\\.\\s+Test\\s+Data\\s+Shape",
+    "test_data_block_regex": "```json",
+    "bdd_scenario_regexes": [
+      "(?:Given|When|Then)",
+      "As a\\s+.*\\s+I want to\\s+.*\\s+so that\\s+.*"
+    ],
+    "required_features_matrix_regex": "##\\s+Required\\s+Features(?:\\s+Matrix)?(.*?)(?=##|\\Z)",
+    "checkbox_syntax_regex": "-\\s+\\[[ xX]\\]\\s+.*",
+    "use_case_alternate_flows_header": "## 5. Alternate and Exception Flows",
+    "use_case_numbered_step_regex": "\\b\\d+\\.\\s+\\S+",
+    "use_case_flow_list_regex": "-\\s+\\*\\*\\d[a-zA-Z]\\..*?",
+    "realization_matrix_header": "## 8. Realization Matrix",
+    "realization_stories_header": "### Required User Stories",
+    "realization_features_header": "### Required Features",
+    "non_yang_extensions": [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"],
     "required_sections": {
       "epic": [
         ["##\\s+1\\.\\s+Context", "## 1. Context"],
@@ -129,6 +156,23 @@
         ["##\\s+6\\.\\s+Postconditions", "## 6. Postconditions"],
         ["##\\s+8\\.\\s+Realization\\s+Matrix", "## 8. Realization Matrix"]
       ]
+    }
+  },
+  "layout_mappings": {
+    "hierarchy": ["Domain", "Subdomain", "Unit"],
+    "data_sources": {
+      "resource_tree": "provider:resource-hierarchy-manager",
+      "topology": "schema:spatial-temporal-topology/topology[@topology-id='selected_managed_object']",
+      "sub_elements": "schema:network-topology/topology/node[@node-id='active_focused_node']/contained-elements",
+      "active_alarms": "schema:alarm-management/alarms[target-resource='active_focused_node']",
+      "historical_events": "schema:event-log/events[source-resource='active_focused_node']"
+    },
+    "coordinate_mapping": {
+      "x": "coordinates/coord_0",
+      "y": "coordinates/coord_1",
+      "z": "coordinates/coord_2",
+      "t": "coordinates/timestamp",
+      "trajectory": "coordinates/trajectory-vector"
     }
   }
 }

@@ -7,7 +7,7 @@ This walkthrough details the changes made to generalize the digital systems engi
 ## 1. Code Changes
 
 ### Phase 1: Preparation
-*   **behavioral_triggers.json**: Created [behavioral_triggers.json](file:///Users/perkunas/digital-pipeline-repo/rules/behavioral_triggers.json) to decouple the linter checks for velocity and temporal calculations from python script execution, defining them dynamically as configuration rules.
+*   **behavioral_triggers.json**: Created [behavioral_triggers.json](../../rules/behavioral_triggers.json) to decouple the linter checks for velocity and temporal calculations from python script execution, defining them dynamically as configuration rules.
 
 ### Phase 2: Model Coverage Script Refactoring
 *   **verify_model_coverage.py**: 

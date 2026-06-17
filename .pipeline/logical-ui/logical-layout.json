@@ -54,10 +54,10 @@
           "id": "resource_tree",
           "props": {
             "width": "spacing.layout-sidebar-width",
-            "hierarchy": ["Domain", "Subdomain", "Unit"]
+            "hierarchy": "token:layout.hierarchy"
           },
           "bindings": {
-            "data_source": "provider:resource-hierarchy-manager",
+            "data_source": "token:layout.data_sources.resource_tree",
             "selection_target": "selected_managed_object"
           }
         },
@@ -82,15 +82,9 @@
                 "allow_pan_zoom": true
               },
               "bindings": {
-                "data_source": "query:spatial-temporal-topology[@id='selected_managed_object']",
+                "data_source": "token:layout.data_sources.topology",
                 "selection_target": "active_focused_node",
-                "coordinate_mapping": {
-                  "x": "coordinates/coord_0",
-                  "y": "coordinates/coord_1",
-                  "z": "coordinates/coord_2",
-                  "t": "coordinates/timestamp",
-                  "trajectory": "coordinates/trajectory-vector"
-                },
+                "coordinate_mapping": "token:layout.coordinate_mapping",
                 "depth_selector": {
                   "default_hops": 2,
                   "max_hops": 5
@@ -121,7 +115,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "query:contained-elements[@node-id='active_focused_node']"
+                    "data_source": "token:layout.data_sources.sub_elements"
                   }
                 },
                 {
@@ -135,7 +129,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "query:active-alarms[@target-resource='active_focused_node']"
+                    "data_source": "token:layout.data_sources.active_alarms"
                   }
                 },
                 {
@@ -149,7 +143,7 @@
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "query:historical-events[@source-resource='active_focused_node']"
+                    "data_source": "token:layout.data_sources.historical_events"
                   }
                 }
               ]

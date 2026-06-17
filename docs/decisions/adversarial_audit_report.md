@@ -25,25 +25,25 @@ Three concurrent adversarial subagents were initialized to target and isolate th
 
 ### Root Cause 1: Direct Architectural Conflict in the Evaluation Suite
 * **File Paths**:
-  * [skills/project-constitution/evals/tier-separation/criteria.json](file:///Users/perkunas/digital-pipeline-repo/skills/project-constitution/evals/tier-separation/criteria.json#L15-L18)
-  * [skills/project-constitution/evals/tier-separation/task.md](file:///Users/perkunas/digital-pipeline-repo/skills/project-constitution/evals/tier-separation/task.md#L9-L10)
+  * [skills/project-constitution/evals/tier-separation/criteria.json](../../skills/project-constitution/evals/tier-separation/criteria.json#L15-L18)
+  * [skills/project-constitution/evals/tier-separation/task.md](../../skills/project-constitution/evals/tier-separation/task.md#L9-L10)
 * **Findings**:
   * The evaluation criteria check `domain_rules_present` strictly validates if the functional constitution includes domain rules referencing `"IETF RFC 8345 and YANG schema compliance"`.
   * The task input specifies a mock project named `"Network Topology Viewer"` in the domain of `"IETF RFC 8345 (YANG network topology)"`.
 * **The Conflict**:
-  * If an agent strictly follows the instructions in [skills/project-constitution/SKILL.md](file:///Users/perkunas/digital-pipeline-repo/skills/project-constitution/SKILL.md#L79-L80) (*"The constitution itself MUST NOT hardcode or assume any specific standard or schema format (such as YANG or RFC 8345) during initialization; all reference models are loaded dynamically at runtime"*), it will output a protocol-agnostic constitution and **fail** the evaluation.
+  * If an agent strictly follows the instructions in [skills/project-constitution/SKILL.md](../../skills/project-constitution/SKILL.md#L79-L80) (*"The constitution itself MUST NOT hardcode or assume any specific standard or schema format (such as YANG or RFC 8345) during initialization; all reference models are loaded dynamically at runtime"*), it will output a protocol-agnostic constitution and **fail** the evaluation.
   * If the agent hardcodes YANG/RFC 8345 references to pass the evaluation, it violates the skill's own core architecture mandate.
 
 ### Root Cause 2: Hardcoded YANG Ingestion in `verify_model_coverage.py`
-* **File Path**: [verify_model_coverage.py](file:///Users/perkunas/digital-pipeline-repo/skills/spec-orchestrator/scripts/verify_model_coverage.py)
+* **File Path**: [verify_model_coverage.py](../../skills/spec-orchestrator/scripts/verify_model_coverage.py)
 * **Findings**: The script scans for files by strictly checking for the `.yang` extension, and the parser is hardcoded for YANG statement patterns (`typedef`, `leaf`, `container`, etc.).
 * **Impact**: Other schema formats (e.g. OpenAPI `.json`/`.yaml`, Protobuf `.proto`) submitted at runtime are silently ignored, causing coverage verification to fail.
 
 ### Root Cause 3: Hardcoded Template References in Spec Generation Skills
 * **File Paths**:
-  * [skills/schema-specification-engineering/SKILL.md](file:///Users/perkunas/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
-  * [skills/spec-user-story-engineering/SKILL.md](file:///Users/perkunas/digital-pipeline-repo/skills/spec-user-story-engineering/SKILL.md)
-  * [skills/spec-usecase-engineering/SKILL.md](file:///Users/perkunas/digital-pipeline-repo/skills/spec-usecase-engineering/SKILL.md)
+  * [skills/schema-specification-engineering/SKILL.md](../../skills/schema-specification-engineering/SKILL.md)
+  * [skills/spec-user-story-engineering/SKILL.md](../../skills/spec-user-story-engineering/SKILL.md)
+  * [skills/spec-usecase-engineering/SKILL.md](../../skills/spec-usecase-engineering/SKILL.md)
 * **Findings**: The templates outputted by these skills contain hardcoded labels for `YANG Schema:` and `Normative Specification:`, along with default links referencing `https://github.com/YangModels/...` and `https://datatracker.ietf.org/doc/...`.
 * **Impact**: Non-RFC standards are forced to render irrelevant YANG reference placeholders.
 

@@ -18,13 +18,18 @@ def load_codebase_rules(workspace_dir):
             print(f"Warning: Failed to load codebase_rules.json: {e}")
     return {}
 
-def normalize_title(title):
+def normalize_title(title, rules=None):
     if not title:
         return ""
     # Strip quotes and leading/trailing whitespace
     title = title.strip().strip('"\'')
     # Strip common prefixes (e.g., epic-01:, feat-02:, us-03:, uc-04:, etc.)
-    title = re.sub(r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*', '', title, flags=re.IGNORECASE)
+    regex = None
+    if rules:
+        regex = rules.get("tracker_rules", {}).get("prefix_normalization_regex")
+    if not regex:
+        regex = r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*'
+    title = re.sub(regex, '', title, flags=re.IGNORECASE)
     # Normalize hyphens to spaces to handle typographic variations
     title = title.replace("-", " ")
     # Strip any remaining punctuation and normalize spacing
@@ -166,9 +171,13 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         
         if len(content) > trunc_limit:
             # Add a message pointing to the repository file
-            trunc_index = content.find("## Acceptance Criteria")
-            if trunc_index == -1:
-                trunc_index = content.find("## User Stories")
+            tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+            truncation_headers = tracker_rules.get("truncation_headers", ["## Acceptance Criteria", "## User Stories"])
+            trunc_index = -1
+            for header in truncation_headers:
+                trunc_index = content.find(header)
+                if trunc_index != -1:
+                    break
             if trunc_index == -1:
                 trunc_index = trunc_limit
             
@@ -208,18 +217,25 @@ def close_issue_on_tracker(issue_num, comment, rules=None):
     except Exception as e:
         print(f"  [Error] Failed to close issue #{issue_num}: {e}")
 
-def resolve_issue_ids_in_file(filepath, combined_titles):
+def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
         
-    if "#[IssueID]" not in content:
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    placeholder = tracker_rules.get("issue_id_placeholder", "#[IssueID]")
+    title_extraction_prefixes_regex = tracker_rules.get("title_extraction_prefixes_regex", r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?")
+    
+    if placeholder not in content:
         return content
         
     lines = content.splitlines()
     updated = False
     
+    # Escape placeholder for safe regex search
+    escaped_placeholder = re.escape(placeholder)
+    
     for i, line in enumerate(lines):
-        if "#[IssueID]" not in line:
+        if placeholder not in line:
             continue
             
         title = None
@@ -227,21 +243,22 @@ def resolve_issue_ids_in_file(filepath, combined_titles):
         if link_label_match:
             title = link_label_match.group(1).strip()
         else:
-            dash_match = re.search(r'-\s*\[[ xX]\]\s*#\[IssueID\]\s*-\s*(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?(.*)$', line)
+            pattern = r'-\s*\[[ xX]\]\s*' + escaped_placeholder + r'\s*-\s*' + title_extraction_prefixes_regex + r'(.*)$'
+            dash_match = re.search(pattern, line)
             if dash_match:
                 title = dash_match.group(1).strip()
                 title = re.sub(r'\(.*?\)', '', title).strip()
                 title = title.strip('[]-* ')
                 
         if title:
-            norm = normalize_title(title)
+            norm = normalize_title(title, rules)
             issue_num = combined_titles.get(norm)
             if issue_num:
-                lines[i] = line.replace("#[IssueID]", f"#{issue_num}")
+                lines[i] = line.replace(placeholder, f"#{issue_num}")
                 updated = True
-                print(f"  [Resolve ID] Resolved #[IssueID] to #{issue_num} for '{title}' in {os.path.basename(filepath)}")
+                print(f"  [Resolve ID] Resolved {placeholder} to #{issue_num} for '{title}' in {os.path.basename(filepath)}")
             else:
-                print(f"  [Warning] Could not resolve #[IssueID] for title '{title}' in {os.path.basename(filepath)}")
+                print(f"  [Warning] Could not resolve {placeholder} for title '{title}' in {os.path.basename(filepath)}")
                 
     if updated:
         new_content = "\n".join(lines) + "\n"
@@ -291,11 +308,17 @@ def main():
     usecase_titles = {}
     feature_titles = {}
 
+    labels_config = tracker_rules.get("labels", {})
+    epic_label = labels_config.get("epic", "epic").lower()
+    story_label = labels_config.get("user_story", "user-story").lower()
+    usecase_label = labels_config.get("use_case", "use-case").lower()
+    feature_label = labels_config.get("feature", "feature").lower()
+
     for num, issue in issue_dict.items():
         # Map raw issue keys correctly to prevent duplicate lookups
         if isinstance(num, str) and num.isdigit() and int(num) in epic_titles:
             continue
-        norm_title = normalize_title(issue[title_key])
+        norm_title = normalize_title(issue[title_key], rules)
         labels = []
         for l in issue.get(labels_key, []):
             if isinstance(l, dict):
@@ -303,13 +326,13 @@ def main():
             elif isinstance(l, str):
                 labels.append(l.lower())
         
-        if "epic" in labels:
+        if epic_label in labels:
             epic_titles[norm_title] = num
-        elif "user-story" in labels:
+        elif story_label in labels:
             story_titles[norm_title] = num
-        elif "use-case" in labels:
+        elif usecase_label in labels:
             usecase_titles[norm_title] = num
-        elif "feature" in labels:
+        elif feature_label in labels:
             feature_titles[norm_title] = num
 
     combined_titles = {}
@@ -354,12 +377,12 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(epics_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles)
+            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
             
-            norm = normalize_title(title)
+            norm = normalize_title(title, rules=rules)
             issue_num = epic_titles.get(norm)
             if issue_num:
                 updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
@@ -383,12 +406,12 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(features_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles)
+            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
             
-            norm = normalize_title(title)
+            norm = normalize_title(title, rules=rules)
             issue_num = feature_titles.get(norm)
             if issue_num:
                 is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
@@ -404,12 +427,12 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(stories_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles)
+            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
             
-            norm = normalize_title(title)
+            norm = normalize_title(title, rules=rules)
             issue_num = story_titles.get(norm)
             if issue_num:
                 _, completed = update_checklist_in_file(filepath, issue_dict, rules)
@@ -432,12 +455,12 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(usecases_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles)
+            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
             
-            norm = normalize_title(title)
+            norm = normalize_title(title, rules=rules)
             issue_num = usecase_titles.get(norm)
             if issue_num:
                 _, completed = update_checklist_in_file(filepath, issue_dict, rules)

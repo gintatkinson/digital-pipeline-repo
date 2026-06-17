@@ -931,6 +931,18 @@ def verify_uml_diagrams(features_dir, global_classes=None):
     choice_stereotypes = val_rules.get("choice_stereotypes", ["<<choice>>"])
     multiplicity_regex = val_rules.get("multiplicity_regex", r"\[[^\]]+\]")
     essential_feature_sections = val_rules.get("essential_feature_sections", ["Class Diagram", "Functional UI"])
+    
+    test_data_shape_regex = val_rules.get("test_data_shape_regex", r"###\s+1\.\s+Test\s+Data\s+Shape")
+    test_data_block_regex = val_rules.get("test_data_block_regex", r"```json")
+    bdd_scenario_regexes = val_rules.get("bdd_scenario_regexes", [r"\bGiven\b.*?\bWhen\b.*?\bThen\b", r"\bAs a\b.*?\bI want to\b.*?\bSo that\b", r"\bAs an\b.*?\bI want to\b.*?\bSo that\b"])
+    required_features_matrix_regex = val_rules.get("required_features_matrix_regex", r"##\s+Required\s+Features(?:\s+Matrix)?(.*?)(?=##|\Z)")
+    checkbox_syntax_regex = val_rules.get("checkbox_syntax_regex", r"-\s+\[[ xX]\]\s+.*")
+    use_case_alternate_flows_header = val_rules.get("use_case_alternate_flows_header", "## 5. Alternate and Exception Flows")
+    use_case_numbered_step_regex = val_rules.get("use_case_numbered_step_regex", r"\b\d+\.\s+\S+")
+    use_case_flow_list_regex = val_rules.get("use_case_flow_list_regex", r"-\s+\*\*\d[a-zA-Z]\..*?")
+    realization_matrix_header = val_rules.get("realization_matrix_header", "## 8. Realization Matrix")
+    realization_stories_header = val_rules.get("realization_stories_header", "### Required User Stories")
+    realization_features_header = val_rules.get("realization_features_header", "### Required Features")
 
     # 1. Verify Features
     for filepath in feature_files:
@@ -1086,10 +1098,10 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                 if not has_mult:
                     errors.append(f"Feature {filename} class '{cls_name}' method '{method['name']}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
 
-        # JSON Block check under Test Data Shape
-        if re.search(r"###\s+1\.\s+Test\s+Data\s+Shape", content, re.IGNORECASE):
-            if not re.search(r"###\s+1\.\s+Test\s+Data\s+Shape.*```json", content, re.DOTALL | re.IGNORECASE):
-                errors.append(f"Feature {filename} is missing a JSON payload example (```json block) under Test Data Shape.")
+        # Block check under Test Data Shape
+        if re.search(test_data_shape_regex, content, re.IGNORECASE):
+            if not re.search(test_data_shape_regex + r".*" + test_data_block_regex, content, re.DOTALL | re.IGNORECASE):
+                errors.append(f"Feature {filename} is missing a payload example ({test_data_block_regex} block) under Test Data Shape.")
 
     # 2. Verify User Stories
     story_files = get_md_files(user_stories_dir)
@@ -1207,21 +1219,18 @@ def verify_uml_diagrams(features_dir, global_classes=None):
             errors.append(f"User Story {filename} is missing a required diagram matching pattern(s): {', '.join(story_req_diagrams)}")
 
         # Enforce BDD Scenario or Story Statement
-        bdd_scenario_present = (
-            re.search(r"\bGiven\b.*?\bWhen\b.*?\bThen\b", content, re.DOTALL | re.IGNORECASE) or
-            re.search(r"\bAs a\b.*?\bI want to\b.*?\bSo that\b", content, re.DOTALL | re.IGNORECASE) or
-            re.search(r"\bAs an\b.*?\bI want to\b.*?\bSo that\b", content, re.DOTALL | re.IGNORECASE)
-        )
+        # Enforce BDD Scenario or Story Statement
+        bdd_scenario_present = any(re.search(pat, content, re.DOTALL | re.IGNORECASE) for pat in bdd_scenario_regexes)
         if not bdd_scenario_present:
             errors.append(f"User Story {filename} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).")
             
         # Enforce Required Features Matrix & Checklist format
-        rf_match = re.search(r"##\s+Required\s+Features(?:\s+Matrix)?(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+        rf_match = re.search(required_features_matrix_regex, content, re.DOTALL | re.IGNORECASE)
         if not rf_match:
             errors.append(f"User Story {filename} is missing '## Required Features Matrix' section.")
         else:
             rf_section = rf_match.group(1)
-            checkboxes = re.findall(r"-\s+\[[ xX]\]\s+.*", rf_section)
+            checkboxes = re.findall(checkbox_syntax_regex, rf_section)
             if not checkboxes:
                 errors.append(f"User Story {filename} must have at least one feature reference checklist item in its Required Features Matrix.")
             for cb in checkboxes:
@@ -1353,27 +1362,27 @@ def verify_uml_diagrams(features_dir, global_classes=None):
                                     errors.append(f"Use Case {basename} extend arrow from '{src_id}' to '{tgt_id}' is reversed. Extend arrows must point from the extending Use Case (client) to the base Use Case (supplier).")
 
         # Enforce at least 2 alternate flows with at least 2 numbered steps
-        flows_block_match = re.search(r"##\s+5\.\s+Alternate\s+(?:and|&)\s+Exception\s+Flows(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
+        flows_block_match = re.search(re.escape(use_case_alternate_flows_header) + r"(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
         if flows_block_match:
             flows_block = flows_block_match.group(1)
-            flows = re.findall(r"-\s+\*\*\d[a-zA-Z]\..*?(?=-\s+\*\*\d[a-zA-Z]\.|\Z)", flows_block, re.DOTALL)
+            flows = re.findall(use_case_flow_list_regex, flows_block, re.DOTALL)
             use_case_flow_limit = val_rules.get("use_case_flow_limit", 2)
             use_case_step_limit = val_rules.get("use_case_step_limit", 2)
             if len(flows) < use_case_flow_limit:
                 errors.append(f"Use Case {basename} must contain at least {use_case_flow_limit} detailed Alternate/Exception flows.")
             else:
                 for idx, flow in enumerate(flows):
-                    steps = re.findall(r"\b\d+\.\s+\S+", flow)
+                    steps = re.findall(use_case_numbered_step_regex, flow)
                     if len(steps) < use_case_step_limit:
                         errors.append(f"Use Case {basename} alternate flow {idx+1} is too thin (must contain at least {use_case_step_limit} numbered steps).")
         else:
-            errors.append(f"Use Case {basename} is missing '## 5. Alternate and Exception Flows' content block.")
+            errors.append(f"Use Case {basename} is missing '{use_case_alternate_flows_header}' content block.")
 
         # Validate the Realization Matrix checklist and absolute URLs
-        if re.search(r"##\s+8\.\s+Realization\s+Matrix", content, re.IGNORECASE):
-            if not re.search(r"###\s+Required\s+User\s+Stories", content, re.IGNORECASE):
-                errors.append(f"Use Case {basename} is missing '### Required User Stories' under Realization Matrix.")
-            if not re.search(r"###\s+Required\s+Features", content, re.IGNORECASE):
+        if re.search(realization_matrix_header, content, re.IGNORECASE):
+            if not re.search(realization_stories_header, content, re.IGNORECASE):
+                errors.append(f"Use Case {basename} is missing '{realization_stories_header}' under Realization Matrix.")
+            if not re.search(realization_features_header, content, re.IGNORECASE):
                 errors.append(f"Use Case {basename} is missing '### Required Features' under Realization Matrix.")
             
             # Validate checklist occupancy and contents under specific subheadings
@@ -1611,135 +1620,62 @@ def verify_codebase_compliance(workspace_dir):
         raise ValueError("codebase_rules.json is empty or could not be loaded")
     
     # Resolve target directories
-    target_dirs = rules.get("target_directories")
-    if not target_dirs:
-        raise ValueError("Missing 'target_directories' in codebase_rules.json")
+    target_dirs = rules.get("target_directories", {})
     react_dir_name = target_dirs.get("react")
-    if not react_dir_name:
-        raise ValueError("Missing 'target_directories.react' in codebase_rules.json")
-    react_dir = os.path.join(workspace_dir, react_dir_name)
+    react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
     flutter_dir_name = target_dirs.get("flutter")
-    if not flutter_dir_name:
-        raise ValueError("Missing 'target_directories.flutter' in codebase_rules.json")
-    flutter_dir = os.path.join(workspace_dir, flutter_dir_name)
+    flutter_dir = os.path.join(workspace_dir, flutter_dir_name) if flutter_dir_name else None
     
     # Resolve React rules
     react_rules = rules.get("react_rules")
-    if not react_rules:
-        raise ValueError("Missing 'react_rules' in codebase_rules.json")
-    react_exts_list = react_rules.get("file_extensions")
-    if react_exts_list is None:
-        raise ValueError("Missing 'react_rules.file_extensions' in codebase_rules.json")
-    react_exts = tuple(react_exts_list)
-    react_exclusions_list = react_rules.get("exclusions")
-    if react_exclusions_list is None:
-        raise ValueError("Missing 'react_rules.exclusions' in codebase_rules.json")
-    react_exclusions = set(react_exclusions_list)
-    react_forbidden_words = react_rules.get("forbidden_words")
-    if react_forbidden_words is None:
-        raise ValueError("Missing 'react_rules.forbidden_words' in codebase_rules.json")
-    react_write_lock_keywords = react_rules.get("write_lock_keywords")
-    if react_write_lock_keywords is None:
-        raise ValueError("Missing 'react_rules.write_lock_keywords' in codebase_rules.json")
-    react_selection_keywords = react_rules.get("selection_keywords")
-    if react_selection_keywords is None:
-        raise ValueError("Missing 'react_rules.selection_keywords' in codebase_rules.json")
-    react_interaction_keywords = react_rules.get("interaction_keywords")
-    if react_interaction_keywords is None:
-        raise ValueError("Missing 'react_rules.interaction_keywords' in codebase_rules.json")
-    react_playhead_clamp_regex = react_rules.get("playhead_clamp_regex")
-    if react_playhead_clamp_regex is None:
-        raise ValueError("Missing 'react_rules.playhead_clamp_regex' in codebase_rules.json")
-    react_ui_dirs = react_rules.get("ui_directories")
-    if react_ui_dirs is None:
-        raise ValueError("Missing 'react_rules.ui_directories' in codebase_rules.json")
-    react_net_dirs = react_rules.get("network_directories")
-    if react_net_dirs is None:
-        raise ValueError("Missing 'react_rules.network_directories' in codebase_rules.json")
-    react_ast_compliance_method = react_rules.get("ast_compliance_method")
-    if react_ast_compliance_method is None:
-        raise ValueError("Missing 'react_rules.ast_compliance_method' in codebase_rules.json")
-    react_viewport_file_patterns = react_rules.get("viewport_file_patterns")
-    if react_viewport_file_patterns is None:
-        raise ValueError("Missing 'react_rules.viewport_file_patterns' in codebase_rules.json")
-    react_network_file_patterns = react_rules.get("network_file_patterns")
-    if react_network_file_patterns is None:
-        raise ValueError("Missing 'react_rules.network_file_patterns' in codebase_rules.json")
-    
+    if react_rules and react_dir:
+        react_exts_list = react_rules.get("file_extensions", [])
+        react_exts = tuple(react_exts_list)
+        react_exclusions = set(react_rules.get("exclusions", []))
+        react_forbidden_words = react_rules.get("forbidden_words", [])
+        react_write_lock_keywords = react_rules.get("write_lock_keywords", [])
+        react_selection_keywords = react_rules.get("selection_keywords", [])
+        react_interaction_keywords = react_rules.get("interaction_keywords", [])
+        react_playhead_clamp_regex = react_rules.get("playhead_clamp_regex", [])
+        react_ui_dirs = react_rules.get("ui_directories", [])
+        react_net_dirs = react_rules.get("network_directories", [])
+        react_ast_compliance_method = react_rules.get("ast_compliance_method", "")
+        react_viewport_file_patterns = react_rules.get("viewport_file_patterns", [])
+        react_network_file_patterns = react_rules.get("network_file_patterns", [])
+    else:
+        react_dir = None
+        
     # Resolve Flutter rules
     flutter_rules = rules.get("flutter_rules")
-    if not flutter_rules:
-        raise ValueError("Missing 'flutter_rules' in codebase_rules.json")
-    flutter_exts_list = flutter_rules.get("file_extensions")
-    if flutter_exts_list is None:
-        raise ValueError("Missing 'flutter_rules.file_extensions' in codebase_rules.json")
-    flutter_exts = tuple(flutter_exts_list)
-    flutter_exclusions_list = flutter_rules.get("exclusions")
-    if flutter_exclusions_list is None:
-        raise ValueError("Missing 'flutter_rules.exclusions' in codebase_rules.json")
-    flutter_exclusions = set(flutter_exclusions_list)
-    flutter_selection_setters = flutter_rules.get("selection_setters")
-    if flutter_selection_setters is None:
-        raise ValueError("Missing 'flutter_rules.selection_setters' in codebase_rules.json")
-    flutter_selection_triggers = flutter_rules.get("selection_triggers")
-    if flutter_selection_triggers is None:
-        raise ValueError("Missing 'flutter_rules.selection_triggers' in codebase_rules.json")
-    flutter_loop_guard_keywords = flutter_rules.get("loop_guard_keywords")
-    if flutter_loop_guard_keywords is None:
-        raise ValueError("Missing 'flutter_rules.loop_guard_keywords' in codebase_rules.json")
-    flutter_forbidden_words = flutter_rules.get("forbidden_words")
-    if flutter_forbidden_words is None:
-        raise ValueError("Missing 'flutter_rules.forbidden_words' in codebase_rules.json")
-    flutter_write_lock_keywords = flutter_rules.get("write_lock_keywords")
-    if flutter_write_lock_keywords is None:
-        raise ValueError("Missing 'flutter_rules.write_lock_keywords' in codebase_rules.json")
-    flutter_playhead_clamp_regex = flutter_rules.get("playhead_clamp_regex")
-    if flutter_playhead_clamp_regex is None:
-        raise ValueError("Missing 'flutter_rules.playhead_clamp_regex' in codebase_rules.json")
-    flutter_ffi_keywords = flutter_rules.get("ffi_keywords")
-    if flutter_ffi_keywords is None:
-        raise ValueError("Missing 'flutter_rules.ffi_keywords' in codebase_rules.json")
-    flutter_ffi_finalizer_keywords = flutter_rules.get("ffi_finalizer_keywords")
-    if flutter_ffi_finalizer_keywords is None:
-        raise ValueError("Missing 'flutter_rules.ffi_finalizer_keywords' in codebase_rules.json")
-    flutter_ffi_refcount_keywords = flutter_rules.get("ffi_refcount_keywords")
-    if flutter_ffi_refcount_keywords is None:
-        raise ValueError("Missing 'flutter_rules.ffi_refcount_keywords' in codebase_rules.json")
-    flutter_ui_dirs = flutter_rules.get("ui_directories")
-    if flutter_ui_dirs is None:
-        raise ValueError("Missing 'flutter_rules.ui_directories' in codebase_rules.json")
-    flutter_net_dirs = flutter_rules.get("network_directories")
-    if flutter_net_dirs is None:
-        raise ValueError("Missing 'flutter_rules.network_directories' in codebase_rules.json")
-    flutter_viewport_file_patterns = flutter_rules.get("viewport_file_patterns")
-    if flutter_viewport_file_patterns is None:
-        raise ValueError("Missing 'flutter_rules.viewport_file_patterns' in codebase_rules.json")
-    flutter_network_file_patterns = flutter_rules.get("network_file_patterns")
-    if flutter_network_file_patterns is None:
-        raise ValueError("Missing 'flutter_rules.network_file_patterns' in codebase_rules.json")
-    
+    if flutter_rules and flutter_dir:
+        flutter_exts_list = flutter_rules.get("file_extensions", [])
+        flutter_exts = tuple(flutter_exts_list)
+        flutter_exclusions = set(flutter_rules.get("exclusions", []))
+        flutter_selection_setters = flutter_rules.get("selection_setters", [])
+        flutter_selection_triggers = flutter_rules.get("selection_triggers", [])
+        flutter_loop_guard_keywords = flutter_rules.get("loop_guard_keywords", [])
+        flutter_forbidden_words = flutter_rules.get("forbidden_words", [])
+        flutter_write_lock_keywords = flutter_rules.get("write_lock_keywords", [])
+        flutter_playhead_clamp_regex = flutter_rules.get("playhead_clamp_regex", [])
+        flutter_ffi_keywords = flutter_rules.get("ffi_keywords", [])
+        flutter_ffi_finalizer_keywords = flutter_rules.get("ffi_finalizer_keywords", [])
+        flutter_ffi_refcount_keywords = flutter_rules.get("ffi_refcount_keywords", [])
+        flutter_ui_dirs = flutter_rules.get("ui_directories", [])
+        flutter_net_dirs = flutter_rules.get("network_directories", [])
+        flutter_viewport_file_patterns = flutter_rules.get("viewport_file_patterns", [])
+        flutter_network_file_patterns = flutter_rules.get("network_file_patterns", [])
+    else:
+        flutter_dir = None
+        
     # Resolve Python rules
-    python_rules = rules.get("python_rules")
-    if not python_rules:
-        raise ValueError("Missing 'python_rules' in codebase_rules.json")
-    python_exclusions_list = python_rules.get("exclusions")
-    if python_exclusions_list is None:
-        raise ValueError("Missing 'python_rules.exclusions' in codebase_rules.json")
-    python_exclusions = set(python_exclusions_list)
+    python_rules = rules.get("python_rules", {})
+    python_exclusions = set(python_rules.get("exclusions", []))
     
     # Resolve Spec rules
-    spec_rules = rules.get("spec_rules")
-    if not spec_rules:
-        raise ValueError("Missing 'spec_rules' in codebase_rules.json")
-    dom_patterns = spec_rules.get("dom_leak_patterns")
-    if dom_patterns is None:
-        raise ValueError("Missing 'spec_rules.dom_leak_patterns' in codebase_rules.json")
-    pixel_leak_patterns = spec_rules.get("pixel_leak_patterns")
-    if pixel_leak_patterns is None:
-        raise ValueError("Missing 'spec_rules.pixel_leak_patterns' in codebase_rules.json")
-    spec_files = spec_rules.get("spec_files")
-    if spec_files is None:
-        raise ValueError("Missing 'spec_rules.spec_files' in codebase_rules.json")
+    spec_rules = rules.get("spec_rules", {})
+    dom_patterns = spec_rules.get("dom_leak_patterns", [])
+    pixel_leak_patterns = spec_rules.get("pixel_leak_patterns", [])
+    spec_files = spec_rules.get("spec_files", [])
     
     # Dynamically extract forbidden colors from design tokens
     design_tokens_path_rel = spec_rules.get("design_tokens_path")
@@ -2021,7 +1957,7 @@ def main():
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
 
-    non_yang_extensions = {".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"}
+    non_yang_extensions = set(rules.get("validation_rules", {}).get("non_yang_extensions", [".yaml", ".yml", ".json", ".proto", ".asn", ".asn1", ".msg", ".srv", ".xsd"]))
     has_yang_schemas = False
     has_non_yang_schemas = False
     if os.path.exists(schema_dir):

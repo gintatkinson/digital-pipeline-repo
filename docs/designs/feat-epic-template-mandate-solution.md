@@ -6,7 +6,7 @@ This document records the systemic fix applied to the zero-defect digital engine
 ## Changes Implemented
 
 ### 1. Mandated Epic Templates in Specification Engineering
-* **Target File**: [SKILL.md](file:///Users/perkunas/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
+* **Target File**: [SKILL.md](../../skills/schema-specification-engineering/SKILL.md)
 * **Modifications**:
   * Updated **Step 1 (Forensic Audit & Module Decomposition)**: Explicitly instructed that Epics must contain an overarching UML Class Diagram and a UML State Machine Diagram representing the macro-level domain.
   * Added **Epic File Structure / Template** under **Step 4 (Output Formatting & Strict GitHub Instrumentation)**: Defined a rigid template structure for Epics requiring:
@@ -15,7 +15,7 @@ This document records the systemic fix applied to the zero-defect digital engine
     * `## Child Features` list with issue links.
 
 ### 2. Plugged the Epic Linter Gap
-* **Target File**: [verify_model_coverage.py](file:///Users/perkunas/digital-pipeline-repo/skills/spec-orchestrator/scripts/verify_model_coverage.py)
+* **Target File**: [verify_model_coverage.py](../../skills/spec-orchestrator/scripts/verify_model_coverage.py)
 * **Modifications**:
   * Defined `epics_dir` mapping to `docs/epics/` in the `verify_uml_diagrams` function.
   * Added a dedicated `# 4. Verify Epics` section auditing all Epic markdown files.

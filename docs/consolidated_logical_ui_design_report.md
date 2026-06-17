@@ -48,7 +48,7 @@ We define exactly seven core platform-agnostic components:
 7. **ContextualPanel**: Slide-out drawer capturing key events like `Escape` for dismissal.
 
 ### 2.3. Declarative Layout Schema
-Layout configurations are specified in `logical-layout.json` (such as the GKE-style dashboard) using component bindings to abstract YANG paths (e.g., `yang:network-topology`) and target states (e.g., `selected_managed_object`), separating layout declaration from platform runtime code.
+Layout configurations are specified in `logical-layout.json` using dynamic layout configuration tokens that reference abstract paths and target states (e.g., `selected_managed_object`), separating layout declaration from platform runtime code.
 
 ---
 
@@ -161,10 +161,10 @@ The declarative layout schema is structured to scale and support domain-specific
 
 ### 8.1. Separation of Concerns (Core vs. Domain)
 * **The Core UI Engine**: Platform-native UI shells (React, Flutter) only understand generic logical UI components (`SidebarLayout`, `SplitWorkspace`, `TableView`, `TopologyMap`, `PropertyGrid`).
-* **Design-Time Domain Bindings**: At design time, layout declarations bind components to domain-specific schemas using structured data paths:
-  - **Telecom / Network Domain**: Binds to IETF YANG paths (e.g., `yang:network-topology/topology/node`).
-  - **Energy / Power Grid Domain**: Binds to IEC 61970 Common Information Model (CIM) keys (e.g., `cim:PowerSystemResource/ConnectivityNode`).
-  - **Logistics / Marine Ports**: Binds to ISO 15459 container states and RFID coordinates.
+* **Design-Time Domain Bindings**: At design time, layout declarations bind components to domain-specific schemas using dynamic configuration tokens:
+  - **Telecom / Network Domain**: Binds to dynamic schema paths (e.g., matching the network topology namespace configuration).
+  - **Energy / Power Grid Domain**: Binds to dynamic schema keys (e.g., matching the power system resource configuration).
+  - **Logistics / Marine Ports**: Binds to dynamic container states and spatial coordinates.
 
 ### 8.2. Design-Time Compilation & Validation
 To guarantee that declarative layouts are valid and error-free before compiling the production bundle:

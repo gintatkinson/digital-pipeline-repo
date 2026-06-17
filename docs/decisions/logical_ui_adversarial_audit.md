@@ -36,7 +36,7 @@ To support safety-critical command, control, and observability systems, the UI s
   - `Cleared` (Green): Normal operational status.
 
 ### 2.2. Standardized Logical UI Components
-1. **HierarchyTree (Left Panel)**: Tree-view nested selector (Folder > Project > Resource) with strict ARIA tree virtualization tags for accessibility.
+1. **HierarchyTree (Left Panel)**: Tree-view nested selector (nested levels resolved dynamically from configuration rules) with strict ARIA tree virtualization tags for accessibility.
 2. **ResizableSplitter**: Horizontal/vertical split bar with double-click resets and minimum size constraints (150px).
 3. **NavigationBreadcrumbs**: Path segment links with sibling drop-down navigation.
 4. **PropertyGrid**: Dynamic key-value grid that parses schemas *once* into flat, pre-compiled layout descriptors to avoid render-cycle parsing lag.
