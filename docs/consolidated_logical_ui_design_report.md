@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-16  
 **Status**: APPROVED / MANDATED  
-**Applicable Workspace**: `/Users/perkunas/digital-pipeline-repo`  
+**Applicable Workspace**: `digital-pipeline-repo`  
 **Target Platform Environments**: React Web (Vite) & Flutter Desktop/Web  
 
 ---
@@ -182,7 +182,7 @@ When a new domain requirement demands a new visualization component (e.g., a tim
 ## 9. Spatial-Temporal (4D) Logical Grouping & Visualization
 
 > [!NOTE]
-> For a detailed mathematical and technical dive into coordinate translations, temporal contexts, TLE/SGP4 propagation, and GPU compute pipelines, read the full [Spatial-Temporal (4D) UI Analysis](file:///Users/perkunas/digital-pipeline-repo/docs/decisions/spatial_temporal_4d_ui_analysis.md).
+> For a detailed mathematical and technical dive into coordinate translations, temporal contexts, TLE/SGP4 propagation, and GPU compute pipelines, read the full [Spatial-Temporal (4D) UI Analysis](decisions/spatial_temporal_4d_ui_analysis.md).
 
 Real-time safety-critical control environments (subsea, air traffic control, satellite telemetry, and extraterrestrial exploration) manage elements that are not static or structured strictly in a parent-child BOM hierarchy. Instead, objects are dynamically moving in 3D coordinate space over time.
 

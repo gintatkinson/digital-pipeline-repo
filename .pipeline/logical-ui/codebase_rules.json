@@ -17,6 +17,17 @@
     "prefix_normalization_regex": "^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\\d+\\s*[:\\-]?|:)\\s*",
     "title_extraction_prefixes_regex": "(?:Feature\\s+\\d+\\s*:\\s*|Use\\s+Case\\s+\\d+\\s*:\\s*|User\\s+Story\\s+\\d+\\s*:\\s*)?",
     "truncation_headers": ["## Acceptance Criteria", "## User Stories"],
+    "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
+    "numeric_prefix": "#",
+    "alphanumeric_prefix": "",
+    "keys": {
+      "issue_id": "number",
+      "title": "title",
+      "labels": "labels",
+      "state": "state",
+      "closed_state_value": "CLOSED",
+      "open_state_value": "OPEN"
+    },
     "labels": {
       "epic": "epic",
       "feature": "feature",
@@ -45,7 +56,7 @@
     "exclusions": ["node_modules", "build", "dist", "coverage", ".git"],
     "ui_directories": ["components", "views"],
     "network_directories": ["io"],
-    "forbidden_words": [],
+    "forbidden_words": ["sgp4", "satellite"],
     "forbidden_words_message": "UI view/component but imports forbidden libraries directly. Calculations must run exclusively in a background Web Worker.",
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "selection_keywords": ["onSelect", "onNodeSelect", "onSelectionChange", "setSelectedNode", "setSelectedId", "dispatch"],
@@ -64,7 +75,7 @@
     "selection_setters": ["set selected", "set active", "set selection", "setSelectedNode", "setActiveNode"],
     "selection_triggers": ["onChanged", "onSelected", "notifyListeners", "dispatch"],
     "loop_guard_keywords": ["userinitiated", "programmatic", "fromuser", "isuser", "userinteraction"],
-    "forbidden_words": [],
+    "forbidden_words": ["sgp4", "satellite"],
     "forbidden_words_message": "UI widget/screen but references forbidden libraries directly. Calculations must run exclusively in a background Isolate.",
     "write_lock_keywords": ["writelock", "lockwrite", "sendlock", "mutationlock"],
     "playhead_clamp_regex": ["0\\.9\\b", "1\\.1\\b"],
@@ -86,6 +97,7 @@
   "validation_rules": {
     "uml_primitives": ["String", "Integer", "Real", "Boolean"],
     "visibility_prefixes": ["+", "-", "#", "~"],
+    "playhead_rate_limits": [0.90, 1.10],
     "relationship_connectors": "(\\*--|o--|<\\|--|--|-->)",
     "choice_stereotypes": ["<<choice>>"],
     "sequence_replies": ["-->"],
@@ -158,7 +170,27 @@
       ]
     }
   },
+  "navigation": {
+    "sidebar": {
+      "items": [
+        { "label": "Topology Viewer", "route": "/topology", "icon": "hub" },
+        { "label": "Resource Directory", "route": "/resources", "icon": "dns" }
+      ]
+    }
+  },
+  "layout_properties": {
+    "default_ratio": 0.4,
+    "dimensions": 3,
+    "default_hops": 2,
+    "max_hops": 5,
+    "relationship_filters": ["termination-point-to-node", "link-to-node", "layer-transition", "orbital-conjunction"]
+  },
   "layout_mappings": {
+    "labels": {
+      "elements": "Elements",
+      "alarms": "Alarms",
+      "events": "Events"
+    },
     "hierarchy": ["Domain", "Subdomain", "Unit"],
     "data_sources": {
       "resource_tree": "provider:resource-hierarchy-manager",

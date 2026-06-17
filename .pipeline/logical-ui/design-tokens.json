@@ -21,7 +21,8 @@
       "major": "#ff6d00",
       "minor": "#ffd600",
       "warning": "#29b6f6",
-      "cleared": "#00c853"
+      "cleared": "#00c853",
+      "indeterminate": "#d500f9"
     }
   },
   "spacing": {

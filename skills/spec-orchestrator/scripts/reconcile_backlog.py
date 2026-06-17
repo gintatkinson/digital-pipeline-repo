@@ -18,6 +18,15 @@ def load_codebase_rules(workspace_dir):
             print(f"Warning: Failed to load codebase_rules.json: {e}")
     return {}
 
+def format_issue_reference(issue_id, tracker_rules):
+    issue_id_str = str(issue_id)
+    if issue_id_str.isdigit():
+        prefix = tracker_rules.get("numeric_prefix", "#")
+        return f"{prefix}{issue_id_str}"
+    else:
+        prefix = tracker_rules.get("alphanumeric_prefix", "")
+        return f"{prefix}{issue_id_str}"
+
 def normalize_title(title, rules=None):
     if not title:
         return ""
@@ -80,7 +89,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         content = f.read()
 
     # Match both checked and unchecked boxes: e.g., - [ ] #123 or - [x] #123 or - [ ] #PROJ-123
-    pattern = r"(-\s*\[\s*([ xX])\s*\]\s*(?:#|#\[|\#\s*)([A-Za-z0-9\-]+))"
+    pattern = r"(-\s*\[\s*([ xX])\s*\]\s*(#|#\[|\#\s*)?([A-Za-z0-9\-]+))"
     
     updated_content = content
     all_deps_closed = True
@@ -92,13 +101,16 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
     closed_state = keys.get("closed_state_value", "CLOSED").upper()
     
     matches = re.findall(pattern, content)
-    for full_match, mark, dep_num_str in matches:
+    for full_match, mark, prefix, dep_num_str in matches:
+        if dep_num_str.isdigit() and not prefix:
+            continue
         has_deps = True
         dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
         dep_issue = issue_dict.get(dep_num)
         
         if dep_issue is None:
-            print(f"Error: Invalid/hallucinated dependency reference #{dep_num} in {os.path.basename(filepath)}")
+            ref_str = format_issue_reference(dep_num, tracker_rules)
+            print(f"Error: Invalid/hallucinated dependency reference {ref_str} in {os.path.basename(filepath)}")
             upstream_repo = rules.get("meta", {}).get("upstream_repository", "unknown") if rules else "unknown"
             troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
             print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
@@ -112,7 +124,8 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             old_box = f"[{mark}]"
             new_box = f"[{target_mark}]"
             updated_content = updated_content.replace(full_match, full_match.replace(old_box, new_box, 1), 1)
-            print(f"  [Checklist] Updated dependency #{dep_num} to [{target_mark}] in {os.path.basename(filepath)}")
+            ref_str = format_issue_reference(dep_num, tracker_rules)
+            print(f"  [Checklist] Updated dependency {ref_str} to [{target_mark}] in {os.path.basename(filepath)}")
             
         if not is_closed:
             all_deps_closed = False
@@ -157,7 +170,9 @@ def convert_frontmatter_to_table(content):
     return table_text + body_text
 
 def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None):
-    print(f"  [Sync Issue Body] Syncing #{issue_num} ({issue_type}) to tracker...")
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    ref_str = format_issue_reference(issue_num, tracker_rules)
+    print(f"  [Sync Issue Body] Syncing {ref_str} ({issue_type}) to tracker...")
     
     # Check issue body size limit and truncate if needed
     temp_path = filepath + ".temp-body"
@@ -171,7 +186,6 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         
         if len(content) > trunc_limit:
             # Add a message pointing to the repository file
-            tracker_rules = rules.get("tracker_rules", {}) if rules else {}
             truncation_headers = tracker_rules.get("truncation_headers", ["## Acceptance Criteria", "## User Stories"])
             trunc_index = -1
             for header in truncation_headers:
@@ -184,11 +198,11 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
             project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
             rel_path = os.path.relpath(filepath, project_root)
             
-            content = content[:trunc_index] + (
-                f"\n\n---\n> [!NOTE]\n"
-                f"> This issue body has been truncated because it exceeds tracker size limit of {max_body_chars} characters.\n"
-                f"> Please refer to the full specification file in the repository at `{rel_path}` for the complete details.\n"
-            )
+            truncation_template = tracker_rules.get("truncation_message_template", (
+                "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n"
+                "*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n"
+            ))
+            content = content[:trunc_index] + truncation_template.format(max_body_chars=max_body_chars, rel_path=rel_path)
             
         with open(temp_path, "w", encoding="utf-8") as tf:
             tf.write(content)
@@ -200,22 +214,23 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
         subprocess.run(cmd, check=True, capture_output=True)
     except Exception as e:
-        print(f"  [Error] Failed to sync #{issue_num} body: {e}")
+        print(f"  [Error] Failed to sync {ref_str} body: {e}")
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
  
 def close_issue_on_tracker(issue_num, comment, rules=None):
-    print(f"  [Close Issue] Closing issue #{issue_num} on tracker...")
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    ref_str = format_issue_reference(issue_num, tracker_rules)
+    print(f"  [Close Issue] Closing issue {ref_str} on tracker...")
     try:
-        tracker_rules = rules.get("tracker_rules", {}) if rules else {}
         close_cmd_template = tracker_rules.get("commands", {}).get("close_issue")
         if not close_cmd_template:
             raise ValueError("Missing 'tracker_rules.commands.close_issue' in codebase_rules.json")
         cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
         subprocess.run(cmd, check=True, capture_output=True)
     except Exception as e:
-        print(f"  [Error] Failed to close issue #{issue_num}: {e}")
+        print(f"  [Error] Failed to close issue {ref_str}: {e}")
 
 def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
@@ -254,9 +269,10 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
             norm = normalize_title(title, rules)
             issue_num = combined_titles.get(norm)
             if issue_num:
-                lines[i] = line.replace(placeholder, f"#{issue_num}")
+                ref_str = format_issue_reference(issue_num, tracker_rules)
+                lines[i] = line.replace(placeholder, ref_str)
                 updated = True
-                print(f"  [Resolve ID] Resolved {placeholder} to #{issue_num} for '{title}' in {os.path.basename(filepath)}")
+                print(f"  [Resolve ID] Resolved {placeholder} to {ref_str} for '{title}' in {os.path.basename(filepath)}")
             else:
                 print(f"  [Warning] Could not resolve {placeholder} for title '{title}' in {os.path.basename(filepath)}")
                 

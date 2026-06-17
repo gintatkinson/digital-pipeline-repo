@@ -226,7 +226,7 @@ def parse_mermaid_flowchart(mermaid_code):
         "subgraphs": subgraphs
     }
 
-def parse_mermaid_class_diagram(mermaid_code):
+def parse_mermaid_class_diagram(mermaid_code, rules=None):
     """
     Parses a Mermaid classDiagram code block.
     Extracts classes, attributes, methods, relationships, and namespaces.
@@ -237,6 +237,19 @@ def parse_mermaid_class_diagram(mermaid_code):
     
     block_stack = []
     
+    visibility_prefixes = ["+", "-", "#", "~"]
+    if rules:
+        visibility_prefixes = rules.get("validation_rules", {}).get("visibility_prefixes", visibility_prefixes)
+    vis_pattern = r'^(' + '|'.join(re.escape(p) for p in visibility_prefixes) + r')\s*(.*)$'
+    
+    rel_connectors = r'(\*--|\*..|o--|o..|<\|--|<\|..|--\|>|\.\.\|>|-->|\.\.>|<--|<\.\.|--|\.\.|--\*|\.\.\*|--o|\.\.o)'
+    if rules:
+        config_connectors = rules.get("validation_rules", {}).get("relationship_connectors")
+        if config_connectors:
+            if not config_connectors.startswith('('):
+                config_connectors = f"({config_connectors})"
+            rel_connectors = config_connectors
+    
     def parse_attribute_signature(sig):
         sig = sig.strip()
         constraints = []
@@ -246,7 +259,7 @@ def parse_mermaid_class_diagram(mermaid_code):
             sig = re.sub(r'\{([^}]+)\}', '', sig).strip()
             
         visibility = None
-        vis_match = re.match(r'^([+\-#~])\s*(.*)$', sig)
+        vis_match = re.match(vis_pattern, sig)
         if vis_match:
             visibility = vis_match.group(1)
             sig = vis_match.group(2).strip()
@@ -287,7 +300,7 @@ def parse_mermaid_class_diagram(mermaid_code):
             sig = re.sub(r'\{([^}]+)\}', '', sig).strip()
             
         visibility = None
-        vis_match = re.match(r'^([+\-#~])\s*(.*)$', sig)
+        vis_match = re.match(vis_pattern, sig)
         if vis_match:
             visibility = vis_match.group(1)
             sig = vis_match.group(2).strip()
@@ -391,7 +404,7 @@ def parse_mermaid_class_diagram(mermaid_code):
             continue
             
         rel_match = re.match(
-            r'^\s*([a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*(\*--|\*..|o--|o..|<\|--|<\|..|--\|>|\.\.\|>|-->|\.\.>|<--|<\.\.|--|\.\.|--\*|\.\.\*|--o|\.\.o)\s*(?:\"([^\"]*)\")?\s*([a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
+            r'^\s*([a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*([a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
             line
         )
         if rel_match:
@@ -823,6 +836,8 @@ def build_global_classes(features_dir):
     global_classes = {}
     if not os.path.exists(features_dir):
         return global_classes
+    workspace_dir = find_workspace_dir(features_dir)
+    rules = load_codebase_rules(workspace_dir)
     for filename in os.listdir(features_dir):
         if not filename.endswith(".md"):
             continue
@@ -831,7 +846,7 @@ def build_global_classes(features_dir):
             content = f.read()
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
         for match in class_diagram_matches:
-            parsed_cd = parse_mermaid_class_diagram(match.group(0))
+            parsed_cd = parse_mermaid_class_diagram(match.group(0), rules)
             for class_name, class_info in parsed_cd["classes"].items():
                 if class_name not in global_classes:
                     global_classes[class_name] = {
@@ -850,13 +865,13 @@ def build_global_classes(features_dir):
                         global_classes[class_name]["methods"].append(method)
     return global_classes
 
-def build_classes_from_features(matching_features):
+def build_classes_from_features(matching_features, rules=None):
     classes = {}
     for feat in matching_features:
         content = feat["content"]
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
         for match in class_diagram_matches:
-            parsed_cd = parse_mermaid_class_diagram(match.group(0))
+            parsed_cd = parse_mermaid_class_diagram(match.group(0), rules)
             for class_name, class_info in parsed_cd["classes"].items():
                 if class_name not in classes:
                     classes[class_name] = {
@@ -995,7 +1010,7 @@ def verify_uml_diagrams(features_dir, global_classes=None):
             errors.append(f"Feature {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
 
         # Semantic Class Diagram Validation
-        parsed_cd = parse_mermaid_class_diagram(class_diagram_match.group(0))
+        parsed_cd = parse_mermaid_class_diagram(class_diagram_match.group(0), rules)
         classes = parsed_cd["classes"]
         relationships = parsed_cd["relationships"]
 
@@ -1554,6 +1569,30 @@ def strip_dart_comments(content):
         return match.group(0)
     return re.sub(pattern, replacer, content, flags=re.DOTALL)
 
+def check_banned_imports(content, forbidden_words, file_ext):
+    if not forbidden_words:
+        return []
+    if file_ext == ".dart":
+        clean_content = strip_dart_comments(content)
+    else:
+        clean_content = strip_js_comments(content)
+        
+    found_banned = []
+    lines = clean_content.splitlines()
+    for line in lines:
+        line_strip = line.strip()
+        is_import = False
+        if line_strip.startswith(("import ", "import'", "import\"", "export ", "export'", "export\"", "part ", "part'")):
+            is_import = True
+        elif "require(" in line_strip:
+            is_import = True
+            
+        if is_import:
+            for word in forbidden_words:
+                if re.search(r'\b' + re.escape(word) + r'\b', line_strip):
+                    found_banned.append(word)
+    return list(set(found_banned))
+
 def walk_json_ast_for_compliance(node, target_method="stopPropagation", ast_rules=None):
     if not ast_rules:
         ast_rules = {}
@@ -1620,6 +1659,8 @@ def verify_codebase_compliance(workspace_dir):
         raise ValueError("codebase_rules.json is empty or could not be loaded")
     
     # Resolve target directories
+    val_rules = rules.get("validation_rules", {})
+    playhead_rate_limits = val_rules.get("playhead_rate_limits", [0.90, 1.10])
     target_dirs = rules.get("target_directories", {})
     react_dir_name = target_dirs.get("react")
     react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
@@ -1761,8 +1802,10 @@ def verify_codebase_compliance(workspace_dir):
                             is_react_ui = True
                             break
                     if is_react_ui:
-                        if any(lib in clean_content for lib in react_forbidden_words):
-                            errors.append(f"React File '{rel_path}' is a UI view/component but imports SGP4 orbit propagation libraries directly. Orbital calculations must run exclusively in a background Web Worker.")
+                        banned_libs = check_banned_imports(content, react_forbidden_words, ".js")
+                        if banned_libs:
+                            msg = react_rules.get("forbidden_words_message", "UI view/component but imports forbidden libraries directly. Calculations must run exclusively in a background Web Worker.")
+                            errors.append(f"React File '{rel_path}' is a {msg}")
  
                     # Egress Write-Lock Check (Network-level Echo Guard)
                     is_react_net = False
@@ -1786,7 +1829,7 @@ def verify_codebase_compliance(workspace_dir):
                             is_react_viewport = True
                             break
                     if is_react_viewport:
-                        react_playhead_clamp_range = react_rules.get("playhead_clamp_range", [0.90, 1.10])
+                        react_playhead_clamp_range = playhead_rate_limits
                         if not all(re.search(pat, clean_content) for pat in react_playhead_clamp_regex):
                             errors.append(f"React Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {react_playhead_clamp_range} for 4D spatial-temporal viewports.")
 
@@ -1829,8 +1872,10 @@ def verify_codebase_compliance(workspace_dir):
                             is_flutter_ui = True
                             break
                     if is_flutter_ui:
-                        if any(lib in clean_content_lower for lib in flutter_forbidden_words):
-                            errors.append(f"Flutter File '{rel_path}' is a UI widget/screen but references SGP4 orbit propagation directly. Orbital calculations must run exclusively in a background Isolate.")
+                        banned_libs = check_banned_imports(content, flutter_forbidden_words, ".dart")
+                        if banned_libs:
+                            msg = flutter_rules.get("forbidden_words_message", "UI widget/screen but references forbidden libraries directly. Calculations must run exclusively in a background Isolate.")
+                            errors.append(f"Flutter File '{rel_path}' is a {msg}")
 
                     # Egress Write-Lock Check (Network-level Echo Guard)
                     is_flutter_net = False
@@ -1854,7 +1899,7 @@ def verify_codebase_compliance(workspace_dir):
                             is_flutter_viewport = True
                             break
                     if is_flutter_viewport:
-                        flutter_playhead_clamp_range = flutter_rules.get("playhead_clamp_range", [0.90, 1.10])
+                        flutter_playhead_clamp_range = playhead_rate_limits
                         if not all(re.search(pat, clean_content) for pat in flutter_playhead_clamp_regex):
                             errors.append(f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {flutter_playhead_clamp_range} for 4D spatial-temporal viewports.")
                             
@@ -2002,7 +2047,7 @@ def main():
                 continue
 
             # Build classes only from the matching features
-            local_classes = build_classes_from_features(matching_features)
+            local_classes = build_classes_from_features(matching_features, rules)
 
             module_defined = len(definitions)
             module_covered = 0

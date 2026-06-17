@@ -26,8 +26,8 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 - **Performance:** JSON-Schemas are compiled *once* at initialization into a flat, typed **Logical Layout Descriptor** list, avoiding render-cycle parsing lag.
 
 ## 5. TopologyMap (3D/4D Spatial-Temporal Canvas)
-- **Anatomy:** A hardware-accelerated viewport displaying nodes and directional links in 3D coordinate space, dynamic trajectory path lines, volumetric bounding indicators (e.g. orbital cones, subsea sectors), and an overlay time-control bar (play/pause, timeline scrubber, playback speed multiplier).
-- **Behavior:** Centers layout focus on selected items. Highlights node outline colors based on the active alarm severity mapping configuration. Supports grouping and filtering objects dynamically based on spatial-temporal boundaries (e.g., displaying rovers, satellites, or subsea sensors inside a specific 3D coordinates volume at time $t$ along their projected trajectories).
+- **Anatomy:** A hardware-accelerated viewport displaying nodes and directional links in 3D coordinate space, dynamic trajectory path lines, volumetric bounding indicators (e.g. spatial coordinate boundaries), and an overlay time-control bar (play/pause, timeline scrubber, playback speed multiplier).
+- **Behavior:** Centers layout focus on selected items. Highlights node outline colors based on the active alarm severity mapping configuration. Supports grouping and filtering objects dynamically based on spatial-temporal boundaries (e.g., displaying managed objects inside a specific 3D coordinates volume at time $t$ along their projected trajectories).
 - **Performance:** 4D coordinate transformations, orbital path projections, and layout physics are executed off the main thread (using off-thread execution environments) and accelerated in parallel using GPU compute shaders.
 
 
@@ -35,7 +35,7 @@ This document defines the platform-agnostic structural, behavioral, and API requ
 - **Anatomy:** High-density grid containing columns, rows, sort indicators, and multiselect checkboxes.
 - **Columns:** Dynamically constructed based on the selected/associated managed object's data schema to display all configured/allowed attributes, properties, and child elements. Includes standard attributes (Object Icon, Name, Type, Family, Alarms, Primary State, Secondary States) alongside all schema-defined attributes.
 - **Performance:** Supports virtualized list rendering to optimize viewport performance.
-- **Tabbed Layout Integration:** To support legacy industrial state visualizations and next-gen workflows, multiple specialized DensityTables (e.g. Elements, Alarms, Events) are organized inside a bottom-docked `TabbedContainer`, dynamically loading lists associated with the selected topological managed object.
+- **Tabbed Layout Integration:** To support legacy industrial state visualizations and next-gen workflows, multiple specialized DensityTables (as defined in the layout configuration) are dynamically mounted inside a bottom-docked `TabbedContainer`, dynamically loading lists associated with the selected topological managed object.
 
 ## 7. ContextualPanel
 - **Anatomy:** Side drawer panel sliding from the viewport edges.
