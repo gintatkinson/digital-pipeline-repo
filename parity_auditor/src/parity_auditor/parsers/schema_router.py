@@ -22,3 +22,9 @@ class SchemaRouter(IParser):
         ext = os.path.splitext(filepath)[1].lower()
         print(f"Warning: Extensible schema parser not yet implemented for extension '{ext}' in {os.path.basename(filepath)}")
         return os.path.basename(filepath), set()
+
+def parse_schema_file(filepath: str, repo: Optional[WorkspaceRepository] = None) -> Tuple[Optional[str], Set[str]]:
+    if repo is None:
+        repo = WorkspaceRepository()
+    router = SchemaRouter(repo)
+    return router.parse(filepath)
