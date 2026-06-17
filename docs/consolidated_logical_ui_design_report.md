@@ -25,16 +25,11 @@ Taking inspiration from legacy systems like **IBM ILOG JViews TGO**—which pion
 
 The Logical UI Layer resides in the `.pipeline/logical-ui/` directory and acts as the single source of truth for design tokens, component behaviors, and declarations.
 
-### 2.1. Industrial Design Tokens
-Design tokens are specified in `design-tokens.json` and map directly to ITU-T X.733 Alarm color mappings, standard typography scale, and spacing guidelines:
+### 2.1. Standard-Agnostic Design Tokens
+Design tokens specified in `design-tokens.json` declare the platform-independent brand, surface, background, typography, and spacing visual variables. They do not pre-code any specific standard or alarm severities (such as ITU-T X.733):
 
 * **Primary Accent Color**: `#1a73e8` (Google Blue / Brand Accent)
-* **Alarm Severities (Color Tokens)**:
-  * `Critical` (Red): `#d50000` — Immediate corrective action required.
-  * `Major` (Orange): `#ff6d00` — Serious service degradation.
-  * `Minor` (Yellow): `#ffd600` — Non-service-affecting fault.
-  * `Warning` (Cyan/Blue): `#29b6f6` — Potential future fault.
-  * `Cleared` (Green): `#00c853` — Normal operational status.
+* **Standard Agnosticism**: All domain-specific alarms, states, and their associated severity colors are treated as dynamic runtime metadata. The spec engineering pipeline receives the standard definition and its color mappings as part of the dynamic runtime payload.
 * **Typography**: Outlined scale using the `Outfit` or `Roboto` font families configured for high-density visualization.
 
 ### 2.2. Standardized Logical UI Components

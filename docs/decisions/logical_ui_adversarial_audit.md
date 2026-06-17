@@ -24,16 +24,10 @@ Furthermore, to handle a combinatorial explosion of real-time telemetry events a
 
 ## 2. Shared UI Architectural Standards
 
-### 2.1. Industrial State Model (ITU-T X.733 & ILOG JViews TGO)
-To support safety-critical command, control, and observability systems, the UI standardizes the classic 3-pane split layout with a robust real-time state model:
-* **Primary State**: Represents the core operational lifecycle (`Active`, `Standby`, `Testing`, `Disabled`, `Unknown`).
-* **Secondary States**: Complements the primary state with qualifiers (`Locked`, `Offline`, `Degraded`, `Reserved`).
-* **Alarm Severities (Color Tokens)**:
-  - `Critical` (Red): Immediate corrective action required.
-  - `Major` (Orange): Serious degradation of service.
-  - `Minor` (Yellow): Non-service-affecting fault.
-  - `Warning` (Cyan/Blue): Potential future fault.
-  - `Cleared` (Green): Normal operational status.
+### 2.1. Dynamic State & Status Resolution
+To support safety-critical command, control, and observability systems, the UI standardizes the classic 3-pane split layout with a completely dynamic state model. 
+
+The base layout configuration and profiles are completely agnostic of any specific standard (such as ITU-T X.733 or ILOG JViews TGO). All state taxonomies, severity levels, and visual indicators (such as colors and badges) must be resolved dynamically at runtime. The spec engineering pipeline receives these standard definitions as runtime metadata and applies them to the generic UI container without rebuilding or hardcoding specific states.
 
 ### 2.2. Standardized Logical UI Components
 1. **HierarchyTree (Left Panel)**: Tree-view nested selector (nested levels resolved dynamically from configuration rules) with strict ARIA tree virtualization tags for accessibility.
