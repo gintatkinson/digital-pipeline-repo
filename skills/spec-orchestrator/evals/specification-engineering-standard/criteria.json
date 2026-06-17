@@ -28,7 +28,7 @@
     },
     {
       "name": "source_references",
-      "description": "Every generated markdown file includes a Source References section with links to the YANG schema and normative text",
+      "description": "Every generated markdown file includes a Source References section with links to the structural schema and normative text",
       "weight": 1
     },
     {

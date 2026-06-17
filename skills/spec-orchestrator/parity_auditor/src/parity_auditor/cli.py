@@ -85,7 +85,7 @@ def main():
         print("Note: No feature specifications found in directory. Skipping model coverage checks.")
         skip_coverage_checks = True
     elif has_non_yang_schemas:
-        print("Warning: Deep AST node coverage parity audit is currently optimized for YANG schemas. Skipping strict coverage percentage check for OpenAPI/Protobuf/ASN.1, but proceeding with UML compliance audit.")
+        print("Warning: Deep AST node coverage parity audit is currently optimized for primary schemas. Skipping strict coverage percentage check for other schema formats, but proceeding with UML compliance audit.")
         skip_coverage_checks = True
     elif not has_yang_schemas:
         print("Note: No schemas found in schema directory. Skipping model coverage checks.")

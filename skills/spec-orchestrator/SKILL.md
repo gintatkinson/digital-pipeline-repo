@@ -77,12 +77,12 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
    ```
 2. **Trigger Model Coverage & UML Conformance Verification**: Run the automated UML compliance and coverage linter tool:
    ```bash
-   ./skills/spec-orchestrator/scripts/verify_model_coverage.py [yang_dir] [features_dir]
+   ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir]
    ```
-   If `yang_dir` and `features_dir` are omitted, the script defaults to `$YANG_DIR` / `$FEATURES_DIR` environment variables, or `<repo_root>/yang` and `<repo_root>/docs/features`.
+   If `schema_dir` and `features_dir` are omitted, the script defaults to `$SCHEMA_DIR` / `$FEATURES_DIR` environment variables, or `<repo_root>/yang` and `<repo_root>/docs/features`.
 3. **Execution**: 
    - The backlog script parses frontmatter using PyYAML to prevent block erasure, performs dependency issue hallucination checks, queries GitHub issues, syncs checkbox states in local markdown, and automatically closes completed Epics, User Stories, and Use Cases.
-   - The coverage linter parses raw YANG schemas, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage within those class diagrams, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules (isolated classes, standard primitives, lifeline aliases, open return arrow assignments, system boundary use cases, undirected actor links, correct extend arrow directionality, etc.).
+   - The coverage linter parses raw schemas, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage within those class diagrams, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules (isolated classes, standard primitives, lifeline aliases, open return arrow assignments, system boundary use cases, undirected actor links, correct extend arrow directionality, etc.).
 4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%.
 
 ## Phase 5: Final Reporting
