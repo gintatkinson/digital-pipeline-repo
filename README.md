@@ -120,10 +120,26 @@ These rules live in the rules directory (e.g. `rules/`) and are packaged into th
 
 The pipeline requires Python 3, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter (install via `pip install -r requirements.txt`). Choose the method that fits your team's workflow.
 
+### Selecting a Version
+* **Stable Version (`master` branch)**: The default production release.
+* **Refactored Version (`refactor` branch)**: Remediated version featuring the latest geodetic model fixes, UML linter improvements, and all adversarial audit corrections.
+
+---
+
 ### Method 1: Direct Copy (Simplest)
 
-Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository:
+Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository.
 
+**For Stable Version (`master`):**
+```bash
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+cp -r ./.tmp-pipeline/skills/ ./skills/
+cp -r ./.tmp-pipeline/rules/ ./rules/
+cp -r ./.tmp-pipeline/.pipeline/ ./.pipeline/
+rm -rf ./.tmp-pipeline
+```
+
+**For Refactored Version (`refactor`):**
 ```bash
 git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 cp -r ./.tmp-pipeline/skills/ ./skills/
@@ -134,25 +150,41 @@ rm -rf ./.tmp-pipeline
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
 
+---
+
 ### Method 2: Git Submodule (Versioned, Updatable)
 
-Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates:
+Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates.
 
+**For Stable Version (`master`):**
+```bash
+git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+```
+
+**For Refactored Version (`refactor`):**
 ```bash
 git submodule add -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
 ```
 
-To update to the latest version:
-
+To update to the latest version of the submodule:
 ```bash
 git submodule update --remote .pipeline-skills
 git add .pipeline-skills && git commit -m "chore: update pipeline skills"
 ```
 
+---
+
 ### Method 3: Tessl Registry (Managed Distribution)
 
 Use Tessl for version-locked, team-wide distribution with automated rule injection and quality evaluation. See the [Tessl Integration](#tessl-integration-skill-registry--evaluation) section below for full details.
 
+**For Stable Version (`master`):**
+```bash
+tessl init --agent gemini --agent claude-code --agent cursor
+tessl install github:gintatkinson/digital-pipeline-repo
+```
+
+**For Refactored Version (`refactor`):**
 ```bash
 tessl init --agent gemini --agent claude-code --agent cursor
 tessl install github:gintatkinson/digital-pipeline-repo#refactor
@@ -292,6 +324,14 @@ This pipeline's skills conform to the [Agent Skills specification](https://agent
 
 ### Install Skills via Tessl
 
+**For Stable Version (`master`):**
+```bash
+tessl init --agent claude-code --agent cursor --agent gemini
+tessl install github:gintatkinson/digital-pipeline-repo
+tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
+```
+
+**For Refactored Version (`refactor`):**
 ```bash
 tessl init --agent claude-code --agent cursor --agent gemini
 tessl install github:gintatkinson/digital-pipeline-repo#refactor
