@@ -125,7 +125,7 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository:
 
 ```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 cp -r ./.tmp-pipeline/skills/ ./skills/
 cp -r ./.tmp-pipeline/rules/ ./rules/
 cp -r ./.tmp-pipeline/.pipeline/ ./.pipeline/
@@ -139,7 +139,7 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates:
 
 ```bash
-git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+git submodule add -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
 ```
 
 To update to the latest version:
@@ -155,7 +155,7 @@ Use Tessl for version-locked, team-wide distribution with automated rule injecti
 
 ```bash
 tessl init --agent gemini --agent claude-code --agent cursor
-tessl install github:gintatkinson/digital-pipeline-repo
+tessl install github:gintatkinson/digital-pipeline-repo#refactor
 ```
 
 ### Setup for Google Antigravity / Gemini CLI
@@ -294,8 +294,8 @@ This pipeline's skills conform to the [Agent Skills specification](https://agent
 
 ```bash
 tessl init --agent claude-code --agent cursor --agent gemini
-tessl install github:gintatkinson/digital-pipeline-repo
-tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
+tessl install github:gintatkinson/digital-pipeline-repo#refactor
+tessl install github:gintatkinson/digital-pipeline-repo#refactor --skill spec-orchestrator
 ```
 
 ### Publish to a Private Registry
