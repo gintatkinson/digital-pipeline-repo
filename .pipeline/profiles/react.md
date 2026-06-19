@@ -77,6 +77,12 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - **Density Table Component:** High information-density tables with sortable, filterable columns, row selections, and status badges.
   - **Typography:** Resolved dynamically from the typography design tokens.
   - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
+  - **Self-Documenting Code & Documentation Mandates:**
+    - **Intention-Revealing Names:** Enforce intention-revealing names for all variables, hooks, components, and functions.
+    - **JSDoc/TSDoc Comments:** Require JSDoc/TSDoc blocks on all components, custom hooks, public methods, and interfaces (covering purpose, `@param`, `@returns`, and `@throws`).
+    - **UML Traceability:** Enforce UML traceability metadata comment tags (e.g. `@realizes UML::ClassName::operationName`) to link code directly to specification diagrams.
+    - **Inline Complexity Comments:** Require detailed inline complexity comments explaining the *why* for non-trivial logic.
+    - **No Placeholders or Dead Code:** Prohibit dead code, commented-out blocks, placeholders, or undocumented stubs in production files.
 
 ## 3. Testing Mandates
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.

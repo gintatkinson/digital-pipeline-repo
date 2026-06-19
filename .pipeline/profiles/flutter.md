@@ -77,6 +77,12 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - **Event-Echo Guard**: Property setters must modify selections silently without firing callback events to prevent infinite selection loops.
   - **Typography:** Resolved dynamically from the typography design tokens.
   - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
+  - **Self-Documenting Code & Documentation Mandates:**
+    - **Intention-Revealing Names:** Enforce intention-revealing naming conventions for all variables, properties, methods, classes, and widgets.
+    - **Dart Doc Comments:** Require standard Dart Doc (`///`) annotations for all public widgets, classes, methods, and properties (covering purpose, parameters, return values, and exceptions).
+    - **UML Traceability:** Enforce UML traceability metadata comment tags (e.g. `@realizes UML::ClassName::operationName`) to link code directly to specification diagrams.
+    - **Inline Complexity Comments:** Require detailed inline complexity comments explaining the *why* for non-trivial logic (such as asynchronous isolate messaging or custom painter layouts).
+    - **No Placeholders or Dead Code:** Prohibit dead code, commented-out blocks, placeholders, or undocumented stubs in production files.
 
 ## 3. Testing Mandates
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.
