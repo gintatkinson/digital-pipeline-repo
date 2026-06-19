@@ -375,11 +375,45 @@ class UmlValidator(IValidator):
             flows_block_match = re.search(re.escape(use_case_alternate_flows_header) + r"(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
             if flows_block_match:
                 flows_block = flows_block_match.group(1)
-                flows = re.findall(use_case_flow_list_regex, flows_block, re.DOTALL)
+                # Parse flows supporting both '-' and '*' bullet styles
+                flows = re.findall(r"(?:-|\*)\s+\*\*\d+[a-zA-Z]\..*?(?=(?:(?:-|\*)\s+\*\*\d+[a-zA-Z]\.)|\Z)", flows_block, re.DOTALL)
                 use_case_flow_limit = val_rules.use_case_flow_limit
                 use_case_step_limit = val_rules.use_case_step_limit
-                if len(flows) < use_case_flow_limit:
-                    errors.append(f"Use Case {basename} must contain at least {use_case_flow_limit} detailed Alternate/Exception flows.")
+                
+                # Count validation/negative constraints across referenced features
+                total_constraints = 0
+                features_section_match = re.search(r"###\s+Required\s+Features(.*?)(?=###\s+Required\s+User\s+Stories|##\s+Source\s+References|\Z)", content, re.DOTALL | re.IGNORECASE)
+                if features_section_match:
+                    feature_checkboxes = re.findall(r"(?:-|\*)\s+\[[ xX]\]\s+.*", features_section_match.group(1))
+                    features_dir = kwargs.get("features_dir")
+                    if not features_dir:
+                        features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
+                    for cb in feature_checkboxes:
+                        feat_file_match = re.search(r"/(feat-\d{2,}-[a-z0-9\-]+\.md)", cb)
+                        if feat_file_match:
+                            feat_filename = feat_file_match.group(1)
+                            feat_path = os.path.join(features_dir, feat_filename)
+                            if not os.path.exists(feat_path):
+                                # fallback: search recursively
+                                for root, _, files in os.walk(repo.workspace_dir):
+                                    if feat_filename in files:
+                                        feat_path = os.path.join(root, feat_filename)
+                                        break
+                            if os.path.exists(feat_path):
+                                try:
+                                    with open(feat_path, "r", encoding="utf-8") as f:
+                                        feat_content = f.read()
+                                    constraints_match = re.search(r"###\s+(?:\d+\.\s+)?Validation\s+&\s+Constraints(.*?)(?=###|##|\Z)", feat_content, re.DOTALL | re.IGNORECASE)
+                                    if constraints_match:
+                                        constraints_block = constraints_match.group(1)
+                                        constraints = re.findall(r"^\s*[-*+]\s+\S+", constraints_block, re.MULTILINE)
+                                        total_constraints += len(constraints)
+                                except Exception as e:
+                                    print(f"Warning: Failed to parse feature constraints for {feat_filename}: {e}")
+                
+                required_flow_count = max(use_case_flow_limit, total_constraints)
+                if len(flows) < required_flow_count:
+                    errors.append(f"Use Case {basename} must contain at least {required_flow_count} detailed Alternate/Exception flows. Found only {len(flows)} flows. (Referenced features define {total_constraints} schema validation constraints, requiring at least that many alternate flows, with a minimum floor of {use_case_flow_limit}.)")
                 else:
                     for idx, flow in enumerate(flows):
                         steps = re.findall(use_case_numbered_step_regex, flow)

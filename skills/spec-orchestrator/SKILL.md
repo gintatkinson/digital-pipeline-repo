@@ -39,6 +39,20 @@ Before beginning orchestration, verify you have:
 2. The path(s) to the associated structural schemas (e.g., `*.yang`, `*.yaml`, `*.proto`).
 3. *(Optional)* A project constitution at `.pipeline/constitution.md`. If present, read it and apply platform/domain constraints to all worker dispatches.
 
+## Item-Level Subagent Context Isolation
+
+To prevent context drift, contamination, and confirmation bias, **every individual specification item (Epic, Feature, User Story, and Use Case) MUST be processed by a new, fresh subagent with an isolated context.**
+
+When executing a phase, the worker agent (or coordinator) must follow this lifecycle:
+1. **Decomposition**: Parse the input schema or specification text to identify the distinct list of items to be created.
+2. **Subagent Dispatch**: For each identified item, invoke a fresh subagent with its own clean context. Pass only:
+   - The relevant schema node(s) or specification paragraph(s) for that item.
+   - The specific skill instructions (e.g., Feature, User Story, or Use Case template guidelines).
+   - Core project rules and the constitution.
+   - Do **NOT** pass the history of other items generated in the same run.
+3. **Drafting**: The subagent drafts only the target markdown file for that single item.
+4. **Registration**: The coordinator or worker agent aggregates the outputs, links them, and registers them sequentially in the issue tracker.
+
 ## Parallel Dispatch Convention
 
 Phases marked with **`[P]`** may be dispatched in parallel when:
@@ -48,24 +62,24 @@ Phases marked with **`[P]`** may be dispatched in parallel when:
 
 Phases NOT marked `[P]` are strictly sequential — the validation gate of phase N must pass before phase N+1 begins.
 
-> **Single-agent runtimes (Cascade/Windsurf/Devin):** Ignore `[P]` markers and execute all phases sequentially.
+> **Single-agent runtimes (Cascade/Windsurf/Devin):** Ignore `[P]` markers and execute all phases sequentially. Even in single-agent environments, item-level subagent isolation must be simulated by manually resetting/clearing prior context (e.g., providing explicit instructions to ignore previous items and focus only on the current target's schema/text) for each item drafted.
 
 ## Phase 1: Structural Extraction (Worker A)
 1. **Trigger**: Initialize the execution of the `schema-specification-engineering` skill.
 2. **Context**: Pass the path to the target structural schema files.
-3. **Execution**: Allow the worker logic to computationally extract EVERY structural element in the schema without abbreviation.
+3. **Execution**: The worker logic parses the schema and identifies all Epics and Features. It dispatches a fresh context-isolated subagent for each Feature/Epic to draft its specification. It registers Features first, then injects their Issue IDs into the Epic checklists, and registers Epics.
 4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --state "open"`) to verify the new Epics and Features exist and are properly interlinked. Do not proceed to Phase 2 until the structural foundation is verified.
 
 ## Phase 2 `[P]`: Behavioral Extraction - User Stories (Worker B)
 1. **Trigger**: Initialize the execution of the `spec-user-story-engineering` skill.
 2. **Context**: Pass the text/path of the target specification document.
-3. **Execution**: Allow the worker logic to parse the operational scenarios, extract the OOA/OOD User Stories, and query the GitHub repository to build the Cross-Cutting Matrix linking to the Phase 1 features.
+3. **Execution**: The worker parses operational scenarios and identifies required User Stories (including calculations and transitions). It dispatches a fresh context-isolated subagent for each User Story to write its specification file. The worker then registers them with the issue tracker.
 4. **Validation Gate**: Verify that the `user-story` issues have been created in GitHub and that their tasklists successfully render the intersecting `#IssueID`s generated during Phase 1.
 
 ## Phase 3 `[P]`: System Interaction Extraction - UML Use Cases (Worker C)
 1. **Trigger**: Initialize the execution of the `spec-usecase-engineering` skill.
 2. **Context**: Pass the text/path of the target specification document.
-3. **Execution**: Allow the worker logic to extract formal UML System Use Cases (Actors, Preconditions, Flow, Postconditions) and map them down to the User Stories from Phase 2 and Features from Phase 1.
+3. **Execution**: The worker identifies required System Use Cases and dispatches a fresh context-isolated subagent for each Use Case. The worker registers the completed Use Cases and cross-links them to stories and features.
 4. **Validation Gate**: Verify that the `use-case` issues have been created in GitHub and that the Realization Matrix successfully links back to User Stories and Features.
 
 > **`[P]` Note:** Phases 2 and 3 are marked parallel-capable because Worker C queries GitHub for User Story Issue IDs (created by Worker B) via `gh issue list`. If both are dispatched simultaneously, Worker C will find the User Story issues as soon as Worker B creates them. On single-agent runtimes, execute Phase 2 first, then Phase 3.

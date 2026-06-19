@@ -24,40 +24,31 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
 2. Target the broad architectural and operational chapters (e.g., "Deployment Scenarios", "System Architecture", "Operational Considerations").
 3. Identify the major functional groupings of behavior that define end-to-end system interactions.
 
-## Step 2: UML OOA/OOD Use Case Modeling
-For each major system interaction, model a formal Use Case following standard UML Object-Oriented Analysis and Design (OOA/OOD) formats:
-1. **Primary & Secondary Actors:** The internal/external entities interacting with the system.
-2. **Preconditions:** The exact state the system/objects must be in before the Use Case begins.
-3. **Trigger:** The specific event or message that initiates the Use Case.
-4. **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
-5. **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows for every Use Case.
-   - **Branching Point**: Each flow MUST explicitly identify which step of the Main Success Scenario it branches from.
-   - **Flow Requirements**: You must have at least 2 alternate/exception flows. Each flow must contain at least 2 numbered steps of system/actor interaction.
-   - **Guarantees**: State the resulting state changes, rollback operations, or notifications.
-6. **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. You must define both a Success Guarantee and a Failure/Abort Guarantee.
-7. **UML Use Case & State Machine Diagrams:** Every Use Case MUST include:
-   - A **UML Use Case Diagram** (using Mermaid/supported syntax) illustrating the system boundary, actors, relationships, and linkages.
-     - **Syntactic Constraints**: Conform to the dynamic diagram formatting rules parsed from the configuration (e.g., `use_case_stadium_nodes_only`, `use_case_undirected_actor_links_only`, `mermaid_dotted_link_regex` in `codebase_rules.json`).
-     - **System Boundary Constraint**: Group all use case nodes inside a system boundary and place actor nodes outside of it.
-     - **Node Shapes**: Draw use case nodes using stadium/oval shapes rather than rectangles (or as configured).
-     - **Actor Links**: Actor connections to Use Cases must use undirected associations (plain solid lines without arrowheads) rather than directed arrows (or as configured).
-     - **Extend Semantics**: In UML dependency semantics, the extend arrow points from the extending Use Case (client) to the base Use Case (supplier).
-     - **Dotted Link Semantics**: Dotted/dashed arrows with labels must use correct and parsable syntax matching the configured patterns (avoiding pipe syntax like `-.->|label|` which can fail on some platforms).
-   - A **UML State Machine Diagram** (using Mermaid/supported state diagram syntax) showing transition logic from preconditions to final postconditions.
-   - Only UML diagrams are allowed; ERDs are strictly forbidden.
+## Step 2: Isolated Use Case Modeling (Subagent Dispatch Loop)
 
-### Behavioral Extraction Triggers (Mandatory Use Cases)
-An agent MUST extract a separate, dedicated System Use Case (in addition to standard CRUD data management) if the normative text or structural schema matches any of the configured behavioral triggers (e.g. loaded dynamically from `rules/behavioral_triggers.json` or defined in workspace settings). Check these triggers during parsing to identify required Use Cases.
-
-
-## Step 3: The Realization Matrix (User Story/Feature Linking)
-A System Use Case is realized by User Stories and structural Features.
-1. **Issue Query**: Query the active tracker provider for all existing user stories and features.
-2. **Perform Semantic Analysis**: Inspect both titles and content bodies of issues for semantic matching (mapping based on meaning/content) rather than name-only lexical matching.
-3. Determine which User Stories and Features are required to fulfill this specific System Use Case.
-4. Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links.
-    - **Absolute URLs**: Enforce absolute URLs to prevent 404 links on tracker UIs. Reference BOTH the Issue ID and the absolute URL of the feature/user-story documents. You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the repository's URL layout template (e.g. `[Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md` where `<blob_path>` is resolved from configuration).
-   - **Realization Checklists & Justification**: Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage (e.g., `(provides coordinates schema)` or `(realizes the authentication scenario)`). Parenthetical justifications are strictly required for every single checklist item.
+1. **Identify Use Cases:** Scan the specification architecture/deployment chapters and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). Compile the list of target Use Cases to be engineered.
+2. **Dispatch Use Case Subagent:** For each identified Use Case, invoke a **new, fresh subagent with an isolated context**. Pass ONLY the specific system interaction text, relevant User Stories, Feature specs, and the Use Case template. The subagent must have no visibility or knowledge of other Use Cases.
+3. **Execution within Subagent Context:**
+   - **Use Case Modeling:** Model a formal Use Case following standard UML Object-Oriented Analysis and Design (OOA/OOD) formats:
+     - **Primary & Secondary Actors:** The internal/external entities interacting with the system.
+     - **Preconditions:** The exact state the system/objects must be in before the Use Case begins.
+     - **Trigger:** The specific event or message that initiates the Use Case.
+     - **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
+     - **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows.
+       - *Branching Point*: Each flow MUST explicitly identify which step of the Main Success Scenario it branches from.
+       - *Flow Requirements*: You must have at least 2 alternate/exception flows. Each flow must contain at least 2 numbered steps of system/actor interaction.
+       - *Guarantees*: State the resulting state changes, rollback operations, or notifications.
+     - **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. Define both a Success Guarantee and a Failure/Abort Guarantee.
+     - **UML Diagrams**: Every Use Case MUST include:
+       - *UML Use Case Diagram*: Illustrate system boundary, actors, relationships, and linkages. Group all use case nodes inside system boundary, place actors outside. Use case nodes must be stadium/oval shapes. Actor links must be undirected associations. Dotted/dashed arrows must use correct, parsable syntax.
+       - *UML State Machine Diagram*: Show transition logic from preconditions to final postconditions.
+       - Only UML diagrams are allowed.
+   - **The Realization Matrix (User Story/Feature Linking):**
+     - Determine which User Stories and Features are required to fulfill this specific System Use Case.
+     - Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL.
+     - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
+   - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
+4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
 ## Step 4: Markdown Generation
 Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-core-entity.md`). Format strictly:
