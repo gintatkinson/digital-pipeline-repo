@@ -1,6 +1,6 @@
 # Design: Isolated Subagent Lifecycles & Constraint-Driven Alternate Flows
 
-This document details the design and implementation of context-isolated subagent execution in the specification engineering pipeline, alongside constraint-driven validation rules for Use Case alternate/exception flows.
+This document details the design and implementation of context-isolated subagent execution in the specification engineering pipeline, alongside constraint-driven validation rules for Use Case alternate/exception flows and codebase compliance.
 
 ---
 
@@ -41,11 +41,21 @@ We have redesigned the linter to verify that the number of Alternate/Exception f
 
 ---
 
-## 3. Verification
+## 3. Codebase Bypass Loophole Validation Fix
 
-We verified the linter implementation using the project's test suite:
+Previously, the codebase linter raised "Compliance Bypass Loophole" errors if configured React/Flutter directories did not exist in the workspace, regardless of whether there was any code to validate. This blocked execution in empty/specification-only downstream projects (such as `dep-tst29`) or single-platform projects (React-only or Flutter-only).
+
+### Fix Details
+* **Target File**: [codebase.py](../../skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/codebase.py)
+* **Changes**:
+  * Added a `has_files_with_extensions` helper that scans the workspace for files of specific extensions (excluding meta/tool folders like `.git`, `skills`, `docs`, etc.).
+  * Updated the validator to only trigger a loophole block for a missing configured directory if files matching the respective platform's file extensions are actually present in the workspace.
+
+---
+
+## 4. Verification
+
+We verified the linter implementation using the project's test suite and target repo testing:
 * **Command**: `python3 test_project/run_tests.py`
 * **Result**: **ALL TESTS PASSED SUCCESSFULLY!**
-  * Verifies correct parsing of alternate flows and numbered steps.
-  * Verifies that isolated class detection in class diagrams blocks invalid connections.
-  * Verifies that invalid primitive types in feature class diagrams are correctly flagged.
+* **Target Repo Verification**: Executed the updated linter directly inside the empty downstream project (`/Users/perkunas/jail/dep-tst29`) and verified it now correctly passes with exit code 0.
