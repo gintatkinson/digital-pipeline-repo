@@ -34,9 +34,11 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
      - **Preconditions:** The exact state the system/objects must be in before the Use Case begins.
      - **Trigger:** The specific event or message that initiates the Use Case.
      - **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
-     - **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths. You MUST document *at least two* detailed Alternate/Exception flows.
+     - **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths.
+       - *Constraint-to-Flow Parity*: For each Use Case, identify all features referenced in the `Realization Matrix`. Read the `Validation & Constraints` sections of those features and count the total number of validation/negative constraints. You MUST generate a dedicated Alternate/Exception flow for **every single** validation constraint defined across those features.
+       - *Minimum Floor*: If the total count of constraints across all referenced features is less than 2, you must still generate at least 2 Alternate/Exception flows as a minimum floor.
        - *Branching Point*: Each flow MUST explicitly identify which step of the Main Success Scenario it branches from.
-       - *Flow Requirements*: You must have at least 2 alternate/exception flows. Each flow must contain at least 2 numbered steps of system/actor interaction.
+       - *Flow Requirements*: Each flow must contain at least 2 numbered steps of system/actor interaction.
        - *Guarantees*: State the resulting state changes, rollback operations, or notifications.
      - **Postconditions (Success/Failure Guarantee):** The final guaranteed state of the system/objects. Define both a Success Guarantee and a Failure/Abort Guarantee.
      - **UML Diagrams**: Every Use Case MUST include:
