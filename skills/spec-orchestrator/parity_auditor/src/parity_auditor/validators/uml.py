@@ -385,10 +385,38 @@ class UmlValidator(IValidator):
                 features_section_match = re.search(r"###\s+Required\s+Features(.*?)(?=###\s+Required\s+User\s+Stories|##\s+Source\s+References|\Z)", content, re.DOTALL | re.IGNORECASE)
                 if features_section_match:
                     feature_checkboxes = re.findall(r"(?:-|\*)\s+\[[ xX]\]\s+.*", features_section_match.group(1))
+                    
+                    def norm_t(t):
+                        if not t: return ""
+                        t = t.strip().strip("\"'\u201c\u201d")
+                        t = re.sub(r"^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*", "", t, flags=re.IGNORECASE)
+                        t = t.replace("-", " ")
+                        t = re.sub(r"[^\w\s]", "", t)
+                        return " ".join(t.split()).lower()
+
+                    def ext_t(c):
+                        tm = re.search(r"^title:\s*(['\"]?)(.*?)\1\s*$", c, re.MULTILINE)
+                        if tm: return tm.group(2).strip()
+                        hm = re.search(r"^#\s+(.*?)$", c, re.MULTILINE)
+                        if hm: return hm.group(1).strip()
+                        return None
+
                     features_dir = kwargs.get("features_dir")
                     if not features_dir:
                         features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
+                    
+                    title_to_feature_path = {}
+                    try:
+                        for f_file in repo.get_feature_files(features_dir):
+                            title_to_feature_path[f_file.filename.lower()] = os.path.join(features_dir, f_file.filename)
+                            f_title = ext_t(f_file.content)
+                            if f_title:
+                                title_to_feature_path[norm_t(f_title)] = os.path.join(features_dir, f_file.filename)
+                    except Exception as e:
+                        print(f"Warning: Failed to scan features directory: {e}")
+
                     for cb in feature_checkboxes:
+                        feat_path = None
                         feat_file_match = re.search(r"/(feat-\d{2,}-[a-z0-9\-]+\.md)", cb)
                         if feat_file_match:
                             feat_filename = feat_file_match.group(1)
@@ -399,17 +427,23 @@ class UmlValidator(IValidator):
                                     if feat_filename in files:
                                         feat_path = os.path.join(root, feat_filename)
                                         break
-                            if os.path.exists(feat_path):
-                                try:
-                                    with open(feat_path, "r", encoding="utf-8") as f:
-                                        feat_content = f.read()
-                                    constraints_match = re.search(r"###\s+(?:\d+\.\s+)?Validation\s+&\s+Constraints(.*?)(?=###|##|\Z)", feat_content, re.DOTALL | re.IGNORECASE)
-                                    if constraints_match:
-                                        constraints_block = constraints_match.group(1)
-                                        constraints = re.findall(r"^\s*[-*+]\s+\S+", constraints_block, re.MULTILINE)
-                                        total_constraints += len(constraints)
-                                except Exception as e:
-                                    print(f"Warning: Failed to parse feature constraints for {feat_filename}: {e}")
+                        else:
+                            # Try matching by link text (Feature Title)
+                            link_text_match = re.search(r"\[([^\]]+)\]\((?:https?://[^)]+)\)", cb)
+                            if link_text_match:
+                                feat_path = title_to_feature_path.get(norm_t(link_text_match.group(1)))
+                        
+                        if feat_path and os.path.exists(feat_path):
+                            try:
+                                with open(feat_path, "r", encoding="utf-8") as f:
+                                    feat_content = f.read()
+                                constraints_match = re.search(r"###\s+(?:\d+\.\s+)?Validation\s+&\s+Constraints(.*?)(?=###|##|\Z)", feat_content, re.DOTALL | re.IGNORECASE)
+                                if constraints_match:
+                                    constraints_block = constraints_match.group(1)
+                                    constraints = re.findall(r"^\s*[-*+]\s+\S+", constraints_block, re.MULTILINE)
+                                    total_constraints += len(constraints)
+                            except Exception as e:
+                                print(f"Warning: Failed to parse feature constraints for {feat_path}: {e}")
                 
                 required_flow_count = max(use_case_flow_limit, total_constraints)
                 if len(flows) < required_flow_count:
