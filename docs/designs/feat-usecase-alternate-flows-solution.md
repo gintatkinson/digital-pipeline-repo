@@ -38,6 +38,7 @@ We have redesigned the linter to verify that the number of Alternate/Exception f
   1. **Flow Parsing with Bullet Lookahead**: Modified the alternate flow splitter regex to support both `-` and `*` bullet list styles and parse the entire flow body (including numbered steps) by performing a lookahead for the next flow marker or the end of the block.
   2. **Schema Constraint Counting**: For each Use Case, the linter parses the realization matrix to locate all referenced feature files. It then scans those features' `### Validation & Constraints` (or `### 2. Validation & Constraints`) sections to count the defined validation constraints.
   3. **Constraint-Flow Parity Assertion**: Asserts that the Use Case defines at least `max(flow_limit, total_constraints)` Alternate/Exception flows. If the number of flows is fewer than the total count of validation constraints, the linter reports a compliance violation.
+  4. **Title-Based Feature Resolution**: Enhanced the linter to handle tracker-linked feature references (e.g. `[Feature Title](https://.../issues/1)`). The linter extracts and normalizes the link's title text and dynamically maps it to the local feature file matching that title, ensuring constraints are successfully parsed offline even when file-path links are not present.
 
 ---
 
@@ -58,4 +59,4 @@ Previously, the codebase linter raised "Compliance Bypass Loophole" errors if co
 We verified the linter implementation using the project's test suite and target repo testing:
 * **Command**: `python3 test_project/run_tests.py`
 * **Result**: **ALL TESTS PASSED SUCCESSFULLY!**
-* **Target Repo Verification**: Executed the updated linter directly inside the empty downstream project (`/Users/perkunas/jail/dep-tst29`) and verified it now correctly passes with exit code 0.
+* **Target Repo Verification**: Executed the updated linter directly inside the downstream projects (`dep-tst29` and `dep-tst30`) and verified that it successfully resolved issue-linked features, counted constraints, and flagged missing alternate flows.
