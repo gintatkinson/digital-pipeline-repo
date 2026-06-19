@@ -27,7 +27,7 @@ class UmlValidator(IValidator):
             return [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".md")]
             
         if global_classes is None:
-            global_classes = self.build_global_classes(repo, features_dir)
+            global_classes = self.build_global_classes(repo, features_dir, epics_dir)
             
         dotted_link_pattern = val_rules.mermaid_dotted_link_regex
         forbidden_diagram_types = val_rules.forbidden_diagram_types
@@ -70,8 +70,10 @@ class UmlValidator(IValidator):
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
                 
+            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
+            mermaid_content = "\n".join(mermaid_blocks)
             for ftype in forbidden_diagram_types:
-                if re.search(ftype, content):
+                if re.search(ftype, mermaid_content):
                     errors.append(f"Feature {filename} contains forbidden '{ftype}' diagram type.")
                     
             interface_type = "ui"
@@ -140,8 +142,10 @@ class UmlValidator(IValidator):
             if re.search(dotted_link_pattern, content):
                 errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
                 
+            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
+            mermaid_content = "\n".join(mermaid_blocks)
             for ftype in forbidden_diagram_types:
-                if re.search(ftype, content):
+                if re.search(ftype, mermaid_content):
                     errors.append(f"User Story {filename} contains forbidden '{ftype}' diagram type.")
                     
             required_story_sections = required_sections.get("user_story")
@@ -279,8 +283,10 @@ class UmlValidator(IValidator):
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
                 
+            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
+            mermaid_content = "\n".join(mermaid_blocks)
             for ftype in forbidden_diagram_types:
-                if re.search(ftype, content):
+                if re.search(ftype, mermaid_content):
                     errors.append(f"Use Case {basename} contains forbidden '{ftype}' diagram type.")
                     
             required_usecase_sections = required_sections.get("use_case")
@@ -431,8 +437,10 @@ class UmlValidator(IValidator):
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Epic {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
                 
+            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
+            mermaid_content = "\n".join(mermaid_blocks)
             for ftype in forbidden_diagram_types:
-                if re.search(ftype, content):
+                if re.search(ftype, mermaid_content):
                     errors.append(f"Epic {filename} contains forbidden '{ftype}' diagram type.")
                     
             required_epic_sections = required_sections.get("epic")
@@ -508,8 +516,11 @@ class UmlValidator(IValidator):
                     errors.append(f"{doc_type} {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.")
                     
             for cls_name, cls_info in classes.items():
+                is_enum = any("<<enumeration>>" in (a.name or "") or "<<enumeration>>" in (a.raw or "") for a in cls_info.attributes)
                 for attr in cls_info.attributes:
                     if attr.raw and "<<" in attr.raw and ">>" in attr.raw:
+                        continue
+                    if is_enum:
                         continue
                     attr_type = attr.type
                     if not attr_type:
@@ -553,8 +564,11 @@ class UmlValidator(IValidator):
                     errors.append(f"{doc_type} {filename} choice class '{choice_cls}' must have at least one subclass inheriting from it via generalization (<|--).")
                     
             for cls_name, cls_info in classes.items():
+                is_enum = any("<<enumeration>>" in (a.name or "") or "<<enumeration>>" in (a.raw or "") for a in cls_info.attributes)
                 for attr in cls_info.attributes:
                     if attr.raw and "<<" in attr.raw and ">>" in attr.raw:
+                        continue
+                    if is_enum:
                         continue
                     if attr.visibility not in visibility_prefixes:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
@@ -564,6 +578,8 @@ class UmlValidator(IValidator):
                 for method in cls_info.methods:
                     if method.visibility not in visibility_prefixes:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
+                    if not method.return_type or method.return_type.lower() in ("void", "none"):
+                        continue
                     has_mult = False
                     if method.return_type and re.search(multiplicity_regex, method.return_type):
                         has_mult = True
@@ -590,6 +606,8 @@ class UmlValidator(IValidator):
                         }
                     existing_attrs = {a["name"] for a in global_classes[class_name]["attributes"]}
                     for attr in class_info.attributes:
+                        if attr.name and "<<" in attr.name and ">>" in attr.name:
+                            continue
                         if attr.name not in existing_attrs:
                             global_classes[class_name]["attributes"].append({
                                 "name": attr.name,
@@ -630,6 +648,8 @@ class UmlValidator(IValidator):
                             }
                         existing_attrs = {a["name"] for a in global_classes[class_name]["attributes"]}
                         for attr in class_info.attributes:
+                            if attr.name and "<<" in attr.name and ">>" in attr.name:
+                                continue
                             if attr.name not in existing_attrs:
                                 global_classes[class_name]["attributes"].append({
                                     "name": attr.name,

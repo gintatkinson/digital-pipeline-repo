@@ -41,11 +41,16 @@ Use this as the single canonical workflow for translating structural schemas and
    - units and default values
    - read-only vs configurable access control
 4. **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
-    - **UML Classifier Mapping**: Feature specifications must map to a primary UML Class or DataType representing the schema entity, and MUST illustrate its relationship (e.g. composition `*--` or aggregation `o--`) to its parent container class or its child components to ensure no isolated classes exist.
+    - **UML Classifier Mapping**: Feature specifications must map to a primary UML Class or DataType representing the schema entity, and MUST illustrate its relationship (e.g. composition `*--` or aggregation `o--`) to its parent container class or its child components to ensure no isolated classes exist. Classes that will cross serialization boundaries (Web Workers via `structuredClone`, Flutter Isolates via `SendPort`) MUST be modeled as pure data classes (DTOs) without methods. Service methods (e.g. `save()`, `validate()`) MUST be placed in separate service/repository classes that are NOT transferred across threads.
    - **Choice/Case Representation**: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
    - **UML Standard Primitive Types**: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of format-specific or custom types.
    - **Visibility & Multiplicity**: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
    - **UML Constraints**: Schema-level constraints must map to formal UML `{constraint}` elements or structured notes.
+   - **Multiplicity Bracket Rendering**: Note that unquoted brackets `[0..1]` inside Mermaid class bodies may cause rendering failures in some engines (GitHub, Mermaid CLI). Recommend representing multiplicity on relationship lines instead:
+     ```mermaid
+     GeoLocation "1" *-- "0..1" Velocity : velocity
+     ```
+   - **Double-Declaration Redundancy**: Do NOT list object-typed attributes (e.g. `+ReferenceFrame referenceFrame[1]`) inside the class body if they are already represented as named relationship lines. This causes sync-drift.
 5. **Interface Requirements:** Every feature spec MUST explicitly include a `## Interface Requirements` section divided into dynamic structured sub-sections based on the `interface_type` (defined in frontmatter as `ui`, `api`, or `m2m`):
    - **For UI Interfaces (`interface_type: ui`)**:
      - `1. Test Data Shape (JSON Payload Example)`: A concrete, copy-pasteable JSON payload schema example block.

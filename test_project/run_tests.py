@@ -43,7 +43,7 @@ def test_isolated_class_detection():
         content = f.read()
         
     # Introduce an isolated class by removing the connection line
-    bad_content = content.replace("GeoLocation *-- ReferenceFrame : referenceFrame", "%% Commented connection")
+    bad_content = content.replace("GeoLocation --> ReferenceFrame : referenceFrame", "%% Commented connection")
     with open(EPIC_FILE, "w") as f:
         f.write(bad_content)
         

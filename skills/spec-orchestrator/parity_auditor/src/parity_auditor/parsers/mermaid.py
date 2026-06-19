@@ -217,10 +217,10 @@ class MermaidClassDiagramParser(IParser):
                 sig = vis_match.group(2).strip()
                 
             multiplicity = None
-            mult_match = re.search(r'\[([^\]]+)\]$', sig)
+            mult_match = re.search(r'\[([^\]]+)\]', sig)
             if mult_match:
                 multiplicity = mult_match.group(1).strip()
-                sig = re.sub(r'\[([^\]]+)\]$', '', sig).strip()
+                sig = re.sub(r'\[([^\]]+)\]', '', sig).strip()
                 
             name = sig
             attr_type = None

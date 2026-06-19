@@ -158,7 +158,7 @@ def main():
             cls_variants = get_variants(cls_name)
             cls_found = False
             for content in codebase_contents:
-                if any(v in content for v in cls_variants):
+                if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in cls_variants):
                     cls_found = True
                     break
             
@@ -174,7 +174,7 @@ def main():
                 attr_variants = get_variants(attr_name)
                 attr_found = False
                 for content in codebase_contents:
-                    if any(v in content for v in attr_variants):
+                    if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in attr_variants):
                         attr_found = True
                         break
                 total_defined += 1
@@ -189,7 +189,7 @@ def main():
                 method_variants = get_variants(method_name)
                 method_found = False
                 for content in codebase_contents:
-                    if any(v in content for v in method_variants):
+                    if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in method_variants):
                         method_found = True
                         break
                 total_defined += 1

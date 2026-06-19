@@ -40,14 +40,15 @@
   },
   "react_rules": {
     "file_extensions": [".ts", ".tsx"],
-    "exclusions": ["node_modules", "build", "dist", "coverage", ".git"]
+    "exclusions": ["node_modules", "build", "dist", "coverage", ".git"],
+    "type_casing_warning": "TypeScript implementations MUST use lowercase primitives (string, number, boolean), not UML wrapper types (String, Real, Boolean)."
   },
   "flutter_rules": {
     "file_extensions": [".dart"],
     "exclusions": ["build", ".dart_tool", ".git"]
   },
   "validation_rules": {
-    "uml_primitives": ["String", "Integer", "Real", "Boolean"],
+    "uml_primitives": ["String", "Integer", "Real", "Boolean", "Decimal64"],
     "visibility_prefixes": ["+", "-", "#", "~"],
     "relationship_connectors": "(\\*--|o--|<\\|--|--|-->)",
     "choice_stereotypes": ["<<choice>>"],

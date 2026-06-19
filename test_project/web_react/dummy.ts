@@ -9,9 +9,15 @@ export interface GeoLocation {
   saveLocation(): boolean;
 }
 
+export enum AstronomicalBody {
+  EARTH = "EARTH",
+  MOON = "MOON",
+  MARS = "MARS"
+}
+
 export interface ReferenceFrame {
   alternateSystem?: string;
-  astronomicalBody: string;
+  astronomicalBody: AstronomicalBody;
   geodeticDatum?: string;
 }
 
@@ -37,6 +43,10 @@ export interface Velocity {
 export interface TemporalMetadata {
   timestamp: string;
   validUntil?: string;
+}
+
+export interface NamedLocation extends Location {
+  locationName: string;
 }
 
 export interface UserInterface {}

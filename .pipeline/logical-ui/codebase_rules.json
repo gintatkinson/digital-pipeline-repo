@@ -55,6 +55,7 @@
     "file_extensions": [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"],
     "exclusions": ["node_modules", "build", "dist", "coverage", ".git"],
     "ui_directories": ["components", "views"],
+    "type_casing_warning": "TypeScript implementations MUST use lowercase primitives (string, number, boolean), not UML wrapper types (String, Real, Boolean).",
     "network_directories": ["io"],
     "forbidden_words": [],
     "forbidden_words_message": "UI view/component but imports forbidden libraries directly. Calculations must run exclusively in a background Web Worker.",
@@ -96,7 +97,7 @@
     "forbidden_standards_blocklist": ["X.733", "ITU-T", "3GPP", "RFC 8345"]
   },
   "validation_rules": {
-    "uml_primitives": ["String", "Integer", "Real", "Boolean"],
+    "uml_primitives": ["String", "Integer", "Real", "Boolean", "Decimal64"],
     "visibility_prefixes": ["+", "-", "#", "~"],
     "playhead_rate_limits": [0.90, 1.10],
     "relationship_connectors": "(\\*--|o--|<\\|--|--|-->)",

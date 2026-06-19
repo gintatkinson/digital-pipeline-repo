@@ -14,15 +14,19 @@ Configure geodetic reference systems.
 ## UML Class Diagram
 ```mermaid
 classDiagram
-    class GeoLocation {
-        +ReferenceFrame referenceFrame[1]
-    }
+    class GeoLocation
     class ReferenceFrame {
         +String alternateSystem[0..1]
-        +String astronomicalBody[1]
         +String geodeticDatum[0..1]
     }
-    GeoLocation *-- ReferenceFrame : referenceFrame
+    class AstronomicalBody {
+        <<enumeration>>
+        EARTH
+        MOON
+        MARS
+    }
+    GeoLocation --> ReferenceFrame : referenceFrame
+    ReferenceFrame --> AstronomicalBody : astronomicalBody
 ```
 
 ## Interface Requirements

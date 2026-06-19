@@ -10,9 +10,15 @@ class GeoLocation {
   bool saveLocation() => true;
 }
 
+enum AstronomicalBody {
+  EARTH,
+  MOON,
+  MARS
+}
+
 class ReferenceFrame {
   String? alternateSystem;
-  String astronomicalBody;
+  AstronomicalBody astronomicalBody;
   String? geodeticDatum;
 }
 
@@ -38,6 +44,10 @@ class Velocity {
 class TemporalMetadata {
   String timestamp;
   String? validUntil;
+}
+
+class NamedLocation extends Location {
+  late String locationName;
 }
 
 class UserInterface {}
