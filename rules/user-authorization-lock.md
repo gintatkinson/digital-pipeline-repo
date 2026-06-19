@@ -7,6 +7,7 @@
 ## Hard constraints
 
 - The agent is strictly forbidden from invoking any file-writing tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) or terminal execution tools (`run_command`) unless the user's latest message contains the word `PROCEED` (case-insensitive).
+- **Subagent Authorization**: To authorize spawned subagents to modify files or execute commands, the coordinator agent MUST append the keyword `PROCEED` (case-insensitive) to the end of the subagent's task prompt.
 - Every agent thought block MUST begin with the 3-point Karpathy Compliance Check:
   * Is the user's message a question/inquiry or a direct command?
   * Has the user explicitly approved a file-write/command execution for this turn? (Yes/No)

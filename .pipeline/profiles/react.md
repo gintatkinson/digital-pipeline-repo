@@ -17,7 +17,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 
 ## 1. Platform & Stack
 - **Framework & Version:** React (as resolved from environment configuration)
-- **Language & Version:** TypeScript (strict mode enabled)
+- **Language & Version:** TypeScript (strict mode enabled). Note: TypeScript implementations MUST use lowercase primitives (`string`, `number`, `boolean`), not UML wrapper types (`String`, `Real`, `Boolean`).
 - **Persistence Architecture:** Modular Repository/Adapter pattern.
   - Direct database/API SDK imports are forbidden in React components.
   - Components must depend only on abstract Repository interfaces.
