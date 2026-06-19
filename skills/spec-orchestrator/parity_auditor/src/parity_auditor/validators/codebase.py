@@ -18,20 +18,31 @@ class CodebaseValidator(IValidator):
         playhead_rate_limits = val_rules.playhead_rate_limits
         target_dirs = rules.target_directories
         
-        react_dir_name = target_dirs.react
-        react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
-        if react_dir_name and not os.path.exists(react_dir):
-            errors.append(f"Compliance Bypass Loophole: Configured React directory '{react_dir_name}' does not exist on disk.")
-        
-        flutter_dir_name = target_dirs.flutter
-        flutter_dir = os.path.join(workspace_dir, flutter_dir_name) if flutter_dir_name else None
-        if flutter_dir_name and not os.path.exists(flutter_dir):
-            errors.append(f"Compliance Bypass Loophole: Configured Flutter directory '{flutter_dir_name}' does not exist on disk.")
-        
         react_rules = rules.react_rules
         flutter_rules = rules.flutter_rules
         python_rules = rules.python_rules
         spec_rules = rules.spec_rules
+        
+        def has_files_with_extensions(extensions: List[str]) -> bool:
+            exclusions = {".git", ".agents", "skills", ".pipeline", ".tessl-plugin", "docs", "test_project"}
+            for root, dirs, files in os.walk(workspace_dir):
+                dirs[:] = [d for d in dirs if d not in exclusions]
+                for file in files:
+                    if any(file.endswith(ext) for ext in extensions):
+                        return True
+            return False
+
+        react_dir_name = target_dirs.react
+        react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
+        if react_dir_name and not os.path.exists(react_dir):
+            if has_files_with_extensions(react_rules.file_extensions):
+                errors.append(f"Compliance Bypass Loophole: Configured React directory '{react_dir_name}' does not exist on disk.")
+        
+        flutter_dir_name = target_dirs.flutter
+        flutter_dir = os.path.join(workspace_dir, flutter_dir_name) if flutter_dir_name else None
+        if flutter_dir_name and not os.path.exists(flutter_dir):
+            if has_files_with_extensions(flutter_rules.file_extensions):
+                errors.append(f"Compliance Bypass Loophole: Configured Flutter directory '{flutter_dir_name}' does not exist on disk.")
         
         # Design tokens / hardcoded color logic
         design_tokens_path_rel = spec_rules.design_tokens_path
