@@ -398,7 +398,7 @@ class UmlValidator(IValidator):
                     def norm_t(t):
                         if not t: return ""
                         t = t.strip().strip("\"'\u201c\u201d")
-                        t = re.sub(r"^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*", "", t, flags=re.IGNORECASE)
+                        t = re.sub(r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*", "", t, flags=re.IGNORECASE)
                         t = t.replace("-", " ")
                         t = re.sub(r"[^\w\s]", "", t)
                         return " ".join(t.split()).lower()

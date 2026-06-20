@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description="Model Coverage Parity Audit CLI")
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
+    parser.add_argument("--spec-only", action="store_true", help="Run in specification-only mode, bypassing codebase checks")
     
     args = parser.parse_args()
     
@@ -145,8 +146,11 @@ def main():
     print(f"Loaded {len(features)} feature specifications.\n")
     
     skip_coverage_checks = False
-    if not features:
-        print("Note: No feature specifications found in directory. Skipping model coverage checks.")
+    if args.spec_only or not features:
+        if args.spec_only:
+            print("Note: Running in spec-only mode. Skipping model coverage checks.")
+        else:
+            print("Note: No feature specifications found in directory. Skipping model coverage checks.")
         skip_coverage_checks = True
         
     # 3. Audit codebase coverage of UML classes
@@ -306,9 +310,13 @@ def main():
     else:
         print("Success: All behavioral coverage triggers passed.")
         
-    print("\n=== Codebase AST / Compliance Audit ===")
-    codebase_validator = CodebaseValidator()
-    codebase_errors = codebase_validator.validate(repo)
+    if args.spec_only:
+        print("Note: Running in spec-only mode. Skipping Codebase AST / Compliance Audit.")
+        codebase_errors = []
+    else:
+        print("\n=== Codebase AST / Compliance Audit ===")
+        codebase_validator = CodebaseValidator()
+        codebase_errors = codebase_validator.validate(repo)
     
     if codebase_errors:
         print("[!] Codebase Compliance Violations Identified:")

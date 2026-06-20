@@ -33,7 +33,7 @@ def normalize_title(title, rules=None):
     # Strip quotes and leading/trailing whitespace
     title = title.strip().strip('"\'')
     # Strip common prefixes (e.g., epic-01:, feat-02:, us-03:, uc-04:, etc.)
-    regex = r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
+    regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
     title = re.sub(regex, '', title, flags=re.IGNORECASE)
     # Normalize hyphens to spaces to handle typographic variations
     title = title.replace("-", " ")

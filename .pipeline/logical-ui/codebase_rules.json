@@ -14,7 +14,7 @@
   "tracker_rules": {
     "provider": "github",
     "issue_id_placeholder": "#[IssueID]",
-    "prefix_normalization_regex": "^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\\d+\\s*[:\\-]?|:)\\s*",
+    "prefix_normalization_regex": "^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\\d+\\s*[:\\-]?|:)\\s*",
     "title_extraction_prefixes_regex": "(?:Feature\\s+\\d+\\s*:\\s*|Use\\s+Case\\s+\\d+\\s*:\\s*|User\\s+Story\\s+\\d+\\s*:\\s*)?",
     "truncation_headers": ["## Acceptance Criteria", "## User Stories"],
     "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
@@ -134,7 +134,7 @@
     "checkbox_syntax_regex": "-\\s+\\[[ xX]\\]\\s+.*",
     "use_case_alternate_flows_header": "## 5. Alternate and Exception Flows",
     "use_case_numbered_step_regex": "\\b\\d+\\.\\s+\\S+",
-    "use_case_flow_list_regex": "(?:-|\\*)\\s+\\*\\*\\d+[a-zA-Z]\\..*?(?=(?:(?:-|\\*)\\s+\\*\\*\\d+[a-zA-Z]\\.)|\\Z)",
+    "use_case_flow_list_regex": "(?:-|\\*)\\s+\\*\\*\\d+[a-zA-Z]\\..*?(?=(?:\\n\\s*(?:-|\\*)\\s+\\*\\*\\d+[a-zA-Z]\\.)|\\Z)",
     "realization_matrix_header": "## 8. Realization Matrix",
     "realization_stories_header": "### Required User Stories",
     "realization_features_header": "### Required Features",
