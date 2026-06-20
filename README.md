@@ -275,6 +275,11 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ## How to Implement a Feature
 
+**Prerequisites:**
+- AI agent framework capable of reading `.md` skill files.
+- The target implementation profile configured (e.g. `.pipeline/profiles/react.md`).
+- For Firestore target profiles, the local Firestore database emulator must be running (start via: `npx firebase-tools emulators:start --only firestore`).
+
 > **Feature Implementation Prompt:**
 >
 > "Adopt the feature driven implementation skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
@@ -282,10 +287,10 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > Execute the full delivery workflow with TDD execution discipline:
 > 1. Map dependencies from the backlog directory (e.g. `docs/epics/`, `docs/features/`).
 > 2. Draft an implementation plan covering the full vertical slice:
->    - Database Layer (test data with edge cases)
->    - Logic & Parser Layer (types, validation, hooks)
->    - UI & Presentation Layer (components, styles, bindings)
->    - Test Plan (failing tests to write BEFORE implementation)
+>    - Database/Persistence Layer (abstract repository interfaces, concrete transport adapters, zero-mocking local emulator integration)
+>    - Logic & Parser Layer (decoupled clean domain models, types, validation, hooks)
+>    - UI & Presentation Layer (logical components, container queries, resizable layout splitters, SVG outline icons)
+>    - Test Plan (failing integration/unit tests to write BEFORE implementation)
 > 3. Decompose into micro-tasks (2-5 min each, with driving test per task).
 > 4. Present the plan for approval (The Grill).
 > 5. Execute via subagent-driven TDD loop (RED-GREEN-REFACTOR per task).
