@@ -8,3 +8,8 @@
 ## Forbidden Test Workspace Creation
 - You are strictly forbidden from creating mock test projects, mock repository directories, or test-runner scripts (such as `test_project/` or `run_tests.py`) directly inside the workspace repository.
 - All testing validation or tool execution must run against existing configured project structures or be executed completely outside the workspace (e.g., in a temporary directory designated by the system scratch path or App Data Directory).
+
+## Remote Synchronization Mandate
+- No task is complete until all changes are successfully pushed to and verified on the remote tracking branch.
+- You must verify that `git diff origin/<branch>` is empty before generating the walkthrough and final report.
+- Any synchronization failures must be reported as blocker state escalations.
