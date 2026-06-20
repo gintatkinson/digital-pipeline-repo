@@ -26,3 +26,11 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
    - **Authorization**: Append the keyword `PROCEED` (case-insensitive) to the end of the prompt to authorize the subagent to use modifying tools.
 3. **Wait for Completion**: Do not poll or loop. Let the system wake you up.
 4. **Coordinate Output**: When the subagents complete, perform the validation checks and sync/register them in the tracker.
+
+## Strict Coordinator Tool Locking & 4-Point Compliance Check
+- Every agent thought block MUST begin with the 4-point Karpathy and Pipeline Compliance Check:
+  * Is the user's message a question/inquiry or a direct command?
+  * Has the user explicitly approved a file-write/command execution for this turn? (Yes/No)
+  * Am I making any silent assumptions about the user's intent?
+  * Does the active skill mandate context-isolated subagent dispatches? (If yes, coordinator direct file-writing is locked).
+- If context-isolated subagents are mandated, the coordinator is strictly forbidden from directly invoking any file-modifying tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) to write or update target functional specifications or codebase source files. All file writes MUST be delegated exclusively to the spawned subagents.

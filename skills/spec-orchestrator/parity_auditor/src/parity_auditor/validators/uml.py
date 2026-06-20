@@ -67,6 +67,8 @@ class UmlValidator(IValidator):
                 errors.append(f"System Error: Failed to read feature file '{filename}': {e}")
                 continue
                 
+            self._validate_subagent_isolation(content, "Feature", filename, errors)
+                
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
                 
@@ -138,6 +140,8 @@ class UmlValidator(IValidator):
             except Exception as e:
                 errors.append(f"System Error: Failed to read user story file '{filename}': {e}")
                 continue
+                
+            self._validate_subagent_isolation(content, "User Story", filename, errors)
                 
             if re.search(dotted_link_pattern, content):
                 errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
@@ -279,6 +283,8 @@ class UmlValidator(IValidator):
             except Exception as e:
                 errors.append(f"System Error: Failed to read use case file '{basename}': {e}")
                 continue
+                
+            self._validate_subagent_isolation(content, "Use Case", basename, errors)
                 
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
@@ -502,6 +508,8 @@ class UmlValidator(IValidator):
                 errors.append(f"System Error: Failed to read epic file '{filename}': {e}")
                 continue
                 
+            self._validate_subagent_isolation(content, "Epic", filename, errors)
+                
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Epic {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
                 
@@ -534,6 +542,25 @@ class UmlValidator(IValidator):
                     )
                     
         return errors
+
+    def _validate_subagent_isolation(self, content: str, doc_type: str, filename: str, errors: List[str]):
+        frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+        has_subagent_tag = False
+        if frontmatter_match:
+            frontmatter_text = frontmatter_match.group(1)
+            for fm_line in frontmatter_text.splitlines():
+                if ":" in fm_line:
+                    fm_parts = fm_line.split(":", 1)
+                    fm_key = fm_parts[0].strip().lower()
+                    fm_val = fm_parts[1].strip().strip('"').strip("'").lower()
+                    if fm_key in ("generation_mode", "generation-mode") and fm_val == "subagent":
+                        has_subagent_tag = True
+                        break
+                    if fm_key in ("subagent_drafted", "subagent-drafted") and fm_val == "true":
+                        has_subagent_tag = True
+                        break
+        if not has_subagent_tag:
+            errors.append(f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.")
 
     def _validate_class_diagram(self, doc_type: str, filename: str, content: str, errors: List[str], class_parser, val_rules, uml_primitives, visibility_prefixes, relationship_connectors, choice_stereotypes, multiplicity_regex):
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
