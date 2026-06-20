@@ -133,18 +133,18 @@ Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project rep
 **For Stable Version (`master`):**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-cp -r ./.tmp-pipeline/skills/ ./skills/
-cp -r ./.tmp-pipeline/rules/ ./rules/
-cp -r ./.tmp-pipeline/.pipeline/ ./.pipeline/
+cp -r ./.tmp-pipeline/skills ./
+cp -r ./.tmp-pipeline/rules ./
+cp -r ./.tmp-pipeline/.pipeline ./
 rm -rf ./.tmp-pipeline
 ```
 
 **For Refactored Version (`refactor`):**
 ```bash
 git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-cp -r ./.tmp-pipeline/skills/ ./skills/
-cp -r ./.tmp-pipeline/rules/ ./rules/
-cp -r ./.tmp-pipeline/.pipeline/ ./.pipeline/
+cp -r ./.tmp-pipeline/skills ./
+cp -r ./.tmp-pipeline/rules ./
+cp -r ./.tmp-pipeline/.pipeline ./
 rm -rf ./.tmp-pipeline
 ```
 

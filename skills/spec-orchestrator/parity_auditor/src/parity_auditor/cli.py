@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import argparse
+import json
 from typing import Dict, Set, List
 
 from .core.workspace import WorkspaceRepository
@@ -18,8 +19,63 @@ def main():
     
     args = parser.parse_args()
     
-    repo = WorkspaceRepository()
+    # 1. Locate workspace directory dynamically starting from the script's directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    workspace_dir = None
+    
+    # Try traversing up from script_dir
+    curr = script_dir
+    while True:
+        if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+            workspace_dir = curr
+            break
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+        
+    # If not found, fall back to os.getcwd() traversal
+    if not workspace_dir:
+        curr = os.getcwd()
+        while True:
+            if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+                workspace_dir = curr
+                break
+            parent = os.path.dirname(curr)
+            if parent == curr:
+                break
+            curr = parent
+            
+    if not workspace_dir:
+        workspace_dir = os.getcwd()
+        
+    workspace_dir = os.path.abspath(workspace_dir)
+    
+    # 2. Initialize WorkspaceRepository with the determined workspace_dir
+    repo = WorkspaceRepository(workspace_dir)
+    
+    # 3. Check if the codebase rules file exists
+    rules_path = repo.get_codebase_rules_path()
+    if not os.path.exists(rules_path):
+        print(f"Error: codebase_rules.json not found at: {rules_path}")
+        print("Please ensure the configuration file is present at '.pipeline/logical-ui/codebase_rules.json'.")
+        sys.exit(1)
+        
+    # 4. Check if rules is empty or invalid, or if rules.meta.upstream_repository is empty
+    try:
+        with open(rules_path, "r", encoding="utf-8") as f:
+            json.load(f)
+    except Exception:
+        print("Error: Configuration is empty, invalid, or missing required metadata.")
+        print("Please check '.pipeline/logical-ui/codebase_rules.json' and ensure it has a valid 'meta.upstream_repository' set.")
+        sys.exit(1)
+        
     rules = repo.get_codebase_rules()
+    if not rules or not rules.meta or not rules.meta.upstream_repository:
+        print("Error: Configuration is empty, invalid, or missing required metadata.")
+        print("Please check '.pipeline/logical-ui/codebase_rules.json' and ensure it has a valid 'meta.upstream_repository' set.")
+        sys.exit(1)
+        
     backlog_dirs = rules.backlog_directories
     
     schema_dir = args.schema_dir
