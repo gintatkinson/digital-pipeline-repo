@@ -85,6 +85,21 @@ To ensure that specifications remain reusable and the codebase stays modular, a 
 
 To prevent backlog reconciliation matching failures due to title drift, all local specification files MUST include a permanent unique identifier (`issue_id: <int>`) in their YAML frontmatter, mapped directly to their remote issue number. Matching by title normalization is prohibited as a primary selector.
 
+### 1.9 Zero-Mocking Live Persistence Mandate
+- All client-side application targets (e.g., React, Flutter) MUST connect to a live, persistent database, emulator, or local register map at runtime.
+- The use of in-memory UI mocks, stubs, or hardcoded local variables in place of a live database/transport layer is strictly prohibited in active application builds.
+- The presentation layer must depend strictly on abstract repository interfaces resolved dynamically at application bootstrap, keeping UI components completely decoupled from specific database/API SDK dependencies (such as Firestore or RPC wrappers).
+- Transport concrete adapters must serialize/deserialize network payloads and translate them to and from platform-internal clean domain models, shielding presentation logic from external format changes.
+- All integration and end-to-end (E2E) testing suites must compile and execute against a live database instance or emulator (in-memory stubs are prohibited for these tiers).
+
+### 1.10 Logical UI Layout Engine Compliance & High-Density Console Standards
+- Client-side platforms MUST implement a layout engine that dynamically parses and renders the component workspace hierarchy declared in `logical-layout.json` (such as resizable split workspaces, bottom-docked tabbed panels, and multidimensional viewports).
+- Resizable splitters must preserve sub-component states (focus, playback, frame context) during layout orientation changes (e.g., swapping axes) by utilizing persistent virtual DOM structures and CSS Flexbox/Grid variables rather than conditional JSX/widget unmounting.
+- Split workspace containers must isolate layout reflows using CSS Container Queries (`@container`) and CSS layout/paint containment to optimize rendering performance during active user resizing.
+- To ensure professional high-density console aesthetics, layouts must align to an 8px grid system and enforce:
+  - Roboto/Inter base typography scale (12px–13px text).
+  - Outlined-only SVG vector graphic viewports (16px limit) with thin stroke weights (1.0px–1.2px) and maximum 2px bounding padding.
+  - Reactive-compliant table row sizing utilizing a minimum constraint (`min-height: 32px`) and compact vertical cell padding (4px top/bottom) rather than hardcoded heights, allowing scaling during zoom or text-wrapping.
 
 ---
 

@@ -64,6 +64,8 @@ If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or ne
 2. **Platform Scoping:** The feature spec is platform-independent (functional). Apply the target platform from the implementation profile (`.pipeline/profiles/<platform>.md`, loaded in Step 1) to translate the abstract UML-mapped functional specifications into concrete platform-specific design decisions. This is where framework-specific libraries, language choices, structural patterns, and test frameworks are chosen.
 3. Create/update `implementation_plan.md` outlining a **complete vertical slice** conforming to the architectural layers defined in the target platform profile (e.g., database, serialization, API, logic, or UI presentation layers):
    - **Architectural Layers:** Map the UML classes, components, operations, and attributes to their corresponding layer locations in the target codebase stack.
+   - **Layout Engine Alignment:** Ensure the plan specifies CSS Container Queries (`@container`), flexbox/grid layout models, resizable split containers, and high-density standards matching `.pipeline/constitution.md` and the platform profile.
+   - **Emulator Integration:** Confirm the plan contains E2E/integration tests verifying persistence transactions against a running local database emulator rather than in-memory mocks/stubs.
    - **Test Plan (TDD):** For each layer, specify the failing tests that will be written BEFORE the implementation code, using the test framework and runners specified in the platform profile.
    - **Verification Plan:** Detailed verification instructions, compiler checks, and test runner executions.
 4. **Micro-Task Breakdown:** Decompose the plan into sequential micro-tasks (2-5 min each). Each task must specify:
@@ -125,6 +127,9 @@ After each micro-task's implementation, two reviews MUST occur **in this order**
 - Does the code match the approved plan exactly?
 - Does it comply with the RFC/spec requirements from `docs/features/` and `docs/user-stories/`?
 - Is anything missing from the spec? Is anything extra (not requested)?
+- **Persistence Verification:** Assert that all persistence transactions are validated directly against a running local database emulator during local integration runs (no stubs).
+- **Coupling & Leakage Audit:** Verify that no direct database SDK dependencies (e.g. `@firebase/firestore` or `cloud_firestore`) leak into UI / presentation components. All components must interact exclusively with abstract repositories.
+- **Layout Engine Compliance:** Verify that split workspaces align with `logical-layout.json`, resizable splitter containers isolate reflows using CSS Container Queries to prevent unmounting state loss, and icons conform to the 16px SVG outline limits (stroke weight 1.0px–1.2px, cell padding 4px).
 - **If issues found:** Implementer fixes → re-review. Do NOT proceed to Stage 2 until Stage 1 passes.
 
 **Stage 2: Code Quality Review**

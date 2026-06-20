@@ -205,6 +205,11 @@ For each cohesive functional feature group identified during the decomposition (
 
    ## 4. Source References
    [Source references links]
+
+   ## 5. Logical UI & Layout Bindings
+   - **Target LUI Component:** [e.g. PropertyGrid, TopologyMap, DensityTable, ConsoleLogger]
+   - **Target Layout Container ID:** [Specify the container ID from logical-layout.json]
+   - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json]
    ```
 
 3. **Source References Block (CRITICAL):**
@@ -215,6 +220,13 @@ For each cohesive functional feature group identified during the decomposition (
    Normative Specification: [Normative Specification](link-to-specification)
    ```
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
+
+4. **Logical UI & Layout Bindings Block (MANDATORY):**
+   - Every feature specification markdown file MUST contain a `## 5. Logical UI & Layout Bindings` section at the end of the file.
+   - You MUST map the feature's container and leaf nodes to:
+     - The target LUI component (e.g. `PropertyGrid`, `TopologyMap`, `DensityTable`, `ConsoleLogger`).
+     - The specific target layout container ID in `logical-layout.json`.
+     - The data source bindings matching `logical-layout.json`.
 
 2. **Tracker Label Bootstrapping:** Invoke the issue tracker's label bootstrap interface (e.g. creating "epic" and "feature" labels in the configured provider).
 

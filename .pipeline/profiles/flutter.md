@@ -6,8 +6,8 @@ platform: "flutter"
 version: "1.0.0"
 created: "2026-06-16"
 created_time: "2026-06-16T09:52:35Z"
-last_updated: "2026-06-17"
-last_updated_time: "2026-06-17T01:00:00+08:00"
+last_updated: "2026-06-20"
+last_updated_time: "2026-06-20T13:13:00+08:00"
 ---
 
 # Implementation Profile: Flutter Platform (Desktop & Web)
@@ -19,10 +19,11 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Framework & Version:** Flutter SDK (as resolved from environment configuration)
 - **Target Environments:** Desktop (macOS, Windows, Linux) and Web (HTML5/CanvasKit renderer)
 - **Persistence Architecture:** Modular Repository/Adapter pattern.
-  - Direct database/API SDK imports are forbidden in UI widgets.
+  - Direct database/API SDK imports (such as `cloud_firestore`) are forbidden in UI widgets.
   - Widgets must depend only on abstract Repository interfaces.
-  - Active adapter is resolved and injected dynamically at application bootstrap based on environment variables or runtime configurations.
-  - **Allowed Adapters:**
+  - Active adapter is resolved and injected dynamically at application bootstrap based on environment variables or runtime configurations (`config.json`).
+  - For the Firebase profile, the abstract repository resolves dynamically to the concrete `FirestoreRepositoryAdapter` in Flutter.
+- **Allowed Adapters:**
   - Transport and database adapters must register themselves dynamically at application bootstrap. The platform profile does not restrict the allowed adapter types; any class implementing the target Repository interface is permitted, enabling dynamic runtime resolution of any protocol or database client (e.g. REST, gRPC, WebSocket, GraphQL, or local storage).
 - **Dependency Injection (DI) & State Management:**
   - Standardize on dynamic state management models (such as BLoCs) for core business logic.
@@ -73,9 +74,10 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - **Property Grid Widget:** Key-value attribute grid mapped to a schema. Validation schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **Navigation Breadcrumbs Widget:** Breadcrumbs at the content area top. Collapse middle segments into an ellipsis (`...`) if the total text width exceeds the available container width.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
-    - High information-density tables with sortable, filterable columns, row selections, and status badges.
+    - **Density Table Component:** High information-density tables with sortable, filterable columns, row selections, and status badges. Table row sizing must use `min-height: 32px` and compact vertical cell padding of `4px` top/bottom to maximize information density while remaining scale-safe.
     - **Event-Echo Guard**: Property setters must modify selections silently without firing callback events to prevent infinite selection loops.
-  - **Typography:** Resolved dynamically from the typography design tokens.
+  - **Typography:** Resolved dynamically from the typography design tokens (Roboto, Inter, sans-serif, base text size constrained at `12px`–`13px`, section headings at `13px`–`14px`, page title at `18px` max).
+  - **Icons & Vector Graphics:** SVG icons must be outline-only, constrained within a fixed `16px` viewport boundary with a stroke weight of `1.0px`–`1.2px` and a bounding padding of `2px`.
   - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
   - **Self-Documenting Code & Documentation Mandates:**
     - **Intention-Revealing Names:** Enforce intention-revealing naming conventions for all variables, properties, methods, classes, and widgets.
@@ -94,7 +96,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 ## 4. Build & Operations
 - **Lint Command:** Command resolved from environment configurations (e.g. `flutter analyze`)
 - **Local Dev / Dev Server Command:** Command resolved from environment configurations (e.g. `flutter run`)
-- **Local Emulator Command:** Command resolved from environment configurations (e.g. `firebase emulators:start`)
+- **Local Emulator Command:** Command resolved from environment configurations (e.g. `npx firebase emulators:start --only firestore`)
 - **Build Command:** Command resolved from environment configurations (e.g. `flutter build`)
 - **CI/CD Integration:** Triggered on merge to default branch; builds and deploys to App Hosting, Web servers, or native desktop distribution pipelines. Dockerfiles must run as a non-root user.
 

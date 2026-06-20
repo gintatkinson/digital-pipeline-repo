@@ -6,8 +6,8 @@ platform: "react"
 version: "1.0.0"
 created: "2026-06-16"
 created_time: "2026-06-16T09:40:52Z"
-last_updated: "2026-06-17"
-last_updated_time: "2026-06-17T01:00:00+08:00"
+last_updated: "2026-06-20"
+last_updated_time: "2026-06-20T13:13:00+08:00"
 ---
 
 # Implementation Profile: React Platform
@@ -19,9 +19,10 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 - **Framework & Version:** React (as resolved from environment configuration)
 - **Language & Version:** TypeScript (strict mode enabled). Note: TypeScript implementations MUST use lowercase primitives (`string`, `number`, `boolean`), not UML wrapper types (`String`, `Real`, `Boolean`).
 - **Persistence Architecture:** Modular Repository/Adapter pattern.
-  - Direct database/API SDK imports are forbidden in React components.
+  - Direct database/API SDK imports (such as `@firebase/firestore`) are forbidden in React components.
   - Components must depend only on abstract Repository interfaces.
-  - Active adapter is injected at application bootstrap resolved dynamically from the loaded runtime configuration metadata rather than build-time environment variables.
+  - Active adapter is injected at application bootstrap resolved dynamically from the loaded runtime configuration metadata (`config.json`) rather than build-time environment variables.
+  - For the Firebase profile, the abstract repository resolves dynamically to the concrete `FirestoreRepositoryAdapter` implementing the abstract interface.
 - **Dependency Injection (DI):** Standardize on React Context Hooks for dependency resolution at the application root.
 - **Allowed Adapters:**
   - Transport and database adapters must register themselves dynamically at application bootstrap. The platform profile does not restrict the allowed adapter types; any class implementing the target Repository interface is permitted, enabling dynamic runtime resolution of any protocol or database client (e.g. REST, gRPC, WebSocket, GraphQL, or local storage).
@@ -74,8 +75,9 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
     - **Property Grid Component:** Key-value attribute grid mapped to a schema. Validation schemas are compiled *once* at initialization into a flat, typed layout descriptor list to avoid render-cycle parsing lag. Input fields validate upon focus loss or edit completion and maintain a local change-buffer to block global state re-renders on keystroke.
     - **Navigation Breadcrumbs Component:** Exposes a breadcrumb path resolved from the current selection. Collapses middle segments dynamically when the path length exceeds available container space.
     - **Ubiquitous Navigation Links:** Whenever the UI presents a managed object or attribute, it must be rendered as a selectable, clickable link that directly navigates to that item.
-    - **Density Table Component:** High information-density tables with sortable, filterable columns, row selections, and status badges.
-  - **Typography:** Resolved dynamically from the typography design tokens.
+    - **Density Table Component:** High information-density tables with sortable, filterable columns, row selections, and status badges. Table row sizing must use `min-height: 32px` and compact vertical cell padding of `4px` top/bottom to maximize information density while remaining scale-safe.
+  - **Typography:** Resolved dynamically from the typography design tokens (Roboto, Inter, sans-serif, base text size constrained at `12px`–`13px`, section headings at `13px`–`14px`, page title at `18px` max).
+  - **Icons & Vector Graphics:** SVG icons must be outline-only, constrained within a fixed `16px` viewport boundary with a stroke weight of `1.0px`–`1.2px` and a bounding padding of `2px`.
   - **Interactivity:** Micro-animations for hover states, side-panel slide-outs, loading skeletons, and inline help tooltips.
   - **Self-Documenting Code & Documentation Mandates:**
     - **Intention-Revealing Names:** Enforce intention-revealing names for all variables, hooks, components, and functions.
@@ -94,7 +96,7 @@ last_updated_time: "2026-06-17T01:00:00+08:00"
 ## 4. Build & Operations
 - **Lint Command:** Commands resolved from environment configurations (e.g. `npm run lint` / `npx tsc --noEmit`)
 - **Local Dev / Dev Server Command:** Command resolved from environment configurations (e.g. `npm run dev`)
-- **Local Emulator Command:** Command resolved from environment configurations (e.g. `firebase emulators:start --import=./.firebase_export`)
+- **Local Emulator Command:** Command resolved from environment configurations (e.g. `npx firebase emulators:start --only firestore`)
 - **Build Command:** Command resolved from environment configurations (outputs optimized production bundle in the configured build output directory, e.g. `/dist`)
 - **CI/CD Integration:** Triggered on merge to default branch; builds and deploys to Firebase App Hosting, Vercel, or Docker-based private server. Dockerfiles must run as a non-root user.
 
