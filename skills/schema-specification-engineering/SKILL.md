@@ -57,7 +57,7 @@ For each cohesive functional feature group identified during the decomposition (
      - *For UI Interfaces (`interface_type: ui`)*:
        - `1. Test Data Shape (JSON Payload Example)`: A concrete, copy-pasteable JSON payload schema example block.
        - `2. Validation & Constraints`: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions.
-       - `3. Visual Layout & Arrangement`: Detailed, platform-independent description of the visual layout and hierarchy. Mandate CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, and layout containment parameters (specifically excluding size containment on scroll containers).
+       - `3. Visual Layout & Arrangement`: Detailed, platform-independent description of the visual layout and hierarchy. Mandate CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, layout containment parameters (restricting containment to outer layout splitters and forbidding it on scrollable child panels), and valid DOM nesting for tree structures (recursive lists nested inside parent list-items).
        - `4. Interactive Flow & States`: System states (read-only, edit, empty, loading, error highlighting). Mandate computed-style assertions (such as verifying scroll dimensions or highlight colors) in the test guidelines for components with visual, selection, or highlight states.
      - *For API or M2M Interfaces (`interface_type: api` or `m2m`)*:
        - `1. Payload Schema (JSON Schema/Protobuf)`: Target request/response payload definition.
@@ -192,7 +192,7 @@ For each cohesive functional feature group identified during the decomposition (
      - [Field constraints, ranges, patterns, protocol/payload limits]
 
      ### 3. Visual Layout / Logical Operations & Interface Messages
-     - [For UI: abstract grouping, zoning, hierarchy guidelines. Enforce CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, and layout containment parameters (specifically excluding size containment on scroll containers). For API/M2M: logical methods, operations, abstract paths, or channels]
+      - [For UI: abstract grouping, zoning, hierarchy guidelines. Enforce CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, layout containment parameters (restricting containment to outer layout splitters and forbidding it on scrollable child panels), and valid DOM nesting for tree structures (recursive lists nested inside parent list-items). For API/M2M: logical methods, operations, abstract paths, or channels]
 
      ### 4. Interactive Flow & States / Logical Exception States & Validation Failures
      - [For UI: states, errors, loading. Mandate computed-style assertions (such as verifying scroll dimensions or highlight colors) in the test guidelines for visual or active selection states. For API/M2M: logical error states, timeouts, exception flows]
