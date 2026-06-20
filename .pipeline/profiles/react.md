@@ -63,6 +63,7 @@ last_updated_time: "2026-06-20T13:13:00+08:00"
     - **Global CSS Box Sizing & Root Layout:** To prevent vertical scroll clipping and viewport layout overflow, the stylesheet MUST enforce:
       - Global box-sizing reset (`box-sizing: border-box`) on all elements.
       - Viewport-constrained dimensions on the React root element (`#root` height set to `100vh`, width set to `100vw`, display `flex`, direction `column`, and overflow `hidden`).
+      - **CSS Specificity Protection:** To prevent global or ancestor descendant selectors from silently overriding component states (such as active highlighting), all UI components MUST use CSS Modules, styled-components, or strict BEM (Block-Element-Modifier) class naming conventions. Direct tag-descendant rules on broad wrappers (e.g. `.explorer-tree li`) are forbidden for state styling.
     - Navigation architecture aligned with hierarchical layout slot containers.
     - **Hierarchy Navigation Component:** (e.g. hierarchy tree or navigation slot resolved from configuration). Exposes a primary navigation slot. Must support:
       - Mapping physical inputs to logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) dynamically.
@@ -71,7 +72,7 @@ last_updated_time: "2026-06-20T13:13:00+08:00"
     - **Resizable Splitter Component:** The main workspace area renders pane slots dynamically populated with child components resolved from the runtime layout configuration registry.
       - Default layout: stacked along a configurable split axis. The user can toggle split directions.
       - **DOM State Preservation during Reparenting:** Swapping split axis orientations (vertical/horizontal) or changing pane order must preserve component state. The layout must use structural virtual DOM stability (e.g. keeping container elements persistently mounted in a fixed tree structure and using CSS Flexbox/Grid direction variables) rather than conditional JSX element branching/unmounting to prevent DOM state destruction (such as text input focus, active playback state, or embedded frame/iframe contexts).
-      - **Isolating Reflows:** All panel containers within resizable splitters must use CSS Container Queries (`@container`) and layout/paint containment (`contain: size layout paint; container-type: inline-size;`) on the splitter containers to isolate layout reflows during active dragging.
+      - **Isolating Reflows:** All panel containers within resizable splitters must use CSS Container Queries (`@container`) and layout/paint containment (`contain: layout paint; container-type: inline-size;`) on the splitter containers to isolate layout reflows during active dragging (size containment is strictly forbidden on scroll containers as it collapses child layout calculations to zero).
       - **Virtual DOM State Resizing:** Resizing interactions must update layout state variables or CSS custom properties managed through React state/context or a decoupled state provider, rather than directly mutating the physical DOM bypassing the React virtual DOM tree, ensuring headless testing compatibility (except during active drag gestures where direct DOM inline custom property mutations are permitted solely for 60fps painting optimization).
       - **Snap-to-Edge:** Support snap-to-edge collapse when dragged within the configured threshold boundaries.
       - Child components resolved from the layout configuration (such as viewports, attribute grids, or lists) are dynamically rendered inside the workspace containers.
@@ -91,6 +92,7 @@ last_updated_time: "2026-06-20T13:13:00+08:00"
 
 ## 3. Testing Mandates
 - **TDD Requirement:** Strict RED-GREEN-REFACTOR cycle. Write a test before writing the code.
+- **Visual & Style Assertions:** Unit/widget tests that verify interactive states, highlight states, active selections, or layout dimensions must perform computed style assertions (such as using `window.getComputedStyle(element)` to verify background colors, display constraints, or active highlight properties) to prevent silent CSS specificity or layout regression errors.
 - **TDD Loop Speed:** Unit and widget/component tests must execute against isolated, thread-safe in-memory stubs (Mock Repositories) for fast, sub-second feedback.
 - **Integration/E2E Test Instances:** All integration and E2E tests must execute against real, local database service instances (local emulators/containers) loaded with seeded test data. In-memory stubs are prohibited for these tiers.
 - **E2E Testing:** E2E tests running against the local dev server and the configured local emulator/services suite during local runs, or targeting a staging/preview deployment URL connected to a staging database environment for hosted runs.
