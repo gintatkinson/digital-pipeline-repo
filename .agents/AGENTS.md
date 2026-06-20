@@ -13,3 +13,16 @@
 - No task is complete until all changes are successfully pushed to and verified on the remote tracking branch.
 - You must verify that `git diff origin/<branch>` is empty before generating the walkthrough and final report.
 - Any synchronization failures must be reported as blocker state escalations.
+
+## Mandatory Subagent Dispatch for Specification & Implementation Loops
+To prevent context window bloat and subsequent exhaustion failures, you are strictly forbidden from performing generation of Epics, Features, User Stories, Use Cases, or micro-task implementations directly within the coordinator's primary conversation context.
+
+You MUST execute the Subagent Dispatch Loop for these tasks:
+1. **Decompose the Task**: Identify the discrete files or tasks to be executed.
+2. **Invoke Subagent**: For each item, invoke a fresh subagent using the `invoke_subagent` tool:
+   - **TypeName**: `self`
+   - **Role**: Set a descriptive role (e.g., `Feature Spec Writer`, `Micro-Task Implementer`).
+   - **Prompt**: Construct a clean, isolated task description. Do not copy the entire conversation history. Pass only the relevant schema fragment, spec guidelines, templates, and reference standards.
+   - **Authorization**: Append the keyword `PROCEED` (case-insensitive) to the end of the prompt to authorize the subagent to use modifying tools.
+3. **Wait for Completion**: Do not poll or loop. Let the system wake you up.
+4. **Coordinate Output**: When the subagents complete, perform the validation checks and sync/register them in the tracker.
