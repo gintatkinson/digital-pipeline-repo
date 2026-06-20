@@ -133,20 +133,24 @@ Copy the `skills/`, `rules/`, `.pipeline/`, and `.agents/` directories into your
 **For Stable Version (`master`):**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-cp -r ./.tmp-pipeline/skills ./
-cp -r ./.tmp-pipeline/rules ./
-cp -r ./.tmp-pipeline/.pipeline ./
-cp -r ./.tmp-pipeline/.agents ./
+rm -rf ./skills ./rules ./.pipeline ./.agents
+cp -RP ./.tmp-pipeline/skills ./
+cp -RP ./.tmp-pipeline/rules ./
+cp -RP ./.tmp-pipeline/.pipeline ./
+cp -RP ./.tmp-pipeline/.agents ./
+cp ./.tmp-pipeline/requirements.txt ./
 rm -rf ./.tmp-pipeline
 ```
 
 **For Refactored Version (`refactor`):**
 ```bash
 git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-cp -r ./.tmp-pipeline/skills ./
-cp -r ./.tmp-pipeline/rules ./
-cp -r ./.tmp-pipeline/.pipeline ./
-cp -r ./.tmp-pipeline/.agents ./
+rm -rf ./skills ./rules ./.pipeline ./.agents
+cp -RP ./.tmp-pipeline/skills ./
+cp -RP ./.tmp-pipeline/rules ./
+cp -RP ./.tmp-pipeline/.pipeline ./
+cp -RP ./.tmp-pipeline/.agents ./
+cp ./.tmp-pipeline/requirements.txt ./
 rm -rf ./.tmp-pipeline
 ```
 
