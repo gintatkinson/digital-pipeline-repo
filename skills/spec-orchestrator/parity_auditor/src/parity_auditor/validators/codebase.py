@@ -24,7 +24,7 @@ class CodebaseValidator(IValidator):
         spec_rules = rules.spec_rules
         
         def has_files_with_extensions(extensions: List[str]) -> bool:
-            exclusions = {".git", ".agents", "skills", ".pipeline", ".tessl-plugin", "docs", "test_project"}
+            exclusions = {".git", ".agents", "skills", ".pipeline", ".tessl-plugin", "docs"}
             for root, dirs, files in os.walk(workspace_dir):
                 dirs[:] = [d for d in dirs if d not in exclusions]
                 for file in files:

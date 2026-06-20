@@ -106,7 +106,7 @@ Defines service parameters and emulator settings (e.g. port configuration, datab
 ## 5. Verification Plan
 
 ### Automated Coverage & Regressions
-* Execute `python3 test_project/run_tests.py` to verify that there are no regressions in compilation or schema validation constraints.
+* Verify that there are no regressions in compilation or schema validation constraints.
 * Run linter suite (`npm run lint` / `tsc --noEmit`) to verify that no direct imports of database SDKs leak into UI components.
 
 ### Manual Verification

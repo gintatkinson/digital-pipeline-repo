@@ -56,7 +56,5 @@ Previously, the codebase linter raised "Compliance Bypass Loophole" errors if co
 
 ## 4. Verification
 
-We verified the linter implementation using the project's test suite and target repo testing:
-* **Command**: `python3 test_project/run_tests.py`
-* **Result**: **ALL TESTS PASSED SUCCESSFULLY!**
-* **Target Repo Verification**: Executed the updated linter directly inside the downstream projects (`dep-tst29` and `dep-tst30`) and verified that it successfully resolved issue-linked features, counted constraints, and flagged missing alternate flows.
+We verified the linter implementation using target repo testing:
+* Target Repo Verification: Executed the updated linter directly inside the downstream projects (dep-tst29 and dep-tst30) and verified that it successfully resolved issue-linked features, counted constraints, and flagged missing alternate flows.
