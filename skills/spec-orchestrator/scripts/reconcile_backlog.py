@@ -310,13 +310,23 @@ def find_workspace_dir(start_path):
     return os.path.abspath(start_path)
 
 def main():
-    # Locate the workspace directory dynamically starting from CWD
-    workspace_dir = find_workspace_dir(os.getcwd())
+    # Locate the workspace directory dynamically starting from the script's directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    workspace_dir = find_workspace_dir(script_dir)
+
+    # Check if the codebase rules file exists
+    rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
+    if not os.path.exists(rules_path):
+        print(f"Error: codebase_rules.json not found at: {rules_path}")
+        print("Please ensure the configuration file is present at '.pipeline/logical-ui/codebase_rules.json'.")
+        sys.exit(1)
 
     # Load codebase rules
     rules = load_codebase_rules(workspace_dir)
     if not rules:
-        raise ValueError("codebase_rules.json is empty or could not be loaded")
+        print("Error: codebase_rules.json is empty, invalid, or could not be loaded.")
+        print("Please check '.pipeline/logical-ui/codebase_rules.json' and ensure it contains valid configuration.")
+        sys.exit(1)
 
     # Verify tracker/CLI authentication
     try:
