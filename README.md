@@ -424,3 +424,4 @@ This pipeline can also be used **alongside** [Spec Kit](https://github.com/githu
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
 ## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
+
