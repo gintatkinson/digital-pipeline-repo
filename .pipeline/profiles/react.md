@@ -60,6 +60,9 @@ last_updated_time: "2026-06-20T13:13:00+08:00"
     - At startup, the application must dynamically resolve and apply styling tokens parsed from the configuration in a testing-safe, headless-compatible manner. The configuration resolution must not rely on blocking head script injection or assume browser-specific DOM API access during startup or unit-test verification loops.
     - Status visualizations, node borders, and alarm indicators must resolve their colors and severity levels dynamically via a metadata-driven UI registry loaded at runtime.
   - **Layout & Structure:**
+    - **Global CSS Box Sizing & Root Layout:** To prevent vertical scroll clipping and viewport layout overflow, the stylesheet MUST enforce:
+      - Global box-sizing reset (`box-sizing: border-box`) on all elements.
+      - Viewport-constrained dimensions on the React root element (`#root` height set to `100vh`, width set to `100vw`, display `flex`, direction `column`, and overflow `hidden`).
     - Navigation architecture aligned with hierarchical layout slot containers.
     - **Hierarchy Navigation Component:** (e.g. hierarchy tree or navigation slot resolved from configuration). Exposes a primary navigation slot. Must support:
       - Mapping physical inputs to logical action bindings (such as `NAVIGATE_NEXT`, `NAVIGATE_PREVIOUS`, `EXPAND_NODE`, `COLLAPSE_NODE`) dynamically.
