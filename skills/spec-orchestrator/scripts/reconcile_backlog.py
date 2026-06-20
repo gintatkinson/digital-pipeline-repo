@@ -33,11 +33,7 @@ def normalize_title(title, rules=None):
     # Strip quotes and leading/trailing whitespace
     title = title.strip().strip('"\'')
     # Strip common prefixes (e.g., epic-01:, feat-02:, us-03:, uc-04:, etc.)
-    regex = None
-    if rules:
-        regex = rules.get("tracker_rules", {}).get("prefix_normalization_regex")
-    if not regex:
-        regex = r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*'
+    regex = r'^(epic|feat|us|uc|feature|user[- ]story|use[- ]case)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
     title = re.sub(regex, '', title, flags=re.IGNORECASE)
     # Normalize hyphens to spaces to handle typographic variations
     title = title.replace("-", " ")
@@ -187,7 +183,6 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
     ref_str = format_issue_reference(issue_num, tracker_rules)
     print(f"  [Sync Issue Body] Syncing {ref_str} ({issue_type}) to tracker...")
     
-    # Check issue body size limit and truncate if needed
     temp_path = filepath + ".temp-body"
     try:
         with open(filepath, "r", encoding="utf-8") as f:
@@ -198,7 +193,6 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         trunc_limit = max_body_chars - 5536
         
         if len(content) > trunc_limit:
-            # Add a message pointing to the repository file
             truncation_headers = tracker_rules.get("truncation_headers", ["## Acceptance Criteria", "## User Stories"])
             trunc_index = -1
             for header in truncation_headers:
@@ -220,14 +214,11 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         with open(temp_path, "w", encoding="utf-8") as tf:
             tf.write(content)
         
-        tracker_rules = rules.get("tracker_rules", {}) if rules else {}
         edit_cmd_template = tracker_rules.get("commands", {}).get("edit_issue")
         if not edit_cmd_template:
             raise ValueError("Missing 'tracker_rules.commands.edit_issue' in codebase_rules.json")
         cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
         subprocess.run(cmd, check=True, capture_output=True)
-    except Exception as e:
-        print(f"  [Error] Failed to sync {ref_str} body: {e}")
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
@@ -236,16 +227,78 @@ def close_issue_on_tracker(issue_num, comment, rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     ref_str = format_issue_reference(issue_num, tracker_rules)
     print(f"  [Close Issue] Closing issue {ref_str} on tracker...")
-    try:
-        close_cmd_template = tracker_rules.get("commands", {}).get("close_issue")
-        if not close_cmd_template:
-            raise ValueError("Missing 'tracker_rules.commands.close_issue' in codebase_rules.json")
-        cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
-        subprocess.run(cmd, check=True, capture_output=True)
-    except Exception as e:
-        print(f"  [Error] Failed to close issue {ref_str}: {e}")
+    close_cmd_template = tracker_rules.get("commands", {}).get("close_issue")
+    if not close_cmd_template:
+        raise ValueError("Missing 'tracker_rules.commands.close_issue' in codebase_rules.json")
+    cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
+    subprocess.run(cmd, check=True, capture_output=True)
 
-def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
+def get_current_branch(workspace_dir):
+    res = subprocess.run(["git", "branch", "--show-current"], cwd=workspace_dir, capture_output=True, text=True)
+    if res.returncode == 0 and res.stdout.strip():
+        return res.stdout.strip()
+    res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace_dir, capture_output=True, text=True)
+    if res.returncode == 0 and res.stdout.strip():
+        return res.stdout.strip()
+    return "master"
+
+def extract_metadata(filepath):
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+        match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+        if match:
+            frontmatter_text = match.group(1)
+            data = yaml.safe_load(frontmatter_text)
+            if isinstance(data, dict):
+                return data
+    except Exception as e:
+        print(f"Error parsing metadata from {filepath}: {e}")
+    return {}
+
+def resolve_type_context(line, filepath, section_context):
+    # 1. URL path check
+    link_match = re.search(r'\[([^\]]+)\]\(([^)]+)\)', line)
+    if link_match:
+        path = link_match.group(2)
+        if "docs/features" in path or "/features/" in path:
+            return "feature"
+        elif "docs/user-stories" in path or "/user-stories/" in path:
+            return "user-story"
+        elif "docs/use-cases" in path or "/use-cases/" in path:
+            return "use-case"
+        elif "docs/epics" in path or "/epics/" in path:
+            return "epic"
+            
+    # 2. Section context check
+    if section_context:
+        return section_context
+        
+    # 3. Line prefix/keywords check
+    line_lower = line.lower()
+    if "use case" in line_lower or "use-case" in line_lower or "uc-" in line_lower:
+        return "use-case"
+    if "user story" in line_lower or "user-story" in line_lower or "us-" in line_lower:
+        return "user-story"
+    if "feature" in line_lower or "feat-" in line_lower:
+        return "feature"
+    if "epic" in line_lower:
+        return "epic"
+        
+    # 4. File folder context check (default fallback)
+    parent_dir = os.path.basename(os.path.dirname(filepath))
+    if "features" in parent_dir:
+        return "feature"
+    elif "user-stories" in parent_dir:
+        return "user-story"
+    elif "use-cases" in parent_dir:
+        return "use-case"
+    elif "epics" in parent_dir:
+        return "epic"
+        
+    return None
+
+def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
         
@@ -262,7 +315,21 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
     # Escape placeholder for safe regex search
     escaped_placeholder = re.escape(placeholder)
     
+    section_context = None
     for i, line in enumerate(lines):
+        # Track section context based on headers
+        header_match = re.match(r'^(#+)\s+(.*)$', line)
+        if header_match:
+            header_text = header_match.group(2).lower()
+            if "use case" in header_text:
+                section_context = "use-case"
+            elif "user story" in header_text or "user-story" in header_text:
+                section_context = "user-story"
+            elif "feature" in header_text or "requirement" in header_text:
+                section_context = "feature"
+            elif "epic" in header_text:
+                section_context = "epic"
+                
         if placeholder not in line:
             continue
             
@@ -271,7 +338,6 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
         if link_label_match:
             title = link_label_match.group(1).strip()
         else:
-            # Match placeholder anywhere on the line, optionally followed by separator/prefix, capturing the title
             pattern = escaped_placeholder + r'(?:\s*[-:]\s*)?' + title_extraction_prefixes_regex + r'(.*)$'
             dash_match = re.search(pattern, line)
             if dash_match:
@@ -281,12 +347,28 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
                 
         if title:
             norm = normalize_title(title, rules)
-            issue_num = combined_titles.get(norm)
+            type_context = resolve_type_context(line, filepath, section_context)
+            issue_num = None
+            if type_context == "epic":
+                issue_num = epic_titles.get(norm)
+            elif type_context == "feature":
+                issue_num = feature_titles.get(norm)
+            elif type_context == "user-story":
+                issue_num = story_titles.get(norm)
+            elif type_context == "use-case":
+                issue_num = usecase_titles.get(norm)
+                
+            if not issue_num:
+                issue_num = (feature_titles.get(norm) or 
+                             story_titles.get(norm) or 
+                             usecase_titles.get(norm) or 
+                             epic_titles.get(norm))
+                             
             if issue_num:
                 ref_str = format_issue_reference(issue_num, tracker_rules)
                 lines[i] = line.replace(placeholder, ref_str)
                 updated = True
-                print(f"  [Resolve ID] Resolved {placeholder} to {ref_str} for '{title}' in {os.path.basename(filepath)}")
+                print(f"  [Resolve ID] Resolved {placeholder} to {ref_str} for '{title}' (type: {type_context}) in {os.path.basename(filepath)}")
             else:
                 print(f"  [Warning] Could not resolve {placeholder} for title '{title}' in {os.path.basename(filepath)}")
                 
@@ -297,6 +379,164 @@ def resolve_issue_ids_in_file(filepath, combined_titles, rules=None):
         return new_content
         
     return content
+
+def reconcile_epic_checklists(filepath, child_features, child_stories, child_usecases, epic_titles, feature_titles, story_titles, usecase_titles, rules):
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    lines = content.splitlines()
+    
+    idx_req = -1
+    idx_usecases = -1
+    idx_stories = -1
+    idx_next = -1
+    
+    for idx, line in enumerate(lines):
+        line_clean = line.strip()
+        if line_clean.startswith("## 2. Requirements & Checklist"):
+            idx_req = idx
+        elif line_clean.startswith("#### Associated Use Cases"):
+            idx_usecases = idx
+        elif line_clean.startswith("#### Associated User Stories"):
+            idx_stories = idx
+        elif idx_req != -1 and line_clean.startswith("## ") and idx > idx_req and not line_clean.startswith("## 2."):
+            if idx_next == -1:
+                idx_next = idx
+
+    def extract_items_from_range(start_idx, end_idx):
+        items = []
+        if start_idx == -1:
+            return items
+        limit = end_idx if end_idx != -1 else len(lines)
+        for i in range(start_idx + 1, limit):
+            l = lines[i].strip()
+            if l.startswith("#"):
+                break
+            if l.startswith("- [ ]") or l.startswith("- [x]") or l.startswith("- [X]"):
+                if "feat-XX-name" in l or "uc-XX-name" in l or "us-XX-name" in l or "Feature 1:" in l or "Use Case 1:" in l or "User Story 1:" in l:
+                    continue
+                items.append(lines[i])
+        return items
+
+    end_req = idx_usecases if idx_usecases != -1 else (idx_stories if idx_stories != -1 else idx_next)
+    end_usecases = idx_stories if idx_stories != -1 else idx_next
+    end_stories = idx_next
+    
+    existing_features = extract_items_from_range(idx_req, end_req)
+    existing_usecases = extract_items_from_range(idx_usecases, end_usecases)
+    existing_stories = extract_items_from_range(idx_stories, end_stories)
+    
+    indent = ""
+    for item in existing_features + existing_usecases + existing_stories:
+        m = re.match(r'^(\s*)', item)
+        if m and m.group(1):
+            indent = m.group(1)
+            break
+
+    upstream_repo = rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
+    repo_base = upstream_repo
+    if not repo_base.startswith("http"):
+        repo_base = f"https://github.com/{repo_base}"
+    workspace_root = find_workspace_dir(filepath)
+    branch_name = get_current_branch(workspace_root)
+    
+    def format_item(item_type, filename, title, issue_num):
+        tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+        ref_str = format_issue_reference(issue_num, tracker_rules) if issue_num else tracker_rules.get("issue_id_placeholder", "#[IssueID]")
+        
+        if item_type == "feature":
+            path_part = f"docs/features/{filename}.md"
+        elif item_type == "use-case":
+            path_part = f"docs/use-cases/{filename}.md"
+        else:
+            path_part = f"docs/user-stories/{filename}.md"
+            
+        return f"{indent}- [ ] {ref_str} - [{title}]({repo_base}/blob/{branch_name}/{path_part}) (semantic linkage justification)"
+
+    def get_filename_key(item_str):
+        m = re.search(r'docs/(features|use-cases|user-stories)/([a-zA-Z0-9_\-]+)\.md', item_str)
+        if m:
+            return m.group(2)
+        return None
+
+    final_features = []
+    seen_feats = set()
+    for item in existing_features:
+        key = get_filename_key(item)
+        if key:
+            seen_feats.add(key)
+            final_features.append(item)
+            
+    for fn, title in child_features:
+        if fn not in seen_feats:
+            issue_num = feature_titles.get(normalize_title(title, rules))
+            final_features.append(format_item("feature", fn, title, issue_num))
+            seen_feats.add(fn)
+            
+    final_usecases = []
+    seen_ucs = set()
+    for item in existing_usecases:
+        key = get_filename_key(item)
+        if key:
+            seen_ucs.add(key)
+            final_usecases.append(item)
+            
+    for fn, title in child_usecases:
+        if fn not in seen_ucs:
+            issue_num = usecase_titles.get(normalize_title(title, rules))
+            final_usecases.append(format_item("use-case", fn, title, issue_num))
+            seen_ucs.add(fn)
+            
+    final_stories = []
+    seen_stories = set()
+    for item in existing_stories:
+        key = get_filename_key(item)
+        if key:
+            seen_stories.add(key)
+            final_stories.append(item)
+            
+    for fn, title in child_stories:
+        if fn not in seen_stories:
+            issue_num = story_titles.get(normalize_title(title, rules))
+            final_stories.append(format_item("user-story", fn, title, issue_num))
+            seen_stories.add(fn)
+
+    new_lines = []
+    if idx_req != -1:
+        new_lines.extend(lines[:idx_req + 1])
+        new_lines.extend(final_features)
+        
+        if idx_usecases != -1:
+            new_lines.extend(lines[idx_req + 1 + len(existing_features) : idx_usecases + 1])
+        else:
+            new_lines.append("")
+            new_lines.append(f"{indent}### Associated Use Cases & User Stories")
+            new_lines.append("")
+            new_lines.append(f"{indent}#### Associated Use Cases")
+            
+        new_lines.extend(final_usecases)
+        
+        if idx_stories != -1:
+            new_lines.extend(lines[end_usecases - len(existing_usecases) : idx_stories + 1])
+        else:
+            new_lines.append("")
+            new_lines.append(f"{indent}#### Associated User Stories")
+            
+        new_lines.extend(final_stories)
+        
+        if idx_next != -1:
+            new_lines.extend(lines[idx_next:])
+        else:
+            start_after_stories = idx_stories + 1 + len(existing_stories) if idx_stories != -1 else len(lines)
+            new_lines.extend(lines[start_after_stories:])
+    else:
+        return
+
+    new_content = "\n".join(new_lines) + "\n"
+    if new_content != content:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"  [Reconcile Checklist] Updated checklists in {os.path.basename(filepath)}")
 
 def find_workspace_dir(start_path):
     curr = os.path.abspath(start_path)
@@ -310,25 +550,21 @@ def find_workspace_dir(start_path):
     return os.path.abspath(start_path)
 
 def main():
-    # Locate the workspace directory dynamically starting from the script's directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_dir = find_workspace_dir(script_dir)
 
-    # Check if the codebase rules file exists
     rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
     if not os.path.exists(rules_path):
         print(f"Error: codebase_rules.json not found at: {rules_path}")
         print("Please ensure the configuration file is present at '.pipeline/logical-ui/codebase_rules.json'.")
         sys.exit(1)
 
-    # Load codebase rules
     rules = load_codebase_rules(workspace_dir)
     if not rules:
         print("Error: codebase_rules.json is empty, invalid, or could not be loaded.")
         print("Please check '.pipeline/logical-ui/codebase_rules.json' and ensure it contains valid configuration.")
         sys.exit(1)
 
-    # Verify tracker/CLI authentication
     try:
         issues = get_all_issues(rules)
     except Exception as e:
@@ -349,7 +585,6 @@ def main():
     story_comment_template = close_comments.get("user_story", "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.")
     usecase_comment_template = close_comments.get("use_case", "Resolved. All dependent user stories and features for use case '{title}' are completed.")
 
-    # Convert to issue lookup dictionary by issue identifier
     issue_dict = {}
     for issue in issues:
         raw_id = issue[id_key]
@@ -359,7 +594,6 @@ def main():
         elif isinstance(raw_id, int):
             issue_dict[str(raw_id)] = issue
 
-    # Map normalized titles to issue numbers, segregated by labels
     epic_titles = {}
     story_titles = {}
     usecase_titles = {}
@@ -372,7 +606,6 @@ def main():
     feature_label = labels_config.get("feature", "feature").lower()
 
     for num, issue in issue_dict.items():
-        # Map raw issue keys correctly to prevent duplicate lookups
         if isinstance(num, str) and num.isdigit() and int(num) in epic_titles:
             continue
         norm_title = normalize_title(issue[title_key], rules)
@@ -391,12 +624,6 @@ def main():
             usecase_titles[norm_title] = num
         elif feature_label in labels:
             feature_titles[norm_title] = num
-
-    combined_titles = {}
-    combined_titles.update(epic_titles)
-    combined_titles.update(feature_titles)
-    combined_titles.update(story_titles)
-    combined_titles.update(usecase_titles)
         
     backlog_dirs = rules.get("backlog_directories")
     if not backlog_dirs:
@@ -428,13 +655,122 @@ def main():
         usecases_dir = os.path.join(workspace_dir, usecases_rel)
         print(f"Scanning backlog files...")
 
+    # Dynamic relationship scanning
+    feature_to_epic = {}
+    if os.path.exists(features_dir):
+        for fn in os.listdir(features_dir):
+            if fn.endswith(".md"):
+                fp = os.path.join(features_dir, fn)
+                meta = extract_metadata(fp)
+                epic_name = meta.get("epic")
+                if epic_name:
+                    epic_norm = normalize_title(epic_name, rules)
+                    feature_to_epic[fn[:-3]] = {epic_norm}
+
+    story_to_epic = {}
+    if os.path.exists(stories_dir):
+        for fn in os.listdir(stories_dir):
+            if fn.endswith(".md"):
+                fp = os.path.join(stories_dir, fn)
+                meta = extract_metadata(fp)
+                epic_name = meta.get("epic")
+                epics = set()
+                if epic_name:
+                    epics.add(normalize_title(epic_name, rules))
+                
+                with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                feature_refs = re.findall(r'(?:docs/features/|/features/)([a-zA-Z0-9_\-]+)\.md', content)
+                for feat in feature_refs:
+                    if feat in feature_to_epic:
+                        epics.update(feature_to_epic[feat])
+                
+                story_to_epic[fn[:-3]] = epics
+
+    usecase_to_epic = {}
+    if os.path.exists(usecases_dir):
+        for fn in os.listdir(usecases_dir):
+            if fn.endswith(".md"):
+                fp = os.path.join(usecases_dir, fn)
+                meta = extract_metadata(fp)
+                epic_name = meta.get("epic")
+                epics = set()
+                if epic_name:
+                    epics.add(normalize_title(epic_name, rules))
+                    
+                with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                feature_refs = re.findall(r'(?:docs/features/|/features/)([a-zA-Z0-9_\-]+)\.md', content)
+                for feat in feature_refs:
+                    if feat in feature_to_epic:
+                        epics.update(feature_to_epic[feat])
+                story_refs = re.findall(r'(?:docs/user-stories/|/user-stories/)([a-zA-Z0-9_\-]+)\.md', content)
+                for story in story_refs:
+                    if story in story_to_epic:
+                        epics.update(story_to_epic[story])
+                        
+                usecase_to_epic[fn[:-3]] = epics
+
+    # Reconcile Epic checklists
+    if os.path.exists(epics_dir):
+        for filename in sorted(os.listdir(epics_dir)):
+            if not filename.endswith(".md"):
+                continue
+            filepath = os.path.join(epics_dir, filename)
+            title = extract_title(filepath)
+            if not title:
+                continue
+            epic_norm = normalize_title(title, rules)
+            
+            child_features = []
+            if os.path.exists(features_dir):
+                for feat_fn in sorted(os.listdir(features_dir)):
+                    if feat_fn.endswith(".md"):
+                        feat_fp = os.path.join(features_dir, feat_fn)
+                        if epic_norm in feature_to_epic.get(feat_fn[:-3], set()):
+                            feat_title = extract_title(feat_fp)
+                            if feat_title:
+                                child_features.append((feat_fn[:-3], feat_title))
+
+            child_stories = []
+            if os.path.exists(stories_dir):
+                for story_fn in sorted(os.listdir(stories_dir)):
+                    if story_fn.endswith(".md"):
+                        story_fp = os.path.join(stories_dir, story_fn)
+                        if epic_norm in story_to_epic.get(story_fn[:-3], set()):
+                            story_title = extract_title(story_fp)
+                            if story_title:
+                                child_stories.append((story_fn[:-3], story_title))
+
+            child_usecases = []
+            if os.path.exists(usecases_dir):
+                for uc_fn in sorted(os.listdir(usecases_dir)):
+                    if uc_fn.endswith(".md"):
+                        uc_fp = os.path.join(usecases_dir, uc_fn)
+                        if epic_norm in usecase_to_epic.get(uc_fn[:-3], set()):
+                            uc_title = extract_title(uc_fp)
+                            if uc_title:
+                                child_usecases.append((uc_fn[:-3], uc_title))
+
+            reconcile_epic_checklists(
+                filepath, 
+                child_features, 
+                child_stories, 
+                child_usecases, 
+                epic_titles, 
+                feature_titles, 
+                story_titles, 
+                usecase_titles, 
+                rules
+            )
+
     # Process Epics
     if os.path.exists(epics_dir):
         for filename in sorted(os.listdir(epics_dir)):
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(epics_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
+            resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
@@ -445,7 +781,6 @@ def main():
                 updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
                 is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                 if is_open:
-                    # Sync to keep checkbox states updated on tracker UI
                     sync_issue_body_to_tracker(issue_num, filepath, issue_type="Epic", rules=rules)
                     if completed:
                         close_issue_on_tracker(
@@ -463,7 +798,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(features_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
+            resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
@@ -473,7 +808,6 @@ def main():
             if issue_num:
                 is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                 if is_open:
-                    # Sync to keep feature definition/acceptance criteria updated on tracker UI
                     sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=rules)
             else:
                 print(f"Warning: No Feature issue found on tracker matching: '{title}'")
@@ -484,7 +818,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(stories_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
+            resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue
@@ -512,7 +846,7 @@ def main():
             if not filename.endswith(".md"):
                 continue
             filepath = os.path.join(usecases_dir, filename)
-            resolve_issue_ids_in_file(filepath, combined_titles, rules=rules)
+            resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
             title = extract_title(filepath)
             if not title:
                 continue

@@ -68,7 +68,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 1. **Trigger**: Initialize the execution of the `schema-specification-engineering` skill.
 2. **Context**: Pass the path to the target structural schema files.
 3. **Execution**: The worker logic parses the schema and identifies all Epics and Features. It dispatches a fresh context-isolated subagent for each Feature/Epic to draft its specification. It registers Features first, then injects their Issue IDs into the Epic checklists, and registers Epics.
-4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --state "open"`) to verify the new Epics and Features exist and are properly interlinked. Do not proceed to Phase 2 until the structural foundation is verified.
+4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --limit 1000 --state all --json number,title,state,labels`) to verify the new Epics and Features exist and are properly interlinked. Do not proceed to Phase 2 until the structural foundation is verified.
 
 ## Phase 2 `[P]`: Behavioral Extraction - User Stories (Worker B)
 1. **Trigger**: Initialize the execution of the `spec-user-story-engineering` skill.

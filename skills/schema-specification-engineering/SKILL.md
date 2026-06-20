@@ -100,15 +100,15 @@ For each cohesive functional feature group identified during the decomposition (
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - Feature 1: [Feature Title](URL)
+    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - Use Case 1: [Use Case Title] (Issue #[IssueID])
+    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) (semantic linkage justification)
 
     #### Associated User Stories
-    - [ ] #[IssueID] - User Story 1: [User Story Title] (Issue #[IssueID])
+    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
 
     ## 3. Architecture and System Interaction Diagrams
 
