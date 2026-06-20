@@ -384,8 +384,8 @@ class UmlValidator(IValidator):
             flows_block_match = re.search(re.escape(use_case_alternate_flows_header) + r"(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
             if flows_block_match:
                 flows_block = flows_block_match.group(1)
-                # Parse flows supporting both '-' and '*' bullet styles
-                flows = re.findall(r"(?:-|\*)\s+\*\*\d+[a-zA-Z]\..*?(?=(?:(?:-|\*)\s+\*\*\d+[a-zA-Z]\.)|\Z)", flows_block, re.DOTALL)
+                # Parse flows using configured regex
+                flows = re.findall(use_case_flow_list_regex, flows_block, re.DOTALL)
                 use_case_flow_limit = val_rules.use_case_flow_limit
                 use_case_step_limit = val_rules.use_case_step_limit
                 

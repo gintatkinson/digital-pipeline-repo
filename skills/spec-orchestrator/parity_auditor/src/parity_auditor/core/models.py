@@ -115,7 +115,7 @@ class ValidationRules:
     checkbox_syntax_regex: str = "-\\s+\\[[ xX]\\]\\s+.*"
     use_case_alternate_flows_header: str = "## 5. Alternate and Exception Flows"
     use_case_numbered_step_regex: str = "\\b\\d+\\.\\s+\\S+"
-    use_case_flow_list_regex: str = "-\\s+\\*\\*\\d[a-zA-Z]\\..*?"
+    use_case_flow_list_regex: str = "(?:-|\\*)\\s+\\*\\*\\d+[a-zA-Z]\\..*?(?=(?:(?:-|\\*)\\s+\\*\\*\\d+[a-zA-Z]\\.)|\\Z)"
     realization_matrix_header: str = "## 8. Realization Matrix"
     realization_stories_header: str = "### Required User Stories"
     realization_features_header: str = "### Required Features"
