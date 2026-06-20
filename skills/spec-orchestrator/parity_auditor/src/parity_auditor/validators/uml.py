@@ -68,6 +68,7 @@ class UmlValidator(IValidator):
                 continue
                 
             self._validate_subagent_isolation(content, "Feature", filename, errors)
+            self._validate_placeholders_and_links(content, "Feature", filename, errors, checkbox_syntax_regex)
                 
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
@@ -142,6 +143,7 @@ class UmlValidator(IValidator):
                 continue
                 
             self._validate_subagent_isolation(content, "User Story", filename, errors)
+            self._validate_placeholders_and_links(content, "User Story", filename, errors, checkbox_syntax_regex)
                 
             if re.search(dotted_link_pattern, content):
                 errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
@@ -285,6 +287,7 @@ class UmlValidator(IValidator):
                 continue
                 
             self._validate_subagent_isolation(content, "Use Case", basename, errors)
+            self._validate_placeholders_and_links(content, "Use Case", basename, errors, checkbox_syntax_regex)
                 
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
@@ -509,6 +512,7 @@ class UmlValidator(IValidator):
                 continue
                 
             self._validate_subagent_isolation(content, "Epic", filename, errors)
+            self._validate_placeholders_and_links(content, "Epic", filename, errors, checkbox_syntax_regex)
                 
             if re.search(dotted_link_pattern, content):
                 errors.append(f"Epic {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
@@ -561,6 +565,19 @@ class UmlValidator(IValidator):
                         break
         if not has_subagent_tag:
             errors.append(f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.")
+
+    def _validate_placeholders_and_links(self, content: str, doc_type: str, filename: str, errors: List[str], checkbox_syntax_regex: str):
+        if "IssueID" in content:
+            errors.append(f"{doc_type} {filename} contains unresolved placeholder 'IssueID' or '#[IssueID]'.")
+            
+        if doc_type == "Epic":
+            req_match = re.search(r"##\s+2\.\s+Requirements\s+&\s+Checklist(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+            if req_match:
+                req_section = req_match.group(1)
+                checkboxes = re.findall(checkbox_syntax_regex, req_section)
+                for cb in checkboxes:
+                    if not re.search(r"\[[^\]]+\]\(https?://[^)]+\)", cb):
+                        errors.append(f"Epic {filename} checklist item '{cb.strip()}' must be a valid markdown link pointing to the feature file absolute URL.")
 
     def _validate_class_diagram(self, doc_type: str, filename: str, content: str, errors: List[str], class_parser, val_rules, uml_primitives, visibility_prefixes, relationship_connectors, choice_stereotypes, multiplicity_regex):
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)

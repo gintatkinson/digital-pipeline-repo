@@ -34,3 +34,4 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
   * Am I making any silent assumptions about the user's intent?
   * Does the active skill mandate context-isolated subagent dispatches? (If yes, coordinator direct file-writing is locked).
 - If context-isolated subagents are mandated, the coordinator is strictly forbidden from directly invoking any file-modifying tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) to write or update target functional specifications or codebase source files. All file writes MUST be delegated exclusively to the spawned subagents.
+- **No Documentation/Installation Drift**: You MUST NOT allow documentation drift. Before declaring any task complete, verify that all installation instructions (e.g. `README.md` copy/install commands) have been updated to include any new rules or directories (such as `.agents/`). Verify that `git diff origin/<branch>` is completely empty and pushed to GitHub.

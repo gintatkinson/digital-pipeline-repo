@@ -128,7 +128,7 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 
 ### Method 1: Direct Copy (Simplest)
 
-Copy the `skills/`, `rules/`, and `.pipeline/` directories into your project repository.
+Copy the `skills/`, `rules/`, `.pipeline/`, and `.agents/` directories into your project repository.
 
 **For Stable Version (`master`):**
 ```bash
@@ -136,6 +136,7 @@ git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipel
 cp -r ./.tmp-pipeline/skills ./
 cp -r ./.tmp-pipeline/rules ./
 cp -r ./.tmp-pipeline/.pipeline ./
+cp -r ./.tmp-pipeline/.agents ./
 rm -rf ./.tmp-pipeline
 ```
 
@@ -145,6 +146,7 @@ git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git 
 cp -r ./.tmp-pipeline/skills ./
 cp -r ./.tmp-pipeline/rules ./
 cp -r ./.tmp-pipeline/.pipeline ./
+cp -r ./.tmp-pipeline/.agents ./
 rm -rf ./.tmp-pipeline
 ```
 
