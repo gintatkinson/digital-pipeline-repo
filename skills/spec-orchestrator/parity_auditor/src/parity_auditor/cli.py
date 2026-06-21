@@ -13,6 +13,9 @@ from .validators.codebase import CodebaseValidator
 from .validators.docs import DocsValidator
 from .validators.dependency_validator import DependencyValidator
 from .validators.sync_validator import SyncValidator
+from .validators.schema_mapping_validator import SchemaMappingValidator
+from .validators.profile_scoping_validator import ProfileScopingValidator
+from .validators.test_completeness_validator import TestCompletenessValidator
 from .utils.diagnostics import serialize_diagnostics
 
 def main():
@@ -365,8 +368,42 @@ def main():
     else:
         print("Success: Out-of-Sync Backlog checks passed.")
         
+    print("\n=== Schema Mapping Validation ===")
+    schema_mapping_validator = SchemaMappingValidator()
+    schema_mapping_errors = schema_mapping_validator.validate(repo)
+    if schema_mapping_errors:
+        print("[!] Schema Mapping Violations Identified:")
+        for err in schema_mapping_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Schema mapping checks passed.")
+
+    print("\n=== Profile Scoping Validation ===")
+    profile_scoping_validator = ProfileScopingValidator()
+    profile_scoping_errors = profile_scoping_validator.validate(repo)
+    if profile_scoping_errors:
+        print("[!] Profile Scoping Violations Identified:")
+        for err in profile_scoping_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Profile scoping checks passed.")
+
+    print("\n=== Test Completeness Validation ===")
+    test_completeness_validator = TestCompletenessValidator()
+    test_completeness_errors = test_completeness_validator.validate(repo)
+    if test_completeness_errors:
+        print("[!] Test Completeness Violations Identified:")
+        for err in test_completeness_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Test completeness checks passed.")
+        
     if has_failed:
-        compiled_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or [])
+        compiled_errors = all_errors
         target_file = None
         snippet_content = None
         for err in compiled_errors:
