@@ -28,7 +28,12 @@ def get_open_feature_issues() -> list:
             text=True
         )
         if result.returncode == 0:
-            return json.loads(result.stdout)
+            issues = json.loads(result.stdout)
+            keywords = ["defect", "bug", "repro", "tooling"]
+            return [
+                issue for issue in issues
+                if not any(kw in issue.get("title", "").lower() for kw in keywords)
+            ]
         else:
             print(f"Warning: gh CLI exited with code {result.returncode}: {result.stderr.strip()}")
             return []
@@ -36,7 +41,7 @@ def get_open_feature_issues() -> list:
         print(f"Warning: Failed to run gh CLI to fetch open feature issues: {e}")
         return []
 
-def main():
+def _main_impl():
     parser = argparse.ArgumentParser(description="Model Coverage Parity Audit CLI")
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
@@ -430,37 +435,49 @@ def main():
         print("Success: Out-of-Sync Backlog checks passed.")
         
     print("\n=== Schema Mapping Validation ===")
-    schema_mapping_validator = SchemaMappingValidator()
-    schema_mapping_errors = schema_mapping_validator.validate(repo)
-    if schema_mapping_errors:
-        print("[!] Schema Mapping Violations Identified:")
-        for err in schema_mapping_errors:
-            print(f"  - {err}")
-        has_failed = True
+    if args.spec_only:
+        print("Note: Running in spec-only mode. Skipping Schema Mapping Validation.")
+        schema_mapping_errors = []
     else:
-        print("Success: Schema mapping checks passed.")
+        schema_mapping_validator = SchemaMappingValidator()
+        schema_mapping_errors = schema_mapping_validator.validate(repo)
+        if schema_mapping_errors:
+            print("[!] Schema Mapping Violations Identified:")
+            for err in schema_mapping_errors:
+                print(f"  - {err}")
+            has_failed = True
+        else:
+            print("Success: Schema mapping checks passed.")
 
     print("\n=== Profile Scoping Validation ===")
-    profile_scoping_validator = ProfileScopingValidator()
-    profile_scoping_errors = profile_scoping_validator.validate(repo)
-    if profile_scoping_errors:
-        print("[!] Profile Scoping Violations Identified:")
-        for err in profile_scoping_errors:
-            print(f"  - {err}")
-        has_failed = True
+    if args.spec_only:
+        print("Note: Running in spec-only mode. Skipping Profile Scoping Validation.")
+        profile_scoping_errors = []
     else:
-        print("Success: Profile scoping checks passed.")
+        profile_scoping_validator = ProfileScopingValidator()
+        profile_scoping_errors = profile_scoping_validator.validate(repo)
+        if profile_scoping_errors:
+            print("[!] Profile Scoping Violations Identified:")
+            for err in profile_scoping_errors:
+                print(f"  - {err}")
+            has_failed = True
+        else:
+            print("Success: Profile scoping checks passed.")
 
     print("\n=== Test Completeness Validation ===")
-    test_completeness_validator = TestCompletenessValidator()
-    test_completeness_errors = test_completeness_validator.validate(repo)
-    if test_completeness_errors:
-        print("[!] Test Completeness Violations Identified:")
-        for err in test_completeness_errors:
-            print(f"  - {err}")
-        has_failed = True
+    if args.spec_only:
+        print("Note: Running in spec-only mode. Skipping Test Completeness Validation.")
+        test_completeness_errors = []
     else:
-        print("Success: Test completeness checks passed.")
+        test_completeness_validator = TestCompletenessValidator()
+        test_completeness_errors = test_completeness_validator.validate(repo)
+        if test_completeness_errors:
+            print("[!] Test Completeness Violations Identified:")
+            for err in test_completeness_errors:
+                print(f"  - {err}")
+            has_failed = True
+        else:
+            print("Success: Test completeness checks passed.")
         
     if has_failed:
         all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or [])
@@ -490,16 +507,44 @@ def main():
             target_file=target_file,
             snippet_content=snippet_content
         )
-
-        upstream_repo = rules.meta.upstream_repository
-        if not upstream_repo:
-            raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json")
-        print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
-        print(f"    gh issue create --repo {upstream_repo} --title \"Tooling Bug: [Brief description]\" --body \"Context: UML/Coverage validation failed in downstream execution.\"")
         sys.exit(1)
     else:
         print("\nSuccess: All verification checks passed.")
         sys.exit(0)
+
+def main():
+    try:
+        _main_impl()
+    except SystemExit:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        upstream_repo = "gintatkinson/digital-pipeline-repo"
+        try:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            workspace_dir = None
+            curr = script_dir
+            while True:
+                if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+                    workspace_dir = curr
+                    break
+                parent = os.path.dirname(curr)
+                if parent == curr:
+                    break
+                curr = parent
+            if not workspace_dir:
+                workspace_dir = os.getcwd()
+            rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
+            if os.path.exists(rules_path):
+                with open(rules_path, "r", encoding="utf-8") as f:
+                    rules_data = json.load(f)
+                    upstream_repo = rules_data.get("meta", {}).get("upstream_repository", upstream_repo)
+        except Exception:
+            pass
+        print("\n[!] If you believe this failure is due to a bug or limitation in the pipeline tooling, please report it upstream:")
+        print(f"    gh issue create --repo {upstream_repo} --title \"Tooling Bug: [Brief description]\" --body \"Context: UML/Coverage validation failed in downstream execution.\"")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -40,7 +40,7 @@ classDiagram
 2. The execution agent captures the non-zero exit code.
 3. The agent checks if `allow_upstream_reporting` is enabled.
 4. The agent searches for the latest file under `.pipeline/diagnostics/`.
-5. The agent executes `gh issue create --repo gintatkinson/digital-pipeline-repo --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "feature"`.
+5. The agent executes `gh issue create --repo gintatkinson/digital-pipeline-repo --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"`.
 
 ### 4. Logical Exception States & Validation Failures
 1. If the downstream agent does not have GitHub CLI authorization, it prints the manual `gh issue create` command to the screen and fails.
