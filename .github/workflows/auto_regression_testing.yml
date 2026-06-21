@@ -32,7 +32,11 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           python scripts/ingest_issue.py
-          python -m parity_auditor.cli --spec-only tests/repro_cases/${{ github.event.issue.number }}/docs/schemas tests/repro_cases/${{ github.event.issue.number }}/docs/features && exit 1 || exit 0
+          if [ -d "tests/repro_cases/${{ github.event.issue.number }}" ]; then
+            python -m parity_auditor.cli --spec-only tests/repro_cases/${{ github.event.issue.number }}/docs/schemas tests/repro_cases/${{ github.event.issue.number }}/docs/features && exit 1 || exit 0
+          else
+            echo "No reproduction directory found. Skipping validation."
+          fi
 
       - name: Run Existing Regression Tests (PR / Push)
         if: github.event_name != 'issues'

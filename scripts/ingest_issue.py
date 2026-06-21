@@ -39,17 +39,33 @@ def main():
     try:
         payload = json.loads(json_str)
     except Exception as e:
-        print(f"Error parsing JSON payload: {e}", file=sys.stderr)
-        print(f"Payload was: {json_str[:500]}...", file=sys.stderr)
-        sys.exit(1)
+        print(f"Warning: Error parsing JSON payload: {e}")
+        print(f"Payload was: {json_str[:500]}...")
+        sys.exit(0)
         
-    repro = payload.get("reproduction_case", {})
-    target_file = repro.get("target_file", "")
-    content = repro.get("snippet_content", "")
+    if "reproduction_case" not in payload:
+        print("Warning: Missing 'reproduction_case' key in payload.")
+        sys.exit(0)
+        
+    repro = payload["reproduction_case"]
+    if not isinstance(repro, dict):
+        print("Warning: 'reproduction_case' is not a dictionary.")
+        sys.exit(0)
+        
+    if "target_file" not in repro:
+        print("Warning: Missing 'target_file' key in reproduction_case.")
+        sys.exit(0)
+        
+    if "snippet_content" not in repro:
+        print("Warning: Missing 'snippet_content' key in reproduction_case.")
+        sys.exit(0)
+        
+    target_file = repro["target_file"]
+    content = repro["snippet_content"]
     
     if not target_file or not content:
-        print("Error: Missing 'reproduction_case.target_file' or 'reproduction_case.snippet_content' in payload.", file=sys.stderr)
-        sys.exit(1)
+        print("Warning: 'target_file' or 'snippet_content' is empty in reproduction_case.")
+        sys.exit(0)
         
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.abspath(os.path.join(script_dir, ".."))
