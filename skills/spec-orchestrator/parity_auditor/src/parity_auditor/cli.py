@@ -18,6 +18,24 @@ from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
 from .utils.diagnostics import serialize_diagnostics
 
+def get_open_feature_issues() -> list:
+    import subprocess
+    import json
+    try:
+        result = subprocess.run(
+            ["gh", "issue", "list", "--state", "open", "--label", "feature", "--json", "number,title"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+        else:
+            print(f"Warning: gh CLI exited with code {result.returncode}: {result.stderr.strip()}")
+            return []
+    except Exception as e:
+        print(f"Warning: Failed to run gh CLI to fetch open feature issues: {e}")
+        return []
+
 def main():
     parser = argparse.ArgumentParser(description="Model Coverage Parity Audit CLI")
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
@@ -151,6 +169,31 @@ def main():
     features = repo.get_feature_files(features_dir)
     print(f"Loaded {len(features)} feature specifications.\n")
     
+    # Cross-reference local docs/features/ spec files against open feature issues fetched via gh CLI
+    open_issues = get_open_feature_issues()
+    missing_specs = []
+    for issue in open_issues:
+        issue_number = issue.get("number")
+        issue_title = issue.get("title", "")
+        found = False
+        for f in features:
+            basename = os.path.splitext(f.filename)[0]
+            numbers_in_filename = [int(x) for x in re.findall(r'\d+', basename)]
+            if issue_number in numbers_in_filename:
+                found = True
+                break
+            if f"#{issue_number}" in f.content or f"issue {issue_number}" in f.content.lower():
+                found = True
+                break
+        if not found:
+            missing_specs.append(f"Issue #{issue_number}: '{issue_title}'")
+            
+    if missing_specs:
+        print("[!] Missing local specification files for open feature issues:")
+        for spec in missing_specs:
+            print(f"  - {spec}")
+        sys.exit(1)
+    
     skip_coverage_checks = False
     if args.spec_only or not features:
         if args.spec_only:
@@ -204,6 +247,24 @@ def main():
                                     codebase_contents.append(f.read())
                             except Exception:
                                 pass
+
+        react_dir_exists = False
+        react_dir_name = rules.target_directories.react
+        if react_dir_name:
+            react_dir = os.path.join(repo.workspace_dir, react_dir_name)
+            if os.path.exists(react_dir):
+                react_dir_exists = True
+                
+        flutter_dir_exists = False
+        flutter_dir_name = rules.target_directories.flutter
+        if flutter_dir_name:
+            flutter_dir = os.path.join(repo.workspace_dir, flutter_dir_name)
+            if os.path.exists(flutter_dir):
+                flutter_dir_exists = True
+                
+        if (react_dir_exists or flutter_dir_exists) and not codebase_contents:
+            print("[!] Error: Target codebase directories exist but contain no source files.")
+            has_failed = True
 
         # Helper to generate variants for a name
         def get_variants(name: str) -> Set[str]:

@@ -35,7 +35,7 @@ class ProfileScopingValidator(IValidator):
         flutter_files = find_files(flutter_dir, flutter_rules.file_extensions, set(flutter_rules.exclusions))
         
         if not react_files and not flutter_files:
-            return []
+            return ["Profile Compliance: Codebase is empty. No source files found for profile validation."]
             
         if react_files:
             css_files = [f for f in react_files if f.endswith((".css", ".scss"))]

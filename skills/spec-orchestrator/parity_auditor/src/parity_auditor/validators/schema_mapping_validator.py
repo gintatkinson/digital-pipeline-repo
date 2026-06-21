@@ -24,7 +24,7 @@ class SchemaMappingValidator(IValidator):
         if not os.path.exists(schema_dir):
             return []
             
-        definitions = set()
+        definitions = {}
         for filename in os.listdir(schema_dir):
             filepath = os.path.join(schema_dir, filename)
             if os.path.isdir(filepath):
@@ -36,9 +36,6 @@ class SchemaMappingValidator(IValidator):
             except Exception:
                 pass
                 
-        if not definitions:
-            return []
-            
         codebase_files = []
         ui_files = []
         
@@ -64,28 +61,57 @@ class SchemaMappingValidator(IValidator):
                            codebase_files.append((filepath, is_ui))
                            if is_ui:
                                ui_files.append(filepath)
-                               
+                                 
         collect_files(react_dir, react_rules.file_extensions, react_exclusions, react_ui_dirs)
         collect_files(flutter_dir, flutter_rules.file_extensions, flutter_exclusions, flutter_ui_dirs)
         
         if not codebase_files:
+            return ["Schema Mapping: Codebase is empty. No source files found for validation."]
+            
+        if not definitions:
             return []
             
+        def strip_comments(content: str) -> str:
+            content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+            content = re.sub(r'//.*', '', content)
+            return content
+
         codebase_contents = []
         for filepath, is_ui in codebase_files:
             try:
                 with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-                    codebase_contents.append((filepath, f.read(), is_ui))
+                    raw_content = f.read()
+                    clean_content = strip_comments(raw_content)
+                    codebase_contents.append((filepath, clean_content, is_ui))
             except Exception:
                 pass
                 
         for name in sorted(definitions):
+            def_type = definitions[name]
             found_in_code = False
             found_in_ui = False
             
-            pattern = r'\b' + re.escape(name) + r'\b'
+            if def_type in ("container", "list", "grouping", "typedef", "identity"):
+                patterns = [
+                    r'\b(class|interface|type|enum|struct|mixin|extension)\s+' + re.escape(name) + r'\b'
+                ]
+            elif def_type in ("rpc", "action", "notification"):
+                patterns = [
+                    r'\bfunction\s+' + re.escape(name) + r'\b',
+                    r'\b' + re.escape(name) + r'\s*\([^)]*\)\s*(\{|=)',
+                    r'\b(void|int|double|num|bool|String|[A-Z][a-zA-Z0-9_<>]*)\s+' + re.escape(name) + r'\s*\('
+                ]
+            else:
+                patterns = [
+                    r'\b(let|const|var|final|late|dynamic)\s+[^=;]*\b' + re.escape(name) + r'\b',
+                    r'\b' + re.escape(name) + r'\s*\??\s*:',
+                    r'\b([A-Z][a-zA-Z0-9_<>]*|String|int|double|num|bool)\s+' + re.escape(name) + r'\b',
+                    r'\bthis\.' + re.escape(name) + r'\b'
+                ]
+            
             for filepath, content, is_ui in codebase_contents:
-                if re.search(pattern, content):
+                match = any(re.search(pat, content) for pat in patterns)
+                if match:
                     found_in_code = True
                     if is_ui:
                         found_in_ui = True

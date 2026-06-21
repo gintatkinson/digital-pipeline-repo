@@ -20,7 +20,7 @@ class TestCompletenessValidator(IValidator):
                     test_files.append(os.path.join(root, file))
                     
         if not test_files:
-            return []
+            return ["Test Completeness: No test files found in the workspace."]
             
         test_contents = []
         for f in test_files:

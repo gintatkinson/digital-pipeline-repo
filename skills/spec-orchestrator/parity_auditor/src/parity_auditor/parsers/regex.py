@@ -43,11 +43,13 @@ class RegexSchemaParser(IParser):
         patterns = config.get("patterns", [])
         schema_exclude_keywords = set(rules.validation_rules.schema_exclude_keywords)
 
-        definitions = set()
+        definitions = {}
         for pattern in patterns:
+            kw_match = re.search(r'\\b([a-zA-Z0-9_\-]+)\\s+', pattern)
+            def_type = kw_match.group(1) if kw_match else "unknown"
             for match in re.finditer(pattern, content):
                 name = match.group(1)
                 if name not in schema_exclude_keywords:
-                    definitions.add(name)
+                    definitions[name] = def_type
 
         return module_name, definitions
