@@ -201,3 +201,14 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
    - Update the Epic issue body on the active tracker provider with the completed task list.
    - Close the Epic issue on the active tracker provider, embedding a comment indicating successful completion.
 3. Delete the feature branch locally and remotely using the configured branch cleanup commands.
+
+## Error Recovery
+If a tool command (linter or reconciler) fails during implementation:
+1. **Do not proceed** to the next step.
+2. **Log the exact error** (stderr, exit code).
+3. **Automated Upstream Reporting**: If the step fails and you suspect it is due to a bug in the pipeline tooling, you MUST automatically file a bug report upstream:
+   - Locating the latest diagnostic payload JSON at `.pipeline/diagnostics/repro_payload_[timestamp].json`.
+   - Running the command:
+     `gh issue create --repo gintatkinson/digital-pipeline-repo --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"`
+4. Escalate to the user with the issue URL and error context.
+

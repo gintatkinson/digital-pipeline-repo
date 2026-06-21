@@ -11,6 +11,7 @@ from .validators.uml import UmlValidator
 from .validators.behavioral import BehavioralValidator
 from .validators.codebase import CodebaseValidator
 from .validators.docs import DocsValidator
+from .utils.diagnostics import serialize_diagnostics
 
 def main():
     parser = argparse.ArgumentParser(description="Model Coverage Parity Audit CLI")
@@ -339,6 +340,33 @@ def main():
         print("Success: Documentation consistency checks passed.")
         
     if has_failed:
+        compiled_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or [])
+        target_file = None
+        snippet_content = None
+        for err in compiled_errors:
+            match = re.search(r'docs/[a-zA-Z0-9_\-/]+\.md', err)
+            if match:
+                rel_path = match.group(0)
+                abs_path = os.path.join(workspace_dir, rel_path)
+                if os.path.exists(abs_path):
+                    target_file = rel_path
+                    try:
+                        with open(abs_path, "r", encoding="utf-8") as f:
+                            snippet_content = f.read()
+                    except Exception:
+                        pass
+                    break
+        
+        serialize_diagnostics(
+            workspace_dir=workspace_dir,
+            tool_name="parity_auditor",
+            exit_code=1,
+            errors=compiled_errors,
+            traceback_str="",
+            target_file=target_file,
+            snippet_content=snippet_content
+        )
+
         upstream_repo = rules.meta.upstream_repository
         if not upstream_repo:
             raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json")
