@@ -11,6 +11,8 @@ from .validators.uml import UmlValidator
 from .validators.behavioral import BehavioralValidator
 from .validators.codebase import CodebaseValidator
 from .validators.docs import DocsValidator
+from .validators.dependency_validator import DependencyValidator
+from .validators.sync_validator import SyncValidator
 from .utils.diagnostics import serialize_diagnostics
 
 def main():
@@ -339,8 +341,32 @@ def main():
     else:
         print("Success: Documentation consistency checks passed.")
         
+    print("\n=== Schema Dependency Validation ===")
+    dependency_validator = DependencyValidator()
+    dependency_errors = dependency_validator.validate(repo, schema_dir=schema_dir)
+    
+    if dependency_errors:
+        print("[!] Schema Dependency Violations Identified:")
+        for err in dependency_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Schema dependency checks passed.")
+        
+    print("\n=== Out-of-Sync Backlog Validation ===")
+    sync_validator = SyncValidator()
+    sync_errors = sync_validator.validate(repo)
+    
+    if sync_errors:
+        print("[!] Out-of-Sync Backlog Violations Identified:")
+        for err in sync_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Out-of-Sync Backlog checks passed.")
+        
     if has_failed:
-        compiled_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or [])
+        compiled_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or [])
         target_file = None
         snippet_content = None
         for err in compiled_errors:
