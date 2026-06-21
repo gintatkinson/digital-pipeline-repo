@@ -71,10 +71,14 @@ Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-se
 ---
 title: "[User Story Title]"
 type: "user-story"
+generation_mode: "subagent"
 spec_source: "[Spec Reference]"
 ---
 
 # User Story: [Title]
+
+## Parent Epic
+- [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
 
 ## Domain Object Mapping
 - **Primary Domain Objects:** [List affected structural schema entities]

@@ -59,10 +59,14 @@ Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separ
 ---
 title: "[Use Case Title]"
 type: "use-case"
+generation_mode: "subagent"
 spec_source: "[Spec Reference]"
 ---
 
 # Use Case: [Title]
+
+## Parent Epic
+- [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
 
 ## 1. Actors
 - **Primary Actor:** [Actor Name]

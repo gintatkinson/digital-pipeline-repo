@@ -39,3 +39,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 ## Atomic Work Execution & Walkthrough Gates
 - All tasks must be executed as atomic work packages. Once a specific set of changes (e.g. bug fixes or a feature) is implemented, verified, and committed, the agent MUST immediately generate a focused walkthrough for that atomic package and close the loop.
 - You are strictly forbidden from commingling unrelated or multi-phase tasks in a single cumulative walkthrough. Unrelated changes or follow-up tasks must be treated as separate atomic packages with their own implementation plans, git branches/commits, and walkthroughs.
+
+## Mandatory Upstream Tooling Bug Reporting
+- If a bug, edge case, or limitation is identified in the shared pipeline scripts (e.g., `verify_model_coverage.py`, `reconcile_backlog.py`), the executing agent is strictly required to file a corresponding defect report upstream on the `digital-pipeline-repo`.
+- Agents must not silently apply local-only patches to pipeline scripts without filing an upstream synchronization issue.

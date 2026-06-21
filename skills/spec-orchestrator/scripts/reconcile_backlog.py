@@ -306,14 +306,11 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
     placeholder = tracker_rules.get("issue_id_placeholder", "#[IssueID]")
     title_extraction_prefixes_regex = tracker_rules.get("title_extraction_prefixes_regex", r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?")
     
-    if placeholder not in content:
+    if placeholder not in content and "#[EpicIssueID]" not in content:
         return content
         
     lines = content.splitlines()
     updated = False
-    
-    # Escape placeholder for safe regex search
-    escaped_placeholder = re.escape(placeholder)
     
     section_context = None
     for i, line in enumerate(lines):
@@ -330,15 +327,18 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
             elif "epic" in header_text:
                 section_context = "epic"
                 
-        if placeholder not in line:
+        if placeholder not in line and "#[EpicIssueID]" not in line:
             continue
             
+        active_placeholder = placeholder if placeholder in line else "#[EpicIssueID]"
+        escaped_active = re.escape(active_placeholder)
+        
         title = None
         link_label_match = re.search(r'\[([^\]]+)\]\(', line)
         if link_label_match:
             title = link_label_match.group(1).strip()
         else:
-            pattern = escaped_placeholder + r'(?:\s*[-:]\s*)?' + title_extraction_prefixes_regex + r'(.*)$'
+            pattern = escaped_active + r'(?:\s*[-:]\s*)?' + title_extraction_prefixes_regex + r'(.*)$'
             dash_match = re.search(pattern, line)
             if dash_match:
                 title = dash_match.group(1).strip()
@@ -348,6 +348,8 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
         if title:
             norm = normalize_title(title, rules)
             type_context = resolve_type_context(line, filepath, section_context)
+            if active_placeholder == "#[EpicIssueID]":
+                type_context = "epic"
             issue_num = None
             if type_context == "epic":
                 issue_num = epic_titles.get(norm)
@@ -366,11 +368,11 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
                              
             if issue_num:
                 ref_str = format_issue_reference(issue_num, tracker_rules)
-                lines[i] = line.replace(placeholder, ref_str)
+                lines[i] = line.replace(active_placeholder, ref_str)
                 updated = True
-                print(f"  [Resolve ID] Resolved {placeholder} to {ref_str} for '{title}' (type: {type_context}) in {os.path.basename(filepath)}")
+                print(f"  [Resolve ID] Resolved {active_placeholder} to {ref_str} for '{title}' (type: {type_context}) in {os.path.basename(filepath)}")
             else:
-                print(f"  [Warning] Could not resolve {placeholder} for title '{title}' in {os.path.basename(filepath)}")
+                print(f"  [Warning] Could not resolve {active_placeholder} for title '{title}' in {os.path.basename(filepath)}")
                 
     if updated:
         new_content = "\n".join(lines) + "\n"
@@ -517,7 +519,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         new_lines.extend(final_usecases)
         
         if idx_stories != -1:
-            new_lines.extend(lines[end_usecases - len(existing_usecases) : idx_stories + 1])
+            new_lines.extend(lines[idx_usecases + 1 + len(existing_usecases) : idx_stories + 1])
         else:
             new_lines.append("")
             new_lines.append(f"{indent}#### Associated User Stories")

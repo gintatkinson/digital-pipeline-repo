@@ -585,6 +585,17 @@ class UmlValidator(IValidator):
             diagram_body = match.group(1)
             diagram_full = match.group(0)
             
+            # Issue 17: Flag curly braces conflict
+            for line_idx, line in enumerate(diagram_body.splitlines()):
+                line_strip = line.strip()
+                if not line_strip:
+                    continue
+                if "{" in line_strip or "}" in line_strip:
+                    is_block_start = re.match(r'^(class|namespace)\s+[a-zA-Z0-9_\-.:]+\s*\{', line_strip, re.IGNORECASE)
+                    is_block_end = (line_strip == "}")
+                    if not is_block_start and not is_block_end:
+                        errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.")
+
             if not re.search(relationship_connectors, diagram_body):
                 errors.append(f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
                 

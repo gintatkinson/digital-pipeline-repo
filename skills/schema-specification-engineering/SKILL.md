@@ -87,6 +87,7 @@ For each cohesive functional feature group identified during the decomposition (
    epic: "[Parent Epic]"
    type: "feature"
    interface_type: "ui" # Options: ui, api, m2m
+   generation_mode: "subagent"
    labels: ["feature", "<domain-name>"]
    ---
    ```
@@ -94,6 +95,13 @@ For each cohesive functional feature group identified during the decomposition (
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ```markdown
+    ---
+    title: "[Epic Title]"
+    type: "epic"
+    generation_mode: "subagent"
+    spec_source: "Project Constitution"
+    ---
+
     # Epic: [Epic Title]
 
     ## 1. Context
@@ -160,7 +168,18 @@ For each cohesive functional feature group identified during the decomposition (
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
    ```markdown
+   ---
+   title: "[Feature Title]"
+   type: "feature"
+   interface_type: "ui" # Options: ui, api, m2m
+   generation_mode: "subagent"
+   spec_source: "Project Constitution"
+   ---
+
    # Feature: [Feature Title]
+
+   ## Parent Epic
+   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
 
    ## Description
    [Functional description of the feature]
