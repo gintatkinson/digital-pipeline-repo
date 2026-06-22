@@ -43,3 +43,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 ## Mandatory Upstream Tooling Bug Reporting
 - If a bug, edge case, or limitation is identified in the shared pipeline scripts (e.g., `verify_model_coverage.py`, `reconcile_backlog.py`), the executing agent is strictly required to file a corresponding defect report upstream on the `digital-pipeline-repo`.
 - Agents must not silently apply local-only patches to pipeline scripts without filing an upstream synchronization issue.
+
+## Mandatory Subagent Termination & Cleanup
+- The coordinator MUST immediately terminate any spawned subagents using the `manage_subagents` tool (action `kill` or `kill_all`) once the subagent's task has been completed and the work is integrated.
+- Subagents are strictly forbidden from being left in an idle or dormant state upon completion of their atomic work package to prevent resource consumption and potential conflicts.
