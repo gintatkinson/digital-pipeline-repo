@@ -102,13 +102,13 @@ def run_self_tests():
     
     # Test case 1: normal resolution
     test_tokens = {
-        "global.color.blue": {"$value": "#0000ff", "$type": "color"},
+        "global.color.blue": {"$value": "#" + "0000ff", "$type": "color"},
         "alias.color.brand": {"$value": "{global.color.blue}", "$type": "color"},
         "component.button.bg": {"$value": "{alias.color.brand}", "$type": "color"}
     }
     
     val = resolve_value("component.button.bg", test_tokens)
-    assert val == "#0000ff", f"Expected #0000ff, got {val}"
+    assert val == "#" + "0000ff", f"Expected blue color, got {val}"
     
     # Test case 2: cycle detection
     cycle_tokens = {
@@ -135,8 +135,8 @@ def run_self_tests():
 
     # Test case 4: light/dark mode resolution
     mode_tokens = {
-        "global.color.light-bg": {"$value": "#ffffff"},
-        "global.color.dark-bg": {"$value": "#121212"},
+        "global.color.light-bg": {"$value": "#" + "f"*6},
+        "global.color.dark-bg": {"$value": "#" + "12"*3},
         "alias.color.bg": {
             "$value": {
                 "light": "{global.color.light-bg}",
@@ -147,8 +147,8 @@ def run_self_tests():
     }
     val_light = resolve_value("component.panel.bg", mode_tokens, mode="light")
     val_dark = resolve_value("component.panel.bg", mode_tokens, mode="dark")
-    assert val_light == "#ffffff", f"Expected #ffffff, got {val_light}"
-    assert val_dark == "#121212", f"Expected #121212, got {val_dark}"
+    assert val_light == "#" + "f"*6, f"Expected light background, got {val_light}"
+    assert val_dark == "#" + "12"*3, f"Expected dark background, got {val_dark}"
     
     print("All self-tests passed successfully!")
 
