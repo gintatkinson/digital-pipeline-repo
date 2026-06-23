@@ -353,8 +353,8 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
       }
     });
 
-    if (canvas.parentElement) {
-      resizeObserver.observe(canvas.parentElement);
+    if (canvas) {
+      resizeObserver.observe(canvas);
     }
 
     return () => {
@@ -386,7 +386,7 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
       }}
     >
       {/* Canvas Viewport container */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'auto' }}>
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
@@ -394,6 +394,8 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
             display: 'block',
             width: '100%',
             height: '100%',
+            minWidth: '800px',
+            minHeight: '500px',
             cursor: 'pointer',
           }}
         />
