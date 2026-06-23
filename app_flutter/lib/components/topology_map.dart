@@ -268,50 +268,61 @@ class _TopologyMapState extends State<TopologyMap>
   Widget build(BuildContext context) {
     final TopologyData activeData = widget.data ?? defaultTopologyData;
 
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double viewportWidth =
-            constraints.maxWidth.isFinite ? constraints.maxWidth : 800.0;
-        final double viewportHeight =
-            constraints.maxHeight.isFinite ? constraints.maxHeight : 500.0;
-        final double width = viewportWidth > 800.0 ? viewportWidth : 800.0;
-        final double height = viewportHeight > 500.0 ? viewportHeight : 500.0;
+    return Theme(
+      data: ThemeData.dark().copyWith(
+        scrollbarTheme: ScrollbarThemeData(
+          thumbColor: WidgetStateProperty.all(const Color(0x80FFFFFF)),
+          trackColor: WidgetStateProperty.all(const Color(0x14FFFFFF)),
+          trackVisibility: WidgetStateProperty.all(true),
+          thickness: WidgetStateProperty.all(8.0),
+          radius: const Radius.circular(4.0),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double viewportWidth =
+              constraints.maxWidth.isFinite ? constraints.maxWidth : 800.0;
+          final double viewportHeight =
+              constraints.maxHeight.isFinite ? constraints.maxHeight : 500.0;
+          final double width = viewportWidth > 800.0 ? viewportWidth : 800.0;
+          final double height = viewportHeight > 500.0 ? viewportHeight : 500.0;
 
-        return Container(
-          color: const Color(0xFF0F172A),
-          child: Column(
-            children: <Widget>[
-              // Scrollable Canvas Viewport
-              Expanded(
-                child: Scrollbar(
-                  controller: _verticalController,
-                  thumbVisibility: true,
-                  notificationPredicate: (ScrollNotification notification) =>
-                      notification.depth == 0,
-                  child: SingleChildScrollView(
+          return Container(
+            color: const Color(0xFF0F172A),
+            child: Column(
+              children: <Widget>[
+                // Scrollable Canvas Viewport
+                Expanded(
+                  child: Scrollbar(
                     controller: _verticalController,
-                    scrollDirection: Axis.vertical,
-                    child: Scrollbar(
-                      controller: _horizontalController,
-                      thumbVisibility: true,
-                      notificationPredicate: (ScrollNotification notification) =>
-                          notification.depth == 0,
-                      child: SingleChildScrollView(
+                    thumbVisibility: true,
+                    notificationPredicate: (ScrollNotification notification) =>
+                        notification.depth == 0,
+                    child: SingleChildScrollView(
+                      controller: _verticalController,
+                      scrollDirection: Axis.vertical,
+                      child: Scrollbar(
                         controller: _horizontalController,
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: width,
-                          height: height,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTapUp: (TapUpDetails details) =>
-                                _handleTap(details, width, height),
-                            child: CustomPaint(
-                              size: Size(width, height),
-                              painter: TopologyPainter(
-                                activeFocusedNode: widget.activeFocusedNode,
-                                activeData: activeData,
-                                currentTimeIndex: currentTimeIndex,
+                        thumbVisibility: true,
+                        notificationPredicate: (ScrollNotification notification) =>
+                            notification.depth == 0,
+                        child: SingleChildScrollView(
+                          controller: _horizontalController,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: width,
+                            height: height,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTapUp: (TapUpDetails details) =>
+                                  _handleTap(details, width, height),
+                              child: CustomPaint(
+                                size: Size(width, height),
+                                painter: TopologyPainter(
+                                  activeFocusedNode: widget.activeFocusedNode,
+                                  activeData: activeData,
+                                  currentTimeIndex: currentTimeIndex,
+                                ),
                               ),
                             ),
                           ),
@@ -320,140 +331,140 @@ class _TopologyMapState extends State<TopologyMap>
                     ),
                   ),
                 ),
-              ),
-              // Playback Scrubber Panel
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0F172A),
-                  border: Border(
-                    top: BorderSide(color: Color(0xFF1E293B), width: 1.0),
-                  ),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    // Play/Pause button
-                    ElevatedButton(
-                      key: const ValueKey<String>('playPauseButton'),
-                      onPressed: togglePlayback,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isPlaying
-                            ? const Color(0xFFEF4444)
-                            : const Color(0xFF3B82F6),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.0)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12.0, vertical: 6.0),
-                        minimumSize: const Size(70, 32),
-                      ),
-                      child: Text(
-                        isPlaying ? 'Pause' : 'Play',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 13.0),
-                      ),
+                // Playback Scrubber Panel
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0F172A),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFF1E293B), width: 1.0),
                     ),
-                    const SizedBox(width: 16.0),
-                    // Current time index display
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        const Text(
-                          't:',
-                          style:
-                              TextStyle(color: Color(0xFF94A3B8), fontSize: 13.0),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      // Play/Pause button
+                      ElevatedButton(
+                        key: const ValueKey<String>('playPauseButton'),
+                        onPressed: togglePlayback,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isPlaying
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFF3B82F6),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.0)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 6.0),
+                          minimumSize: const Size(70, 32),
                         ),
-                        const SizedBox(width: 8.0),
-                        SizedBox(
-                          width: 32.0,
-                          child: Text(
-                            currentTimeIndex.toStringAsFixed(1),
-                            style: const TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.0,
+                        child: Text(
+                          isPlaying ? 'Pause' : 'Play',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13.0),
+                        ),
+                      ),
+                      const SizedBox(width: 16.0),
+                      // Current time index display
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const Text(
+                            't:',
+                            style:
+                                TextStyle(color: Color(0xFF94A3B8), fontSize: 13.0),
+                          ),
+                          const SizedBox(width: 8.0),
+                          SizedBox(
+                            width: 32.0,
+                            child: Text(
+                              currentTimeIndex.toStringAsFixed(1),
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13.0,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16.0),
-                    // Timeline Slider
-                    Expanded(
-                      child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 6.0,
-                          activeTrackColor: const Color(0xFF3B82F6),
-                          inactiveTrackColor: const Color(0xFF1E293B),
-                          thumbColor: const Color(0xFF3B82F6),
-                          overlayColor: const Color(0x293B82F6),
-                        ),
-                        child: Slider(
-                          key: const ValueKey<String>('timeSlider'),
-                          min: 1.0,
-                          max: 10.0,
-                          divisions: 90,
-                          value: currentTimeIndex,
-                          onChanged: (double value) {
-                            setPlayhead(value);
-                          },
-                        ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 16.0),
-                    // Speed dropdown
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        const Text(
-                          'Speed:',
-                          style:
-                              TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0),
-                        ),
-                        const SizedBox(width: 6.0),
-                        Theme(
-                          data: Theme.of(context).copyWith(
-                            canvasColor: const Color(0xFF1E293B),
+                      const SizedBox(width: 16.0),
+                      // Timeline Slider
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 6.0,
+                            activeTrackColor: const Color(0xFF3B82F6),
+                            inactiveTrackColor: const Color(0xFF1E293B),
+                            thumbColor: const Color(0xFF3B82F6),
+                            overlayColor: const Color(0x293B82F6),
                           ),
-                          child: DropdownButton<double>(
-                            key: const ValueKey<String>('speedDropdown'),
-                            value: playbackSpeedMultiplier,
-                            underline: const SizedBox.shrink(),
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: Color(0xFF94A3B8)),
-                            style: const TextStyle(
-                                color: Color(0xFFF8FAFC), fontSize: 12.0),
-                            items: const <DropdownMenuItem<double>>[
-                              DropdownMenuItem<double>(
-                                  value: 0.5, child: Text('0.5x')),
-                              DropdownMenuItem<double>(
-                                  value: 1.0, child: Text('1.0x')),
-                              DropdownMenuItem<double>(
-                                  value: 2.0, child: Text('2.0x')),
-                              DropdownMenuItem<double>(
-                                  value: 5.0, child: Text('5.0x')),
-                            ],
-                            onChanged: (double? value) {
-                              if (value != null) {
-                                setState(() {
-                                  playbackSpeedMultiplier = value;
-                                });
-                              }
+                          child: Slider(
+                            key: const ValueKey<String>('timeSlider'),
+                            min: 1.0,
+                            max: 10.0,
+                            divisions: 90,
+                            value: currentTimeIndex,
+                            onChanged: (double value) {
+                              setPlayhead(value);
                             },
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(width: 16.0),
+                      // Speed dropdown
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const Text(
+                            'Speed:',
+                            style:
+                                TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0),
+                          ),
+                          const SizedBox(width: 6.0),
+                          Theme(
+                            data: Theme.of(context).copyWith(
+                              canvasColor: const Color(0xFF1E293B),
+                            ),
+                            child: DropdownButton<double>(
+                              key: const ValueKey<String>('speedDropdown'),
+                              value: playbackSpeedMultiplier,
+                              underline: const SizedBox.shrink(),
+                              icon: const Icon(Icons.arrow_drop_down,
+                                  color: Color(0xFF94A3B8)),
+                              style: const TextStyle(
+                                  color: Color(0xFFF8FAFC), fontSize: 12.0),
+                              items: const <DropdownMenuItem<double>>[
+                                DropdownMenuItem<double>(
+                                    value: 0.5, child: Text('0.5x')),
+                                DropdownMenuItem<double>(
+                                    value: 1.0, child: Text('1.0x')),
+                                DropdownMenuItem<double>(
+                                    value: 2.0, child: Text('2.0x')),
+                                DropdownMenuItem<double>(
+                                    value: 5.0, child: Text('5.0x')),
+                              ],
+                              onChanged: (double? value) {
+                                if (value != null) {
+                                  setState(() {
+                                    playbackSpeedMultiplier = value;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
