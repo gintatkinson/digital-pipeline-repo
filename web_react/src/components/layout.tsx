@@ -686,7 +686,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 }}
               />
               {/* Fallback to render children if passed directly */}
-              {children && <div style={{ padding: '24px' }}>{children}</div>}
+              {children && <div style={{ padding: '24px', overflowY: 'auto', flex: 1, minHeight: 0 }}>{children}</div>}
             </div>
           </div>
         );
