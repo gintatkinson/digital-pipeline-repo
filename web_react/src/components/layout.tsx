@@ -231,7 +231,7 @@ export const Layout: React.FC<LayoutProps> = ({
     if (containerRef.current) {
       containerRef.current.classList.add('dragging');
     }
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -253,7 +253,7 @@ export const Layout: React.FC<LayoutProps> = ({
     if (containerRef.current) {
       containerRef.current.classList.remove('dragging');
     }
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
   const handleSidebarPointerDown = (e: React.PointerEvent) => {
@@ -262,7 +262,7 @@ export const Layout: React.FC<LayoutProps> = ({
     if (containerRef.current) {
       containerRef.current.classList.add('dragging-sidebar');
     }
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handleSidebarPointerMove = (e: React.PointerEvent) => {
@@ -282,7 +282,7 @@ export const Layout: React.FC<LayoutProps> = ({
     if (containerRef.current) {
       containerRef.current.classList.remove('dragging-sidebar');
     }
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
   // Keyboard navigation handler (HierarchyTreeSelector realizing properties)
