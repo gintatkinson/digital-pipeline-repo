@@ -567,3 +567,55 @@
   background-color: rgba(128, 128, 128, 0.02);
 }
 
+/* Theme Selector Styling */
+.theme-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.theme-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+.theme-select {
+  flex-grow: 1;
+  background-color: var(--terminal-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.theme-select:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* Tree Node Icon Styling */
+.tree-node-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.tree-node.active .tree-node-icon {
+  color: rgb(255, 255, 255);
+}
+
+

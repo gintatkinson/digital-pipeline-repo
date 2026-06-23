@@ -44,6 +44,28 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
+const getNodeIconPath = (node: TreeNode, isParent: boolean): string => {
+  if (isParent) {
+    return 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z';
+  }
+  switch (node.id) {
+    case 'Ingestion':
+      return 'M8 5v14l11-7z';
+    case 'Metrics':
+      return 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0-2 .9-2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0 4H7v-2h10v2zm0-8H7V7h10v2z';
+    case 'Location':
+      return 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z';
+    case 'Chassis':
+      return 'M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z';
+    case 'Epics':
+      return 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-12c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z';
+    case 'Traceability':
+      return 'M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z';
+    default:
+      return '';
+  }
+};
+
 const treeData: TreeNode[] = [
   { id: 'Ingestion', label: 'Ingestion' },
   {
@@ -103,6 +125,38 @@ export const Layout: React.FC<LayoutProps> = ({
 
   // TabbedContainer state (switching tables)
   const [activeTabId, setActiveTabId] = useState<string>('sub_elements_table');
+
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'system');
+
+  useEffect(() => {
+    const updateTheme = () => {
+      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    };
+
+    updateTheme();
+    localStorage.setItem('theme', theme);
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = (e: MediaQueryListEvent) => {
+        const isDark = e.matches;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      };
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', listener);
+      } else {
+        mediaQuery.addListener(listener);
+      }
+      return () => {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener('change', listener);
+        } else {
+          mediaQuery.removeListener(listener);
+        }
+      };
+    }
+  }, [theme]);
 
   // Expand parent hierarchy programmatically when activeView / currentView changes
   useEffect(() => {
@@ -273,6 +327,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const isSelected = currentView === node.id;
     const isParent = !!(node.children && node.children.length > 0);
     const isExpanded = expanded[node.id];
+    const iconPath = getNodeIconPath(node, isParent);
 
     return (
       <li
@@ -304,6 +359,11 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
           ) : (
             <span style={{ width: '16px', display: 'inline-block' }} />
+          )}
+          {iconPath && (
+            <svg className="tree-node-icon" viewBox="0 0 24 24">
+              <path d={iconPath} />
+            </svg>
           )}
           <span className="tree-node-label">{node.label}</span>
         </div>
@@ -513,6 +573,20 @@ export const Layout: React.FC<LayoutProps> = ({
               <div className="worker-status">
                 <span className="status-dot pulsing"></span>
                 <span>Worker: {workerResult !== null ? workerResult : 'Idle'}</span>
+              </div>
+              <div className="theme-selector-container">
+                <svg className="theme-icon" viewBox="0 0 24 24">
+                  <path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm1 17.93V4.07a8 8 0 0 1 0 15.86z" />
+                </svg>
+                <select
+                  className="theme-select"
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="system">System</option>
+                </select>
               </div>
             </div>
           </aside>
