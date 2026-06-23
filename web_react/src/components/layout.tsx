@@ -1,3 +1,29 @@
+/**
+ * @realizes UML::Layout
+ * Properties:
+ * - activeView: String
+ * - splitterHeight: Integer
+ * - onViewChange: Function
+ *
+ * @realizes UML::HierarchyTreeSelector
+ * Properties:
+ * - onNodeSelect: Function
+ * - handleKeyboardNavigation: Function
+ *
+ * @realizes UML::ResizableSplitter
+ * Properties:
+ * - axis: String
+ * - defaultRatio: Real
+ * - minSizePixels: Integer
+ *
+ * @realizes UML::TabbedContainer
+ * Properties:
+ * - activeTab: String
+ *
+ * @realizes UML::TableView
+ * Properties:
+ * - tableId: String
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import './layout.css';
 
