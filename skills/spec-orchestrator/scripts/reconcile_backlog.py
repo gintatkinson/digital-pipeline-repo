@@ -553,6 +553,8 @@ def find_workspace_dir(start_path):
     return os.path.abspath(start_path)
 
 def main():
+    if "GITHUB_TOKEN" in os.environ and "dummytoken" in os.environ["GITHUB_TOKEN"]:
+        del os.environ["GITHUB_TOKEN"]
     script_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_dir = find_workspace_dir(script_dir)
 

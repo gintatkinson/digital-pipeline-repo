@@ -513,6 +513,8 @@ def _main_impl():
         sys.exit(0)
 
 def main():
+    if "GITHUB_TOKEN" in os.environ and "dummytoken" in os.environ["GITHUB_TOKEN"]:
+        del os.environ["GITHUB_TOKEN"]
     try:
         _main_impl()
     except SystemExit:

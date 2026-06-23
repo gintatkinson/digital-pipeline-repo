@@ -280,7 +280,7 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
 
       if (isFocused) {
         ctx.fillStyle = '#3b82f6';
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2.5;
       } else {
         ctx.fillStyle = node.status === 'Active' ? '#10b981' : '#f59e0b';
@@ -311,6 +311,7 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
 
   // Click handler to select node on canvas click
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -415,7 +416,7 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
           onClick={togglePlayback}
           style={{
             backgroundColor: isPlaying ? '#ef4444' : '#3b82f6',
-            color: '#ffffff',
+            color: '#fff',
             border: 'none',
             borderRadius: '4px',
             padding: '6px 12px',

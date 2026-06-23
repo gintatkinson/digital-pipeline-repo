@@ -114,7 +114,7 @@ export const NavigationBreadcrumbs: React.FC<BreadcrumbsProps> = ({
                   className="breadcrumb-current"
                   style={{
                     fontWeight: 600,
-                    color: 'var(--text-primary, #f1f3f4)',
+                    color: 'var(--text-primary, var(--alias-color-surface, #eee))',
                     fontSize: '13px',
                   }}
                   aria-current="page"
@@ -130,7 +130,7 @@ export const NavigationBreadcrumbs: React.FC<BreadcrumbsProps> = ({
                     border: 'none',
                     padding: 0,
                     cursor: 'pointer',
-                    color: 'var(--accent-color, #1a73e8)',
+                    color: 'var(--accent-color, var(--alias-color-brand-primary, #0056b3))',
                     fontSize: '13px',
                     textDecoration: 'none',
                     fontWeight: 500,

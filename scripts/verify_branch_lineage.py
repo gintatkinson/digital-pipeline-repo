@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+import os
 import subprocess
 import sys
 
 def main():
+    if "GITHUB_TOKEN" in os.environ and "dummytoken" in os.environ["GITHUB_TOKEN"]:
+        del os.environ["GITHUB_TOKEN"]
     try:
         # Fetch remote branches
         subprocess.run(["git", "fetch", "origin"], check=True)
