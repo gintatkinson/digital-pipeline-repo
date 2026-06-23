@@ -115,6 +115,8 @@ export const Layout: React.FC<LayoutProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [splitterHeight, setSplitterHeight] = useState<number>(350);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(240);
+  const [isSidebarDragging, setIsSidebarDragging] = useState<boolean>(false);
   const [workerResult, setWorkerResult] = useState<number | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -250,6 +252,35 @@ export const Layout: React.FC<LayoutProps> = ({
     setIsDragging(false);
     if (containerRef.current) {
       containerRef.current.classList.remove('dragging');
+    }
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  const handleSidebarPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setIsSidebarDragging(true);
+    if (containerRef.current) {
+      containerRef.current.classList.add('dragging-sidebar');
+    }
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleSidebarPointerMove = (e: React.PointerEvent) => {
+    if (!isSidebarDragging || !containerRef.current) return;
+    e.stopPropagation();
+    const rect = containerRef.current.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+
+    // Boundary checks: Keep within 150px and container width - 300px
+    const newWidth = Math.max(150, Math.min(relativeX, rect.width - 300));
+    setSidebarWidth(newWidth);
+  };
+
+  const handleSidebarPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setIsSidebarDragging(false);
+    if (containerRef.current) {
+      containerRef.current.classList.remove('dragging-sidebar');
     }
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
@@ -545,6 +576,14 @@ export const Layout: React.FC<LayoutProps> = ({
         return (
           <div className="layout-container" ref={containerRef}>
             {sidebarChild && renderComponent(sidebarChild)}
+            <div
+              className="vertical-splitter-bar"
+              onPointerDown={handleSidebarPointerDown}
+              onPointerMove={handleSidebarPointerMove}
+              onPointerUp={handleSidebarPointerUp}
+            >
+              <div className="vertical-splitter-handle"></div>
+            </div>
             {splitWorkspaceChild && renderComponent(splitWorkspaceChild)}
           </div>
         );
@@ -552,7 +591,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
       case 'HierarchyTreeSelector': {
         return (
-          <aside className="sidebar-nav" key={node.id}>
+          <aside className="sidebar-nav" key={node.id} style={{ width: `${sidebarWidth}px` }}>
             <div className="sidebar-header">
               <svg className="outline-svg brand-icon" viewBox="0 0 24 24">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />

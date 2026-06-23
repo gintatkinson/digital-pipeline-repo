@@ -618,4 +618,37 @@
   color: rgb(255, 255, 255);
 }
 
+/* Vertical Splitter Resizing styling */
+.vertical-splitter-bar {
+  width: 8px;
+  background-color: var(--border-color);
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  transition: background-color 0.2s;
+  user-select: none;
+}
+
+.vertical-splitter-bar:hover,
+.layout-container.dragging-sidebar .vertical-splitter-bar {
+  background-color: var(--accent-color);
+}
+
+.vertical-splitter-handle {
+  width: 3px;
+  height: 40px;
+  background-color: var(--text-secondary);
+  border-radius: 1.5px;
+  opacity: 0.6;
+}
+
+.vertical-splitter-bar:hover .vertical-splitter-handle,
+.layout-container.dragging-sidebar .vertical-splitter-handle {
+  background-color: var(--text-primary);
+  opacity: 1;
+}
+
 
