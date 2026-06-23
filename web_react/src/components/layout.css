@@ -1,26 +1,41 @@
+@import "../../../.pipeline/logical-ui/design-tokens.css";
+
 /* Sleek Dark Mode & Glassmorphism Design System */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
+* {
+  box-sizing: border-box;
+}
+
 :root {
-  --bg-color: hsl(222, 25%, 8%);
-  --sidebar-bg: hsl(222, 25%, 12%);
-  --pane-bg: hsla(222, 25%, 15%, 0.65);
-  --border-color: hsla(210, 20%, 30%, 0.25);
-  --text-primary: hsl(210, 20%, 98%);
-  --text-secondary: hsl(210, 15%, 75%);
-  --accent-color: hsl(210, 100%, 60%);
-  --accent-glow: hsla(210, 100%, 60%, 0.2);
-  --success-color: hsl(150, 80%, 45%);
-  --terminal-bg: hsl(222, 30%, 5%);
+  --bg-color: var(--alias-color-background);
+  --sidebar-bg: var(--alias-color-surface);
+  --pane-bg: var(--alias-color-surface);
+  --border-color: rgba(128, 128, 128, 0.2);
+  --text-primary: rgb(18, 18, 18);
+  --text-secondary: #5f6368;
+  --accent-color: var(--alias-color-brand-primary);
+  --accent-glow: rgba(26, 115, 232, 0.2);
+  --success-color: #1e8e3e;
+  --terminal-bg: #f8f9fa;
+  --font-family: var(--alias-typography-font-family);
+  --sidebar-width: var(--alias-spacing-layout-sidebar-width);
+}
+
+[data-theme="dark"] {
+  --text-primary: rgb(241, 243, 244);
+  --text-secondary: #9aa0a6;
+  --terminal-bg: rgb(18, 18, 18);
 }
 
 .layout-container {
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
   background-color: var(--bg-color);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-family);
   overflow: hidden;
 }
 
@@ -28,7 +43,7 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  width: 260px;
+  width: var(--sidebar-width);
   background-color: var(--sidebar-bg);
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -415,7 +430,140 @@
 
 #root {
   display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
+
+/* Hierarchy Tree List */
+.tree-list,
+.tree-child-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tree-child-list {
+  padding-left: 16px;
+}
+
+.tree-node {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-node.parent {
+  font-weight: 500;
+}
+
+.tree-node.leaf {
+  font-weight: 400;
+}
+
+.tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+  font-size: 13px;
+  min-height: 28px;
+  color: var(--text-secondary);
+}
+
+.tree-node-content:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+  color: var(--text-primary);
+}
+
+.tree-node.active > .tree-node-content {
+  background-color: var(--accent-color);
+  color: rgb(255, 255, 255);
+}
+
+.tree-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Tab Bar Selectors */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background-color: hsla(222, 25%, 10%, 0.1);
+}
+
+.tab-item {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-item:hover {
+  color: var(--text-primary);
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+.tab-item.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* High-Density Tables */
+.hd-table-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.hd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.hd-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 6px 8px;
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+.hd-table tr {
+  min-height: 32px;
+  height: 32px;
+}
+
+.hd-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.hd-table tr:hover {
+  background-color: rgba(128, 128, 128, 0.02);
+}
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Layout } from './layout';
 import { PropertyGrid } from './property-grid';
 import {
@@ -127,6 +127,42 @@ describe('UI Layout & PropertyGrid Components', () => {
   it('renders PropertyGrid and triggers onBlur validation', () => {
     render(<PropertyGrid activeView="Location" />);
     // Just verify that rendering completes without error
+  });
+
+  it('verifies tab switching logic in bottom pane TabbedContainer', () => {
+    render(
+      <Layout activeView="Ingestion">
+        <div>Child Content</div>
+      </Layout>
+    );
+    // Initially, Items tab is active
+    expect(screen.getByTestId('items-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-table')).not.toBeInTheDocument();
+
+    // Click on Status tab
+    const statusTabButton = screen.getByRole('tab', { name: 'Status' });
+    fireEvent.click(statusTabButton);
+    expect(screen.getByTestId('status-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('items-table')).not.toBeInTheDocument();
+
+    // Click on Activity tab
+    const activityTabButton = screen.getByRole('tab', { name: 'Activity' });
+    fireEvent.click(activityTabButton);
+    expect(screen.getByTestId('activity-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-table')).not.toBeInTheDocument();
+  });
+
+  it('asserts computed styles using window.getComputedStyle on layout elements', () => {
+    const { container } = render(
+      <Layout activeView="Ingestion">
+        <div>Child Content</div>
+      </Layout>
+    );
+    const topPane = container.querySelector('.top-pane') as HTMLElement;
+    expect(topPane).toBeInTheDocument();
+    
+    const styles = window.getComputedStyle(topPane);
+    expect(styles.height).toBe('350px');
   });
 });
 
