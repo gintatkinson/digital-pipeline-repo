@@ -119,6 +119,9 @@ export const Layout: React.FC<LayoutProps> = ({
   const [isSidebarDragging, setIsSidebarDragging] = useState<boolean>(false);
   const [workerResult, setWorkerResult] = useState<number | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const [topoMapHeight, setTopoMapHeight] = useState<number>(200);
+  const [isTopoDragging, setIsTopoDragging] = useState<boolean>(false);
+  const topoContainerRef = useRef<HTMLDivElement>(null);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     Monitoring: true,
@@ -282,6 +285,29 @@ export const Layout: React.FC<LayoutProps> = ({
     if (containerRef.current) {
       containerRef.current.classList.remove('dragging-sidebar');
     }
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  const handleTopoPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setIsTopoDragging(true);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleTopoPointerMove = (e: React.PointerEvent) => {
+    if (!isTopoDragging || !topoContainerRef.current) return;
+    e.stopPropagation();
+    const rect = topoContainerRef.current.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+
+    // Boundary checks: Keep within 100px and container height - 100px
+    const newHeight = Math.max(100, Math.min(relativeY, rect.height - 100));
+    setTopoMapHeight(newHeight);
+  };
+
+  const handleTopoPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setIsTopoDragging(false);
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
@@ -675,16 +701,32 @@ export const Layout: React.FC<LayoutProps> = ({
               <NavigationBreadcrumbs items={getBreadcrumbsItems(currentView)} />
             </div>
             <div
+              ref={topoContainerRef}
               className="pane-body"
               style={{ padding: 0, display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0, overflow: 'hidden' }}
             >
-              {/* GPGPU Topology Canvas Viewport */}
-              <TopologyMap
-                activeFocusedNode={currentView}
-                onNodeSelect={(nodeId: string) => {
-                  if (onViewChange) onViewChange(nodeId);
-                }}
-              />
+              {/* GPGPU Topology Canvas Viewport wrapper */}
+              <div style={{ height: children ? `${topoMapHeight}px` : '100%', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                <TopologyMap
+                  activeFocusedNode={currentView}
+                  onNodeSelect={(nodeId: string) => {
+                    if (onViewChange) onViewChange(nodeId);
+                  }}
+                />
+              </div>
+
+              {/* Adjustable Splitter between Topology Map and PropertyGrid */}
+              {children && (
+                <div
+                  className="splitter-bar"
+                  onPointerDown={handleTopoPointerDown}
+                  onPointerMove={handleTopoPointerMove}
+                  onPointerUp={handleTopoPointerUp}
+                >
+                  <div className="splitter-handle"></div>
+                </div>
+              )}
+
               {/* Fallback to render children if passed directly */}
               {children && <div style={{ padding: '24px', overflowY: 'auto', flex: 1, minHeight: 0 }}>{children}</div>}
             </div>
