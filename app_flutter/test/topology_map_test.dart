@@ -49,7 +49,7 @@ void main() {
         findsOneWidget);
 
     // Verify scroll view scrollbars (nested horizontal and vertical scroll views)
-    expect(find.byType(SingleChildScrollView), findsNWidgets(2));
+    expect(find.byType(SingleChildScrollView), findsNWidgets(4));
 
     // Verify scrubber controls are present
     expect(

@@ -178,8 +178,12 @@ class TopologyMap extends StatefulWidget {
 class _TopologyMapState extends State<TopologyMap>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
-  late final ScrollController _verticalController;
-  late final ScrollController _horizontalController;
+  late final ScrollController _contentVerticalController;
+  late final ScrollController _scrollbarVerticalController;
+  late final ScrollController _contentHorizontalController;
+  late final ScrollController _scrollbarHorizontalController;
+  bool _isSyncingVertical = false;
+  bool _isSyncingHorizontal = false;
   double currentTimeIndex = 1.0;
   double playbackSpeedMultiplier = 1.0;
   bool isPlaying = false;
@@ -188,8 +192,47 @@ class _TopologyMapState extends State<TopologyMap>
   @override
   void initState() {
     super.initState();
-    _verticalController = ScrollController();
-    _horizontalController = ScrollController();
+    _contentVerticalController = ScrollController();
+    _scrollbarVerticalController = ScrollController();
+    _contentHorizontalController = ScrollController();
+    _scrollbarHorizontalController = ScrollController();
+
+    _contentVerticalController.addListener(() {
+      if (_isSyncingVertical) return;
+      _isSyncingVertical = true;
+      if (_scrollbarVerticalController.hasClients) {
+        _scrollbarVerticalController.jumpTo(_contentVerticalController.offset);
+      }
+      _isSyncingVertical = false;
+    });
+
+    _scrollbarVerticalController.addListener(() {
+      if (_isSyncingVertical) return;
+      _isSyncingVertical = true;
+      if (_contentVerticalController.hasClients) {
+        _contentVerticalController.jumpTo(_scrollbarVerticalController.offset);
+      }
+      _isSyncingVertical = false;
+    });
+
+    _contentHorizontalController.addListener(() {
+      if (_isSyncingHorizontal) return;
+      _isSyncingHorizontal = true;
+      if (_scrollbarHorizontalController.hasClients) {
+        _scrollbarHorizontalController.jumpTo(_contentHorizontalController.offset);
+      }
+      _isSyncingHorizontal = false;
+    });
+
+    _scrollbarHorizontalController.addListener(() {
+      if (_isSyncingHorizontal) return;
+      _isSyncingHorizontal = true;
+      if (_contentHorizontalController.hasClients) {
+        _contentHorizontalController.jumpTo(_scrollbarHorizontalController.offset);
+      }
+      _isSyncingHorizontal = false;
+    });
+
     _ticker = createTicker(_onTick);
   }
 
@@ -258,8 +301,10 @@ class _TopologyMapState extends State<TopologyMap>
 
   @override
   void dispose() {
-    _verticalController.dispose();
-    _horizontalController.dispose();
+    _contentVerticalController.dispose();
+    _scrollbarVerticalController.dispose();
+    _contentHorizontalController.dispose();
+    _scrollbarHorizontalController.dispose();
     _ticker.dispose();
     super.dispose();
   }
@@ -293,42 +338,73 @@ class _TopologyMapState extends State<TopologyMap>
               children: <Widget>[
                 // Scrollable Canvas Viewport
                 Expanded(
-                  child: Scrollbar(
-                    controller: _verticalController,
-                    thumbVisibility: true,
-                    notificationPredicate: (ScrollNotification notification) =>
-                        notification.depth == 0,
-                    child: SingleChildScrollView(
-                      controller: _verticalController,
-                      scrollDirection: Axis.vertical,
-                      child: Scrollbar(
-                        controller: _horizontalController,
-                        thumbVisibility: true,
-                        notificationPredicate: (ScrollNotification notification) =>
-                            notification.depth == 0,
+                  child: Stack(
+                    children: <Widget>[
+                      // Main content
+                      Positioned.fill(
                         child: SingleChildScrollView(
-                          controller: _horizontalController,
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            width: width,
-                            height: height,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTapUp: (TapUpDetails details) =>
-                                  _handleTap(details, width, height),
-                              child: CustomPaint(
-                                size: Size(width, height),
-                                painter: TopologyPainter(
-                                  activeFocusedNode: widget.activeFocusedNode,
-                                  activeData: activeData,
-                                  currentTimeIndex: currentTimeIndex,
+                          controller: _contentVerticalController,
+                          scrollDirection: Axis.vertical,
+                          child: SingleChildScrollView(
+                            controller: _contentHorizontalController,
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: width,
+                              height: height,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTapUp: (TapUpDetails details) =>
+                                    _handleTap(details, width, height),
+                                child: CustomPaint(
+                                  size: Size(width, height),
+                                  painter: TopologyPainter(
+                                    activeFocusedNode: widget.activeFocusedNode,
+                                    activeData: activeData,
+                                    currentTimeIndex: currentTimeIndex,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                      // Vertical Scrollbar
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 12,
+                        width: 12,
+                        child: Scrollbar(
+                          controller: _scrollbarVerticalController,
+                          thumbVisibility: true,
+                          child: SingleChildScrollView(
+                            controller: _scrollbarVerticalController,
+                            scrollDirection: Axis.vertical,
+                            child: SizedBox(
+                              height: height,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Horizontal Scrollbar
+                      Positioned(
+                        left: 0,
+                        right: 12,
+                        bottom: 0,
+                        height: 12,
+                        child: Scrollbar(
+                          controller: _scrollbarHorizontalController,
+                          thumbVisibility: true,
+                          child: SingleChildScrollView(
+                            controller: _scrollbarHorizontalController,
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: width,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 // Playback Scrubber Panel
