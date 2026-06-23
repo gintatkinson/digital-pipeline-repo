@@ -637,7 +637,7 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
             <div
               className="pane-body"
-              style={{ padding: 0, display: 'flex', flexDirection: 'column', flexGrow: 1 }}
+              style={{ padding: 0, display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0, overflow: 'hidden' }}
             >
               {/* GPGPU Topology Canvas Viewport */}
               <TopologyMap
