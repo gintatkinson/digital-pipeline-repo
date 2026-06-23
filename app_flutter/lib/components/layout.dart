@@ -968,6 +968,7 @@ class _LayoutState extends State<Layout> {
         return Scrollbar(
           thumbVisibility: true,
           controller: _tableVerticalController,
+          notificationPredicate: (notif) => notif.depth == 0,
           child: SingleChildScrollView(
             controller: _tableVerticalController,
             scrollDirection: Axis.vertical,

@@ -286,6 +286,8 @@ class _TopologyMapState extends State<TopologyMap>
                 child: Scrollbar(
                   controller: _verticalController,
                   thumbVisibility: true,
+                  notificationPredicate: (ScrollNotification notification) =>
+                      notification.depth == 0,
                   child: SingleChildScrollView(
                     controller: _verticalController,
                     scrollDirection: Axis.vertical,
@@ -293,7 +295,7 @@ class _TopologyMapState extends State<TopologyMap>
                       controller: _horizontalController,
                       thumbVisibility: true,
                       notificationPredicate: (ScrollNotification notification) =>
-                          notification.depth == 1,
+                          notification.depth == 0,
                       child: SingleChildScrollView(
                         controller: _horizontalController,
                         scrollDirection: Axis.horizontal,
