@@ -20,12 +20,22 @@
   --terminal-bg: #f8f9fa;
   --font-family: var(--alias-typography-font-family);
   --sidebar-width: var(--alias-spacing-layout-sidebar-width);
+  --input-bg: #ffffff;
+  --sidebar-footer-bg: rgba(0, 0, 0, 0.03);
+  --tag-alt-color: hsl(190, 100%, 25%);
+  --tag-alt-bg: hsla(190, 100%, 40%, 0.1);
+  --tag-alt-border: hsla(190, 100%, 40%, 0.2);
 }
 
 [data-theme="dark"] {
   --text-primary: rgb(241, 243, 244);
   --text-secondary: #9aa0a6;
   --terminal-bg: rgb(18, 18, 18);
+  --input-bg: hsl(222, 25%, 6%);
+  --sidebar-footer-bg: hsla(222, 25%, 6%, 0.4);
+  --tag-alt-color: hsl(190, 100%, 50%);
+  --tag-alt-bg: hsla(190, 100%, 50%, 0.15);
+  --tag-alt-border: hsla(190, 100%, 50%, 0.3);
 }
 
 .layout-container {
@@ -107,7 +117,7 @@
 .sidebar-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--border-color);
-  background-color: hsla(222, 25%, 6%, 0.4);
+  background-color: var(--sidebar-footer-bg);
 }
 
 .worker-status {
@@ -342,9 +352,9 @@
 }
 
 .highlight-tag.alternate {
-  background-color: hsla(190, 100%, 50%, 0.15);
-  color: hsl(190, 100%, 50%);
-  border-color: hsla(190, 100%, 50%, 0.3);
+  background-color: var(--tag-alt-bg);
+  color: var(--tag-alt-color);
+  border-color: var(--tag-alt-border);
 }
 
 .form-grid {
@@ -376,7 +386,7 @@
 
 .form-group input,
 .form-group select {
-  background-color: hsl(222, 25%, 6%);
+  background-color: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-primary);
