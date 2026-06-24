@@ -105,3 +105,80 @@ To execute this architecture, issue the following direct, YANG-specific orders t
 
 * **Task:** Establish the GPU rendering boundaries.
 * **Action:** Implement a blank WebGPU (React) or Impeller (Flutter) canvas component. Write a simple compute shader that takes an array of dummy network nodes directly from VRAM and draws them, bypassing the CPU for coordinate updates.
+
+---
+
+## 6. Phase 1 Reference Implementation (First-Steps)
+
+To prove this architecture, a fully functional reference implementation of the schema-agnostic data-binding shell was completed inside the Flutter baseline (`app_flutter`).
+
+```mermaid
+graph TD
+    Y["300 YANG Modules"] -->|CI/CD pyang Compiler| L["logical-layout.json"]
+    L -->|deserialized on start| A["List<AttributeDefinition>"]
+    A -->|initialValues mapping| P["PropertyGridState"]
+    P -->|Focus loss listener| S["Local SQLite DB (onBlur save)"]
+```
+
+### 6.1. Dynamic Model Serialization
+
+The schema-agnostic definition model is defined dynamically in Dart, omitting all hardcoded domain coordinate classes:
+
+```dart
+class AttributeDefinition {
+  final String key;
+  final String label;
+  final String type; // 'double' | 'int' | 'string' | 'enum'
+  final String sectionGroup;
+  final List<String>? options;
+  final bool isRequired;
+  final String? regexPattern;
+  final num? minValue;
+  final num? maxValue;
+
+  const AttributeDefinition({
+    required this.key,
+    required this.label,
+    required this.type,
+    required this.sectionGroup,
+    this.options,
+    this.isRequired = false,
+    this.regexPattern,
+    this.minValue,
+    this.maxValue,
+  });
+
+  factory AttributeDefinition.fromJson(Map<String, dynamic> json) {
+    return AttributeDefinition(
+      key: json['key'] as String,
+      label: json['label'] as String,
+      type: json['type'] as String,
+      sectionGroup: json['sectionGroup'] as String,
+      options: (json['options'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      isRequired: json['isRequired'] as bool? ?? false,
+      regexPattern: json['regexPattern'] as String?,
+      minValue: json['minValue'] as num?,
+      maxValue: json['maxValue'] as num?,
+    );
+  }
+}
+```
+
+### 6.2. UI Lifecycle and Focus-Loss Persistence
+
+The reference presentation grid `PropertyGrid` is fully decoupled from the database layers, accepting the dynamic attributes lists and returning validation inputs upstream using presentation callback delegates:
+
+```dart
+class PropertyGrid extends StatefulWidget {
+  final List<AttributeDefinition>? attributes;
+  final Map<String, dynamic> initialValues;
+  final void Function(String key, dynamic value) onSave;
+  
+  // ...
+}
+```
+
+* **Dynamic Bindings & Focus Locks**: In `didUpdateWidget()`, if only input values update (e.g. from real-time telemetry changes), the widget updates the text controller only if the target field is not currently active (`!focusNode.hasFocus`). This prevents the UI from stealing keyboard focus from the user mid-keystroke.
+* **Safe Clean-up**: Disposes of text controllers and focus nodes in `dispose()` to prevent OOM memory leaks.
+* **Blur-Save Validation**: Performs boundary and required checks dynamically. On focus loss (blur), it fires the `onSave` callback to flush the sanitized, validated payload to the persistence layer.
+
