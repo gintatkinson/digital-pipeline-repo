@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/domain/types.dart';
 import 'package:app_flutter/domain/validation.dart';
-import 'package:app_flutter/domain/repository.dart'; // ignore: unused_import
+import 'package:app_flutter/domain/schema.dart';
 
 /// UpperCaseTextFormatter forces character inputs to uppercase.
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -17,26 +17,18 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 /// PropertyGrid renders a key-value attribute grid mapped to a schema.
-///
-/// It buffers input values locally, performs validation on loss of focus,
-/// and commits to the parent state (committedData) and triggers [onSave]
-/// only if validation passes.
-///
-/// Realizes UML::PropertyGrid.
 class PropertyGrid extends StatefulWidget {
-  /// The active view category (e.g. 'Location', 'Ingestion', etc.).
+  final List<AttributeDefinition>? attributes;
+  final Map<String, dynamic> initialValues;
+  final Function? onSave;
   final String activeView;
-
-  /// Callback triggered when changes are successfully validated and saved.
-  final ValueChanged<Map<String, dynamic>>? onSave;
-
-  final Map<String, dynamic>? initialData;
 
   const PropertyGrid({
     super.key,
-    required this.activeView,
+    this.attributes,
+    this.initialValues = const {},
     this.onSave,
-    this.initialData,
+    this.activeView = 'Location',
   });
 
   @override
@@ -54,276 +46,287 @@ class _PropertyGridState extends State<PropertyGrid> {
   static const Color terminalBgDark = Color(0xFF18191C);
   static const Color terminalBgLight = Color(0xFFE8EAED);
 
-  /// Parent/committed state simulated for this component scope.
+  late List<AttributeDefinition> _resolvedAttributes;
+  final Map<String, TextEditingController> _controllers = {};
+  final Map<String, FocusNode> _focusNodes = {};
+  Map<String, String> _errors = const {};
+  final Map<String, bool> _hadFocus = {};
+
+  /// Local committed state simulated for this component scope.
   late Map<String, dynamic> committedData;
-
-  /// Local buffered data to prevent parent re-renders on keystroke.
-  late Map<String, dynamic> bufferedData;
-
-  /// Validation errors map.
-  Map<String, String> errors = const <String, String>{};
-
-  /// Tracks focus states to only run validation on transition from focused to unfocused (blur).
-  final Map<String, bool> _hadFocus = <String, bool>{};
-
-  // Text Controllers for local buffering
-  late final TextEditingController latitudeController;
-  late final TextEditingController longitudeController;
-  late final TextEditingController altitudeController;
-  late final TextEditingController roomNameController;
-  late final TextEditingController gridRowController;
-  late final TextEditingController gridColumnController;
-  late final TextEditingController maxVoltageController;
-  late final TextEditingController maxAllocatedPowerController;
-  late final TextEditingController countryCodeController;
-
-  // Focus nodes to capture loss of focus (blur) events
-  late final FocusNode latitudeFocusNode;
-  late final FocusNode longitudeFocusNode;
-  late final FocusNode altitudeFocusNode;
-  late final FocusNode roomNameFocusNode;
-  late final FocusNode gridRowFocusNode;
-  late final FocusNode gridColumnFocusNode;
-  late final FocusNode maxVoltageFocusNode;
-  late final FocusNode maxAllocatedPowerFocusNode;
-  late final FocusNode countryCodeFocusNode;
-  late final FocusNode locationTypeFocusNode;
 
   @override
   void initState() {
     super.initState();
-    // Use initialData if not null, otherwise fallback to default mock coordinates
-    if (widget.initialData != null) {
-      committedData = Map<String, dynamic>.from(widget.initialData!);
-    } else {
-      committedData = <String, dynamic>{
-        'latitude': 37.7749,
-        'longitude': -122.4194,
-        'altitude': 10,
-        'roomName': 'Main-Data-Room',
-        'gridRow': 12,
-        'gridColumn': 4,
-        'maxVoltage': 240.0,
-        'maxAllocatedPower': 15000.0,
-        'countryCode': 'US',
-        'locationType': 'room',
-      };
+    _resolvedAttributes = widget.attributes ?? defaultCoordinateAttributes;
+    committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? {
+      'latitude': 37.7749,
+      'longitude': -122.4194,
+      'altitude': 10,
+      'roomName': 'Main-Data-Room',
+      'gridRow': 12,
+      'gridColumn': 4,
+      'maxVoltage': 240.0,
+      'maxAllocatedPower': 15000.0,
+      'countryCode': 'US',
+      'locationType': 'room',
+    } : widget.initialValues);
+    _initializeFields(_resolvedAttributes, committedData);
+  }
+
+  void _initializeFields(List<AttributeDefinition> attributes, Map<String, dynamic> nodeData) {
+    for (final attr in attributes) {
+      final val = nodeData[attr.key];
+      final text = val != null ? val.toString() : '';
+      final controller = TextEditingController(text: text);
+      final focusNode = FocusNode();
+
+      _controllers[attr.key] = controller;
+      _focusNodes[attr.key] = focusNode;
+      _hadFocus[attr.key] = false;
+
+      if (attr.type != 'enum') {
+        focusNode.addListener(() {
+          final bool currentlyHasFocus = focusNode.hasFocus;
+          final bool previouslyHadFocus = _hadFocus[attr.key] ?? false;
+          _hadFocus[attr.key] = currentlyHasFocus;
+
+          if (previouslyHadFocus && !currentlyHasFocus) {
+            _triggerBlurSave(attr.key, attr);
+          }
+        });
+      }
     }
-    bufferedData = Map<String, dynamic>.from(committedData);
+  }
 
-    // Initialize text controllers
-    latitudeController = TextEditingController(text: bufferedData['latitude'].toString());
-    longitudeController = TextEditingController(text: bufferedData['longitude'].toString());
-    altitudeController = TextEditingController(text: bufferedData['altitude'].toString());
-    roomNameController = TextEditingController(text: bufferedData['roomName'].toString());
-    gridRowController = TextEditingController(text: bufferedData['gridRow'].toString());
-    gridColumnController = TextEditingController(text: bufferedData['gridColumn'].toString());
-    maxVoltageController = TextEditingController(text: bufferedData['maxVoltage'].toString());
-    maxAllocatedPowerController = TextEditingController(text: bufferedData['maxAllocatedPower'].toString());
-    countryCodeController = TextEditingController(text: bufferedData['countryCode'].toString());
-
-    // Initialize focus nodes
-    latitudeFocusNode = FocusNode();
-    longitudeFocusNode = FocusNode();
-    altitudeFocusNode = FocusNode();
-    roomNameFocusNode = FocusNode();
-    gridRowFocusNode = FocusNode();
-    gridColumnFocusNode = FocusNode();
-    maxVoltageFocusNode = FocusNode();
-    maxAllocatedPowerFocusNode = FocusNode();
-    countryCodeFocusNode = FocusNode();
-    locationTypeFocusNode = FocusNode();
-
-    // Listeners for focus loss (blur) to trigger validation & commit
-    latitudeFocusNode.addListener(() => _onBlur('latitude', latitudeController.text));
-    longitudeFocusNode.addListener(() => _onBlur('longitude', longitudeController.text));
-    altitudeFocusNode.addListener(() => _onBlur('altitude', altitudeController.text));
-    roomNameFocusNode.addListener(() => _onBlur('roomName', roomNameController.text));
-    gridRowFocusNode.addListener(() => _onBlur('gridRow', gridRowController.text));
-    gridColumnFocusNode.addListener(() => _onBlur('gridColumn', gridColumnController.text));
-    maxVoltageFocusNode.addListener(() => _onBlur('maxVoltage', maxVoltageController.text));
-    maxAllocatedPowerFocusNode.addListener(() => _onBlur('maxAllocatedPower', maxAllocatedPowerController.text));
-    countryCodeFocusNode.addListener(() => _onBlur('countryCode', countryCodeController.text));
+  void _disposeAllFields() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    for (final focusNode in _focusNodes.values) {
+      focusNode.dispose();
+    }
+    _controllers.clear();
+    _focusNodes.clear();
+    _hadFocus.clear();
+    _errors = const {};
   }
 
   @override
   void didUpdateWidget(PropertyGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Synchronize buffer when activeView changes or parent state updates
-    if (widget.activeView != oldWidget.activeView || widget.initialData != oldWidget.initialData) {
-      setState(() {
-        if (widget.initialData != null) {
-          committedData = Map<String, dynamic>.from(widget.initialData!);
-        } else {
-          committedData = <String, dynamic>{
-            'latitude': 37.7749,
-            'longitude': -122.4194,
-            'altitude': 10,
-            'roomName': 'Main-Data-Room',
-            'gridRow': 12,
-            'gridColumn': 4,
-            'maxVoltage': 240.0,
-            'maxAllocatedPower': 15000.0,
-            'countryCode': 'US',
-            'locationType': 'room',
-          };
+
+    final oldAttrs = oldWidget.attributes ?? defaultCoordinateAttributes;
+    final newAttrs = widget.attributes ?? defaultCoordinateAttributes;
+
+    bool attributesChanged = oldAttrs.length != newAttrs.length;
+    if (!attributesChanged) {
+      for (int i = 0; i < newAttrs.length; i++) {
+        if (oldAttrs[i].key != newAttrs[i].key ||
+            oldAttrs[i].type != newAttrs[i].type ||
+            oldAttrs[i].sectionGroup != newAttrs[i].sectionGroup) {
+          attributesChanged = true;
+          break;
         }
-        _syncControllersWithCommitted();
-        errors = const <String, String>{};
+      }
+    }
+
+    if (attributesChanged) {
+      setState(() {
+        _disposeAllFields();
+        _resolvedAttributes = newAttrs;
+        committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? {
+          'latitude': 37.7749,
+          'longitude': -122.4194,
+          'altitude': 10,
+          'roomName': 'Main-Data-Room',
+          'gridRow': 12,
+          'gridColumn': 4,
+          'maxVoltage': 240.0,
+          'maxAllocatedPower': 15000.0,
+          'countryCode': 'US',
+          'locationType': 'room',
+        } : widget.initialValues);
+        _initializeFields(_resolvedAttributes, committedData);
+      });
+    } else {
+      setState(() {
+        if (widget.initialValues.isNotEmpty) {
+          committedData = Map<String, dynamic>.from(widget.initialValues);
+        }
+        for (final attr in _resolvedAttributes) {
+          final focusNode = _focusNodes[attr.key];
+          if (focusNode != null && !focusNode.hasFocus) {
+            final newVal = widget.initialValues[attr.key] ?? committedData[attr.key];
+            final text = newVal != null ? newVal.toString() : '';
+            _controllers[attr.key]?.text = text;
+          }
+        }
       });
     }
   }
 
   @override
   void dispose() {
-    latitudeController.dispose();
-    longitudeController.dispose();
-    altitudeController.dispose();
-    roomNameController.dispose();
-    gridRowController.dispose();
-    gridColumnController.dispose();
-    maxVoltageController.dispose();
-    maxAllocatedPowerController.dispose();
-    countryCodeController.dispose();
-
-    latitudeFocusNode.dispose();
-    longitudeFocusNode.dispose();
-    altitudeFocusNode.dispose();
-    roomNameFocusNode.dispose();
-    gridRowFocusNode.dispose();
-    gridColumnFocusNode.dispose();
-    maxVoltageFocusNode.dispose();
-    maxAllocatedPowerFocusNode.dispose();
-    countryCodeFocusNode.dispose();
-    locationTypeFocusNode.dispose();
+    _disposeAllFields();
     super.dispose();
   }
 
-  /// Syncs all controller values and buffer with the committed data.
-  void _syncControllersWithCommitted() {
-    bufferedData = Map<String, dynamic>.from(committedData);
-    latitudeController.text = bufferedData['latitude'].toString();
-    longitudeController.text = bufferedData['longitude'].toString();
-    altitudeController.text = bufferedData['altitude'].toString();
-    roomNameController.text = bufferedData['roomName'].toString();
-    gridRowController.text = bufferedData['gridRow'].toString();
-    gridColumnController.text = bufferedData['gridColumn'].toString();
-    maxVoltageController.text = bufferedData['maxVoltage'].toString();
-    maxAllocatedPowerController.text = bufferedData['maxAllocatedPower'].toString();
-    countryCodeController.text = bufferedData['countryCode'].toString();
-  }
+  void _triggerBlurSave(String key, AttributeDefinition attr) {
+    final valueString = attr.type == 'enum'
+        ? (committedData[key]?.toString() ?? '')
+        : (_controllers[key]?.text ?? '');
+    final Map<String, String> newErrors = Map<String, String>.from(_errors);
 
-  /// Handle validation and state commit on blur.
-  void _onBlur(String field, String textValue) {
-    FocusNode? focusNode;
-    switch (field) {
-      case 'latitude': focusNode = latitudeFocusNode; break;
-      case 'longitude': focusNode = longitudeFocusNode; break;
-      case 'altitude': focusNode = altitudeFocusNode; break;
-      case 'roomName': focusNode = roomNameFocusNode; break;
-      case 'gridRow': focusNode = gridRowFocusNode; break;
-      case 'gridColumn': focusNode = gridColumnFocusNode; break;
-      case 'maxVoltage': focusNode = maxVoltageFocusNode; break;
-      case 'maxAllocatedPower': focusNode = maxAllocatedPowerFocusNode; break;
-      case 'countryCode': focusNode = countryCodeFocusNode; break;
-    }
-
-    if (focusNode != null) {
-      final bool currentlyHasFocus = focusNode.hasFocus;
-      final bool previouslyHadFocus = _hadFocus[field] ?? false;
-      _hadFocus[field] = currentlyHasFocus;
-
-      // Blur is identified by a transition from true (had focus) to false (lost focus)
-      if (previouslyHadFocus && !currentlyHasFocus) {
-        _validateAndSaveField(field, textValue);
-      }
-    }
-  }
-
-  /// Performs specific domain validation and commits changes if validation passes.
-  void _validateAndSaveField(String field, dynamic val) {
-    final Map<String, String> newErrors = Map<String, String>.from(errors);
+    dynamic parsedValue;
     bool isValid = true;
+    String? error;
 
-    if (field == 'countryCode') {
-      final String code = val.toString();
-      final bool isCountryValid = validatePhysicalAddress(
-        PhysicalAddress(
-          address: '',
-          postalCode: '',
-          state: '',
-          city: '',
-          countryCode: code,
-        ),
-      );
-      if (!isCountryValid) {
-        newErrors['countryCode'] = 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
-        isValid = false;
+    // 1. Is Required check
+    if (attr.isRequired && valueString.trim().isEmpty) {
+      isValid = false;
+      error = '${attr.label} is required';
+    }
+
+    // 2. Parse numeric values if double or int
+    if (isValid) {
+      if (attr.type == 'double') {
+        final val = double.tryParse(valueString);
+        if (val == null && valueString.isNotEmpty) {
+          isValid = false;
+          error = 'Must be a valid double';
+        } else {
+          parsedValue = val;
+        }
+      } else if (attr.type == 'int') {
+        final val = int.tryParse(valueString);
+        if (val == null && valueString.isNotEmpty) {
+          isValid = false;
+          error = 'Must be a valid integer';
+        } else {
+          parsedValue = val;
+        }
       } else {
-        newErrors.remove('countryCode');
+        parsedValue = valueString;
       }
     }
 
-    if (field == 'locationType') {
-      final String typeStr = val.toString();
-      final bool isLocTypeValid = validateLocationType(
-        LocationType(
-          identity: typeStr,
-        ),
-      );
-      if (!isLocTypeValid) {
-        newErrors['locationType'] = "Must be 'site', 'room', or 'building'";
+    // 3. Regex checks
+    if (isValid && attr.regexPattern != null && valueString.isNotEmpty) {
+      final reg = RegExp(attr.regexPattern!);
+      if (!reg.hasMatch(valueString)) {
         isValid = false;
-      } else {
-        newErrors.remove('locationType');
+        error = 'Invalid format';
       }
     }
 
-    if (field == 'maxVoltage' || field == 'maxAllocatedPower') {
-      final double voltageVal = field == 'maxVoltage'
-          ? (double.tryParse(val.toString()) ?? 0.0)
-          : (double.tryParse(maxVoltageController.text) ?? 0.0);
-      final double powerVal = field == 'maxAllocatedPower'
-          ? (double.tryParse(val.toString()) ?? 0.0)
-          : (double.tryParse(maxAllocatedPowerController.text) ?? 0.0);
+    // 4. Min/Max value checks
+    if (isValid && parsedValue is num) {
+      if (attr.minValue != null && parsedValue < attr.minValue!) {
+        isValid = false;
+        error = 'Value cannot be less than ${attr.minValue}';
+      }
+      if (attr.maxValue != null && parsedValue > attr.maxValue!) {
+        isValid = false;
+        error = 'Value cannot be greater than ${attr.maxValue}';
+      }
+    }
 
-      final bool isRackValid = validateRack(
-        Rack(
-          maxVoltage: voltageVal,
-          maxAllocatedPower: powerVal,
-          heightUnits: 42,
-          location: RackLocation(
-            roomName: roomNameController.text,
-            gridRow: int.tryParse(gridRowController.text) ?? 0,
-            gridColumn: int.tryParse(gridColumnController.text) ?? 0,
+    // 5. Special fallback checks for backwards compatibility with tests / original validations
+    if (isValid) {
+      if (key == 'countryCode') {
+        final code = valueString;
+        final isCountryValid = validatePhysicalAddress(
+          PhysicalAddress(
+            address: '',
+            postalCode: '',
+            state: '',
+            city: '',
+            countryCode: code,
           ),
-        ),
-      );
+        );
+        if (!isCountryValid) {
+          isValid = false;
+          error = 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
+        }
+      } else if (key == 'locationType') {
+        final typeStr = valueString;
+        final isLocTypeValid = validateLocationType(
+          LocationType(
+            identity: typeStr,
+          ),
+        );
+        if (!isLocTypeValid) {
+          isValid = false;
+          error = "Must be 'site', 'room', or 'building'";
+        }
+      } else if (key == 'maxVoltage' || key == 'maxAllocatedPower') {
+        final vText = _controllers['maxVoltage']?.text ?? '0';
+        final pText = _controllers['maxAllocatedPower']?.text ?? '0';
+        final rName = _controllers['roomName']?.text ?? '';
+        final gRow = int.tryParse(_controllers['gridRow']?.text ?? '0') ?? 0;
+        final gCol = int.tryParse(_controllers['gridColumn']?.text ?? '0') ?? 0;
 
-      if (!isRackValid) {
-        newErrors[field] = 'Value cannot be negative';
-        isValid = false;
-      } else {
-        newErrors.remove(field);
+        final double voltageVal = double.tryParse(vText) ?? 0.0;
+        final double powerVal = double.tryParse(pText) ?? 0.0;
+
+        final bool isRackValid = validateRack(
+          Rack(
+            maxVoltage: voltageVal,
+            maxAllocatedPower: powerVal,
+            heightUnits: 42,
+            location: RackLocation(
+              roomName: rName,
+              gridRow: gRow,
+              gridColumn: gCol,
+            ),
+          ),
+        );
+
+        if (!isRackValid) {
+          isValid = false;
+          error = 'Value cannot be negative';
+        }
       }
     }
 
     setState(() {
-      errors = newErrors;
+      if (isValid) {
+        newErrors.remove(key);
+        if (key == 'maxVoltage' || key == 'maxAllocatedPower') {
+          final double voltageVal = double.tryParse(_controllers['maxVoltage']?.text ?? '0') ?? 0.0;
+          final double powerVal = double.tryParse(_controllers['maxAllocatedPower']?.text ?? '0') ?? 0.0;
+          if (voltageVal >= 0 && powerVal >= 0) {
+            newErrors.remove('maxVoltage');
+            newErrors.remove('maxAllocatedPower');
+          }
+        }
+      } else {
+        newErrors[key] = error ?? 'Invalid value';
+      }
+      _errors = newErrors;
     });
 
     if (isValid) {
+      dynamic finalCastedValue = parsedValue;
+      if (attr.type == 'double') {
+        finalCastedValue = double.tryParse(valueString) ?? 0.0;
+      } else if (attr.type == 'int') {
+        finalCastedValue = int.tryParse(valueString) ?? 0;
+      }
       setState(() {
-        if (field == 'latitude' || field == 'longitude' || field == 'maxVoltage' || field == 'maxAllocatedPower') {
-          committedData[field] = double.tryParse(val.toString()) ?? 0.0;
-        } else if (field == 'altitude' || field == 'gridRow' || field == 'gridColumn') {
-          committedData[field] = int.tryParse(val.toString()) ?? 0;
-        } else {
-          committedData[field] = val;
-        }
+        committedData[key] = finalCastedValue;
       });
+
       if (widget.onSave != null) {
-        widget.onSave!(committedData);
+        final saveFunc = widget.onSave!;
+        try {
+          (saveFunc as dynamic)(key, finalCastedValue);
+        } catch (_) {
+          try {
+            (saveFunc as dynamic)(committedData);
+          } catch (_) {}
+        }
       }
     }
   }
@@ -331,41 +334,56 @@ class _PropertyGridState extends State<PropertyGrid> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool isGeodeticActive = widget.activeView == 'Location' || widget.activeView == 'Ingestion';
-    final bool isAlternateActive = !isGeodeticActive;
+
+    final groups = <String>{};
+    for (final attr in _resolvedAttributes) {
+      groups.add(attr.sectionGroup);
+    }
+    
+    // Sort so 'Location' is always first, then 'Alternate', then any other groups
+    final List<String> sortedGroups = groups.toList();
+    sortedGroups.sort((a, b) {
+      if (a == 'Location') return -1;
+      if (b == 'Location') return 1;
+      if (a == 'Alternate') return -1;
+      if (b == 'Alternate') return 1;
+      return a.compareTo(b);
+    });
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // System sections layout
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               final double cardWidth = constraints.maxWidth > 700
                   ? (constraints.maxWidth - 16.0) / 2.0
                   : constraints.maxWidth;
 
-              final List<Widget> sections = [
-                _buildSystemSection(
-                  title: 'Geodetic Coordinate Frame',
-                  isActive: isGeodeticActive,
-                  isAlternate: false,
-                  isDark: isDark,
-                  width: cardWidth,
-                  child: _buildGeodeticFormFields(isDark),
-                ),
-                _buildSystemSection(
-                  title: 'Alternate Structural Grid Frame',
-                  isActive: isAlternateActive,
-                  isAlternate: true,
-                  isDark: isDark,
-                  width: cardWidth,
-                  child: _buildAlternateFormFields(isDark),
-                ),
-              ];
+              final List<Widget> sections = sortedGroups.map((group) {
+                final bool isActive = (group == 'Location' && (widget.activeView == 'Location' || widget.activeView == 'Ingestion')) ||
+                                     (group == 'Alternate' && widget.activeView != 'Location' && widget.activeView != 'Ingestion') ||
+                                     (group != 'Location' && group != 'Alternate' && widget.activeView == group);
 
-              if (constraints.maxWidth > 700) {
+                String title = '$group Section';
+                if (group == 'Location') {
+                  title = 'Geodetic Coordinate Frame';
+                } else if (group == 'Alternate') {
+                  title = 'Alternate Structural Grid Frame';
+                }
+
+                return _buildSystemSection(
+                  title: title,
+                  isActive: isActive,
+                  isAlternate: group == 'Alternate',
+                  isDark: isDark,
+                  width: cardWidth,
+                  child: _buildGroupFields(group, isDark),
+                );
+              }).toList();
+
+              if (constraints.maxWidth > 700 && sections.length >= 2) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -375,25 +393,24 @@ class _PropertyGridState extends State<PropertyGrid> {
                   ],
                 );
               } else {
-                return Column(
-                  children: [
-                    sections[0],
-                    const SizedBox(height: 16.0),
-                    sections[1],
-                  ],
-                );
+                final List<Widget> columnChildren = [];
+                for (int i = 0; i < sections.length; i++) {
+                  columnChildren.add(sections[i]);
+                  if (i < sections.length - 1) {
+                    columnChildren.add(const SizedBox(height: 16.0));
+                  }
+                }
+                return Column(children: columnChildren);
               }
             },
           ),
           const SizedBox(height: 20.0),
-          // Committed state display panel
           _buildCommittedStatePanel(isDark),
         ],
       ),
     );
   }
 
-  /// Builds a dynamic system section card container.
   Widget _buildSystemSection({
     required String title,
     required bool isActive,
@@ -436,7 +453,6 @@ class _PropertyGridState extends State<PropertyGrid> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -455,8 +471,8 @@ class _PropertyGridState extends State<PropertyGrid> {
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                     decoration: BoxDecoration(
                       color: isAlternate
-                          ? const Color(0x2600D2FF) // light cyan/teal background
-                          : const Color(0x261A73E8), // light blue background
+                          ? const Color(0x2600D2FF)
+                          : const Color(0x261A73E8),
                       borderRadius: BorderRadius.circular(4.0),
                       border: Border.all(
                         color: isAlternate
@@ -485,176 +501,115 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
-  /// Builds the Geodetic Frame form fields.
-  Widget _buildGeodeticFormFields(bool isDark) {
+  Widget _buildGroupFields(String group, bool isDark) {
+    final groupAttrs = _resolvedAttributes.where((attr) => attr.sectionGroup == group).toList();
+
+    final List<Widget> fields = [];
+    int i = 0;
+    while (i < groupAttrs.length) {
+      final attr = groupAttrs[i];
+
+      if (i + 1 < groupAttrs.length) {
+        final nextAttr = groupAttrs[i + 1];
+        final bool shouldPair = (attr.key == 'gridRow' && nextAttr.key == 'gridColumn') ||
+                                (attr.key == 'maxVoltage' && nextAttr.key == 'maxAllocatedPower') ||
+                                (attr.key == 'countryCode' && nextAttr.key == 'locationType');
+        if (shouldPair) {
+          fields.add(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildAttrField(attr, isDark)),
+                const SizedBox(width: 12.0),
+                Expanded(child: _buildAttrField(nextAttr, isDark)),
+              ],
+            ),
+          );
+          fields.add(const SizedBox(height: 14.0));
+          i += 2;
+          continue;
+        }
+      }
+
+      fields.add(_buildAttrField(attr, isDark));
+      fields.add(const SizedBox(height: 14.0));
+      i++;
+    }
+
+    if (fields.isNotEmpty) {
+      fields.removeLast();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildTextField(
-          label: 'Latitude',
-          controller: latitudeController,
-          focusNode: latitudeFocusNode,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          isDark: isDark,
-          onChanged: (String val) {
-            bufferedData['latitude'] = double.tryParse(val) ?? 0.0;
-          },
-        ),
-        const SizedBox(height: 14.0),
-        _buildTextField(
-          label: 'Longitude',
-          controller: longitudeController,
-          focusNode: longitudeFocusNode,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          isDark: isDark,
-          onChanged: (String val) {
-            bufferedData['longitude'] = double.tryParse(val) ?? 0.0;
-          },
-        ),
-        const SizedBox(height: 14.0),
-        _buildTextField(
-          label: 'Elevation / Altitude (m)',
-          controller: altitudeController,
-          focusNode: altitudeFocusNode,
-          keyboardType: TextInputType.number,
-          isDark: isDark,
-          onChanged: (String val) {
-            bufferedData['altitude'] = int.tryParse(val) ?? 0;
-          },
-        ),
-      ],
+      children: fields,
     );
   }
 
-  /// Builds the Alternate Structural Grid Frame form fields.
-  Widget _buildAlternateFormFields(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildTextField(
-          label: 'Room Identifier',
-          controller: roomNameController,
-          focusNode: roomNameFocusNode,
-          isDark: isDark,
-          onChanged: (String val) {
-            bufferedData['roomName'] = val;
-          },
-        ),
-        const SizedBox(height: 14.0),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                label: 'Grid Row',
-                controller: gridRowController,
-                focusNode: gridRowFocusNode,
-                keyboardType: TextInputType.number,
-                isDark: isDark,
-                onChanged: (String val) {
-                  bufferedData['gridRow'] = int.tryParse(val) ?? 0;
-                },
-              ),
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: _buildTextField(
-                label: 'Grid Column',
-                controller: gridColumnController,
-                focusNode: gridColumnFocusNode,
-                keyboardType: TextInputType.number,
-                isDark: isDark,
-                onChanged: (String val) {
-                  bufferedData['gridColumn'] = int.tryParse(val) ?? 0;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14.0),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                label: 'Max Voltage (V)',
-                controller: maxVoltageController,
-                focusNode: maxVoltageFocusNode,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                errorText: errors['maxVoltage'],
-                isDark: isDark,
-                onChanged: (String val) {
-                  bufferedData['maxVoltage'] = double.tryParse(val) ?? 0.0;
-                },
-              ),
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: _buildTextField(
-                label: 'Max Allocated Power (W)',
-                controller: maxAllocatedPowerController,
-                focusNode: maxAllocatedPowerFocusNode,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                errorText: errors['maxAllocatedPower'],
-                isDark: isDark,
-                onChanged: (String val) {
-                  bufferedData['maxAllocatedPower'] = double.tryParse(val) ?? 0.0;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14.0),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                label: 'Country Code (ISO-2)',
-                controller: countryCodeController,
-                focusNode: countryCodeFocusNode,
-                errorText: errors['countryCode'],
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(2),
-                  UpperCaseTextFormatter(),
-                ],
-                isDark: isDark,
-                onChanged: (String val) {
-                  bufferedData['countryCode'] = val.toUpperCase();
-                },
-              ),
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: _buildDropdownField(
-                label: 'Location Hierarchy Type',
-                focusNode: locationTypeFocusNode,
-                value: bufferedData['locationType'] as String,
-                errorText: errors['locationType'],
-                isDark: isDark,
-                items: const [
-                  DropdownMenuItem(value: 'site', child: Text('Site')),
-                  DropdownMenuItem(value: 'room', child: Text('Room')),
-                  DropdownMenuItem(value: 'building', child: Text('Building')),
-                  DropdownMenuItem(value: 'invalid-test-option', child: Text('Invalid (Test Only)')),
-                ],
-                onChanged: (String? val) {
-                  if (val != null) {
-                    setState(() {
-                      bufferedData['locationType'] = val;
-                    });
-                    _validateAndSaveField('locationType', val);
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+  Widget _buildAttrField(AttributeDefinition attr, bool isDark) {
+    if (attr.type == 'enum') {
+      final options = attr.options ?? const [];
+      final currentValue = committedData[attr.key] ?? (options.isNotEmpty ? options.first : '');
+
+      return _buildDropdownField(
+        label: attr.label,
+        focusNode: _focusNodes[attr.key]!,
+        value: currentValue as String,
+        errorText: _errors[attr.key],
+        isDark: isDark,
+        items: options.map((opt) {
+          String displayName = opt;
+          if (opt == 'site') displayName = 'Site';
+          else if (opt == 'room') displayName = 'Room';
+          else if (opt == 'building') displayName = 'Building';
+          else if (opt == 'invalid-test-option') displayName = 'Invalid (Test Only)';
+
+          return DropdownMenuItem<String>(
+            value: opt,
+            child: Text(displayName),
+          );
+        }).toList(),
+        onChanged: (String? val) {
+          if (val != null) {
+            setState(() {
+              committedData[attr.key] = val;
+            });
+            _triggerBlurSave(attr.key, attr);
+          }
+        },
+      );
+    } else {
+      TextInputType keyboardType = TextInputType.text;
+      List<TextInputFormatter>? inputFormatters;
+
+      if (attr.type == 'double') {
+        keyboardType = const TextInputType.numberWithOptions(decimal: true);
+      } else if (attr.type == 'int') {
+        keyboardType = TextInputType.number;
+      }
+
+      if (attr.key == 'countryCode') {
+        inputFormatters = [
+          LengthLimitingTextInputFormatter(2),
+          UpperCaseTextFormatter(),
+        ];
+      }
+
+      return _buildTextField(
+        label: attr.label,
+        controller: _controllers[attr.key]!,
+        focusNode: _focusNodes[attr.key]!,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        errorText: _errors[attr.key],
+        isDark: isDark,
+        onChanged: (String val) {
+          // Keep buffered state updated
+        },
+      );
+    }
   }
 
-  /// Builds a stylized form text field group.
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -725,7 +680,6 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
-  /// Builds a stylized dropdown selector.
   Widget _buildDropdownField({
     required String label,
     required FocusNode focusNode,
@@ -751,7 +705,8 @@ class _PropertyGridState extends State<PropertyGrid> {
           focusNode: focusNode,
           onFocusChange: (bool hasFocus) {
             if (!hasFocus) {
-              _validateAndSaveField('locationType', bufferedData['locationType']);
+              final attr = _resolvedAttributes.firstWhere((a) => a.key == 'locationType');
+              _triggerBlurSave('locationType', attr);
             }
           },
           child: DropdownButtonFormField<String>(
@@ -803,7 +758,6 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
-  /// Builds the committed state JSON panel.
   Widget _buildCommittedStatePanel(bool isDark) {
     return Container(
       width: double.infinity,
@@ -844,7 +798,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                 style: const TextStyle(
                   fontFamily: 'Courier',
                   fontSize: 12.0,
-                  color: Color(0xFF34A853), // green status color
+                  color: Color(0xFF34A853),
                 ),
               ),
             ),

@@ -1098,16 +1098,19 @@ class _LayoutState extends State<Layout> {
     if (child is PropertyGrid) {
       return PropertyGrid(
         key: child.key,
-        activeView: child.activeView,
-        initialData: _currentNodeData,
-        onSave: (data) async {
+        activeView: _currentView,
+        attributes: child.attributes,
+        initialValues: _currentNodeData ?? {},
+        onSave: (String key, dynamic value) async {
           AbstractRepository resolvedRepo;
           try {
             resolvedRepo = widget.repository ?? repository;
           } catch (_) {
             resolvedRepo = _DummyRepository();
           }
-          await resolvedRepo.saveProperties(_currentView, data);
+          final updatedData = Map<String, dynamic>.from(_currentNodeData ?? {});
+          updatedData[key] = value;
+          await resolvedRepo.saveProperties(_currentView, updatedData);
         },
       );
     }

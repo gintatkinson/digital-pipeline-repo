@@ -87,8 +87,8 @@ void main() {
         home: Scaffold(
           body: PropertyGrid(
             activeView: 'Location',
-            onSave: (data) {
-              savedData = data;
+            onSave: (dynamic data) {
+              savedData = data as Map<String, dynamic>?;
             },
           ),
         ),
@@ -139,8 +139,8 @@ void main() {
         home: Scaffold(
           body: PropertyGrid(
             activeView: 'Metrics',
-            onSave: (data) {
-              savedData = data;
+            onSave: (dynamic data) {
+              savedData = data as Map<String, dynamic>?;
             },
           ),
         ),
@@ -198,8 +198,8 @@ void main() {
         home: Scaffold(
           body: PropertyGrid(
             activeView: 'Metrics',
-            onSave: (data) {
-              savedData = data;
+            onSave: (dynamic data) {
+              savedData = data as Map<String, dynamic>?;
             },
           ),
         ),

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/components/layout.dart';
 import 'package:app_flutter/components/property_grid.dart';
@@ -15,8 +17,12 @@ Future<void> main() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
+  // Resolve path to database dynamically using path_provider
+  final appDir = await getApplicationSupportDirectory();
+  final dbPath = p.join(appDir.path, 'properties_db.db');
+
   // Open database
-  final db = await databaseFactory.openDatabase('properties_db.db');
+  final db = await databaseFactory.openDatabase(dbPath);
 
   // Create table
   await db.execute(
@@ -194,6 +200,8 @@ class _DashboardPageState extends State<DashboardPage> {
           repository: widget.repository,
           child: PropertyGrid(
             activeView: _activeView,
+            initialValues: const {},
+            onSave: (key, value) {},
           ),
         );
       },
