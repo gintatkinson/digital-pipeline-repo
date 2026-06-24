@@ -3,6 +3,7 @@ title: "High-Performance Equipment Telemetry via gNMI/Protobuf Flow"
 type: "use-case"
 generation_mode: "subagent"
 spec_source: "Project Constitution"
+issue_id: 48
 ---
 
 # Use Case: High-Performance Equipment Telemetry via gNMI/Protobuf Flow

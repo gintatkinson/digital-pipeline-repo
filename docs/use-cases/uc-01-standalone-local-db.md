@@ -3,6 +3,7 @@ title: "Standalone Offline Local DB Flow"
 type: "use-case"
 generation_mode: "subagent"
 spec_source: "docs/designs/persistence-architecture-blueprint.md"
+issue_id: 45
 ---
 
 # Use Case: Standalone Offline Local DB Flow

@@ -3,6 +3,7 @@ title: "Air-Gapped Local Firebase Emulator Flow"
 type: "use-case"
 generation_mode: "subagent"
 spec_source: "docs/designs/persistence-architecture-blueprint.md"
+issue_id: 46
 ---
 
 # Use Case: Air-Gapped Local Firebase Emulator Flow
