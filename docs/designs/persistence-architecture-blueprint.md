@@ -161,6 +161,11 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
   * Connects to the live Google Cloud Firestore production instance over HTTPS/WSS.
   * Enforces strict read/write security rules (checking user authentication tokens) and encrypts all telemetry data in transit.
 
+### Configuration C: Standalone Offline (PWA)
+* **Target Environment**: Standalone offline operations on operator tablets/laptops with no external network connectivity.
+* **Mechanism**:
+  * Uses `IndexedDBRepositoryAdapter` (backed by localForage or Dexie.js) to read and write to IndexedDB, giving field technicians offline parity.
+
 ---
 
 ## 7. Configuration Matrix
@@ -247,6 +252,32 @@ class LocalFileRepositoryAdapter implements AbstractRepository {
 }
 ```
 
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../domain/repository.dart';
+import '../validation/runtime_validator.dart'; 
+
+// Provides the resolved repository interface via DI
+final repositoryProvider = Provider<AbstractRepository>((ref) {
+  throw UnimplementedError('Bootstrapped at startup based on config');
+});
+
+// StreamProvider handles loading states, error boundaries, and real-time updates automatically
+final nodePropertiesProvider = StreamProvider.family<Map<String, dynamic>, String>((ref, nodeId) async* {
+  final repo = ref.watch(repositoryProvider);
+  
+  // Listen to the stream and apply RuntimeValidator (Anti-Corruption Layer)
+  await for (final rawData in repo.watchProperties(nodeId)) {
+    // Validate against logical-layout.json schema
+    if (RuntimeValidator.isValid(rawData)) {
+      yield rawData; 
+    } else {
+      throw FormatException('Malformed telemetry data intercepted for: $nodeId');
+    }
+  }
+});
+```
+
 ### TypeScript Abstractions (React)
 
 ```typescript
@@ -260,20 +291,44 @@ export interface AbstractRepository {
 }
 
 // src/hooks/useNodeProperties.ts
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRepository } from '../context/DIContext'; 
+import { nodeSchema } from '../schemas/validation'; 
 
 export const useNodeProperties = (nodeId: string) => {
   const repo = useRepository();
   const queryClient = useQueryClient();
 
+  // 1. Initial Fetch
   const query = useQuery({
     queryKey: ['node-properties', nodeId],
-    queryFn: () => repo.fetchProperties(nodeId),
+    queryFn: async () => {
+      const data = await repo.fetchProperties(nodeId);
+      return nodeSchema.parse(data); 
+    },
   });
 
+  // 2. Real-Time Subscription (Reactive watch)
+  useEffect(() => {
+    const unsubscribe = repo.watchProperties(nodeId, (realtimeData) => {
+      try {
+        const validatedData = nodeSchema.parse(realtimeData); 
+        queryClient.setQueryData(['node-properties', nodeId], validatedData);
+      } catch (e) {
+        console.error("Stream payload failed validation", e);
+      }
+    });
+
+    return () => unsubscribe(); 
+  }, [nodeId, repo, queryClient]);
+
+  // 3. Save Mutation
   const mutation = useMutation({
-    mutationFn: (data: Record<string, any>) => repo.saveProperties(nodeId, data),
+    mutationFn: async (data: Record<string, any>) => {
+      const validData = nodeSchema.parse(data); 
+      await repo.saveProperties(nodeId, validData);
+    },
     onMutate: async (newData) => {
       await queryClient.cancelQueries({ queryKey: ['node-properties', nodeId] });
       queryClient.setQueryData(['node-properties', nodeId], newData);
