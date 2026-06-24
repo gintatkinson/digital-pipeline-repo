@@ -77,8 +77,11 @@ Telecom networks generate massive event storms (e.g., thousands of interface sta
 
 For rendering large network topologies (thousands of YANG `list` instances representing routers and links):
 
-* **Zero-Copy Architecture:** The arrays of node coordinates and their active alarm states are uploaded directly to **GPU VRAM**.
-* **Physics & Status Shaders:** Force-directed layout physics and color-coding based on severity thresholds are executed via WebGPU (React) or Impeller (Flutter) **Compute Shaders**. The UI thread is bypassed completely for rendering topology physics, ensuring 60fps zooming and panning regardless of gNMI telemetry volume.
+* **Decoupled Buffer Architecture:** To maintain strict separation between layout physics and domain state, the graphics pipeline splits the data into two isolated GPU memory buffers:
+  * **Layout Position Buffer (Buffer A):** Contains only physical attributes (`struct Node { float x; float y; float dx; float dy; }`) computed by the force-directed layout engine.
+  * **Attribute State Buffer (Buffer B):** Contains indices representing dynamic node telemetry states (e.g., status flags or color maps) updated only when gNMI updates arrive.
+* **Physics & Status Shaders:** Force-directed layout physics are executed over Buffer A using WebGPU (React) or Impeller (Flutter) **Compute Shaders**. Node rasterization joins Buffer A and Buffer B in the vertex shader during rendering, avoiding any conditional branching on the GPU and ensuring 60fps zooming and panning regardless of telemetry volume.
+
 
 ---
 
