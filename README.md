@@ -291,6 +291,12 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > "Adopt the feature driven implementation skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
 >
 > Execute the full delivery workflow with TDD execution discipline:
+>
+> 0. Pre-Execution Seeding & Rules Verification:
+>    - Ensure the downstream workspace has been bootstrapped using the upstream `scripts/bootstrap_downstream.py` script.
+>    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`), specifically Section 4.5 (Downstream Conformance Gates) and Section 5 (Forbidden Practices - do NOT delete or bypass the layout splitters, timeline scrubber, or focus-loss property grid).
+>    - Adhere to the Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in final DI).
+>
 > 1. Map dependencies from the backlog directory (e.g. `docs/epics/`, `docs/features/`).
 > 2. Draft an implementation plan covering the full vertical slice:
 >    - Database/Persistence Layer (abstract repository interfaces, concrete transport adapters, zero-mocking local emulator integration)
@@ -301,7 +307,9 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > 4. Present the plan for approval (The Grill).
 > 5. Execute via subagent-driven TDD loop (RED-GREEN-REFACTOR per task).
 > 6. Two-stage review after each task (spec compliance, then code quality).
-> 7. Provide raw test/build output as proof of completion.
+> 7. Verification Proof:
+>    - Run the compliance engine: `python3 scripts/verify_downstream_baseline.py [react | flutter] <destination_path>`.
+>    - Provide the raw test/build output of this script as proof of conformance.
 > 8. Provide step-by-step human manual testing instructions.
 > 9. Deliver the cumulative solution walkthrough and close the issue upon human approval."
 
