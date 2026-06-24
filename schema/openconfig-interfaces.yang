@@ -1,0 +1,33 @@
+module openconfig-interfaces {
+  yang-version 1.1;
+  namespace "http://openconfig.net/yang/interfaces";
+  prefix "oc-if";
+
+  description "Standard OpenConfig interfaces model.";
+
+  container interfaces {
+    list interface {
+      key "name";
+      leaf name {
+        type string;
+        description "The name of the interface";
+      }
+      container state {
+        leaf mtu {
+          type uint16 {
+            range "68..9216";
+          }
+          mandatory true;
+          description "The Maximum Transmission Unit";
+        }
+        leaf admin-status {
+          type enumeration {
+            enum UP;
+            enum DOWN;
+          }
+          description "The administrative status of the interface";
+        }
+      }
+    }
+  }
+}

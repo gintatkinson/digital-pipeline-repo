@@ -8,6 +8,7 @@ import 'package:app_flutter/components/breadcrumbs.dart';
 import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/components/property_grid.dart';
+import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/main.dart' show repository;
 
 /// TreeNode representing hierarchy selector items
@@ -1096,10 +1097,22 @@ class _LayoutState extends State<Layout> {
     final child = widget.child;
     if (child == null) return const SizedBox.shrink();
     if (child is PropertyGrid) {
+      List<AttributeDefinition>? dynamicAttributes;
+      if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {
+        try {
+          final list = _parsedLayout!['attributes'] as List<dynamic>;
+          dynamicAttributes = list
+              .map((e) => AttributeDefinition.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } catch (e) {
+          debugPrint('Error parsing dynamic attributes: $e');
+        }
+      }
+
       return PropertyGrid(
         key: child.key,
         activeView: _currentView,
-        attributes: child.attributes,
+        attributes: dynamicAttributes ?? child.attributes,
         initialValues: _currentNodeData ?? {},
         onSave: (String key, dynamic value) async {
           AbstractRepository resolvedRepo;

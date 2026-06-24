@@ -4,7 +4,11 @@
     "schema_name": "systems_topology_dashboard"
   },
   "theme": {
-    "modes": ["light", "dark", "system"],
+    "modes": [
+      "light",
+      "dark",
+      "system"
+    ],
     "colors": {
       "primary_accent": "color.brand.primary",
       "background": {
@@ -17,7 +21,11 @@
       }
     },
     "typography": {
-      "fonts": ["token.font.primary", "token.font.secondary", "system-ui"],
+      "fonts": [
+        "token.font.primary",
+        "token.font.secondary",
+        "system-ui"
+      ],
       "scale": "high-density"
     }
   },
@@ -131,5 +139,34 @@
         }
       ]
     }
-  }
+  },
+  "attributes": [
+    {
+      "key": "interfaces/interface/name",
+      "label": "The name of the interface",
+      "type": "string",
+      "sectionGroup": "interface",
+      "isRequired": false
+    },
+    {
+      "key": "interfaces/interface/state/mtu",
+      "label": "The Maximum Transmission Unit",
+      "type": "int",
+      "sectionGroup": "state",
+      "isRequired": true,
+      "minValue": 68,
+      "maxValue": 9216
+    },
+    {
+      "key": "interfaces/interface/state/admin-status",
+      "label": "The administrative status of the interface",
+      "type": "enumeration",
+      "sectionGroup": "state",
+      "isRequired": false,
+      "options": [
+        "UP",
+        "DOWN"
+      ]
+    }
+  ]
 }
