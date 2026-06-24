@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/domain/types.dart';
 import 'package:app_flutter/domain/validation.dart';
+import 'package:app_flutter/domain/repository.dart'; // ignore: unused_import
 
 /// UpperCaseTextFormatter forces character inputs to uppercase.
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -29,10 +30,13 @@ class PropertyGrid extends StatefulWidget {
   /// Callback triggered when changes are successfully validated and saved.
   final ValueChanged<Map<String, dynamic>>? onSave;
 
+  final Map<String, dynamic>? initialData;
+
   const PropertyGrid({
     super.key,
     required this.activeView,
     this.onSave,
+    this.initialData,
   });
 
   @override
@@ -88,19 +92,23 @@ class _PropertyGridState extends State<PropertyGrid> {
   @override
   void initState() {
     super.initState();
-    // Default initial committed state
-    committedData = <String, dynamic>{
-      'latitude': 37.7749,
-      'longitude': -122.4194,
-      'altitude': 10,
-      'roomName': 'Main-Data-Room',
-      'gridRow': 12,
-      'gridColumn': 4,
-      'maxVoltage': 240.0,
-      'maxAllocatedPower': 15000.0,
-      'countryCode': 'US',
-      'locationType': 'room',
-    };
+    // Use initialData if not null, otherwise fallback to default mock coordinates
+    if (widget.initialData != null) {
+      committedData = Map<String, dynamic>.from(widget.initialData!);
+    } else {
+      committedData = <String, dynamic>{
+        'latitude': 37.7749,
+        'longitude': -122.4194,
+        'altitude': 10,
+        'roomName': 'Main-Data-Room',
+        'gridRow': 12,
+        'gridColumn': 4,
+        'maxVoltage': 240.0,
+        'maxAllocatedPower': 15000.0,
+        'countryCode': 'US',
+        'locationType': 'room',
+      };
+    }
     bufferedData = Map<String, dynamic>.from(committedData);
 
     // Initialize text controllers
@@ -142,8 +150,24 @@ class _PropertyGridState extends State<PropertyGrid> {
   void didUpdateWidget(PropertyGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Synchronize buffer when activeView changes or parent state updates
-    if (widget.activeView != oldWidget.activeView) {
+    if (widget.activeView != oldWidget.activeView || widget.initialData != oldWidget.initialData) {
       setState(() {
+        if (widget.initialData != null) {
+          committedData = Map<String, dynamic>.from(widget.initialData!);
+        } else {
+          committedData = <String, dynamic>{
+            'latitude': 37.7749,
+            'longitude': -122.4194,
+            'altitude': 10,
+            'roomName': 'Main-Data-Room',
+            'gridRow': 12,
+            'gridColumn': 4,
+            'maxVoltage': 240.0,
+            'maxAllocatedPower': 15000.0,
+            'countryCode': 'US',
+            'locationType': 'room',
+          };
+        }
         _syncControllersWithCommitted();
         errors = const <String, String>{};
       });

@@ -1,15 +1,60 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/components/layout.dart';
 import 'package:app_flutter/components/property_grid.dart';
 
-void main() {
-  runApp(const MyApp());
+late final SqliteRepositoryAdapter repository;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SQLite FFI
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+
+  // Open database
+  final db = await databaseFactory.openDatabase('properties_db.db');
+
+  // Create table
+  await db.execute(
+    'CREATE TABLE IF NOT EXISTS properties (node_id TEXT PRIMARY KEY, data_json TEXT NOT NULL);',
+  );
+
+  // If the table is empty, pre-seed it
+  final List<Map<String, dynamic>> countResult = await db.rawQuery('SELECT COUNT(*) as count FROM properties');
+  final int count = countResult.first['count'] as int? ?? 0;
+  if (count == 0) {
+    final defaultMap = {
+      "latitude": 37.7749,
+      "longitude": -122.4194,
+      "altitude": 10.0,
+      "roomName": "Main-Data-Room",
+      "gridRow": 12,
+      "gridColumn": 4,
+      "maxVoltage": 240.0,
+      "maxAllocatedPower": 15000.0,
+      "countryCode": "US",
+      "locationType": "room"
+    };
+    final defaultJson = jsonEncode(defaultMap);
+    final List<String> nodes = ['Ingestion', 'Metrics', 'Location', 'Chassis', 'Epics', 'Traceability'];
+    for (final node in nodes) {
+      await db.insert('properties', {'node_id': node, 'data_json': defaultJson});
+    }
+  }
+
+  repository = SqliteRepositoryAdapter(db);
+
+  runApp(MyApp(repository: repository));
 }
 
 /// MyApp is the root application widget that initializes the application theme and layout configurations.
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final AbstractRepository repository;
+  const MyApp({super.key, required this.repository});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -65,6 +110,7 @@ class _MyAppState extends State<MyApp> {
       home: DashboardPage(
         themeMode: _themeMode,
         onThemeModeChange: _updateThemeMode,
+        repository: widget.repository,
       ),
     );
   }
@@ -74,11 +120,13 @@ class _MyAppState extends State<MyApp> {
 class DashboardPage extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<String> onThemeModeChange;
+  final AbstractRepository repository;
 
   const DashboardPage({
     super.key,
     required this.themeMode,
     required this.onThemeModeChange,
+    required this.repository,
   });
 
   @override
@@ -143,6 +191,7 @@ class _DashboardPageState extends State<DashboardPage> {
           layoutConfig: layoutConfig,
           themeMode: _getThemeModeString(),
           onThemeModeChange: widget.onThemeModeChange,
+          repository: widget.repository,
           child: PropertyGrid(
             activeView: _activeView,
           ),
@@ -151,3 +200,4 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 }
+

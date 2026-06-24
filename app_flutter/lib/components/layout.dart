@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/components/breadcrumbs.dart';
 import 'package:app_flutter/components/topology_map.dart';
+import 'package:app_flutter/domain/repository.dart';
+import 'package:app_flutter/components/property_grid.dart';
+import 'package:app_flutter/main.dart' show repository;
 
 /// TreeNode representing hierarchy selector items
 class TreeNode {
@@ -49,6 +52,7 @@ class Layout extends StatefulWidget {
   final String? layoutConfig;
   final String? themeMode;
   final ValueChanged<String>? onThemeModeChange;
+  final AbstractRepository? repository;
 
   const Layout({
     super.key,
@@ -58,6 +62,7 @@ class Layout extends StatefulWidget {
     this.layoutConfig,
     this.themeMode,
     this.onThemeModeChange,
+    this.repository,
   });
 
   @override
@@ -96,6 +101,27 @@ class _LayoutState extends State<Layout> {
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
 
+  // Properties Reactive State
+  Map<String, dynamic>? _currentNodeData;
+  StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
+
+  void _subscribeToProperties(String nodeId) {
+    _propertiesSubscription?.cancel();
+    AbstractRepository resolvedRepo;
+    try {
+      resolvedRepo = widget.repository ?? repository;
+    } catch (_) {
+      resolvedRepo = _DummyRepository();
+    }
+    _propertiesSubscription = resolvedRepo.watchProperties(nodeId).listen((data) {
+      if (mounted) {
+        setState(() {
+          _currentNodeData = data;
+        });
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -106,6 +132,7 @@ class _LayoutState extends State<Layout> {
 
     _loadLayoutConfig();
     _expandParents(_currentView);
+    _subscribeToProperties(_currentView);
 
     // Initialize simulated periodic off-thread background worker
     _periodicTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -122,6 +149,7 @@ class _LayoutState extends State<Layout> {
         _currentView = widget.activeView!;
       });
       _expandParents(_currentView);
+      _subscribeToProperties(_currentView);
     }
     if (widget.themeMode != null && widget.themeMode != oldWidget.themeMode) {
       setState(() {
@@ -132,6 +160,7 @@ class _LayoutState extends State<Layout> {
 
   @override
   void dispose() {
+    _propertiesSubscription?.cancel();
     _periodicTimer?.cancel();
     _treeFocusNode.dispose();
     _tableVerticalController.dispose();
@@ -299,6 +328,7 @@ class _LayoutState extends State<Layout> {
       _currentView = viewId;
     });
     _expandParents(viewId);
+    _subscribeToProperties(viewId);
     if (widget.onViewChange != null) {
       widget.onViewChange!(viewId);
     }
@@ -723,7 +753,7 @@ class _LayoutState extends State<Layout> {
                             ),
                           ),
                           Expanded(
-                            child: widget.child!,
+                            child: _buildChildWidget(),
                           ),
                         ]
                       ],
@@ -1061,4 +1091,35 @@ class _LayoutState extends State<Layout> {
       ),
     );
   }
+
+  Widget _buildChildWidget() {
+    final child = widget.child;
+    if (child == null) return const SizedBox.shrink();
+    if (child is PropertyGrid) {
+      return PropertyGrid(
+        key: child.key,
+        activeView: child.activeView,
+        initialData: _currentNodeData,
+        onSave: (data) async {
+          AbstractRepository resolvedRepo;
+          try {
+            resolvedRepo = widget.repository ?? repository;
+          } catch (_) {
+            resolvedRepo = _DummyRepository();
+          }
+          await resolvedRepo.saveProperties(_currentView, data);
+        },
+      );
+    }
+    return child;
+  }
+}
+
+class _DummyRepository implements AbstractRepository {
+  @override
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
+  @override
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) => Stream.empty();
 }

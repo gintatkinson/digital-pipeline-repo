@@ -1,10 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/main.dart';
+import 'package:app_flutter/domain/repository.dart';
+
+class MockRepository implements AbstractRepository {
+  @override
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
+  @override
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) => Stream.empty();
+}
 
 void main() {
   testWidgets('Dashboard console boots and renders main widgets successfully', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(repository: MockRepository()));
 
     // Allow FutureBuilder to resolve the asset loading future
     await tester.pumpAndSettle();
