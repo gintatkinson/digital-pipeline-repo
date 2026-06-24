@@ -4,7 +4,18 @@ This document outlines the software architecture, class topologies, and deployme
 
 ---
 
-## 1. Decoupled Repository Pattern
+## 1. Schema-Agnostic Document Map Architecture
+
+### Architectural Problem
+Hardcoding domain-specific fields (such as `latitude`, `longitude`, `altitude`, `roomName`, `gridRow`, `gridColumn`, `maxVoltage`, `maxAllocatedPower`, `countryCode`, `locationType`, etc.) into persistence adapters, data transfer objects (DTOs), and repository interfaces violates Section 1.7 of the Project Constitution. Domain attributes vary dynamically across execution runs and deployment environments. A hardcoded data structure introduces tight compile-time coupling between the data transport/persistence layer and the domain-specific schemas. This makes the database adapters fragile and prevents reusing the persistence layer when targeting different domains or changing network topology schemas.
+
+### Architectural Solution
+To decouple the persistence layer completely from the active domain, the system transitions to a schema-agnostic document map interface (`Map<String, dynamic>` in Dart, `Record<string, any>` in TypeScript). Under this design, repository adapters treat node properties purely as generic, key-value document maps without compile-time knowledge of specific fields.
+The UI components (such as the property grid and schema validator) dynamically resolve, layout, and validate these properties at runtime using the layout configuration asset (`logical-layout.json`). This ensures that changes to domain attributes require only configuration updates rather than rebuilding/re-compiling the persistence adapters or repository interfaces, making the persistence layer fully generic and reusable.
+
+---
+
+## 2. Decoupled Repository Pattern
 
 To prevent platform lock-in and avoid database-specific dependencies from contaminating the UI/Presentation layers, both the React and Flutter applications implement a strict **Repository Pattern**. 
 
@@ -21,24 +32,24 @@ classDiagram
     }
     class AbstractRepository {
         <<interface>>
-        +fetchNodeProperties(nodeId: String) PropertyGridData
-        +saveNodeProperties(nodeId: String, data: PropertyGridData) Void
+        +fetchNodeProperties(nodeId: String) Map<String, dynamic>
+        +saveNodeProperties(nodeId: String, data: Map<String, dynamic>) Void
     }
     class LocalFileRepositoryAdapter {
         +filePath: String
-        +fetchNodeProperties(nodeId: String) PropertyGridData
-        +saveNodeProperties(nodeId: String, data: PropertyGridData) Void
+        +fetchNodeProperties(nodeId: String) Map<String, dynamic>
+        +saveNodeProperties(nodeId: String, data: Map<String, dynamic>) Void
     }
     class FirestoreRepositoryAdapter {
         +projectId: String
         +dbEndpoint: String
-        +fetchNodeProperties(nodeId: String) PropertyGridData
-        +saveNodeProperties(nodeId: String, data: PropertyGridData) Void
+        +fetchNodeProperties(nodeId: String) Map<String, dynamic>
+        +saveNodeProperties(nodeId: String, data: Map<String, dynamic>) Void
     }
     class gNMIProtobufRepositoryAdapter {
         +gnmiClient: gNMIClient
-        +fetchNodeProperties(nodeId: String) PropertyGridData
-        +saveNodeProperties(nodeId: String, data: PropertyGridData) Void
+        +fetchNodeProperties(nodeId: String) Map<String, dynamic>
+        +saveNodeProperties(nodeId: String, data: Map<String, dynamic>) Void
     }
     class PersistenceBootstrap {
         +resolveAdapter(config: Config) AbstractRepository
@@ -53,7 +64,7 @@ classDiagram
 
 ---
 
-## 2. Flutter Desktop Configurations
+## 3. Flutter Desktop Configurations
 
 The Flutter Desktop baseline (`app_flutter`) serves as the starting framework for telecommunications operations. It supports four distinct persistence adapters, resolved via startup arguments or local configuration files:
 
@@ -88,7 +99,7 @@ The Flutter Desktop baseline (`app_flutter`) serves as the starting framework fo
 
 ---
 
-## 3. Architectural Comparison: Standalone Local DB vs. Local Firebase Emulator
+## 4. Architectural Comparison: Standalone Local DB vs. Local Firebase Emulator
 
 For local, air-gapped desktop environments, both Option 1 and Option 2 offer offline capabilities, but they differ significantly in design intent, dependencies, and operational overhead.
 
@@ -110,7 +121,7 @@ For local, air-gapped desktop environments, both Option 1 and Option 2 offer off
 
 ---
 
-## 4. React Web Configurations
+## 5. React Web Configurations
 
 The React baseline (`web_react`) acts as the web-based console interface. It supports two primary deployment profiles:
 
@@ -128,7 +139,7 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 
 ---
 
-## 5. Configuration Matrix
+## 6. Configuration Matrix
 
 | Platform | Deployment Mode | Active Adapter | Transport Layer | Endpoint / Protocol | Security Layer |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -141,7 +152,7 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 
 ---
 
-## 6. Implementation Code Outlines
+## 7. Implementation Code Outlines
 
 ### Dart Abstractions (Flutter)
 
@@ -150,90 +161,45 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 
 import 'dart:convert';
 
-// 1. Decoupled Data Model
-class PropertyGridData {
-  final double latitude;
-  final double longitude;
-  final double altitude;
-  final String roomName;
-  final int gridRow;
-  final int gridColumn;
-  final double maxVoltage;
-  final double maxAllocatedPower;
-  final String countryCode;
-  final String locationType;
-
-  PropertyGridData({
-    required this.latitude,
-    required this.longitude,
-    required this.altitude,
-    required this.roomName,
-    required this.gridRow,
-    required this.gridColumn,
-    required this.maxVoltage,
-    required this.maxAllocatedPower,
-    required this.countryCode,
-    required this.locationType,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'latitude': latitude,
-    'longitude': longitude,
-    'altitude': altitude,
-    'roomName': roomName,
-    'gridRow': gridRow,
-    'gridColumn': gridColumn,
-    'maxVoltage': maxVoltage,
-    'maxAllocatedPower': maxAllocatedPower,
-    'countryCode': countryCode,
-    'locationType': locationType,
-  };
-
-  factory PropertyGridData.fromJson(Map<String, dynamic> json) {
-    return PropertyGridData(
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
-      altitude: (json['altitude'] ?? 0.0).toDouble(),
-      roomName: json['roomName'] ?? '',
-      gridRow: (json['gridRow'] ?? 0).toInt(),
-      gridColumn: (json['gridColumn'] ?? 0).toInt(),
-      maxVoltage: (json['maxVoltage'] ?? 0.0).toDouble(),
-      maxAllocatedPower: (json['maxAllocatedPower'] ?? 0.0).toDouble(),
-      countryCode: json['countryCode'] ?? 'US',
-      locationType: json['locationType'] ?? 'room',
-    );
-  }
-}
-
-// 2. Abstract Repository Interface
+// 1. Abstract Repository Interface
 abstract class AbstractRepository {
-  Future<PropertyGridData> fetchProperties(String nodeId);
-  Future<void> saveProperties(String nodeId, PropertyGridData data);
+  Future<Map<String, dynamic>> fetchProperties(String nodeId);
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data);
 }
 
-// 3. Local File Repository Adapter (Skeleton Structure)
+// 2. Local File Repository Adapter (Skeleton Structure)
 class LocalFileRepositoryAdapter implements AbstractRepository {
   final String filePath;
+  
+  // Generic memory cache seeding using Map<String, Map<String, dynamic>>
+  final Map<String, Map<String, dynamic>> _seedCache = {};
 
-  LocalFileRepositoryAdapter({required this.filePath});
+  LocalFileRepositoryAdapter({required this.filePath, Map<String, Map<String, dynamic>>? seeds}) {
+    if (seeds != null) {
+      _seedCache.addAll(seeds);
+    }
+  }
 
   @override
-  Future<PropertyGridData> fetchProperties(String nodeId) async {
-    // TODO: Implement local file reading and JSON parsing logic.
-    // 1. Check if local properties file exists at filePath.
-    // 2. Read string payload from file.
-    // 3. Decode JSON payload and extract nodeId map.
-    // 4. Return PropertyGridData.fromJson(nodeMap).
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
+    // 1. Check memory cache or seed cache first.
+    if (_seedCache.containsKey(nodeId)) {
+      return _seedCache[nodeId]!;
+    }
+    // 2. Check if local properties file exists at filePath.
+    // 3. Read string payload from file.
+    // 4. Decode JSON payload and extract nodeId map.
+    // 5. Update _seedCache and return the Map<String, dynamic>.
     throw UnimplementedError('fetchProperties not implemented for LocalFileRepositoryAdapter');
   }
 
   @override
-  Future<void> saveProperties(String nodeId, PropertyGridData data) async {
-    // TODO: Implement local file writing logic.
-    // 1. Read existing local file or initialize new map.
-    // 2. Insert/Update serialized payload: data.toJson().
-    // 3. Write JSON string back to filePath.
-    // 4. Flush file to disk to enforce persistence guarantees.
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
+    // 1. Update memory cache: _seedCache[nodeId] = data.
+    // 2. Read existing local file or initialize new map.
+    // 3. Insert/Update serialized payload.
+    // 4. Write JSON string back to filePath.
+    // 5. Flush file to disk to enforce persistence guarantees.
     throw UnimplementedError('saveProperties not implemented for LocalFileRepositoryAdapter');
   }
 }
@@ -244,21 +210,8 @@ class LocalFileRepositoryAdapter implements AbstractRepository {
 ```typescript
 // src/domain/repository.ts
 
-export interface PropertyGridData {
-  latitude: number;
-  longitude: number;
-  altitude: number;
-  roomName: string;
-  gridRow: number;
-  gridColumn: number;
-  maxVoltage: number;
-  maxAllocatedPower: number;
-  countryCode: string;
-  locationType: string;
-}
-
 export interface AbstractRepository {
-  fetchProperties(nodeId: string): Promise<PropertyGridData>;
-  saveProperties(nodeId: string, data: PropertyGridData): Promise<void>;
+  fetchProperties(nodeId: string): Promise<Record<string, any>>;
+  saveProperties(nodeId: string, data: Record<string, any>): Promise<void>;
 }
 ```
