@@ -342,3 +342,41 @@ export const useNodeProperties = (nodeId: string) => {
   };
 };
 ```
+
+---
+
+## 9. The YANG-Driven UI Pipeline
+
+To handle network configuration models at enterprise scale (e.g., 300+ YANG modules representing 10,000+ classes), the architecture avoids manual class mirroring. Instead, it relies on a **YANG-Driven UI Pipeline** that automatically translates YANG schema models into declarative JSON layout configurations consumed directly by the generic `PropertyGrid`.
+
+### Architectural Mapping: YANG to AttributeDefinition
+
+YANG specifications natively supply the metadata required to dynamically render and validate user interfaces:
+
+* **YANG Groupings & Containers** map directly to `sectionGroup`.
+* **YANG Types** (e.g., `string`, `uint16`, `decimal64`) map to `type` (`string`, `int`, `double`).
+* **YANG Enumerations** map to `enum` with the list of options stored under `options`.
+* **YANG Validation Constraints** (e.g., `mandatory true`, `range "68..9216"`) map to `isRequired`, `minValue`, and `maxValue` constraints.
+
+### Complex XPath Validations
+
+Complex cross-field mathematical constraints represented by YANG `must` statements (such as slot overlap checks) are not evaluated locally in the Flutter/Dart UI. Instead:
+
+1. The dynamic `PropertyGrid` performs localized type, boundary, and format validation on focus loss (blur).
+2. When the data is saved, the generic `Map<String, dynamic>` payload is transmitted directly to the equipment via the gNMI stream.
+3. The network device or Network Management System (NMS) evaluates the XPath `must` rules.
+4. If a constraint fails, the resulting gRPC error message (e.g., `"Slot overlap detected!"`) is caught by the application's repository layer and surfaced directly to the user in the UI.
+
+---
+
+## 10. Engineering Directives
+
+### Directive 1: Halt Hand-Written Dart Translation
+Stop the development of manual Dart dummy classes (such as `PhysicalAddress` or `Velocity`). Legacy mock classes are retained exclusively for widget test isolation, but no new static models should be manually written.
+
+### Directive 2: Build a YANG-to-JSON compilation step
+Implement a build script in the CI/CD pipeline using **pyang** (the Python YANG validator/transformer) or **ygot** (YANG Go Tools) to parse source `.yang` files and generate the `List<AttributeDefinition>` JSON configurations. This script must compile and rebuild UI schemas automatically whenever hardware vendors update their models.
+
+### Directive 3: Map gNMI Paths directly to UI Keys
+Configure the compiler script to use the absolute YANG path as the attribute's `key` (e.g., `interfaces/interface/state/mtu` instead of `mtu`). The serialized map will compile directly into the telemetry payload envelopes required by gNMI streams.
+
