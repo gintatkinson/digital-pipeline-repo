@@ -26,9 +26,20 @@ The UI widgets (such as the property grid and topology canvas) never communicate
 ```mermaid
 classDiagram
     class UIComponent {
-        +repo: AbstractRepository
+        +stateManager: StateManager
         +onNodeFocus()
         +onBlurSave()
+    }
+    class StateManager {
+        +repo: AbstractRepository
+        +validator: RuntimeValidator
+        +queryState
+        +cache
+        +fetchNodeProperties(nodeId: String) Map<String, dynamic>
+        +saveNodeProperties(nodeId: String, data: Map<String, dynamic>) Void
+    }
+    class RuntimeValidator {
+        +validate(data: Map<String, dynamic>, schema: Schema) ValidationResult
     }
     class AbstractRepository {
         <<interface>>
@@ -55,7 +66,9 @@ classDiagram
         +resolveAdapter(config: Config) AbstractRepository
     }
 
-    UIComponent --> AbstractRepository : queries
+    UIComponent --> StateManager : interacts with
+    StateManager --> RuntimeValidator : delegates validation
+    StateManager --> AbstractRepository : queries
     LocalFileRepositoryAdapter ..|> AbstractRepository : realizes
     FirestoreRepositoryAdapter ..|> AbstractRepository : realizes
     gNMIProtobufRepositoryAdapter ..|> AbstractRepository : realizes
@@ -74,6 +87,7 @@ The Flutter Desktop baseline (`app_flutter`) serves as the starting framework fo
   * Implements a local file-based database adapter (`LocalFileRepositoryAdapter`).
   * Utilizes SQLite (`sqflite_common_ffi`) or simple structured JSON files located in the user's local App Data directory.
   * Enforces read-after-write consistency by flushing memory state to the local disk during UI focus-loss (blur) events.
+  * **Concurrency & Race Hazard Mitigation**: Rapid blur events or UI updates can trigger concurrent file write operations, causing potential data corruption. To address this, the adapter uses a file lock (`Lock` from the `synchronized` library) combined with an Atomic Write pattern: data is first written to a temporary file (`.tmp`) and then renamed atomically to replace the main target file, guaranteeing file integrity.
   * **Plug-and-Play Backend Connectivity**: Designed to operate completely isolated by default, with hooks to easily plug in remote cloud synchronization or real-time equipment telemetry backends (`FirestoreRepositoryAdapter` or `gNMIProtobufRepositoryAdapter`) when network access is restored or required.
 
 ### Option 2: Air-Gapped Local Firebase Emulator
@@ -88,6 +102,7 @@ The Flutter Desktop baseline (`app_flutter`) serves as the starting framework fo
 * **Mechanism**:
   * Implements `FirestoreRepositoryAdapter` using Dart's native `HttpClient` to communicate with Google Cloud Firestore via REST or standard gRPC.
   * Connects directly to the cloud collections (e.g. `properties`), updating the UI in response to change notifications.
+  * **Reactive Event Streaming**: Handles push-based server events reactively by exposing updates through the `watchProperties()` stream subscription, enabling real-time UI synchronization across multiple operators.
   * Supports offline cache fallback if remote connections drop.
 
 ### Option 4: Equipment Telemetry (gNMI / Protobuf)
@@ -95,6 +110,7 @@ The Flutter Desktop baseline (`app_flutter`) serves as the starting framework fo
 * **Mechanism**:
   * Implements `gNMIProtobufRepositoryAdapter` to stream configuration parameters over a gRPC connection.
   * Serializes coordinates, node properties, and alarm severities into Protocol Buffer payloads defined by the OpenConfig gNMI specification.
+  * **Reactive Telemetry Streaming**: Real-time push-based state updates are consumed reactively using the `watchProperties()` stream subscription.
   * Maps telemetry state updates (e.g. interface packet drops) to the 6 JSR 90 Alarm Severity levels, triggering dynamic repaints on the Canvas topology map.
 
 ---
@@ -121,9 +137,17 @@ For local, air-gapped desktop environments, both Option 1 and Option 2 offer off
 
 ---
 
-## 5. React Web Configurations
+## 5. Standardized Protobuf Payload Envelopes
 
-The React baseline (`web_react`) acts as the web-based console interface. It supports two primary deployment profiles:
+To bridge the dynamic, schema-agnostic document map (`Map<String, dynamic>` / `Record<string, any>`) with strictly typed telemetry streams (Option 4 / gNMI), the architecture standardizes on `google.protobuf.Struct`.
+
+Using `google.protobuf.Struct` allows the gNMI stream to safely encapsulate arbitrary JSON-like nested maps and lists without needing to define fixed Protobuf schema fields for every dynamic domain property. This retains the runtime schema flexibility of the repository layers while leveraging the transport efficiency and type-safety of gRPC streams.
+
+---
+
+## 6. React Web Configurations
+
+The React baseline (`web_react`) acts as the web-based console interface. It supports dynamic configurations that can resolve backends based on deployment targets.
 
 ### Configuration A: Testing Mode (Local Emulator)
 * **Target Environment**: Developer local machines and automated CI pipelines.
@@ -139,7 +163,7 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 
 ---
 
-## 6. Configuration Matrix
+## 7. Configuration Matrix
 
 | Platform | Deployment Mode | Active Adapter | Transport Layer | Endpoint / Protocol | Security Layer |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -147,60 +171,78 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 | **Flutter Desktop** | Air-Gapped Dev/Test | `FirestoreRepositoryAdapter` | HTTP / REST | 127.0.0.1:8080 (Emulator) | None (Local Sandbox) |
 | **Flutter Desktop** | Shared Cloud | `FirestoreRepositoryAdapter` | HTTPS / REST | firestore.googleapis.com | API Key / Firebase Auth |
 | **Flutter Desktop** | Telemetry Control | `gNMIProtobufRepositoryAdapter` | gRPC over HTTP/2 | Sockets / Protobuf streams | TLS / Mutual Auth (mTLS) |
+| **React Web** | Standalone Offline (PWA) | `IndexedDBRepositoryAdapter` | Local Sockets/IndexedDB | browser local storage (localForage / Dexie.js) | Browser sandbox isolation |
 | **React Web** | Testing | `FirestoreRepositoryAdapter` | HTTP / REST | 127.0.0.1:8080 (Emulator) | None (Local Sandbox) |
 | **React Web** | Production | `FirestoreRepositoryAdapter` | HTTPS / WebSockets | firestore.googleapis.com | Firebase Security Rules |
 
 ---
 
-## 7. Implementation Code Outlines
+## 8. Implementation Code Outlines
 
 ### Dart Abstractions (Flutter)
 
 ```dart
-// lib/domain/repository.dart
-
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:synchronized/synchronized.dart';
 
-// 1. Abstract Repository Interface
+// 1. Reactive Repository Interface
 abstract class AbstractRepository {
   Future<Map<String, dynamic>> fetchProperties(String nodeId);
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data);
+  Stream<Map<String, dynamic>> watchProperties(String nodeId); 
 }
 
-// 2. Local File Repository Adapter (Skeleton Structure)
+// 2. Thread-Safe & Atomic Local File Adapter
 class LocalFileRepositoryAdapter implements AbstractRepository {
   final String filePath;
-  
-  // Generic memory cache seeding using Map<String, Map<String, dynamic>>
-  final Map<String, Map<String, dynamic>> _seedCache = {};
+  final Lock _fileLock = Lock();
+  final Map<String, Map<String, dynamic>> _memoryCache = {};
+  final StreamController<Map<String, dynamic>> _streamController = StreamController.broadcast();
 
-  LocalFileRepositoryAdapter({required this.filePath, Map<String, Map<String, dynamic>>? seeds}) {
-    if (seeds != null) {
-      _seedCache.addAll(seeds);
-    }
-  }
+  LocalFileRepositoryAdapter({required this.filePath});
 
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
-    // 1. Check memory cache or seed cache first.
-    if (_seedCache.containsKey(nodeId)) {
-      return _seedCache[nodeId]!;
-    }
-    // 2. Check if local properties file exists at filePath.
-    // 3. Read string payload from file.
-    // 4. Decode JSON payload and extract nodeId map.
-    // 5. Update _seedCache and return the Map<String, dynamic>.
-    throw UnimplementedError('fetchProperties not implemented for LocalFileRepositoryAdapter');
+    if (_memoryCache.containsKey(nodeId)) return _memoryCache[nodeId]!;
+    
+    return await _fileLock.synchronized(() async {
+      final file = File(filePath);
+      if (!await file.exists()) return {};
+      final data = jsonDecode(await file.readAsString());
+      _memoryCache[nodeId] = data[nodeId] ?? {};
+      return _memoryCache[nodeId]!;
+    });
+  }
+
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
+    yield await fetchProperties(nodeId);
+    yield* _streamController.stream
+        .where((event) => event['nodeId'] == nodeId)
+        .map((event) => event['data'] as Map<String, dynamic>);
   }
 
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
-    // 1. Update memory cache: _seedCache[nodeId] = data.
-    // 2. Read existing local file or initialize new map.
-    // 3. Insert/Update serialized payload.
-    // 4. Write JSON string back to filePath.
-    // 5. Flush file to disk to enforce persistence guarantees.
-    throw UnimplementedError('saveProperties not implemented for LocalFileRepositoryAdapter');
+    _memoryCache[nodeId] = data;
+    _streamController.add({ 'nodeId': nodeId, 'data': data });
+
+    await _fileLock.synchronized(() async {
+      final file = File(filePath);
+      Map<String, dynamic> allData = {};
+      
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        if (content.isNotEmpty) allData = jsonDecode(content);
+      }
+      allData[nodeId] = data;
+
+      final tempFile = File('$filePath.tmp');
+      await tempFile.writeAsString(jsonEncode(allData), flush: true);
+      await tempFile.rename(filePath); 
+    });
   }
 }
 ```
@@ -208,10 +250,40 @@ class LocalFileRepositoryAdapter implements AbstractRepository {
 ### TypeScript Abstractions (React)
 
 ```typescript
-// src/domain/repository.ts
-
 export interface AbstractRepository {
   fetchProperties(nodeId: string): Promise<Record<string, any>>;
   saveProperties(nodeId: string, data: Record<string, any>): Promise<void>;
+  watchProperties(
+    nodeId: string, 
+    onUpdate: (data: Record<string, any>) => void
+  ): () => void; 
 }
+
+// src/hooks/useNodeProperties.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRepository } from '../context/DIContext'; 
+
+export const useNodeProperties = (nodeId: string) => {
+  const repo = useRepository();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['node-properties', nodeId],
+    queryFn: () => repo.fetchProperties(nodeId),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data: Record<string, any>) => repo.saveProperties(nodeId, data),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['node-properties', nodeId] });
+      queryClient.setQueryData(['node-properties', nodeId], newData);
+    }
+  });
+
+  return { 
+    properties: query.data, 
+    isLoading: query.isLoading, 
+    save: mutation.mutate 
+  };
+};
 ```
