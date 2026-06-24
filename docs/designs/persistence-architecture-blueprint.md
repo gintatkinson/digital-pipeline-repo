@@ -55,23 +55,31 @@ classDiagram
 
 ## 2. Flutter Desktop Configurations
 
-The Flutter Desktop baseline (`app_flutter`) serves as the starting framework for telecommunications operations. It supports three distinct persistence adapters, resolved via startup arguments or local configuration files:
+The Flutter Desktop baseline (`app_flutter`) serves as the starting framework for telecommunications operations. It supports four distinct persistence adapters, resolved via startup arguments or local configuration files:
 
-### Configuration A: Standalone Offline (Local DB) - Default
+### Option 1: Standalone Offline Local DB (SQLite FFI / Local File DB) - Selected Primary Default
 * **Target Environment**: Standalone, air-gapped terminal apps running locally on operator laptops with no external network connectivity.
 * **Mechanism**:
   * Implements a local file-based database adapter (`LocalFileRepositoryAdapter`).
   * Utilizes SQLite (`sqflite_common_ffi`) or simple structured JSON files located in the user's local App Data directory.
   * Enforces read-after-write consistency by flushing memory state to the local disk during UI focus-loss (blur) events.
+  * **Plug-and-Play Backend Connectivity**: Designed to operate completely isolated by default, with hooks to easily plug in remote cloud synchronization or real-time equipment telemetry backends (`FirestoreRepositoryAdapter` or `gNMIProtobufRepositoryAdapter`) when network access is restored or required.
 
-### Configuration B: Cloud Sync (Remote Firestore)
+### Option 2: Air-Gapped Local Firebase Emulator
+* **Target Environment**: Local testing, CI pipelines, and air-gapped developer environments where Firebase/Firestore APIs are functionally required for development parity but no active cloud connection is permitted.
+* **Mechanism**:
+  * Connects to a locally running instance of the Firebase/Firestore emulator (`http://127.0.0.1:8080`) over loopback.
+  * Bypasses Google Cloud IAM and network credentials, using mock configuration environments.
+  * Restores functional parity with the cloud build configuration (validating security rules, collections, queries) within an entirely offline local loop.
+
+### Option 3: Cloud Sync (Remote Firestore)
 * **Target Environment**: Shared, collaborative operations consoles where multiple operators monitor the same network slice.
 * **Mechanism**:
   * Implements `FirestoreRepositoryAdapter` using Dart's native `HttpClient` to communicate with Google Cloud Firestore via REST or standard gRPC.
   * Connects directly to the cloud collections (e.g. `properties`), updating the UI in response to change notifications.
   * Supports offline cache fallback if remote connections drop.
 
-### Configuration C: Equipment Telemetry (gNMI / Protobuf)
+### Option 4: Equipment Telemetry (gNMI / Protobuf)
 * **Target Environment**: High-performance, real-time control terminals connected directly to network routers or Software-Defined Network (SDN) controllers.
 * **Mechanism**:
   * Implements `gNMIProtobufRepositoryAdapter` to stream configuration parameters over a gRPC connection.
@@ -80,7 +88,29 @@ The Flutter Desktop baseline (`app_flutter`) serves as the starting framework fo
 
 ---
 
-## 3. React Web Configurations
+## 3. Architectural Comparison: Standalone Local DB vs. Local Firebase Emulator
+
+For local, air-gapped desktop environments, both Option 1 and Option 2 offer offline capabilities, but they differ significantly in design intent, dependencies, and operational overhead.
+
+### Comparison Table
+
+| Attribute | Option 1: Standalone Offline Local DB (SQLite FFI / File DB) | Option 2: Air-Gapped Local Firebase Emulator |
+| :--- | :--- | :--- |
+| **Primary Use Case** | Production deployment on operator workstations with no external network connectivity. | Local testing, CI pipelines, and air-gapped developer builds requiring Firebase feature parity. |
+| **Runtime Dependencies** | None. Reads/writes directly to the local disk/OS file system via SQLite FFI or JSON. | Requires Java Runtime Environment (JRE), Node.js, and Firebase CLI to run the emulator suite. |
+| **Resource Footprint** | Extremely lightweight (~few MBs of RAM, zero CPU idle overhead). | Heavy (runs a local Java process hosting the emulator suite). |
+| **Data Persistence** | Direct file system access (`properties.json` or `.db` file). Survived restarts natively. | In-memory by default (requires `--import/--export` flags via CLI to persist state across runs). |
+| **Upgrade/Flexibility** | Highly customizable; allows other backend adapters to plug in easily when needed. | Hard-locked to Firestore API structure; does not natively support non-Firebase backend adapters. |
+| **Security Auditing** | Governed strictly by operating system and user-space file permission flags. | Bypasses production IAM; only enforces security rules locally. |
+
+### Suitability Analysis
+
+* **Option 1 (Standalone Offline Local DB)** is the **selected primary default** for desktop deployments. Because it runs with zero dependencies, it guarantees absolute reliability in high-security, air-gapped operational environments (such as field laptop deployments) where installing and running a local emulator suite (with Node, Java, etc.) is operationally infeasible and represents an unnecessary security surface.
+* **Option 2 (Air-Gapped Local Firebase Emulator)** is highly suited for **development and testing environments**. It allows developers to test Firestore query structures, security rules, and real-time listeners locally before staging to a collaborative shared cloud console (Option 3), ensuring no functional drift occurs between the offline and online configurations.
+
+---
+
+## 4. React Web Configurations
 
 The React baseline (`web_react`) acts as the web-based console interface. It supports two primary deployment profiles:
 
@@ -98,11 +128,12 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 
 ---
 
-## 4. Configuration Matrix
+## 5. Configuration Matrix
 
 | Platform | Deployment Mode | Active Adapter | Transport Layer | Endpoint / Protocol | Security Layer |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Flutter Desktop** | Standalone (Default) | `LocalFileRepositoryAdapter` | Local Disk I/O | AppData / `properties.json` | OS File System permissions |
+| **Flutter Desktop** | Air-Gapped Dev/Test | `FirestoreRepositoryAdapter` | HTTP / REST | 127.0.0.1:8080 (Emulator) | None (Local Sandbox) |
 | **Flutter Desktop** | Shared Cloud | `FirestoreRepositoryAdapter` | HTTPS / REST | firestore.googleapis.com | API Key / Firebase Auth |
 | **Flutter Desktop** | Telemetry Control | `gNMIProtobufRepositoryAdapter` | gRPC over HTTP/2 | Sockets / Protobuf streams | TLS / Mutual Auth (mTLS) |
 | **React Web** | Testing | `FirestoreRepositoryAdapter` | HTTP / REST | 127.0.0.1:8080 (Emulator) | None (Local Sandbox) |
@@ -110,7 +141,7 @@ The React baseline (`web_react`) acts as the web-based console interface. It sup
 
 ---
 
-## 5. Implementation Code Outlines
+## 6. Implementation Code Outlines
 
 ### Dart Abstractions (Flutter)
 
@@ -178,6 +209,33 @@ class PropertyGridData {
 abstract class AbstractRepository {
   Future<PropertyGridData> fetchProperties(String nodeId);
   Future<void> saveProperties(String nodeId, PropertyGridData data);
+}
+
+// 3. Local File Repository Adapter (Skeleton Structure)
+class LocalFileRepositoryAdapter implements AbstractRepository {
+  final String filePath;
+
+  LocalFileRepositoryAdapter({required this.filePath});
+
+  @override
+  Future<PropertyGridData> fetchProperties(String nodeId) async {
+    // TODO: Implement local file reading and JSON parsing logic.
+    // 1. Check if local properties file exists at filePath.
+    // 2. Read string payload from file.
+    // 3. Decode JSON payload and extract nodeId map.
+    // 4. Return PropertyGridData.fromJson(nodeMap).
+    throw UnimplementedError('fetchProperties not implemented for LocalFileRepositoryAdapter');
+  }
+
+  @override
+  Future<void> saveProperties(String nodeId, PropertyGridData data) async {
+    // TODO: Implement local file writing logic.
+    // 1. Read existing local file or initialize new map.
+    // 2. Insert/Update serialized payload: data.toJson().
+    // 3. Write JSON string back to filePath.
+    // 4. Flush file to disk to enforce persistence guarantees.
+    throw UnimplementedError('saveProperties not implemented for LocalFileRepositoryAdapter');
+  }
 }
 ```
 
