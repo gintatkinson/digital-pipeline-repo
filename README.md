@@ -307,6 +307,27 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ---
 
+## Downstream Baseline Seeding and Compliance
+
+To enforce consistent architecture, layout controls, and validation gates across downstream repositories, the pipeline includes automation scripts for seeding and compliance verification.
+
+### Seeding a Downstream Target Workspace
+Prior to starting development in a downstream repository, bootstrap the directory with our baseline widgets (timeline scrubbers, custom resizable splitters, and validation-on-focus-loss property grids):
+```bash
+python3 scripts/bootstrap_downstream.py [react | flutter] <destination_path>
+```
+This copies the exact source templates (`web_react` or `app_flutter`) to your target destination while preserving all existing `.git`, `node_modules`, `.dart_tool`, and package lockfiles.
+
+### Running Compliance Verification Gates
+To verify that a downstream workspace adheres to the Project Constitution (including mandated types and passing compilation/tests) run:
+```bash
+python3 scripts/verify_downstream_baseline.py [react | flutter] <destination_path>
+```
+* **React Checks**: Asserts presence of core React baseline files, checks for all 9 mandated domain classes in `types.ts`, and verifies compilation/packaging via `npm run build`.
+* **Flutter Checks**: Asserts presence of core Flutter baseline files, checks for all 9 mandated domain classes in `types.dart`, and runs full diagnostics and test suite via `flutter analyze && flutter test`.
+
+---
+
 ## Expected Outputs
 
 ### Specification Pipeline
