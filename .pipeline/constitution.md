@@ -4,11 +4,11 @@
 title: "Project Constitution -- Functional Layer (Default)"
 project: "Digital Systems Engineering Pipeline"
 tier: functional
-version: "1.0.0"
+version: "1.1.0"
 created: "2025-06-13"
 created_time: "2025-06-13T00:00:00+00:00"
-last_updated: "2026-06-17"
-last_updated_time: "2026-06-17T01:00:02+08:00"
+last_updated: "2026-06-24"
+last_updated_time: "2026-06-24T14:42:23+08:00"
 ---
 
 # Project Constitution: Digital Systems Engineering Pipeline
@@ -229,6 +229,12 @@ Branching strategies are configured via workflow parameters. By default:
 - NOT required for specification generation -- spec workers operate autonomously within these constitutional bounds.
 - If a spec worker encounters ambiguity in the normative text, it MUST flag it in the Feature description rather than guessing.
 
+### 4.5 Downstream Conformance Gates
+
+- Prior to integrating any downstream application implementation, the project MUST be bootstrapped and verified.
+- The downstream project must be initialized using the `bootstrap_downstream.py` script.
+- The baseline conformance must be verified using the `verify_downstream_baseline.py` script, which asserts that all baseline files are present, validates type compatibility with the mandated domain classes, and compiles/tests the project with a clean exit code.
+
 ---
 
 ## 5. Forbidden Practices
@@ -245,6 +251,7 @@ Branching strategies are configured via workflow parameters. By default:
 - Do NOT mix platform-specific implementation mechanisms (such as React Context or Flutter Keys) inside logical UI component specifications.
 - Do NOT bypass dynamic design token resolution; all colors, typography, and spacing must map back to variables loaded dynamically from Tier 2 configuration files.
 - Do NOT allow documentation drift. All interdependent documents (including README.md, platform profiles, and metadata rules) must be updated in sync with any configuration or rule changes.
+- Do NOT delete, disable, or modify baseline files, layout splitters, playback timelines, or focus-loss validation forms in downstream projects, as they form the core compliance and verification framework.
 
 ---
 
