@@ -293,7 +293,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > Execute the full delivery workflow with TDD execution discipline:
 >
 > 0. Pre-Execution Seeding & Rules Verification:
->    - Ensure the downstream workspace has been bootstrapped using the upstream `scripts/bootstrap_downstream.py` script (use `--no-domain` if implementing a different project domain).
+>    - Ensure the downstream workspace has been bootstrapped using the upstream-only `scripts/bootstrap_downstream.py` script. Note that this is an upstream-only tool and must be executed from the upstream repository directory (`/Users/perkunas/digital-pipeline-repo`) targeting the downstream workspace path BEFORE the downstream agent begins work (use `--no-domain` if implementing a different project domain).
 >    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`), specifically Section 4.5 (Downstream Conformance Gates) and Section 5 (Forbidden Practices - do NOT delete or bypass the layout splitters, timeline scrubber, or focus-loss property grid).
 >    - Adhere to the Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in final DI).
 >
@@ -320,7 +320,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 To enforce consistent architecture, layout controls, and validation gates across downstream repositories, the pipeline includes automation scripts for seeding and compliance verification.
 
 ### Seeding a Downstream Target Workspace
-Prior to starting development in a downstream repository, bootstrap the directory with our baseline widgets (timeline scrubbers, custom resizable splitters, and validation-on-focus-loss property grids):
+Prior to starting development in a downstream repository, bootstrap the directory with our baseline widgets (timeline scrubbers, custom resizable splitters, and validation-on-focus-loss property grids). **Crucially, this command must be executed from the upstream repository directory (`/Users/perkunas/digital-pipeline-repo`):**
 ```bash
 python3 scripts/bootstrap_downstream.py [react | flutter] <destination_path> [--no-domain]
 ```
