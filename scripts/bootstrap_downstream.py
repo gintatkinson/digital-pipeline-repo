@@ -13,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description="Bootstrap downstream baseline template files.")
     parser.add_argument("platform", choices=["react", "flutter"], help="Platform to bootstrap ('react' or 'flutter')")
     parser.add_argument("destination", help="Destination path for the bootstrapped project")
+    parser.add_argument("--no-domain", action="store_true", help="Skip copying domain directories/files")
     args = parser.parse_args()
 
     platform = args.platform
@@ -48,6 +49,12 @@ def main():
 
         # Calculate destination directory structure
         rel_path = os.path.relpath(root, src_dir)
+        norm_rel_path = rel_path.replace(os.sep, "/")
+
+        if args.no_domain and platform == "flutter" and norm_rel_path == "lib":
+            if "domain" in dirs:
+                dirs.remove("domain")
+
         if rel_path == ".":
             target_dir = destination
         else:
@@ -62,6 +69,11 @@ def main():
             # Check if file name itself is a preserved item and already exists in target
             if file in preserved and os.path.exists(target_file):
                 print(f"Preserving existing: {target_file}")
+                skipped_count += 1
+                continue
+
+            if args.no_domain and platform == "react" and norm_rel_path == "src" and file == "types.ts":
+                print(f"Skipping domain file per --no-domain: {file}")
                 skipped_count += 1
                 continue
 

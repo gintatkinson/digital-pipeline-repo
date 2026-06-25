@@ -1,25 +1,38 @@
-# Implementation Plan - UML System Use Case Generation
+# Implementation Plan - Issue #65 Baseline Verification Customizations
 
-Generate 4 formal UML System Use Case documents in Cockburn style for the persistence layer configurations.
+This plan details the implementation of baseline verification customizations and the `--no-domain` option during bootstrapping and compliance checks.
 
 ## Proposed Changes
 
-Create 4 new markdown files in the workspace under `docs/use-cases/`:
-1. `docs/use-cases/uc-01-standalone-local-db.md`: Standalone Offline Local DB (SQLite FFI / Local File DB) persistence flow.
-2. `docs/use-cases/uc-02-local-firebase-emulator.md`: Air-Gapped Local Firebase Emulator persistence flow.
-3. `docs/use-cases/uc-03-remote-firestore-cloud.md`: Shared Cloud Sync via Remote Firestore flow.
-4. `docs/use-cases/uc-04-equipment-telemetry-gnmi.md`: High-Performance Equipment Telemetry via gNMI/Protobuf flow.
+### 1. `scripts/bootstrap_downstream.py`
+- Add `--no-domain` command-line argument.
+- Adjust directory/file walking loop to:
+  - If `platform == "flutter"` and `--no-domain` is active, skip entering and copying the `lib/domain` directory.
+  - If `platform == "react"` and `--no-domain` is active, skip copying the `src/types.ts` file.
 
-Each file will follow the Alistair Cockburn style template from `spec-usecase-engineering/SKILL.md` and include:
-- YAML Frontmatter
-- Link to design blueprint
-- Actors, Preconditions, Trigger
-- Main Success Scenario (Basic Flow)
-- At least 2 Alternate/Exception Flows (with branching steps, numbered actions, and rollback guarantees)
-- Postconditions
-- Mermaid Use Case and State Machine diagrams
-- Realization Matrix mapping to Feature 44 and the design document.
+### 2. `scripts/verify_downstream_baseline.py`
+- Look up the list of mandated classes dynamically from:
+  1. `<destination>/.pipeline/logical-ui/codebase_rules.json`
+  2. `<destination>/codebase_rules.json`
+  3. `<destination>/baseline_manifest.json`
+- Parse `"mandated_classes"` from under `"validation_rules"`, or at the root level of the JSON config file.
+- Fall back to the default hardcoded `MANDATED_CLASSES` list if none of the configuration files exist or are valid.
+
+### 3. `README.md`
+- Document the `--no-domain` flag around lines 296 and 323-336.
+- Update description of the compliance verification script to document dynamic validation checks.
+
+### 4. `.pipeline/constitution.md`
+- Amend Section 4.5 to specify that domain baseline verification is dynamically parameterized via project-specific configuration rules.
+
+### 5. `.agents/skills/feature-driven-implementation/SKILL.md`
+- Update instructions to mention that the `--no-domain` flag should be used during bootstrapping if implementing a different project domain.
 
 ## Verification Plan
-1. Validate that the files exist in the workspace and match the specified template.
-2. Confirm there are no uncommitted changes in the workspace other than the generated files and this plan.
+
+### Automated/Manual Verification Steps
+1. Run `bootstrap_downstream.py` with `--no-domain` to a temporary directory in the workspace (`tmp/test-no-domain-react` and `tmp/test-no-domain-flutter`) and verify that:
+   - For React, the file `src/types.ts` is NOT copied.
+   - For Flutter, the folder `lib/domain` is NOT created/copied.
+2. Run `verify_downstream_baseline.py` with custom configurations containing a subset of classes to verify they parse and pass compliance checks when only that subset is defined.
+3. Verify that `git diff origin/master` contains all changes, compilation/tests pass, and the walkthrough is completed.

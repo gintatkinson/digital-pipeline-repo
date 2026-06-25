@@ -6,6 +6,7 @@ and runs the build/test commands ('npm run build' for React, 'flutter analyze &&
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -23,6 +24,39 @@ MANDATED_CLASSES = [
     "ContainedChassis",
     "ChassisContainmentSubsystem"
 ]
+
+def load_mandated_classes(destination):
+    config_paths = [
+        os.path.join(destination, ".pipeline", "logical-ui", "codebase_rules.json"),
+        os.path.join(destination, "codebase_rules.json"),
+        os.path.join(destination, "baseline_manifest.json")
+    ]
+    for path in config_paths:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                classes = None
+                if isinstance(data, dict):
+                    if "validation_rules" in data and isinstance(data["validation_rules"], dict):
+                        classes = data["validation_rules"].get("mandated_classes")
+                    if classes is None:
+                        classes = data.get("mandated_classes")
+                
+                if isinstance(classes, list):
+                    if all(isinstance(c, str) for c in classes):
+                        print(f"Loaded mandated classes dynamically from {path}: {classes}")
+                        return classes
+                    else:
+                        print(f"WARNING: Invalid format for 'mandated_classes' in {path} (not all elements are strings).", file=sys.stderr)
+                else:
+                    print(f"WARNING: 'mandated_classes' not found or not a list in {path}.", file=sys.stderr)
+            except Exception as e:
+                print(f"WARNING: Failed to parse or load config {path}: {e}", file=sys.stderr)
+    
+    print("Using default hardcoded MANDATED_CLASSES.")
+    return MANDATED_CLASSES
 
 def main():
     parser = argparse.ArgumentParser(description="Verify a downstream project's baseline conformance.")
@@ -82,7 +116,8 @@ def main():
         content = f.read()
 
     missing_classes = []
-    for cls in MANDATED_CLASSES:
+    mandated_classes = load_mandated_classes(dest)
+    for cls in mandated_classes:
         if platform == "react":
             pattern = rf"\b(?:interface|class)\s+{cls}\b"
         else:

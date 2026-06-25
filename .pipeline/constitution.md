@@ -233,7 +233,7 @@ Branching strategies are configured via workflow parameters. By default:
 
 - Prior to integrating any downstream application implementation, the project MUST be bootstrapped and verified.
 - The downstream project must be initialized using the `bootstrap_downstream.py` script.
-- The baseline conformance must be verified using the `verify_downstream_baseline.py` script, which asserts that all baseline files are present, validates type compatibility with the mandated domain classes, and compiles/tests the project with a clean exit code.
+- The baseline conformance must be verified using the `verify_downstream_baseline.py` script, which asserts that all baseline files are present, validates type compatibility with the mandated domain classes (which are dynamically parameterized and loaded from the target's configuration rules or baseline manifest JSON files if present, falling back to defaults otherwise), and compiles/tests the project with a clean exit code.
 
 ---
 

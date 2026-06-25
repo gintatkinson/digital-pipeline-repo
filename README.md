@@ -293,7 +293,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > Execute the full delivery workflow with TDD execution discipline:
 >
 > 0. Pre-Execution Seeding & Rules Verification:
->    - Ensure the downstream workspace has been bootstrapped using the upstream `scripts/bootstrap_downstream.py` script.
+>    - Ensure the downstream workspace has been bootstrapped using the upstream `scripts/bootstrap_downstream.py` script (use `--no-domain` if implementing a different project domain).
 >    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`), specifically Section 4.5 (Downstream Conformance Gates) and Section 5 (Forbidden Practices - do NOT delete or bypass the layout splitters, timeline scrubber, or focus-loss property grid).
 >    - Adhere to the Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in final DI).
 >
@@ -322,17 +322,17 @@ To enforce consistent architecture, layout controls, and validation gates across
 ### Seeding a Downstream Target Workspace
 Prior to starting development in a downstream repository, bootstrap the directory with our baseline widgets (timeline scrubbers, custom resizable splitters, and validation-on-focus-loss property grids):
 ```bash
-python3 scripts/bootstrap_downstream.py [react | flutter] <destination_path>
+python3 scripts/bootstrap_downstream.py [react | flutter] <destination_path> [--no-domain]
 ```
-This copies the exact source templates (`web_react` or `app_flutter`) to your target destination while preserving all existing `.git`, `node_modules`, `.dart_tool`, and package lockfiles.
+This copies the exact source templates (`web_react` or `app_flutter`) to your target destination while preserving all existing `.git`, `node_modules`, `.dart_tool`, and package lockfiles. Use `--no-domain` to skip copying domain directories/files (e.g. `lib/domain` for Flutter or `src/types.ts` for React) when implementing a different project domain.
 
 ### Running Compliance Verification Gates
 To verify that a downstream workspace adheres to the Project Constitution (including mandated types and passing compilation/tests) run:
 ```bash
 python3 scripts/verify_downstream_baseline.py [react | flutter] <destination_path>
 ```
-* **React Checks**: Asserts presence of core React baseline files, checks for all 9 mandated domain classes in `types.ts`, and verifies compilation/packaging via `npm run build`.
-* **Flutter Checks**: Asserts presence of core Flutter baseline files, checks for all 9 mandated domain classes in `types.dart`, and runs full diagnostics and test suite via `flutter analyze && flutter test`.
+* **React Checks**: Asserts presence of core React baseline files, checks for mandated domain classes in `types.ts` (loaded dynamically from target config files like `.pipeline/logical-ui/codebase_rules.json`, `codebase_rules.json`, or `baseline_manifest.json` under `"validation_rules" -> "mandated_classes"` or at root; otherwise falls back to defaults), and verifies compilation/packaging via `npm run build`.
+* **Flutter Checks**: Asserts presence of core Flutter baseline files, checks for mandated domain classes in `types.dart` (loaded dynamically from target config files if present; otherwise falls back to defaults), and runs full diagnostics and test suite via `flutter analyze && flutter test`.
 
 ---
 
