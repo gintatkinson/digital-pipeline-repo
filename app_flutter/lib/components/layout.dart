@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -83,6 +84,7 @@ class _LayoutState extends State<Layout> {
   double _sidebarWidth = 240.0;
   double _splitterHeight = 350.0;
   double _topoMapHeight = 200.0;
+  bool _splitterInitialized = false;
 
   // Background Worker Simulation
   int? _workerResult;
@@ -167,6 +169,28 @@ class _LayoutState extends State<Layout> {
     _tableVerticalController.dispose();
     _tableHorizontalController.dispose();
     super.dispose();
+  }
+
+  double _getDefaultRatio() {
+    try {
+      final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
+      if (file1.existsSync()) {
+        final rules = jsonDecode(file1.readAsStringSync());
+        if (rules['layout_properties'] != null &&
+            rules['layout_properties']['default_ratio'] != null) {
+          return (rules['layout_properties']['default_ratio'] as num).toDouble();
+        }
+      }
+      final file2 = File('.pipeline/logical-ui/codebase_rules.json');
+      if (file2.existsSync()) {
+        final rules = jsonDecode(file2.readAsStringSync());
+        if (rules['layout_properties'] != null &&
+            rules['layout_properties']['default_ratio'] != null) {
+          return (rules['layout_properties']['default_ratio'] as num).toDouble();
+        }
+      }
+    } catch (_) {}
+    return 0.5;
   }
 
   Future<void> _loadLayoutConfig() async {
@@ -611,6 +635,12 @@ class _LayoutState extends State<Layout> {
           (c) => c['type'] == 'TabbedContainer',
           orElse: () => null,
         );
+
+        if (!_splitterInitialized && parentHeight > 0) {
+          final ratio = _getDefaultRatio();
+          _splitterHeight = parentHeight * ratio;
+          _splitterInitialized = true;
+        }
 
         return Column(
           children: [
