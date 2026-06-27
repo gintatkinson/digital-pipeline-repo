@@ -1,21 +1,15 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/widgets/repository_provider.dart';
 import 'package:app_flutter/components/tree_node.dart';
-import 'package:app_flutter/components/table_view_config.dart';
-import 'package:app_flutter/components/table_view_widget.dart';
 import 'package:app_flutter/services/layout_config_service.dart';
 import 'package:app_flutter/services/layout_parser.dart';
-import 'package:app_flutter/components/sidebar_tree.dart';
-import 'package:app_flutter/components/split_workspace.dart';
-import 'package:app_flutter/components/tabbed_container.dart';
-import 'package:app_flutter/components/topographical_view.dart';
+import 'package:app_flutter/components/topology_map.dart';
+import 'package:app_flutter/services/component_factory.dart';
 import 'package:app_flutter/services/properties_service.dart';
 import 'package:app_flutter/services/theme_builder.dart';
 import 'package:app_flutter/services/background_worker.dart';
@@ -258,116 +252,29 @@ class _LayoutState extends State<Layout> {
     }
   }
 
-  // Renders the dynamic component tree parsed from logical-layout.json
-  Widget _renderComponent(Map<String, dynamic> node, double parentWidth, double parentHeight) {
-
-    final type = node['type'] as String?;
-    switch (type) {
-      case 'SidebarLayout':
-        final childrenList = node['children'] as List<dynamic>? ?? [];
-        final sidebarChild = childrenList.firstWhere(
-          (c) => c['type'] == 'HierarchyTreeSelector',
-          orElse: () => null,
-        );
-        final splitWorkspaceChild = childrenList.firstWhere(
-          (c) => c['type'] == 'SplitWorkspace',
-          orElse: () => null,
-        );
-
-        return SplitWorkspace(
-          leading: sidebarChild != null
-              ? _renderComponent(sidebarChild as Map<String, dynamic>, parentWidth, parentHeight)
-              : const SizedBox.shrink(),
-          trailing: splitWorkspaceChild != null
-              ? _renderComponent(splitWorkspaceChild as Map<String, dynamic>, parentWidth, parentHeight)
-              : const SizedBox.shrink(),
-          direction: Axis.horizontal,
-          minFirstPaneSize: _minPaneSize,
-          initialRatio: 0.25,
-          splitterKey: const Key('vertical_splitter'),
-        );
-
-      case 'HierarchyTreeSelector':
-        return SidebarTree(
-          treeData: _treeData,
-          currentView: _currentView,
-          workerResult: _worker?.lastResult,
-          themeMode: _themeMode,
-          onViewSelected: _selectView,
-          onThemeModeChange: (val) {
-            setState(() {
-              _themeMode = val;
-            });
-            if (widget.onThemeModeChange != null) {
-              widget.onThemeModeChange!(val);
-            }
-          },
-        );
-
-      case 'SplitWorkspace':
-        final childrenList = node['children'] as List<dynamic>? ?? [];
-        final topoChild = childrenList.firstWhere(
-          (c) => c['type'] == 'TopographicalView',
-          orElse: () => null,
-        );
-        final tabbedChild = childrenList.firstWhere(
-          (c) => c['type'] == 'TabbedContainer',
-          orElse: () => null,
-        );
-
-        return SplitWorkspace(
-          leading: topoChild != null
-              ? _renderComponent(topoChild as Map<String, dynamic>, parentWidth, parentHeight)
-              : const SizedBox.shrink(),
-          trailing: tabbedChild != null
-              ? _renderComponent(tabbedChild as Map<String, dynamic>, parentWidth, parentHeight)
-              : const SizedBox.shrink(),
-          direction: Axis.vertical,
-          minFirstPaneSize: _minPaneSize,
-          initialRatio: _getDefaultRatio(),
-          splitterKey: const Key('horizontal_splitter'),
-        );
-
-      case 'TopographicalView':
-        return TopographicalView(
-          currentView: _currentView,
-          parsedLayout: _parsedLayout!,
-          onViewSelected: _selectView,
-          child: _buildChildWidget(),
-          topologyData: _resolveTopologyData(),
-        );
-
-      case 'TabbedContainer':
-        final childrenList = node['children'] as List<dynamic>? ?? [];
-
-        final tabs = childrenList.map((c) {
-          final id = c['id'] as String;
-          final label = _resolveTabLabel(id);
-          return TabConfig(
-            id: id,
-            label: label,
-            contentBuilder: (_) => _renderComponent(c as Map<String, dynamic>, parentWidth, parentHeight),
-          );
-        }).toList();
-
-        return TabbedContainer(
-          tabs: tabs,
-          initialTabId: tabs.isNotEmpty ? tabs.first.id : '',
-        );
-
-      case 'TableView':
-        final id = node['id'] as String? ?? '';
-        return TableViewWidget(
-          tabId: id,
-          parsedLayout: _parsedLayout!,
-          tableViewRegistry: tableViewRegistry,
-          verticalController: _tableVerticalController,
-          horizontalController: _tableHorizontalController,
-        );
-
-      default:
-        return const SizedBox.shrink();
-    }
+  Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
+    final factory = ComponentFactory(
+      treeData: _treeData,
+      currentView: _currentView,
+      workerResult: _worker?.lastResult,
+      themeMode: _themeMode,
+      parsedLayout: _parsedLayout!,
+      tableVerticalController: _tableVerticalController,
+      tableHorizontalController: _tableHorizontalController,
+      onViewSelected: _selectView,
+      onThemeModeChange: (val) {
+        setState(() => _themeMode = val);
+        widget.onThemeModeChange?.call(val);
+      },
+      minPaneSize: _minPaneSize,
+      defaultRatio: _getDefaultRatio,
+      resolveTopologyData: _resolveTopologyData,
+      resolveTabLabel: _resolveTabLabel,
+      buildChildWidget: _buildChildWidget,
+    );
+    final rootNode = _parsedLayout!['layout']['root_container']
+        as Map<String, dynamic>;
+    return factory.build(rootNode, constraints.maxWidth, constraints.maxHeight, context);
   }
 
   @override
@@ -376,7 +283,6 @@ class _LayoutState extends State<Layout> {
     final isDark = _themeMode == 'dark' ||
         (_themeMode == 'system' &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
-
     final themeData = buildThemeFromTokens(registry, isDark);
 
     return Theme(
@@ -385,20 +291,14 @@ class _LayoutState extends State<Layout> {
         body: _parsedLayout == null
             ? const Center(child: CircularProgressIndicator())
             : LayoutBuilder(
-                builder: (context, constraints) {
-                  final parentWidth = constraints.maxWidth;
-                  final parentHeight = constraints.maxHeight;
-
-                  final rootNode = _parsedLayout!['layout']['root_container']
-                      as Map<String, dynamic>;
-                  return _renderComponent(rootNode, parentWidth, parentHeight);
-                },
+                builder: (context, constraints) =>
+                    _buildFromLayout(context, constraints),
               ),
       ),
     );
   }
 
-  Widget _buildChildWidget() {
+  Widget _buildChildWidget(BuildContext context) {
     List<AttributeDefinition>? dynamicAttributes;
     if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {
       try {
