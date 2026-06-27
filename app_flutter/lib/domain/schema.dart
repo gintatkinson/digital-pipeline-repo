@@ -35,6 +35,21 @@ class AttributeDefinition {
       maxValue: json['maxValue'] as num?,
     );
   }
+
+  dynamic get defaultValue {
+    if (type == 'int') {
+      return minValue?.toInt() ?? 0;
+    } else if (type == 'double') {
+      return minValue?.toDouble() ?? 0.0;
+    } else if (type == 'enum') {
+      if (options != null && options!.isNotEmpty) {
+        return options!.first;
+      }
+      return '';
+    } else {
+      return '';
+    }
+  }
 }
 
 const List<AttributeDefinition> defaultCoordinateAttributes = [
