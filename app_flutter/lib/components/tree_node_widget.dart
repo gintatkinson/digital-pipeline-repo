@@ -9,6 +9,7 @@ class TreeNodeWidget extends StatelessWidget {
   final String? currentView;
   final ValueChanged<String>? onTap;
   final ValueChanged<String>? onToggle;
+  final GlobalKey? nodeKey;
 
   const TreeNodeWidget({
     super.key,
@@ -18,6 +19,7 @@ class TreeNodeWidget extends StatelessWidget {
     this.currentView,
     this.onTap,
     this.onToggle,
+    this.nodeKey,
   });
 
   @override
@@ -68,6 +70,7 @@ class TreeNodeWidget extends StatelessWidget {
             focusNode?.requestFocus();
           },
           child: Container(
+            key: nodeKey,
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
             decoration: BoxDecoration(
               color: isSelected

@@ -29,12 +29,24 @@ class SidebarTree extends StatefulWidget {
 class _SidebarTreeState extends State<SidebarTree> {
   final Map<String, bool> _expanded = {};
   final FocusNode _treeFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _nodeKeys = {};
 
   @override
   void initState() {
     super.initState();
     _initExpandedFromTree();
     _expandParents(widget.currentView);
+    _buildNodeKeys(widget.treeData);
+  }
+
+  void _buildNodeKeys(List<TreeNode> nodes) {
+    for (final node in nodes) {
+      _nodeKeys[node.id] = GlobalKey();
+      if (node.children != null) {
+        _buildNodeKeys(node.children!);
+      }
+    }
   }
 
   void _initExpandedFromTree() {
@@ -50,13 +62,28 @@ class _SidebarTreeState extends State<SidebarTree> {
     super.didUpdateWidget(oldWidget);
     if (widget.currentView != oldWidget.currentView) {
       _expandParents(widget.currentView);
+      _scrollToNode(widget.currentView);
     }
   }
 
   @override
   void dispose() {
     _treeFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToNode(String viewId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final key = _nodeKeys[viewId];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   void _expandParents(String targetView) {
@@ -167,6 +194,7 @@ class _SidebarTreeState extends State<SidebarTree> {
   void _selectView(String viewId) {
     _expandParents(viewId);
     widget.onViewSelected(viewId);
+    _scrollToNode(viewId);
   }
 
   @override
@@ -244,11 +272,13 @@ class _SidebarTreeState extends State<SidebarTree> {
                 }
                 return KeyEventResult.ignored;
               },
-              child: SingleChildScrollView(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: widget.treeData.map((node) => TreeNodeWidget(
+                    nodeKey: _nodeKeys[node.id],
                     node: node,
                     expanded: _expanded,
                     focusNode: _treeFocusNode,
