@@ -45,6 +45,47 @@ const List<TreeNode> defaultTreeData = [
   ),
 ];
 
+class TableViewConfig {
+  final String testId;
+  final List<String> headers;
+  final List<List<String>> rows;
+
+  const TableViewConfig({
+    required this.testId,
+    required this.headers,
+    required this.rows,
+  });
+}
+
+const Map<String, TableViewConfig> _tableViewRegistry = {
+  'sub_elements_table': TableViewConfig(
+    testId: 'items-table',
+    headers: ['ID', 'Name', 'Type', 'Status'],
+    rows: [
+      ['ITEM-001', 'Ingestion Pipeline', 'Worker', 'Active'],
+      ['ITEM-002', 'Telemetry DB', 'Database', 'Idle'],
+      ['ITEM-003', 'Web Console', 'Frontend', 'Active'],
+    ],
+  ),
+  'active_alarms_table': TableViewConfig(
+    testId: 'status-table',
+    headers: ['Alarm ID', 'Target', 'Severity', 'Timestamp'],
+    rows: [
+      ['ALARM-101', 'Telemetry DB', 'Critical', '2026-06-23 14:19'],
+      ['ALARM-102', 'Ingestion Pipeline', 'Warning', '2026-06-23 14:20'],
+    ],
+  ),
+  'historical_events_table': TableViewConfig(
+    testId: 'activity-table',
+    headers: ['Event ID', 'Source', 'Message', 'Timestamp'],
+    rows: [
+      ['EVENT-201', 'System', 'Console initialized', '2026-06-23 14:19'],
+      ['EVENT-202', 'Worker', 'Registered off-thread background worker', '2026-06-23 14:19'],
+      ['EVENT-203', 'UI', 'Selected panel reflow isolation scope active', '2026-06-23 14:19'],
+    ],
+  ),
+};
+
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
   final String? activeView;
@@ -213,6 +254,45 @@ class _LayoutState extends State<Layout> {
       't': 'position/time_index',
       'trajectory': 'position/vector',
     };
+  }
+
+  Map<String, String> _resolveLabelsMapping() {
+    try {
+      Map<String, dynamic>? rules;
+      final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
+      if (file1.existsSync()) {
+        rules = jsonDecode(file1.readAsStringSync()) as Map<String, dynamic>?;
+      } else {
+        final file2 = File('.pipeline/logical-ui/codebase_rules.json');
+        if (file2.existsSync()) {
+          rules = jsonDecode(file2.readAsStringSync()) as Map<String, dynamic>?;
+        }
+      }
+      if (rules != null &&
+          rules['layout_mappings'] != null &&
+          rules['layout_mappings']['labels'] != null) {
+        final Map<String, dynamic> rawLabels = rules['layout_mappings']['labels'] as Map<String, dynamic>;
+        return rawLabels.map((key, value) => MapEntry(key, value.toString()));
+      }
+    } catch (_) {}
+    return const <String, String>{
+      'elements': 'Items',
+      'alarms': 'Status',
+      'events': 'Activity',
+    };
+  }
+
+  String _resolveTabLabel(String tabId) {
+    final mapping = _resolveLabelsMapping();
+    for (final entry in mapping.entries) {
+      if (tabId.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+    if (tabId == 'sub_elements_table') return 'Items';
+    if (tabId == 'active_alarms_table') return 'Status';
+    if (tabId == 'historical_events_table') return 'Activity';
+    return tabId;
   }
 
   TopologyData _resolveTopologyData() {
@@ -934,15 +1014,10 @@ class _LayoutState extends State<Layout> {
 
       case 'TabbedContainer':
         final childrenList = node['children'] as List<dynamic>? ?? [];
-        final Map<String, String> labels = {
-          'sub_elements_table': 'Items',
-          'active_alarms_table': 'Status',
-          'historical_events_table': 'Activity',
-        };
 
         final tabs = childrenList.map((c) {
           final id = c['id'] as String;
-          final label = labels[id] ?? id;
+          final label = _resolveTabLabel(id);
           return MapEntry(id, MapEntry(label, c));
         }).toList();
 
@@ -1131,34 +1206,15 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildTableView(String tableId) {
-    List<String> headers;
-    List<List<String>> rows;
-    String testId;
-
-    if (tableId == 'sub_elements_table') {
-      testId = 'items-table';
-      headers = ['ID', 'Name', 'Type', 'Status'];
-      rows = [
-        ['ITEM-001', 'Ingestion Pipeline', 'Worker', 'Active'],
-        ['ITEM-002', 'Telemetry DB', 'Database', 'Idle'],
-        ['ITEM-003', 'Web Console', 'Frontend', 'Active'],
-      ];
-    } else if (tableId == 'active_alarms_table') {
-      testId = 'status-table';
-      headers = ['Alarm ID', 'Target', 'Severity', 'Timestamp'];
-      rows = [
-        ['ALARM-101', 'Telemetry DB', 'Critical', '2026-06-23 14:19'],
-        ['ALARM-102', 'Ingestion Pipeline', 'Warning', '2026-06-23 14:20'],
-      ];
-    } else {
-      testId = 'activity-table';
-      headers = ['Event ID', 'Source', 'Message', 'Timestamp'];
-      rows = [
+    final config = _tableViewRegistry[tableId] ?? TableViewConfig(
+      testId: 'activity-table',
+      headers: ['Event ID', 'Source', 'Message', 'Timestamp'],
+      rows: [
         ['EVENT-201', 'System', 'Console initialized', '2026-06-23 14:19'],
         ['EVENT-202', 'Worker', 'Registered off-thread background worker', '2026-06-23 14:19'],
         ['EVENT-203', 'UI', 'Selected panel reflow isolation scope active', '2026-06-23 14:19'],
-      ];
-    }
+      ],
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1181,13 +1237,13 @@ class _LayoutState extends State<Layout> {
                     minWidth: constraints.maxWidth,
                   ),
                   child: DataTable(
-                    key: Key(testId),
+                    key: Key(config.testId),
                     headingRowHeight: 32.0,
                     dataRowMinHeight: 28.0,
                     dataRowMaxHeight: 28.0,
                     horizontalMargin: 12.0,
                     columnSpacing: 24.0,
-                    columns: headers
+                    columns: config.headers
                         .map((h) => DataColumn(
                               label: Text(
                                 h,
@@ -1198,7 +1254,7 @@ class _LayoutState extends State<Layout> {
                               ),
                             ))
                         .toList(),
-                    rows: rows
+                    rows: config.rows
                         .map((row) => DataRow(
                               cells: row
                                   .map((cell) => DataCell(
