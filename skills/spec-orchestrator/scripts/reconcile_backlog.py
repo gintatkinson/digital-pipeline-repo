@@ -19,6 +19,36 @@ def load_codebase_rules(workspace_dir):
             print(f"Warning: Failed to load codebase_rules.json: {e}")
     return {}
 
+def get_git_remote_repo(workspace_dir):
+    try:
+        res = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=workspace_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        url = res.stdout.strip()
+        if url.endswith(".git"):
+            url = url[:-4]
+        if "github.com" in url:
+            url = re.split(r'github\.com[:/]', url)[-1]
+        parts = url.split("/")
+        if len(parts) >= 2:
+            return f"{parts[-2]}/{parts[-1]}"
+    except Exception as e:
+        print(f"Warning: Failed to auto-detect git remote: {e}")
+    return None
+
+def get_upstream_repository(rules, workspace_dir):
+    env_repo = os.environ.get("UPSTREAM_REPOSITORY") or os.environ.get("GIT_REMOTE_ORIGIN")
+    if env_repo:
+        return env_repo
+    git_repo = get_git_remote_repo(workspace_dir)
+    if git_repo:
+        return git_repo
+    return rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
+
 def format_issue_reference(issue_id, tracker_rules):
     issue_id_str = str(issue_id)
     if issue_id_str.isdigit():
@@ -120,7 +150,8 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             ref_str = format_issue_reference(dep_num, tracker_rules)
             print(f"Warning: Invalid dependency reference {ref_str} in {os.path.basename(filepath)}")
             if tracker_rules.get("strict_dependency_checks", False):
-                upstream_repo = rules.get("meta", {}).get("upstream_repository", "unknown") if rules else "unknown"
+                workspace_root = find_workspace_dir(filepath)
+                upstream_repo = get_upstream_repository(rules, workspace_root) if rules else "unknown"
                 troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
                 print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
                 sys.exit(1)
@@ -436,11 +467,11 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             indent = m.group(1)
             break
 
-    upstream_repo = rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
+    workspace_root = find_workspace_dir(filepath)
+    upstream_repo = get_upstream_repository(rules, workspace_root)
     repo_base = upstream_repo
     if not repo_base.startswith("http"):
         repo_base = f"https://github.com/{repo_base}"
-    workspace_root = find_workspace_dir(filepath)
     branch_name = get_current_branch(workspace_root)
     
     def format_item(item_type, filename, title, issue_num):
@@ -643,9 +674,9 @@ def main():
         if not all([epics_rel, features_rel, stories_rel, usecases_rel]):
             raise ValueError("Missing epic, features, user_stories, or use_cases path in backlog_directories configuration")
             
-        upstream_repo = rules.get("meta", {}).get("upstream_repository")
+        upstream_repo = get_upstream_repository(rules, workspace_dir)
         if not upstream_repo:
-            raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json")
+            raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json and remote origin is not configured")
 
         if len(sys.argv) > 1:
             docs_dir = os.path.abspath(sys.argv[1])
