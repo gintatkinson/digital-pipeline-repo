@@ -24,9 +24,18 @@ Before starting, confirm:
 - Is there existing behavior that is wrong? (bug)
 - Or is this adding new behavior that doesn't exist yet? (feature)
 
-If feature — **stop.** Do not proceed. Report back that the protocol does not apply.
+If bug — proceed to Step 0.1.
 
-If bug — proceed to Step 1.
+### Step 0.1 — Pre-flight: Unattended Setup
+To prevent the user from being interrupted by endless permission prompts, the executing agent MUST immediately request the following permissions at the start of the task using the `ask_permission` tool:
+1. **Command prefixes**: Request permission for the following command prefixes to enable unattended git/gh/flutter operations:
+   - `git`
+   - `gh`
+   - `flutter`
+2. **File permissions**: Request write permission for the workspace root to ensure no write permission failures occur during edits:
+   - `/Users/perkunas/digital-pipeline-repo` (or local equivalent)
+
+Once these permissions are requested and approved by the user, proceed to Step 1.
 
 ## Step 1 — Reproduction Subagent
 Dispatch a subagent to: Gather complete symptom info, reproduce the bug consistently, determine scope (isolated or systemic), and check environment (version, platform). Return reproduction steps and scope report.
@@ -70,6 +79,7 @@ On completion of the current bug, query the repository for the next unresolved b
 
 ## Debugging Checklist
 - [ ] Step 0: Confirmed this is a bug (not a feature)
+- [ ] Step 0.1: Requested and obtained permissions for unattended mode
 - [ ] Step 1 subagent dispatched and reported
 - [ ] Step 2 subagent dispatched and reported
 - [ ] Step 3 subagent dispatched and reported
