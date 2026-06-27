@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/components/sidebar_tree.dart';
+
 import 'package:app_flutter/components/split_workspace.dart';
 import 'package:app_flutter/components/tabbed_container.dart';
-import 'package:app_flutter/components/table_view_config.dart';
 import 'package:app_flutter/components/table_view_widget.dart';
 import 'package:app_flutter/components/topographical_view.dart';
 import 'package:app_flutter/components/topology_map.dart';
@@ -14,8 +14,6 @@ class ComponentFactory {
   final int? workerResult;
   final String themeMode;
   final Map<String, dynamic> parsedLayout;
-  final ScrollController tableVerticalController;
-  final ScrollController tableHorizontalController;
   final void Function(String) onViewSelected;
   final void Function(String) onThemeModeChange;
   final double minPaneSize;
@@ -30,8 +28,6 @@ class ComponentFactory {
     required this.workerResult,
     required this.themeMode,
     required this.parsedLayout,
-    required this.tableVerticalController,
-    required this.tableHorizontalController,
     required this.onViewSelected,
     required this.onThemeModeChange,
     required this.minPaneSize,
@@ -130,10 +126,8 @@ class ComponentFactory {
         final id = node['id'] as String? ?? '';
         return TableViewWidget(
           tabId: id,
+          activeView: currentView,
           parsedLayout: parsedLayout,
-          tableViewRegistry: tableViewRegistry,
-          verticalController: tableVerticalController,
-          horizontalController: tableHorizontalController,
         );
       default:
         return const SizedBox.shrink();

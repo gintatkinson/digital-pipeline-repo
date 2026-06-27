@@ -13,6 +13,12 @@ class _TestRepository implements AbstractRepository {
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) => Stream.empty();
+  @override
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async => [];
+  @override
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
+  @override
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
 }
 
 const String testLayoutConfig = '''
@@ -202,5 +208,29 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
     expect(selectedView, 'Spec');
+  });
+
+  testWidgets('Layout handles tree node tap selection without crashing', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      wrapWithRepo(
+        Layout(
+          layoutConfig: testLayoutConfig,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap different tree nodes to reproduce crash from issue #84
+    await tester.tap(find.byKey(const Key('node_Metrics')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('node_Location')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('node_Chassis')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('node_Spec')));
+    await tester.pumpAndSettle();
   });
 }

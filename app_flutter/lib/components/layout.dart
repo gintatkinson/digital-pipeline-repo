@@ -77,10 +77,6 @@ class _LayoutState extends State<Layout> {
 
 
 
-  // Table Scroll Controllers
-  late final ScrollController _tableVerticalController;
-  late final ScrollController _tableHorizontalController;
-
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
 
@@ -91,8 +87,6 @@ class _LayoutState extends State<Layout> {
     super.initState();
     _themeMode = widget.themeMode ?? 'system';
     _currentView = widget.activeView ?? _parseTreeHierarchy().first.id;
-    _tableVerticalController = ScrollController();
-    _tableHorizontalController = ScrollController();
 
     if (widget.layoutConfig != null) {
       _parsedLayout = jsonDecode(widget.layoutConfig!) as Map<String, dynamic>;
@@ -129,8 +123,6 @@ class _LayoutState extends State<Layout> {
   void dispose() {
     _propertiesService?.dispose();
     _worker?.dispose();
-    _tableVerticalController.dispose();
-    _tableHorizontalController.dispose();
     super.dispose();
   }
 
@@ -257,8 +249,6 @@ class _LayoutState extends State<Layout> {
       workerResult: _worker?.lastResult,
       themeMode: _themeMode,
       parsedLayout: _parsedLayout!,
-      tableVerticalController: _tableVerticalController,
-      tableHorizontalController: _tableHorizontalController,
       onViewSelected: _selectView,
       onThemeModeChange: (val) {
         setState(() => _themeMode = val);

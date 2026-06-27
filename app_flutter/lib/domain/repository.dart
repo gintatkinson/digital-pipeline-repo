@@ -6,6 +6,9 @@ abstract class AbstractRepository {
   Future<Map<String, dynamic>> fetchProperties(String nodeId);
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data);
   Stream<Map<String, dynamic>> watchProperties(String nodeId);
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId);
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId);
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId);
 }
 
 class SqliteRepositoryAdapter implements AbstractRepository {
@@ -61,5 +64,32 @@ class SqliteRepositoryAdapter implements AbstractRepository {
         yield event['data'] as Map<String, dynamic>;
       }
     }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
+    return await db.query(
+      'elements',
+      where: 'parent_node_id = ?',
+      whereArgs: [parentNodeId],
+    );
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
+    return await db.query(
+      'alarms',
+      where: 'parent_node_id = ?',
+      whereArgs: [parentNodeId],
+    );
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
+    return await db.query(
+      'events',
+      where: 'parent_node_id = ?',
+      whereArgs: [parentNodeId],
+    );
   }
 }
