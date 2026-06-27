@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:app_flutter/components/tree_node.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
+import 'package:app_flutter/services/layout_parser.dart';
 
 /// Represents a single item in the breadcrumbs navigation.
 class BreadcrumbItem {
@@ -169,4 +171,66 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
       ),
     );
   }
+}
+
+String getFirstLeafId(TreeNode n) {
+  if (n.children == null || n.children!.isEmpty) return n.id;
+  return getFirstLeafId(n.children!.first);
+}
+
+List<BreadcrumbItem> getBreadcrumbsItems(
+  String view,
+  Map<String, dynamic> parsedLayout, {
+  ValueChanged<String>? onSelectView,
+}) {
+  final treeData = parseTreeHierarchy(parsedLayout);
+
+  final List<BreadcrumbItem> base = [
+    BreadcrumbItem(
+      id: 'home',
+      label: 'Antigravity Console',
+      onClick: () {
+        if (treeData.isNotEmpty) {
+          onSelectView?.call(getFirstLeafId(treeData.first));
+        } else {
+          onSelectView?.call('Ingestion');
+        }
+      },
+    ),
+  ];
+
+  List<TreeNode>? findPath(List<TreeNode> nodes, String targetId, List<TreeNode> currentPath) {
+    for (final node in nodes) {
+      if (node.id == targetId) {
+        return [...currentPath, node];
+      }
+      if (node.children != null) {
+        final found = findPath(node.children!, targetId, [...currentPath, node]);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
+  final path = findPath(treeData, view, []);
+  if (path == null || path.isEmpty) {
+    return [...base, BreadcrumbItem(id: view, label: view)];
+  }
+
+  final List<BreadcrumbItem> items = [...base];
+  for (int i = 0; i < path.length; i++) {
+    final node = path[i];
+    if (i == path.length - 1) {
+      items.add(BreadcrumbItem(id: node.id, label: node.label));
+    } else {
+      items.add(
+        BreadcrumbItem(
+          id: node.id,
+          label: node.label,
+          onClick: () => onSelectView?.call(getFirstLeafId(node)),
+        ),
+      );
+    }
+  }
+  return items;
 }

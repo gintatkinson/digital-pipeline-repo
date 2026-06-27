@@ -415,70 +415,6 @@ class _LayoutState extends State<Layout> {
     }
   }
 
-  // Get Breadcrumbs path items dynamically based on selection
-  List<BreadcrumbItem> _getBreadcrumbsItems(String view) {
-    final List<BreadcrumbItem> base = [
-      BreadcrumbItem(
-        id: 'home',
-        label: 'Antigravity Console',
-        onClick: () {
-          if (_treeData.isNotEmpty) {
-            String getFirstLeafId(TreeNode node) {
-              if (node.children == null || node.children!.isEmpty) {
-                return node.id;
-              }
-              return getFirstLeafId(node.children!.first);
-            }
-            _selectView(getFirstLeafId(_treeData.first));
-          } else {
-            _selectView('Ingestion');
-          }
-        },
-      ),
-    ];
-
-    List<TreeNode>? findPath(List<TreeNode> nodes, String targetId, List<TreeNode> currentPath) {
-      for (final node in nodes) {
-        if (node.id == targetId) {
-          return [...currentPath, node];
-        }
-        if (node.children != null) {
-          final found = findPath(node.children!, targetId, [...currentPath, node]);
-          if (found != null) return found;
-        }
-      }
-      return null;
-    }
-
-    final path = findPath(_treeData, view, []);
-    if (path == null || path.isEmpty) {
-      return [...base, BreadcrumbItem(id: view, label: view)];
-    }
-
-    final List<BreadcrumbItem> items = [...base];
-    for (int i = 0; i < path.length; i++) {
-      final node = path[i];
-      if (i == path.length - 1) {
-        items.add(BreadcrumbItem(id: node.id, label: node.label));
-      } else {
-        String getFirstLeafId(TreeNode n) {
-          if (n.children == null || n.children!.isEmpty) {
-            return n.id;
-          }
-          return getFirstLeafId(n.children!.first);
-        }
-        items.add(
-          BreadcrumbItem(
-            id: node.id,
-            label: node.label,
-            onClick: () => _selectView(getFirstLeafId(node)),
-          ),
-        );
-      }
-    }
-    return items;
-  }
-
   // Renders the dynamic component tree parsed from logical-layout.json
   Widget _renderComponent(Map<String, dynamic> node, double parentWidth, double parentHeight) {
     final registry = DesignTokenProvider.of(context);
@@ -815,7 +751,7 @@ class _LayoutState extends State<Layout> {
                       child: Align(
                         alignment: Alignment.centerRight,
                         child: NavigationBreadcrumbs(
-                          items: _getBreadcrumbsItems(_currentView),
+                          items: getBreadcrumbsItems(_currentView, _parsedLayout!, onSelectView: _selectView),
                         ),
                       ),
                     ),
