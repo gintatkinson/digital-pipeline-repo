@@ -13,6 +13,7 @@ import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/widgets/repository_provider.dart';
 import 'package:app_flutter/components/tree_node.dart';
 import 'package:app_flutter/components/table_view_config.dart';
+import 'package:app_flutter/services/layout_config_service.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -160,20 +161,11 @@ class _LayoutState extends State<Layout> {
 
   double _getDefaultRatio() {
     try {
-      final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
-      if (file1.existsSync()) {
-        final rules = jsonDecode(file1.readAsStringSync());
-        if (rules['layout_properties'] != null &&
-            rules['layout_properties']['default_ratio'] != null) {
-          return (rules['layout_properties']['default_ratio'] as num).toDouble();
-        }
-      }
-      final file2 = File('.pipeline/logical-ui/codebase_rules.json');
-      if (file2.existsSync()) {
-        final rules = jsonDecode(file2.readAsStringSync());
-        if (rules['layout_properties'] != null &&
-            rules['layout_properties']['default_ratio'] != null) {
-          return (rules['layout_properties']['default_ratio'] as num).toDouble();
+      for (final path in ['../.pipeline/logical-ui/codebase_rules.json', '.pipeline/logical-ui/codebase_rules.json']) {
+        final file = File(path);
+        if (file.existsSync()) {
+          final rules = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+          return getDefaultRatio(rules, 'layout_properties.default_ratio', 0.5);
         }
       }
     } catch (_) {}
@@ -192,20 +184,10 @@ class _LayoutState extends State<Layout> {
           rules = jsonDecode(file2.readAsStringSync()) as Map<String, dynamic>?;
         }
       }
-      if (rules != null &&
-          rules['layout_mappings'] != null &&
-          rules['layout_mappings']['coordinate_mapping'] != null) {
-        final Map<String, dynamic> rawMap = rules['layout_mappings']['coordinate_mapping'] as Map<String, dynamic>;
-        return rawMap.map((key, value) => MapEntry(key, value.toString()));
-      }
-    } catch (_) {}
-    return const <String, String>{
-      'x': 'position/dim_0',
-      'y': 'position/dim_1',
-      'z': 'position/dim_2',
-      't': 'position/time_index',
-      'trajectory': 'position/vector',
-    };
+      return resolveCoordinateMapping(rules ?? <String, dynamic>{});
+    } catch (_) {
+      return resolveCoordinateMapping(<String, dynamic>{});
+    }
   }
 
   Map<String, String> _resolveLabelsMapping() {
@@ -220,18 +202,10 @@ class _LayoutState extends State<Layout> {
           rules = jsonDecode(file2.readAsStringSync()) as Map<String, dynamic>?;
         }
       }
-      if (rules != null &&
-          rules['layout_mappings'] != null &&
-          rules['layout_mappings']['labels'] != null) {
-        final Map<String, dynamic> rawLabels = rules['layout_mappings']['labels'] as Map<String, dynamic>;
-        return rawLabels.map((key, value) => MapEntry(key, value.toString()));
-      }
-    } catch (_) {}
-    return const <String, String>{
-      'elements': 'Items',
-      'alarms': 'Status',
-      'events': 'Activity',
-    };
+      return resolveLabelsMapping(rules ?? <String, dynamic>{});
+    } catch (_) {
+      return resolveLabelsMapping(<String, dynamic>{});
+    }
   }
 
   String _resolveTabLabel(String tabId) {
