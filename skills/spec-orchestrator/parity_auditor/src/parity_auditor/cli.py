@@ -206,6 +206,14 @@ def _main_impl():
         else:
             print("Note: No feature specifications found in directory. Skipping model coverage checks.")
         skip_coverage_checks = True
+    else:
+        react_dir_name = rules.target_directories.react
+        flutter_dir_name = rules.target_directories.flutter
+        react_exists = os.path.exists(os.path.join(repo.workspace_dir, react_dir_name)) if react_dir_name else False
+        flutter_exists = os.path.exists(os.path.join(repo.workspace_dir, flutter_dir_name)) if flutter_dir_name else False
+        if not react_exists and not flutter_exists:
+            print("Note: Target directories (React and Flutter) do not exist. Skipping model coverage checks.")
+            skip_coverage_checks = True
         
     # 3. Audit codebase coverage of UML classes
     total_defined = 0
