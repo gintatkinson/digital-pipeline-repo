@@ -14,6 +14,7 @@ import 'package:app_flutter/widgets/repository_provider.dart';
 import 'package:app_flutter/components/tree_node.dart';
 import 'package:app_flutter/components/tree_node_widget.dart';
 import 'package:app_flutter/components/table_view_config.dart';
+import 'package:app_flutter/components/table_view_widget.dart';
 import 'package:app_flutter/services/layout_config_service.dart';
 import 'package:app_flutter/services/layout_parser.dart';
 
@@ -970,84 +971,17 @@ class _LayoutState extends State<Layout> {
 
       case 'TableView':
         final id = node['id'] as String? ?? '';
-        return _buildTableView(id);
+        return TableViewWidget(
+          tabId: id,
+          parsedLayout: _parsedLayout!,
+          tableViewRegistry: tableViewRegistry,
+          verticalController: _tableVerticalController,
+          horizontalController: _tableHorizontalController,
+        );
 
       default:
         return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildTableView(String tableId) {
-    final config = tableViewRegistry[tableId] ?? TableViewConfig(
-      testId: 'activity-table',
-      headers: ['Event ID', 'Source', 'Message', 'Timestamp'],
-      rows: [
-        ['EVENT-201', 'System', 'Console initialized', '2026-06-23 14:19'],
-        ['EVENT-202', 'Worker', 'Registered off-thread background worker', '2026-06-23 14:19'],
-        ['EVENT-203', 'UI', 'Selected panel reflow isolation scope active', '2026-06-23 14:19'],
-      ],
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Scrollbar(
-          thumbVisibility: true,
-          controller: _tableVerticalController,
-          notificationPredicate: (notif) => notif.depth == 0,
-          child: SingleChildScrollView(
-            controller: _tableVerticalController,
-            scrollDirection: Axis.vertical,
-            child: Scrollbar(
-              thumbVisibility: true,
-              controller: _tableHorizontalController,
-              notificationPredicate: (notif) => notif.depth == 0,
-              child: SingleChildScrollView(
-                controller: _tableHorizontalController,
-                scrollDirection: Axis.horizontal,
-                child: Container(
-                  constraints: BoxConstraints(
-                    minWidth: constraints.maxWidth,
-                  ),
-                  child: DataTable(
-                    key: Key(config.testId),
-                    headingRowHeight: 32.0,
-                    dataRowMinHeight: 28.0,
-                    dataRowMaxHeight: 28.0,
-                    horizontalMargin: 12.0,
-                    columnSpacing: 24.0,
-                    columns: config.headers
-                        .map((h) => DataColumn(
-                              label: Text(
-                                h,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.0,
-                                ),
-                              ),
-                            ))
-                        .toList(),
-                    rows: config.rows
-                        .map((row) => DataRow(
-                              cells: row
-                                  .map((cell) => DataCell(
-                                        Text(
-                                          cell,
-                                          style: const TextStyle(
-                                            fontSize: 12.0,
-                                          ),
-                                        ),
-                                      ))
-                                  .toList(),
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
