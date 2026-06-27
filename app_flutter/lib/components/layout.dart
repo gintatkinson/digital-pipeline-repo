@@ -19,6 +19,7 @@ import 'package:app_flutter/components/split_workspace.dart';
 import 'package:app_flutter/components/tabbed_container.dart';
 import 'package:app_flutter/components/topographical_view.dart';
 import 'package:app_flutter/services/properties_service.dart';
+import 'package:app_flutter/services/theme_builder.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -394,28 +395,11 @@ class _LayoutState extends State<Layout> {
   @override
   Widget build(BuildContext context) {
     final registry = DesignTokenProvider.of(context);
-    // Generate Theme based on selected mode
     final isDark = _themeMode == 'dark' ||
         (_themeMode == 'system' &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
 
-    final theme = isDark ? 'dark' : 'light';
-    final primary = registry.getColor('alias.color.brand-primary', theme: theme);
-    final bg = registry.getColor('alias.color.background', theme: theme);
-    final surface = registry.getColor('alias.color.surface', theme: theme);
-    final divider = registry.getColor(isDark ? 'global.color.gray-900' : 'global.color.gray-100');
-
-    final themeData = ThemeData(
-      brightness: isDark ? Brightness.dark : Brightness.light,
-      primaryColor: primary,
-      scaffoldBackgroundColor: bg,
-      cardColor: surface,
-      dividerColor: divider,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
-        brightness: isDark ? Brightness.dark : Brightness.light,
-      ),
-    );
+    final themeData = buildThemeFromTokens(registry, isDark);
 
     return Theme(
       data: themeData,
