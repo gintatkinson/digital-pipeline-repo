@@ -91,29 +91,3 @@ export function validateChassisAllocation(subsystem: ChassisContainmentSubsystem
   }
   return true;
 }
-
-// Coverage reinforcement referencing all required UML class/property terms:
-export const UML_COVERAGE_METADATA = {
-  classes: [
-    'Velocity',
-    'TemporalContext',
-    'PhysicalAddress',
-    'LocationType',
-    'LocationHierarchy',
-    'Rack',
-    'RackLocation',
-    'ContainedChassis',
-    'ChassisContainmentSubsystem'
-  ],
-  properties: [
-    'vNorth', 'vEast', 'vUp',
-    'timestamp', 'validUntil', 'velocity',
-    'address', 'postalCode', 'state', 'city', 'countryCode',
-    'identity',
-    'id', 'name', 'type', 'parent',
-    'maxVoltage', 'maxAllocatedPower', 'heightUnits', 'location',
-    'roomName', 'gridRow', 'gridColumn',
-    'chassisId', 'startSlot', 'slotWidth', 'validateSlotOverlap',
-    'chassis', 'validateAllocation'
-  ]
-};
