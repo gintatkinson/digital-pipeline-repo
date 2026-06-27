@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:app_flutter/components/breadcrumbs.dart';
 import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
@@ -12,11 +11,11 @@ import 'package:app_flutter/components/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/widgets/repository_provider.dart';
 import 'package:app_flutter/components/tree_node.dart';
-import 'package:app_flutter/components/tree_node_widget.dart';
 import 'package:app_flutter/components/table_view_config.dart';
 import 'package:app_flutter/components/table_view_widget.dart';
 import 'package:app_flutter/services/layout_config_service.dart';
 import 'package:app_flutter/services/layout_parser.dart';
+import 'package:app_flutter/components/sidebar_tree.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -44,11 +43,6 @@ class _LayoutState extends State<Layout> {
 
   // Navigation & Tree Selection
   late String _currentView;
-  final Map<String, bool> _expanded = {
-    'Monitoring': true,
-    'Spec': true,
-  };
-  final FocusNode _treeFocusNode = FocusNode();
 
   // Splitters sizing
   double _sidebarWidth = 240.0;
@@ -126,7 +120,6 @@ class _LayoutState extends State<Layout> {
     _tableHorizontalController = ScrollController();
 
     _loadLayoutConfig();
-    _expandParents(_currentView);
 
     // Initialize simulated periodic off-thread background worker
     _periodicTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -142,7 +135,6 @@ class _LayoutState extends State<Layout> {
       setState(() {
         _currentView = widget.activeView!;
       });
-      _expandParents(_currentView);
       _subscribeToProperties(_currentView);
     }
     if (widget.themeMode != null && widget.themeMode != oldWidget.themeMode) {
@@ -156,7 +148,6 @@ class _LayoutState extends State<Layout> {
   void dispose() {
     _propertiesSubscription?.cancel();
     _periodicTimer?.cancel();
-    _treeFocusNode.dispose();
     _tableVerticalController.dispose();
     _tableHorizontalController.dispose();
     super.dispose();
@@ -244,7 +235,6 @@ class _LayoutState extends State<Layout> {
           setState(() {
             _parsedLayout = parsed;
           });
-          _expandParents(_currentView);
         }
       } else {
         final parsed = await loadLayoutConfig('assets/logical-layout.json');
@@ -252,7 +242,6 @@ class _LayoutState extends State<Layout> {
           setState(() {
             _parsedLayout = parsed;
           });
-          _expandParents(_currentView);
         }
       }
     } catch (e) {
@@ -298,117 +287,10 @@ class _LayoutState extends State<Layout> {
     }
   }
 
-  // Expand parent hierarchy programmatically when activeView / currentView changes
-  void _expandParents(String targetView) {
-    bool changed = false;
-    bool findAndExpandParents(List<TreeNode> nodes, String targetId, List<String> path) {
-      for (final node in nodes) {
-        if (node.id == targetId) {
-          for (final id in path) {
-            if (_expanded[id] != true) {
-              _expanded[id] = true;
-              changed = true;
-            }
-          }
-          return true;
-        }
-        if (node.children != null) {
-          if (findAndExpandParents(node.children!, targetId, [...path, node.id])) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    findAndExpandParents(_treeData, targetView, []);
-    if (changed) {
-      setState(() {});
-    }
-  }
-
-  List<TreeNode> _getVisibleNodes(List<TreeNode> nodes) {
-    final List<TreeNode> result = [];
-    void traverse(TreeNode node) {
-      result.add(node);
-      if (node.children != null && _expanded[node.id] == true) {
-        node.children!.forEach(traverse);
-      }
-    }
-    nodes.forEach(traverse);
-    return result;
-  }
-
-  void _handleArrowDown() {
-    final visible = _getVisibleNodes(_treeData);
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
-    final nextIndex = currentIndex + 1;
-    if (nextIndex < visible.length) {
-      _selectView(visible[nextIndex].id);
-    }
-  }
-
-  void _handleArrowUp() {
-    final visible = _getVisibleNodes(_treeData);
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
-    final prevIndex = currentIndex - 1;
-    if (prevIndex >= 0) {
-      _selectView(visible[prevIndex].id);
-    }
-  }
-
-  void _handleArrowRight() {
-    final visible = _getVisibleNodes(_treeData);
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
-    if (currentIndex == -1) return;
-    final currentNode = visible[currentIndex];
-    if (currentNode.children != null && currentNode.children!.isNotEmpty) {
-      if (_expanded[currentNode.id] != true) {
-        setState(() {
-          _expanded[currentNode.id] = true;
-        });
-      } else {
-        final firstChild = currentNode.children![0];
-        _selectView(firstChild.id);
-      }
-    }
-  }
-
-  void _handleArrowLeft() {
-    final visible = _getVisibleNodes(_treeData);
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
-    if (currentIndex == -1) return;
-    final currentNode = visible[currentIndex];
-    if (currentNode.children != null &&
-        currentNode.children!.isNotEmpty &&
-        _expanded[currentNode.id] == true) {
-      setState(() {
-        _expanded[currentNode.id] = false;
-      });
-    } else {
-      TreeNode? findParent(List<TreeNode> nodes, String targetId, TreeNode? parent) {
-        for (final node in nodes) {
-          if (node.id == targetId) return parent;
-          if (node.children != null) {
-            final found = findParent(node.children!, targetId, node);
-            if (found != null) return found;
-          }
-        }
-        return null;
-      }
-
-      final parent = findParent(_treeData, currentNode.id, null);
-      if (parent != null) {
-        _selectView(parent.id);
-      }
-    }
-  }
-
   void _selectView(String viewId) {
     setState(() {
       _currentView = viewId;
     });
-    _expandParents(viewId);
     _subscribeToProperties(viewId);
     if (widget.onViewChange != null) {
       widget.onViewChange!(viewId);
@@ -419,7 +301,6 @@ class _LayoutState extends State<Layout> {
   Widget _renderComponent(Map<String, dynamic> node, double parentWidth, double parentHeight) {
     final registry = DesignTokenProvider.of(context);
     final brandPrimary = registry.getColor('alias.color.brand-primary');
-    final whiteColor = registry.getColor('global.color.white');
 
     final type = node['type'] as String?;
     switch (type) {
@@ -488,174 +369,20 @@ class _LayoutState extends State<Layout> {
         );
 
       case 'HierarchyTreeSelector':
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            border: Border(
-              right: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Sidebar Header
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Theme.of(context).dividerColor),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: [brandPrimary, brandPrimary.withValues(alpha: 0.7)],
-                      ).createShader(bounds),
-                      child: Icon(
-                        Icons.developer_board,
-                        color: whiteColor,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Antigravity Console',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Focusable Tree Navigation
-              Expanded(
-                child: Focus(
-                  focusNode: _treeFocusNode,
-                  autofocus: true,
-                  onKeyEvent: (FocusNode node, KeyEvent event) {
-                    if (event is KeyDownEvent) {
-                      final key = event.logicalKey;
-                      if (key == LogicalKeyboardKey.arrowDown) {
-                        _handleArrowDown();
-                        return KeyEventResult.handled;
-                      } else if (key == LogicalKeyboardKey.arrowUp) {
-                        _handleArrowUp();
-                        return KeyEventResult.handled;
-                      } else if (key == LogicalKeyboardKey.arrowLeft) {
-                        _handleArrowLeft();
-                        return KeyEventResult.handled;
-                      } else if (key == LogicalKeyboardKey.arrowRight) {
-                        _handleArrowRight();
-                        return KeyEventResult.handled;
-                      }
-                    }
-                    return KeyEventResult.ignored;
-                  },
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _treeData.map((node) => TreeNodeWidget(
-                        node: node,
-                        expanded: _expanded,
-                        focusNode: _treeFocusNode,
-                        currentView: _currentView,
-                        onTap: _selectView,
-                        onToggle: (id) {
-                          setState(() {
-                            _expanded[id] = !(_expanded[id] ?? false);
-                          });
-                        },
-                      )).toList(),
-                    ),
-                  ),
-                ),
-              ),
-              // Sidebar Footer
-              Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black38
-                      : Colors.grey.shade50,
-                  border: Border(
-                    top: BorderSide(color: Theme.of(context).dividerColor),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Worker status
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Worker: ${_workerResult ?? "Idle"}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Courier',
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Theme selector
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(Icons.brightness_medium, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: DropdownButton<String>(
-                              value: _themeMode,
-                              isDense: true,
-                              underline: const SizedBox(),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              items: const [
-                                DropdownMenuItem(value: 'light', child: Text('Light')),
-                                DropdownMenuItem(value: 'dark', child: Text('Dark')),
-                                DropdownMenuItem(value: 'system', child: Text('System')),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() {
-                                    _themeMode = val;
-                                  });
-                                  if (widget.onThemeModeChange != null) {
-                                    widget.onThemeModeChange!(val);
-                                  }
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        return SidebarTree(
+          treeData: _treeData,
+          currentView: _currentView,
+          workerResult: _workerResult,
+          themeMode: _themeMode,
+          onViewSelected: _selectView,
+          onThemeModeChange: (val) {
+            setState(() {
+              _themeMode = val;
+            });
+            if (widget.onThemeModeChange != null) {
+              widget.onThemeModeChange!(val);
+            }
+          },
         );
 
       case 'SplitWorkspace':
