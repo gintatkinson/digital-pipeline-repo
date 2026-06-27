@@ -200,12 +200,89 @@ class _LayoutState extends State<Layout> {
         setState(() {
           _parsedLayout = jsonDecode(jsonStr) as Map<String, dynamic>;
         });
+        _expandParents(_currentView);
       }
     } catch (e) {
       // Fallback if layout file fails to load or during test contexts
       debugPrint('Error loading layout configuration: $e');
     }
   }
+
+  List<TreeNode> _parseTreeHierarchy() {
+    if (_parsedLayout == null) {
+      return defaultTreeData;
+    }
+    try {
+      Map<String, dynamic>? findHierarchyTreeSelector(Map<String, dynamic>? node) {
+        if (node == null) return null;
+        if (node['type'] == 'HierarchyTreeSelector') {
+          return node;
+        }
+        final children = node['children'];
+        if (children is List) {
+          for (final child in children) {
+            if (child is Map<String, dynamic>) {
+              final found = findHierarchyTreeSelector(child);
+              if (found != null) return found;
+            }
+          }
+        }
+        return null;
+      }
+
+      final layout = _parsedLayout!['layout'];
+      if (layout is! Map<String, dynamic>) {
+        return defaultTreeData;
+      }
+      final rootContainer = layout['root_container'];
+      if (rootContainer is! Map<String, dynamic>) {
+        return defaultTreeData;
+      }
+
+      final selector = findHierarchyTreeSelector(rootContainer);
+      if (selector == null) {
+        return defaultTreeData;
+      }
+
+      final props = selector['props'];
+      if (props is! Map<String, dynamic>) {
+        return defaultTreeData;
+      }
+
+      final hierarchy = props['hierarchy'];
+      if (hierarchy is! List) {
+        return defaultTreeData;
+      }
+
+      List<TreeNode> parseNodes(List<dynamic> jsonList) {
+        final List<TreeNode> list = [];
+        for (final item in jsonList) {
+          if (item is Map<String, dynamic>) {
+            final id = item['id'];
+            final label = item['label'];
+            if (id is String && label is String) {
+              List<TreeNode>? children;
+              if (item['children'] is List) {
+                children = parseNodes(item['children'] as List<dynamic>);
+              }
+              list.add(TreeNode(id: id, label: label, children: children));
+            }
+          }
+        }
+        return list;
+      }
+
+      final parsed = parseNodes(hierarchy);
+      if (parsed.isEmpty) {
+        return defaultTreeData;
+      }
+      return parsed;
+    } catch (_) {
+      return defaultTreeData;
+    }
+  }
+
+  List<TreeNode> get _treeData => _parseTreeHierarchy();
 
   // Runs off-thread calculations to simulate background worker
   void _runWorkerCalculation(double value) async {
@@ -259,7 +336,7 @@ class _LayoutState extends State<Layout> {
       return false;
     }
 
-    findAndExpandParents(defaultTreeData, targetView, []);
+    findAndExpandParents(_treeData, targetView, []);
     if (changed) {
       setState(() {});
     }
@@ -278,7 +355,7 @@ class _LayoutState extends State<Layout> {
   }
 
   void _handleArrowDown() {
-    final visible = _getVisibleNodes(defaultTreeData);
+    final visible = _getVisibleNodes(_treeData);
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
     final nextIndex = currentIndex + 1;
     if (nextIndex < visible.length) {
@@ -287,7 +364,7 @@ class _LayoutState extends State<Layout> {
   }
 
   void _handleArrowUp() {
-    final visible = _getVisibleNodes(defaultTreeData);
+    final visible = _getVisibleNodes(_treeData);
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
     final prevIndex = currentIndex - 1;
     if (prevIndex >= 0) {
@@ -296,7 +373,7 @@ class _LayoutState extends State<Layout> {
   }
 
   void _handleArrowRight() {
-    final visible = _getVisibleNodes(defaultTreeData);
+    final visible = _getVisibleNodes(_treeData);
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
     if (currentIndex == -1) return;
     final currentNode = visible[currentIndex];
@@ -313,7 +390,7 @@ class _LayoutState extends State<Layout> {
   }
 
   void _handleArrowLeft() {
-    final visible = _getVisibleNodes(defaultTreeData);
+    final visible = _getVisibleNodes(_treeData);
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
     if (currentIndex == -1) return;
     final currentNode = visible[currentIndex];
@@ -335,7 +412,7 @@ class _LayoutState extends State<Layout> {
         return null;
       }
 
-      final parent = findParent(defaultTreeData, currentNode.id, null);
+      final parent = findParent(_treeData, currentNode.id, null);
       if (parent != null) {
         _selectView(parent.id);
       }
@@ -359,36 +436,62 @@ class _LayoutState extends State<Layout> {
       BreadcrumbItem(
         id: 'home',
         label: 'Antigravity Console',
-        onClick: () => _selectView('Ingestion'),
+        onClick: () {
+          if (_treeData.isNotEmpty) {
+            String getFirstLeafId(TreeNode node) {
+              if (node.children == null || node.children!.isEmpty) {
+                return node.id;
+              }
+              return getFirstLeafId(node.children!.first);
+            }
+            _selectView(getFirstLeafId(_treeData.first));
+          } else {
+            _selectView('Ingestion');
+          }
+        },
       ),
     ];
 
-    if (view == 'Ingestion') {
-      return [...base, BreadcrumbItem(id: 'Ingestion', label: 'Ingestion')];
+    List<TreeNode>? findPath(List<TreeNode> nodes, String targetId, List<TreeNode> currentPath) {
+      for (final node in nodes) {
+        if (node.id == targetId) {
+          return [...currentPath, node];
+        }
+        if (node.children != null) {
+          final found = findPath(node.children!, targetId, [...currentPath, node]);
+          if (found != null) return found;
+        }
+      }
+      return null;
     }
-    if (['Metrics', 'Location', 'Chassis'].contains(view)) {
-      return [
-        ...base,
-        BreadcrumbItem(
-          id: 'Monitoring',
-          label: 'Monitoring',
-          onClick: () => _selectView('Metrics'),
-        ),
-        BreadcrumbItem(id: view, label: view),
-      ];
+
+    final path = findPath(_treeData, view, []);
+    if (path == null || path.isEmpty) {
+      return [...base, BreadcrumbItem(id: view, label: view)];
     }
-    if (['Epics', 'Traceability'].contains(view)) {
-      return [
-        ...base,
-        BreadcrumbItem(
-          id: 'Spec',
-          label: 'Spec',
-          onClick: () => _selectView('Epics'),
-        ),
-        BreadcrumbItem(id: view, label: view),
-      ];
+
+    final List<BreadcrumbItem> items = [...base];
+    for (int i = 0; i < path.length; i++) {
+      final node = path[i];
+      if (i == path.length - 1) {
+        items.add(BreadcrumbItem(id: node.id, label: node.label));
+      } else {
+        String getFirstLeafId(TreeNode n) {
+          if (n.children == null || n.children!.isEmpty) {
+            return n.id;
+          }
+          return getFirstLeafId(n.children!.first);
+        }
+        items.add(
+          BreadcrumbItem(
+            id: node.id,
+            label: node.label,
+            onClick: () => _selectView(getFirstLeafId(node)),
+          ),
+        );
+      }
     }
-    return [...base, BreadcrumbItem(id: view, label: view)];
+    return items;
   }
 
   // Renders the dynamic component tree parsed from logical-layout.json
@@ -533,7 +636,7 @@ class _LayoutState extends State<Layout> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: defaultTreeData.map(_buildTreeNodeWidget).toList(),
+                      children: _treeData.map(_buildTreeNodeWidget).toList(),
                     ),
                   ),
                 ),

@@ -46,7 +46,44 @@
           "id": "resource_tree",
           "props": {
             "width": "spacing.layout-sidebar-width",
-            "hierarchy": "token:layout.hierarchy"
+            "hierarchy": [
+              {
+                "id": "Ingestion",
+                "label": "Ingestion"
+              },
+              {
+                "id": "Monitoring",
+                "label": "Monitoring",
+                "children": [
+                  {
+                    "id": "Metrics",
+                    "label": "Metrics"
+                  },
+                  {
+                    "id": "Location",
+                    "label": "Location"
+                  },
+                  {
+                    "id": "Chassis",
+                    "label": "Chassis"
+                  }
+                ]
+              },
+              {
+                "id": "Spec",
+                "label": "Spec",
+                "children": [
+                  {
+                    "id": "Epics",
+                    "label": "Epics"
+                  },
+                  {
+                    "id": "Traceability",
+                    "label": "Traceability"
+                  }
+                ]
+              }
+            ]
           },
           "bindings": {
             "data_source": "token:layout.data_sources.resource_tree",
