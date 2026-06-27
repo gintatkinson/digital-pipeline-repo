@@ -1,8 +1,39 @@
+import 'dart:convert';
+
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseInitializer {
+  static const _entriesPerNode = 15;
+
+  static const _nodeIds = [
+    'Ingestion',
+    'Monitoring', 'Metrics', 'Location', 'Chassis', 'Uptime',
+    'Spec', 'Epics', 'Traceability', 'Requirements', 'Releases',
+    'Security', 'Access', 'Firewall', 'Certificates', 'Audit',
+    'Infrastructure', 'Servers', 'Storage', 'Network',
+  ];
+
+  static const _types = [
+    'Worker', 'Collector', 'Sensor', 'Power', 'Planning',
+    'Compliance', 'Gateway', 'Router', 'Switch', 'Firewall',
+    'LoadBalancer', 'Database', 'Cache', 'Queue', 'Monitor',
+  ];
+
+  static const _severities = [
+    'Critical', 'Warning', 'Info', 'Major', 'Minor',
+  ];
+
+  static const _sources = [
+    'System', 'Metrics', 'Geo', 'Chassis', 'Agile',
+    'Compliance', 'Security', 'Network', 'Storage', 'Database',
+    'Orchestrator', 'Monitor', 'Scheduler', 'Auditor', 'Ingress',
+  ];
+
+  static const _adminStatuses = ['UP', 'DOWN'];
+  static const _locationTypes = ['site', 'room', 'building'];
+
   static Future<Database> create({String? dbPath, bool seed = true}) async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -64,166 +95,66 @@ class DatabaseInitializer {
     return db;
   }
 
+  static String _makeDataJson(String nodeId, int index) {
+    final data = {
+      'interfaces/interface/name': '${nodeId.toLowerCase()}-eth0',
+      'interfaces/interface/state/mtu': 1500 + index,
+      'interfaces/interface/state/admin-status':
+          _adminStatuses[index % _adminStatuses.length],
+      'latitude': 40.0 + index + 0.5,
+      'longitude': -74.0 - index * 0.1,
+      'altitude': index * 5,
+      'roomName': 'Room ${String.fromCharCode(65 + index % 26)}-${index + 1}',
+      'gridRow': index + 1,
+      'gridColumn': (index % 10) + 1,
+      'maxVoltage': 120.0 + index * 10.0,
+      'maxAllocatedPower': 1000.0 + index * 250.0,
+      'countryCode': ['US', 'UK', 'DE', 'JP', 'SG'][index % 5],
+      'locationType': _locationTypes[index % _locationTypes.length],
+    };
+    return jsonEncode(data);
+  }
+
   static Future<void> _seed(Database db) async {
     final batch = db.batch();
 
-    // properties for each node
-    batch.insert('properties', {
-      'node_id': 'Ingestion',
-      'data_json': '{}',
-    });
-    batch.insert('properties', {
-      'node_id': 'Metrics',
-      'data_json': '{}',
-    });
-    batch.insert('properties', {
-      'node_id': 'Location',
-      'data_json': '{}',
-    });
-    batch.insert('properties', {
-      'node_id': 'Chassis',
-      'data_json': '{}',
-    });
-    batch.insert('properties', {
-      'node_id': 'Epics',
-      'data_json': '{}',
-    });
-    batch.insert('properties', {
-      'node_id': 'Traceability',
-      'data_json': '{}',
-    });
+    for (var i = 0; i < _nodeIds.length; i++) {
+      final nodeId = _nodeIds[i];
 
-    // elements
-    batch.insert('elements', {
-      'id': 'elem-ingestion-1',
-      'parent_node_id': 'Ingestion',
-      'name': 'Ingestion Pipeline',
-      'type': 'Worker',
-      'status': 'Active',
-    });
-    batch.insert('elements', {
-      'id': 'elem-metrics-1',
-      'parent_node_id': 'Metrics',
-      'name': 'Network Metrics',
-      'type': 'Collector',
-      'status': 'Active',
-    });
-    batch.insert('elements', {
-      'id': 'elem-location-1',
-      'parent_node_id': 'Location',
-      'name': 'GPS Coordinates',
-      'type': 'Sensor',
-      'status': 'Active',
-    });
-    batch.insert('elements', {
-      'id': 'elem-chassis-1',
-      'parent_node_id': 'Chassis',
-      'name': 'Rack PDU',
-      'type': 'Power',
-      'status': 'Active',
-    });
-    batch.insert('elements', {
-      'id': 'elem-epics-1',
-      'parent_node_id': 'Epics',
-      'name': 'Sprint Backlog',
-      'type': 'Planning',
-      'status': 'Active',
-    });
-    batch.insert('elements', {
-      'id': 'elem-traceability-1',
-      'parent_node_id': 'Traceability',
-      'name': 'Requirement Trace',
-      'type': 'Compliance',
-      'status': 'Active',
-    });
+      batch.insert('properties', {
+        'node_id': nodeId,
+        'data_json': _makeDataJson(nodeId, i),
+      });
 
-    // alarms
-    batch.insert('alarms', {
-      'id': 'alarm-ingestion-1',
-      'parent_node_id': 'Ingestion',
-      'target': 'Telemetry DB',
-      'severity': 'Critical',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('alarms', {
-      'id': 'alarm-metrics-1',
-      'parent_node_id': 'Metrics',
-      'target': 'High Latency',
-      'severity': 'Warning',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('alarms', {
-      'id': 'alarm-location-1',
-      'parent_node_id': 'Location',
-      'target': 'Signal Loss',
-      'severity': 'Critical',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('alarms', {
-      'id': 'alarm-chassis-1',
-      'parent_node_id': 'Chassis',
-      'target': 'Overcurrent',
-      'severity': 'Critical',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('alarms', {
-      'id': 'alarm-epics-1',
-      'parent_node_id': 'Epics',
-      'target': 'Missed Milestone',
-      'severity': 'Warning',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('alarms', {
-      'id': 'alarm-traceability-1',
-      'parent_node_id': 'Traceability',
-      'target': 'Gap Found',
-      'severity': 'Critical',
-      'timestamp': '2026-06-23',
-    });
+      for (var j = 0; j < _entriesPerNode; j++) {
+        final elemId = 'elem-$nodeId-${j + 1}';
+        batch.insert('elements', {
+          'id': elemId,
+          'parent_node_id': nodeId,
+          'name': '${nodeId} Element ${j + 1}',
+          'type': _types[(i + j) % _types.length],
+          'status': j % 3 == 0 ? 'Active' : (j % 3 == 1 ? 'Standby' : 'Error'),
+        });
 
-    // events
-    batch.insert('events', {
-      'id': 'event-ingestion-1',
-      'parent_node_id': 'Ingestion',
-      'source': 'System',
-      'message': 'Console initialized',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('events', {
-      'id': 'event-metrics-1',
-      'parent_node_id': 'Metrics',
-      'source': 'Metrics',
-      'message': 'Threshold breach',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('events', {
-      'id': 'event-location-1',
-      'parent_node_id': 'Location',
-      'source': 'Geo',
-      'message': 'Coordinate update',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('events', {
-      'id': 'event-chassis-1',
-      'parent_node_id': 'Chassis',
-      'source': 'Chassis',
-      'message': 'Power cycle',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('events', {
-      'id': 'event-epics-1',
-      'parent_node_id': 'Epics',
-      'source': 'Agile',
-      'message': 'Epic created',
-      'timestamp': '2026-06-23',
-    });
-    batch.insert('events', {
-      'id': 'event-traceability-1',
-      'parent_node_id': 'Traceability',
-      'source': 'Compliance',
-      'message': 'Trace updated',
-      'timestamp': '2026-06-23',
-    });
+        final alarmId = 'alarm-$nodeId-${j + 1}';
+        batch.insert('alarms', {
+          'id': alarmId,
+          'parent_node_id': nodeId,
+          'target': '${nodeId} Target ${j + 1}',
+          'severity': _severities[(i + j) % _severities.length],
+          'timestamp': '2026-06-${(j % 28) + 1}',
+        });
+
+        final eventId = 'event-$nodeId-${j + 1}';
+        batch.insert('events', {
+          'id': eventId,
+          'parent_node_id': nodeId,
+          'source': _sources[(i + j) % _sources.length],
+          'message': '${nodeId} event ${j + 1}: ${_sources[(i + j) % _sources.length]} notification',
+          'timestamp': '2026-06-${(j % 28) + 1}',
+        });
+      }
+    }
 
     await batch.commit(noResult: true);
   }

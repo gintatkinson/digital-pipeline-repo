@@ -46,44 +46,96 @@
           "id": "resource_tree",
           "props": {
             "width": "spacing.layout-sidebar-width",
-            "hierarchy": [
-              {
-                "id": "Ingestion",
-                "label": "Ingestion"
-              },
-              {
-                "id": "Monitoring",
-                "label": "Monitoring",
-                "children": [
-                  {
-                    "id": "Metrics",
-                    "label": "Metrics"
-                  },
-                  {
-                    "id": "Location",
-                    "label": "Location"
-                  },
-                  {
-                    "id": "Chassis",
-                    "label": "Chassis"
-                  }
-                ]
-              },
-              {
-                "id": "Spec",
-                "label": "Spec",
-                "children": [
-                  {
-                    "id": "Epics",
-                    "label": "Epics"
-                  },
-                  {
-                    "id": "Traceability",
-                    "label": "Traceability"
-                  }
-                ]
-              }
-            ]
+              "hierarchy": [
+                {
+                  "id": "Ingestion",
+                  "label": "Ingestion"
+                },
+                {
+                  "id": "Monitoring",
+                  "label": "Monitoring",
+                  "children": [
+                    {
+                      "id": "Metrics",
+                      "label": "Metrics"
+                    },
+                    {
+                      "id": "Location",
+                      "label": "Location"
+                    },
+                    {
+                      "id": "Chassis",
+                      "label": "Chassis"
+                    },
+                    {
+                      "id": "Uptime",
+                      "label": "Uptime"
+                    }
+                  ]
+                },
+                {
+                  "id": "Spec",
+                  "label": "Spec",
+                  "children": [
+                    {
+                      "id": "Epics",
+                      "label": "Epics"
+                    },
+                    {
+                      "id": "Traceability",
+                      "label": "Traceability"
+                    },
+                    {
+                      "id": "Requirements",
+                      "label": "Requirements"
+                    },
+                    {
+                      "id": "Releases",
+                      "label": "Releases"
+                    }
+                  ]
+                },
+                {
+                  "id": "Security",
+                  "label": "Security",
+                  "children": [
+                    {
+                      "id": "Access",
+                      "label": "Access"
+                    },
+                    {
+                      "id": "Firewall",
+                      "label": "Firewall"
+                    },
+                    {
+                      "id": "Certificates",
+                      "label": "Certificates"
+                    },
+                    {
+                      "id": "Audit",
+                      "label": "Audit"
+                    }
+                  ]
+                },
+                {
+                  "id": "Infrastructure",
+                  "label": "Infrastructure",
+                  "children": [
+                    {
+                      "id": "Servers",
+                      "label": "Servers"
+                    },
+                    {
+                      "id": "Storage",
+                      "label": "Storage"
+                    },
+                    {
+                      "id": "Network",
+                      "label": "Network"
+                    }
+                  ]
+                }
+              ]
           },
           "bindings": {
             "data_source": "token:layout.data_sources.resource_tree",

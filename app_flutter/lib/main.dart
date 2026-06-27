@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/layout.dart';
@@ -13,7 +16,14 @@ Future<void> main() async {
   final tokensJson = await rootBundle.loadString('assets/design-tokens.json');
   final registry = AppDesignTokenRegistry.parse(tokensJson);
 
-  final db = await DatabaseInitializer.create();
+  // Copy pre-built database from assets to a writable location
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+  final bytes = await rootBundle.load('assets/properties_db.db');
+  final dir = await getApplicationSupportDirectory();
+  final dbPath = p.join(dir.path, 'properties_db.db');
+  await File(dbPath).writeAsBytes(bytes.buffer.asUint8List());
+  final db = await databaseFactory.openDatabase(dbPath);
   final repository = SqliteRepositoryAdapter(db);
 
   runApp(

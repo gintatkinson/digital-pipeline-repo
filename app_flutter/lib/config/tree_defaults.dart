@@ -11,6 +11,7 @@ const List<TreeNode> defaultTreeData = [
       TreeNode(id: 'Metrics', label: 'Metrics'),
       TreeNode(id: 'Location', label: 'Location'),
       TreeNode(id: 'Chassis', label: 'Chassis'),
+      TreeNode(id: 'Uptime', label: 'Uptime'),
     ],
   ),
   TreeNode(
@@ -19,6 +20,27 @@ const List<TreeNode> defaultTreeData = [
     children: [
       TreeNode(id: 'Epics', label: 'Epics'),
       TreeNode(id: 'Traceability', label: 'Traceability'),
+      TreeNode(id: 'Requirements', label: 'Requirements'),
+      TreeNode(id: 'Releases', label: 'Releases'),
+    ],
+  ),
+  TreeNode(
+    id: 'Security',
+    label: 'Security',
+    children: [
+      TreeNode(id: 'Access', label: 'Access'),
+      TreeNode(id: 'Firewall', label: 'Firewall'),
+      TreeNode(id: 'Certificates', label: 'Certificates'),
+      TreeNode(id: 'Audit', label: 'Audit'),
+    ],
+  ),
+  TreeNode(
+    id: 'Infrastructure',
+    label: 'Infrastructure',
+    children: [
+      TreeNode(id: 'Servers', label: 'Servers'),
+      TreeNode(id: 'Storage', label: 'Storage'),
+      TreeNode(id: 'Network', label: 'Network'),
     ],
   ),
 ];
