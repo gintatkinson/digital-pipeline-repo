@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:app_flutter/components/breadcrumbs.dart';
 import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/property_grid.dart';
@@ -18,6 +17,7 @@ import 'package:app_flutter/services/layout_parser.dart';
 import 'package:app_flutter/components/sidebar_tree.dart';
 import 'package:app_flutter/components/split_workspace.dart';
 import 'package:app_flutter/components/tabbed_container.dart';
+import 'package:app_flutter/components/topographical_view.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -47,7 +47,6 @@ class _LayoutState extends State<Layout> {
   late String _currentView;
 
   // Splitters sizing
-  double _topoMapHeight = 200.0;
 
   double get _minPaneSize {
     try {
@@ -357,104 +356,12 @@ class _LayoutState extends State<Layout> {
         );
 
       case 'TopographicalView':
-        const hasChild = true;
-        return Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Active View Title & Breadcrumbs Row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Active View: $_currentView',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: NavigationBreadcrumbs(
-                          items: getBreadcrumbsItems(_currentView, _parsedLayout!, onSelectView: _selectView),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              // Body area with Topology map and optional PropertyGrid child
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, topoBox) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Map viewport
-                        SizedBox(
-                          height: hasChild ? _topoMapHeight : topoBox.maxHeight,
-                          child: TopologyMap(
-                            activeFocusedNode: _currentView,
-                            onNodeSelect: (nodeId) {
-                              _selectView(nodeId);
-                            },
-                            data: _resolveTopologyData(),
-                          ),
-                        ),
-                        // Splitter if child exists
-                        if (hasChild) ...[
-                          GestureDetector(
-                            key: const Key('topo_splitter'),
-                            onVerticalDragUpdate: (details) {
-                              setState(() {
-                                _topoMapHeight = (_topoMapHeight + details.delta.dy)
-                                    .clamp(100.0, math.max(100.0, parentHeight - 100.0));
-                              });
-                            },
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.resizeUpDown,
-                              child: Container(
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.black26
-                                      : Colors.grey.shade200,
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Theme.of(context).dividerColor,
-                                      width: 1,
-                                    ),
-                                    bottom: BorderSide(
-                                      color: Theme.of(context).dividerColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Container(
-                                    width: 40,
-                                    height: 2,
-                                    color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3) ??
-                                        Colors.grey,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: _buildChildWidget(),
-                          ),
-                        ]
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+        return TopographicalView(
+          currentView: _currentView,
+          parsedLayout: _parsedLayout!,
+          onViewSelected: _selectView,
+          child: _buildChildWidget(),
+          topologyData: _resolveTopologyData(),
         );
 
       case 'TabbedContainer':
