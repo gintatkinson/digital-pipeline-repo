@@ -192,11 +192,11 @@ class _LayoutState extends State<Layout> {
       Map<String, dynamic>? rules;
       final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
       if (file1.existsSync()) {
-        rules = jsonDecode(file1.readAsStringSync());
+        rules = jsonDecode(file1.readAsStringSync()) as Map<String, dynamic>?;
       } else {
         final file2 = File('.pipeline/logical-ui/codebase_rules.json');
         if (file2.existsSync()) {
-          rules = jsonDecode(file2.readAsStringSync());
+          rules = jsonDecode(file2.readAsStringSync()) as Map<String, dynamic>?;
         }
       }
       if (rules != null &&
