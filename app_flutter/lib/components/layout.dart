@@ -9,6 +9,8 @@ import 'package:app_flutter/components/tree_node.dart';
 import 'package:app_flutter/services/layout_config_service.dart';
 import 'package:app_flutter/services/layout_parser.dart';
 import 'package:app_flutter/components/topology_map.dart';
+import 'package:app_flutter/config/topology_defaults.dart';
+import 'package:app_flutter/config/tree_defaults.dart';
 import 'package:app_flutter/services/component_factory.dart';
 import 'package:app_flutter/services/properties_service.dart';
 import 'package:app_flutter/services/theme_builder.dart';
@@ -181,12 +183,14 @@ class _LayoutState extends State<Layout> {
         return entry.value;
       }
     }
+    // TODO(#79): Replace hardcoded tab label fallbacks with config-driven mapping.
     if (tabId == 'sub_elements_table') return 'Items';
     if (tabId == 'active_alarms_table') return 'Status';
     if (tabId == 'historical_events_table') return 'Activity';
     return tabId;
   }
 
+  // TODO(#79): Replace mock topology nodes/links with DB-backed data.
   TopologyData _resolveTopologyData() {
     final mapping = _resolveCoordinateMapping();
     return TopologyData(

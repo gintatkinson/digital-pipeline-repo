@@ -26,6 +26,7 @@ class TreeNodeWidget extends StatelessWidget {
     final isParent = node.children != null && node.children!.isNotEmpty;
     final isExpanded = expanded[node.id] == true;
 
+    // TODO(#79): Replace hardcoded icon mappings with dynamic config-driven mapping.
     IconData icon;
     if (isParent) {
       icon = isExpanded ? Icons.folder_open : Icons.folder;

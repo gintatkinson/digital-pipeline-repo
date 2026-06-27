@@ -52,6 +52,8 @@ class AttributeDefinition {
   }
 }
 
+// TODO(#79): Replace with dynamic DB-backed attribute schema.
+// The fromJson factory exists — load from DB/config instead of this const list.
 const List<AttributeDefinition> defaultCoordinateAttributes = [
   AttributeDefinition(
     key: 'latitude',

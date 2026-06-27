@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/components/tree_node.dart';
+import 'package:app_flutter/config/tree_defaults.dart';
 
 Future<Map<String, dynamic>> loadLayoutConfig(String assetPath) async {
   final jsonStr = await rootBundle.loadString(assetPath);
