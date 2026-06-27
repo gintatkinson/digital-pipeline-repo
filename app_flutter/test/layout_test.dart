@@ -1,7 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/components/layout.dart';
+import 'package:app_flutter/domain/repository.dart';
+import 'package:app_flutter/widgets/repository_provider.dart';
+
+class _TestRepository implements AbstractRepository {
+  @override
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
+  @override
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) => Stream.empty();
+}
 
 const String testLayoutConfig = '''
 {
@@ -48,11 +60,18 @@ const String testLayoutConfig = '''
 }
 ''';
 
+Widget wrapWithRepo(Widget child) {
+  return RepositoryProvider(
+    repository: _TestRepository(),
+    child: MaterialApp(home: child),
+  );
+}
+
 void main() {
   testWidgets('Layout parses JSON config and renders components', (WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Layout(
+      wrapWithRepo(
+        Layout(
           layoutConfig: testLayoutConfig,
         ),
       ),
@@ -66,8 +85,8 @@ void main() {
 
   testWidgets('Layout switches tabs in TabbedContainer', (WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Layout(
+      wrapWithRepo(
+        Layout(
           layoutConfig: testLayoutConfig,
         ),
       ),
@@ -103,11 +122,14 @@ void main() {
     });
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Layout(
-            layoutConfig: testLayoutConfig,
-            child: Container(key: const Key('property_grid_stub'), height: 100),
+      RepositoryProvider(
+        repository: _TestRepository(),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Layout(
+              layoutConfig: testLayoutConfig,
+              child: Container(key: const Key('property_grid_stub'), height: 100),
+            ),
           ),
         ),
       ),
@@ -140,8 +162,8 @@ void main() {
   testWidgets('Layout keyboard navigation and node selection', (WidgetTester tester) async {
     String? selectedView;
     await tester.pumpWidget(
-      MaterialApp(
-        home: Layout(
+      wrapWithRepo(
+        Layout(
           layoutConfig: testLayoutConfig,
           onViewChange: (view) => selectedView = view,
         ),

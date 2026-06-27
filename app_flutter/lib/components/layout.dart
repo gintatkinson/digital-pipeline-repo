@@ -7,10 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/components/breadcrumbs.dart';
 import 'package:app_flutter/components/topology_map.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
+import 'package:app_flutter/widgets/repository_provider.dart';
 
 /// TreeNode representing hierarchy selector items
 class TreeNode {
@@ -95,7 +95,6 @@ class Layout extends StatefulWidget {
   final String? layoutConfig;
   final String? themeMode;
   final ValueChanged<String>? onThemeModeChange;
-  final AbstractRepository repository;
 
   Layout({
     super.key,
@@ -105,14 +104,15 @@ class Layout extends StatefulWidget {
     this.layoutConfig,
     this.themeMode,
     this.onThemeModeChange,
-    AbstractRepository? repository,
-  }) : repository = repository ?? _DummyRepository();
+  });
 
   @override
   State<Layout> createState() => _LayoutState();
 }
 
 class _LayoutState extends State<Layout> {
+  bool _didInitProperties = false;
+
   // Navigation & Tree Selection
   late String _currentView;
   final Map<String, bool> _expanded = {
@@ -148,6 +148,10 @@ class _LayoutState extends State<Layout> {
       }
       _sidebarWidthInitialized = true;
     }
+    if (!_didInitProperties) {
+      _didInitProperties = true;
+      _subscribeToProperties(_currentView);
+    }
   }
 
   // Background Worker Simulation
@@ -174,7 +178,7 @@ class _LayoutState extends State<Layout> {
 
   void _subscribeToProperties(String nodeId) {
     _propertiesSubscription?.cancel();
-    final resolvedRepo = widget.repository;
+    final resolvedRepo = RepositoryProvider.of(context);
     _propertiesSubscription = resolvedRepo.watchProperties(nodeId).listen((data) {
       if (mounted) {
         setState(() {
@@ -194,7 +198,6 @@ class _LayoutState extends State<Layout> {
 
     _loadLayoutConfig();
     _expandParents(_currentView);
-    _subscribeToProperties(_currentView);
 
     // Initialize simulated periodic off-thread background worker
     _periodicTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -1376,7 +1379,7 @@ class _LayoutState extends State<Layout> {
         attributes: dynamicAttributes ?? child.attributes,
         initialValues: _currentNodeData ?? {},
         onSave: (String key, dynamic value) async {
-          final resolvedRepo = widget.repository;
+          final resolvedRepo = RepositoryProvider.of(context);
           final updatedData = Map<String, dynamic>.from(_currentNodeData ?? {});
           updatedData[key] = value;
           await resolvedRepo.saveProperties(_currentView, updatedData);
@@ -1387,11 +1390,3 @@ class _LayoutState extends State<Layout> {
   }
 }
 
-class _DummyRepository implements AbstractRepository {
-  @override
-  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
-  @override
-  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
-  @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) => Stream.empty();
-}

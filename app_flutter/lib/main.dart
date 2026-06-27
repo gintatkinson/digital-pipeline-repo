@@ -5,8 +5,7 @@ import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/layout.dart';
 import 'package:app_flutter/components/property_grid.dart';
-
-late final SqliteRepositoryAdapter repository;
+import 'package:app_flutter/widgets/repository_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,18 +15,21 @@ Future<void> main() async {
   final registry = AppDesignTokenRegistry.parse(tokensJson);
 
   final db = await DatabaseInitializer.create();
-  repository = SqliteRepositoryAdapter(db);
+  final repository = SqliteRepositoryAdapter(db);
 
-  runApp(MyApp(repository: repository, registry: registry));
+  runApp(
+    RepositoryProvider(
+      repository: repository,
+      child: MyApp(registry: registry),
+    ),
+  );
 }
 
 /// MyApp is the root application widget that initializes the application theme and layout configurations.
 class MyApp extends StatefulWidget {
-  final AbstractRepository repository;
   final DesignTokenRegistry registry;
   MyApp({
     super.key,
-    required this.repository,
     DesignTokenRegistry? registry,
   }) : registry = registry ?? DesignTokenRegistry.defaultRegistry;
 
@@ -97,7 +99,6 @@ class _MyAppState extends State<MyApp> {
         home: DashboardPage(
           themeMode: _themeMode,
           onThemeModeChange: _updateThemeMode,
-          repository: widget.repository,
         ),
       ),
     );
@@ -108,13 +109,11 @@ class _MyAppState extends State<MyApp> {
 class DashboardPage extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<String> onThemeModeChange;
-  final AbstractRepository repository;
 
   const DashboardPage({
     super.key,
     required this.themeMode,
     required this.onThemeModeChange,
-    required this.repository,
   });
 
   @override
@@ -179,7 +178,6 @@ class _DashboardPageState extends State<DashboardPage> {
           layoutConfig: layoutConfig,
           themeMode: _getThemeModeString(),
           onThemeModeChange: widget.onThemeModeChange,
-          repository: widget.repository,
           child: PropertyGrid(
             activeView: _activeView,
             initialValues: const {},

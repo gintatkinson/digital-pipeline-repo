@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/main.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/repository.dart';
+import 'package:app_flutter/widgets/repository_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -15,7 +16,12 @@ void main() {
       try {
         final repository = SqliteRepositoryAdapter(db);
 
-        await tester.pumpWidget(MyApp(repository: repository));
+        await tester.pumpWidget(
+          RepositoryProvider(
+            repository: repository,
+            child: MyApp(),
+          ),
+        );
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
         await tester.pump();
