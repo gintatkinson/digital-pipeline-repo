@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
@@ -20,6 +18,7 @@ import 'package:app_flutter/components/tabbed_container.dart';
 import 'package:app_flutter/components/topographical_view.dart';
 import 'package:app_flutter/services/properties_service.dart';
 import 'package:app_flutter/services/theme_builder.dart';
+import 'package:app_flutter/services/background_worker.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -74,10 +73,8 @@ class _LayoutState extends State<Layout> {
     if (mounted) setState(() {});
   }
 
-  // Background Worker Simulation
-  int? _workerResult;
-  Timer? _periodicTimer;
-  int _timerCounter = 0;
+  // Background Worker
+  BackgroundWorker? _worker;
 
   // Theme state
   late String _themeMode;
@@ -103,10 +100,9 @@ class _LayoutState extends State<Layout> {
 
     _loadLayoutConfig();
 
-    // Initialize simulated periodic off-thread background worker
-    _periodicTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      _timerCounter++;
-      _runWorkerCalculation(_timerCounter.toDouble());
+    _worker = BackgroundWorker()..start();
+    _worker!.results.listen((_) {
+      if (mounted) setState(() {});
     });
   }
 
@@ -129,7 +125,7 @@ class _LayoutState extends State<Layout> {
   @override
   void dispose() {
     _propertiesService?.dispose();
-    _periodicTimer?.cancel();
+    _worker?.dispose();
     _tableVerticalController.dispose();
     _tableHorizontalController.dispose();
     super.dispose();
@@ -240,35 +236,6 @@ class _LayoutState extends State<Layout> {
 
   List<TreeNode> get _treeData => _parseTreeHierarchy();
 
-  // Runs off-thread calculations to simulate background worker
-  void _runWorkerCalculation(double value) async {
-    try {
-      final result = await Isolate.run(() {
-        double sum = 0.0;
-        for (int i = 0; i < 1000000; i++) {
-          sum += math.sin(value + i);
-        }
-        return sum.round();
-      });
-      if (mounted) {
-        setState(() {
-          _workerResult = result;
-        });
-      }
-    } catch (e) {
-      // Fallback calculation on current thread if Isolate.run fails
-      double sum = 0.0;
-      for (int i = 0; i < 1000000; i++) {
-        sum += math.sin(value + i);
-      }
-      if (mounted) {
-        setState(() {
-          _workerResult = sum.round();
-        });
-      }
-    }
-  }
-
   void _selectView(String viewId) {
     setState(() {
       _currentView = viewId;
@@ -312,7 +279,7 @@ class _LayoutState extends State<Layout> {
         return SidebarTree(
           treeData: _treeData,
           currentView: _currentView,
-          workerResult: _workerResult,
+          workerResult: _worker?.lastResult,
           themeMode: _themeMode,
           onViewSelected: _selectView,
           onThemeModeChange: (val) {
@@ -347,7 +314,6 @@ class _LayoutState extends State<Layout> {
           minFirstPaneSize: _minPaneSize,
           initialRatio: _getDefaultRatio(),
           splitterKey: const Key('horizontal_splitter'),
-          onDrag: _runWorkerCalculation,
         );
 
       case 'TopographicalView':
