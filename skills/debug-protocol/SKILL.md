@@ -54,7 +54,13 @@ If Step 7 failed, return to Step 1. Do NOT give up after one or two failed hypot
 
 If the issue is a meta-issue with multiple independent sub-items (e.g. "eliminate all hardcoded data" with 14 items), treat each sub-item as one pass through Steps 1-7. After Step 7 passes for the current sub-item, return to Step 1 for the next sub-item. Do NOT stop to ask, report, or plan — just loop.
 
-On completion, check for new open bugs filed by subagents during execution. If any exist, continue the loop. Do NOT stop until ZERO open bugs remain.
+On completion of the current bug, query the repository for the next unresolved bug/defect issue (e.g. using `gh issue list --label "bug"`).
+- If other unresolved bugs exist:
+  1. Select the next highest priority or oldest bug.
+  2. Skip any issues that are already assigned to someone else or explicitly marked as in-progress.
+  3. Start a new Step 1-7 debugging loop on that bug.
+- If a bug cannot be resolved or reproduced after 3 full hypothesis/fix iterations (Steps 1-7), post a detailed status comment summarizing the reproduction/investigation findings on the issue, skip it, and proceed to the next unresolved bug in the backlog.
+- Do NOT stop until there are ZERO unresolved bugs remaining in the repository backlog.
 
 ## Persistence Rules
 - Each step MUST use a fresh subagent — do not reuse or combine
