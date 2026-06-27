@@ -2,6 +2,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+dynamic _resolvePath(Map<String, dynamic> map, String path) {
+  final List<String> parts = path.split('/');
+  dynamic current = map;
+  for (final String part in parts) {
+    if (current is Map<String, dynamic>) {
+      current = current[part];
+    } else {
+      return null;
+    }
+  }
+  return current;
+}
+
 /// Position details for a node in the network topology.
 class TopologyNodePosition {
   final double dim0;
@@ -9,6 +22,7 @@ class TopologyNodePosition {
   final double dim2;
   final double timeIndex;
   final List<double> vector;
+  final Map<String, dynamic> rawProperties;
 
   const TopologyNodePosition({
     required this.dim0,
@@ -16,18 +30,66 @@ class TopologyNodePosition {
     required this.dim2,
     required this.timeIndex,
     required this.vector,
+    this.rawProperties = const <String, dynamic>{},
   });
 
   factory TopologyNodePosition.fromJson(Map<String, dynamic> json) {
     return TopologyNodePosition(
-      dim0: (json['dim_0'] as num).toDouble(),
-      dim1: (json['dim_1'] as num).toDouble(),
-      dim2: (json['dim_2'] as num).toDouble(),
-      timeIndex: (json['time_index'] as num).toDouble(),
-      vector: (json['vector'] as List<dynamic>)
-          .map((dynamic e) => (e as num).toDouble())
-          .toList(),
+      dim0: (json['dim_0'] as num?)?.toDouble() ?? 0.0,
+      dim1: (json['dim_1'] as num?)?.toDouble() ?? 0.0,
+      dim2: (json['dim_2'] as num?)?.toDouble() ?? 0.0,
+      timeIndex: (json['time_index'] as num?)?.toDouble() ?? 0.0,
+      vector: json['vector'] is List<dynamic>
+          ? (json['vector'] as List<dynamic>)
+              .map((dynamic e) => (e as num).toDouble())
+              .toList()
+          : <double>[],
+      rawProperties: json,
     );
+  }
+
+  double resolveCoordinate(String key, Map<String, String>? coordinateMapping) {
+    final String? path = coordinateMapping?[key];
+    if (path != null) {
+      String resolvedPath = path;
+      if (path.startsWith('position/')) {
+        resolvedPath = path.substring(9);
+      }
+      final dynamic val = _resolvePath(rawProperties, resolvedPath);
+      if (val is num) {
+        return val.toDouble();
+      }
+    }
+    switch (key) {
+      case 'x':
+        return dim0;
+      case 'y':
+        return dim1;
+      case 'z':
+        return dim2;
+      case 't':
+        return timeIndex;
+      default:
+        return 0.0;
+    }
+  }
+
+  List<double> resolveVector(String key, Map<String, String>? coordinateMapping) {
+    final String? path = coordinateMapping?[key];
+    if (path != null) {
+      String resolvedPath = path;
+      if (path.startsWith('position/')) {
+        resolvedPath = path.substring(9);
+      }
+      final dynamic val = _resolvePath(rawProperties, resolvedPath);
+      if (val is List) {
+        return val.map((dynamic e) => (e as num).toDouble()).toList();
+      }
+    }
+    if (key == 'trajectory') {
+      return vector;
+    }
+    return const <double>[];
   }
 }
 
@@ -37,22 +99,49 @@ class TopologyNode {
   final String label;
   final TopologyNodePosition position;
   final String status;
+  final Map<String, dynamic> rawProperties;
 
   const TopologyNode({
     required this.id,
     required this.label,
     required this.position,
     required this.status,
+    this.rawProperties = const <String, dynamic>{},
   });
 
   factory TopologyNode.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> posJson = json['position'] is Map<String, dynamic>
+        ? json['position'] as Map<String, dynamic>
+        : <String, dynamic>{};
     return TopologyNode(
-      id: json['id'] as String,
-      label: json['label'] as String,
-      position: TopologyNodePosition.fromJson(
-          json['position'] as Map<String, dynamic>),
-      status: json['status'] as String,
+      id: json['id'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      position: TopologyNodePosition.fromJson(posJson),
+      status: json['status'] as String? ?? '',
+      rawProperties: json,
     );
+  }
+
+  double resolveCoordinate(String key, Map<String, String>? coordinateMapping) {
+    final String? path = coordinateMapping?[key];
+    if (path != null && rawProperties.isNotEmpty) {
+      final dynamic val = _resolvePath(rawProperties, path);
+      if (val is num) {
+        return val.toDouble();
+      }
+    }
+    return position.resolveCoordinate(key, coordinateMapping);
+  }
+
+  List<double> resolveVector(String key, Map<String, String>? coordinateMapping) {
+    final String? path = coordinateMapping?[key];
+    if (path != null && rawProperties.isNotEmpty) {
+      final dynamic val = _resolvePath(rawProperties, path);
+      if (val is List) {
+        return val.map((dynamic e) => (e as num).toDouble()).toList();
+      }
+    }
+    return position.resolveVector(key, coordinateMapping);
   }
 }
 
@@ -70,9 +159,9 @@ class TopologyLink {
 
   factory TopologyLink.fromJson(Map<String, dynamic> json) {
     return TopologyLink(
-      source: json['source'] as String,
-      target: json['target'] as String,
-      type: json['type'] as String,
+      source: json['source'] as String? ?? '',
+      target: json['target'] as String? ?? '',
+      type: json['type'] as String? ?? '',
     );
   }
 }
@@ -189,6 +278,33 @@ class _TopologyMapState extends State<TopologyMap>
   bool isPlaying = false;
   Duration _lastElapsed = Duration.zero;
 
+  double get minTime {
+    final TopologyData activeData = widget.data ?? defaultTopologyData;
+    if (activeData.nodes.isEmpty) return 1.0;
+    double minT = double.infinity;
+    for (final TopologyNode node in activeData.nodes) {
+      final double t = node.resolveCoordinate('t', activeData.coordinateMapping);
+      if (t < minT) minT = t;
+    }
+    return minT == double.infinity ? 1.0 : minT;
+  }
+
+  double get maxTime {
+    final TopologyData activeData = widget.data ?? defaultTopologyData;
+    if (activeData.nodes.isEmpty) return 10.0;
+    double maxT = -double.infinity;
+    for (final TopologyNode node in activeData.nodes) {
+      final double t = node.resolveCoordinate('t', activeData.coordinateMapping);
+      if (t > maxT) maxT = t;
+    }
+    if (maxT == -double.infinity) return 10.0;
+    final double minT = minTime;
+    if (maxT == minT) {
+      return minT + 9.0;
+    }
+    return maxT;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -234,6 +350,19 @@ class _TopologyMapState extends State<TopologyMap>
     });
 
     _ticker = createTicker(_onTick);
+    currentTimeIndex = minTime;
+  }
+
+  @override
+  void didUpdateWidget(covariant TopologyMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.data != oldWidget.data) {
+      final double minT = minTime;
+      final double maxT = maxTime;
+      if (currentTimeIndex < minT || currentTimeIndex > maxT) {
+        currentTimeIndex = minT;
+      }
+    }
   }
 
   void _onTick(Duration elapsed) {
@@ -246,10 +375,12 @@ class _TopologyMapState extends State<TopologyMap>
     _lastElapsed = elapsed;
 
     if (isPlaying) {
+      final double minT = minTime;
+      final double maxT = maxTime;
       setState(() {
         currentTimeIndex += deltaSeconds * playbackSpeedMultiplier;
-        if (currentTimeIndex > 10.0) {
-          currentTimeIndex = 1.0; // Loop back
+        if (currentTimeIndex > maxT) {
+          currentTimeIndex = minT; // Loop back
         }
       });
     }
@@ -268,8 +399,10 @@ class _TopologyMapState extends State<TopologyMap>
   }
 
   void setPlayhead(double timeIndex) {
+    final double minT = minTime;
+    final double maxT = maxTime;
     setState(() {
-      currentTimeIndex = timeIndex.clamp(1.0, 10.0);
+      currentTimeIndex = timeIndex.clamp(minT, maxT);
     });
   }
 
@@ -279,18 +412,22 @@ class _TopologyMapState extends State<TopologyMap>
     final double clickY = details.localPosition.dy;
 
     for (final TopologyNode node in activeData.nodes) {
-      final double dt = currentTimeIndex - node.position.timeIndex;
-      final double vx =
-          node.position.vector.isNotEmpty ? node.position.vector[0] : 0.0;
-      final double vy =
-          node.position.vector.length > 1 ? node.position.vector[1] : 0.0;
+      final double nodeT = node.resolveCoordinate('t', activeData.coordinateMapping);
+      final double dt = currentTimeIndex - nodeT;
 
-      final double nodeX = node.position.dim0 + dt * vx;
-      final double nodeY = node.position.dim1 + dt * vy;
+      final List<double> vector = node.resolveVector('trajectory', activeData.coordinateMapping);
+      final double vx = vector.isNotEmpty ? vector[0] : 0.0;
+      final double vy = vector.length > 1 ? vector[1] : 0.0;
+
+      final double nodeX = node.resolveCoordinate('x', activeData.coordinateMapping);
+      final double nodeY = node.resolveCoordinate('y', activeData.coordinateMapping);
+
+      final double x = nodeX + dt * vx;
+      final double y = nodeY + dt * vy;
 
       final double dist = math.sqrt(
-          (clickX - nodeX) * (clickX - nodeX) +
-              (clickY - nodeY) * (clickY - nodeY));
+          (clickX - x) * (clickX - x) +
+              (clickY - y) * (clickY - y));
 
       if (dist <= 20.0) {
         widget.onNodeSelect?.call(node.id);
@@ -479,10 +616,10 @@ class _TopologyMapState extends State<TopologyMap>
                           ),
                           child: Slider(
                             key: const ValueKey<String>('timeSlider'),
-                            min: 1.0,
-                            max: 10.0,
+                            min: minTime,
+                            max: maxTime,
                             divisions: 90,
-                            value: currentTimeIndex,
+                            value: currentTimeIndex.clamp(minTime, maxTime),
                             onChanged: (double value) {
                               setPlayhead(value);
                             },
@@ -579,14 +716,18 @@ class TopologyPainter extends CustomPainter {
     // 3. Compute projected positions
     final Map<String, Offset> projectedPositions = <String, Offset>{};
     for (final TopologyNode node in activeData.nodes) {
-      final double dt = currentTimeIndex - node.position.timeIndex;
-      final double vx =
-          node.position.vector.isNotEmpty ? node.position.vector[0] : 0.0;
-      final double vy =
-          node.position.vector.length > 1 ? node.position.vector[1] : 0.0;
+      final double nodeT = node.resolveCoordinate('t', activeData.coordinateMapping);
+      final double dt = currentTimeIndex - nodeT;
 
-      final double x = node.position.dim0 + dt * vx;
-      final double y = node.position.dim1 + dt * vy;
+      final List<double> vector = node.resolveVector('trajectory', activeData.coordinateMapping);
+      final double vx = vector.isNotEmpty ? vector[0] : 0.0;
+      final double vy = vector.length > 1 ? vector[1] : 0.0;
+
+      final double nodeX = node.resolveCoordinate('x', activeData.coordinateMapping);
+      final double nodeY = node.resolveCoordinate('y', activeData.coordinateMapping);
+
+      final double x = nodeX + dt * vx;
+      final double y = nodeY + dt * vy;
       projectedPositions[node.id] = Offset(x, y);
     }
 
@@ -623,10 +764,9 @@ class TopologyPainter extends CustomPainter {
       if (pos == null) continue;
 
       final bool isFocused = activeFocusedNode == node.id;
-      final double vx =
-          node.position.vector.isNotEmpty ? node.position.vector[0] : 0.0;
-      final double vy =
-          node.position.vector.length > 1 ? node.position.vector[1] : 0.0;
+      final List<double> vector = node.resolveVector('trajectory', activeData.coordinateMapping);
+      final double vx = vector.isNotEmpty ? vector[0] : 0.0;
+      final double vy = vector.length > 1 ? vector[1] : 0.0;
 
       // Red velocity vector line: rgba(239, 68, 68, 0.4), width 1.5
       final Paint vectorPaint = Paint()

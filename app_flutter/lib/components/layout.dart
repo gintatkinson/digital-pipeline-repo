@@ -187,6 +187,44 @@ class _LayoutState extends State<Layout> {
     return 0.5;
   }
 
+  Map<String, String> _resolveCoordinateMapping() {
+    try {
+      Map<String, dynamic>? rules;
+      final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
+      if (file1.existsSync()) {
+        rules = jsonDecode(file1.readAsStringSync());
+      } else {
+        final file2 = File('.pipeline/logical-ui/codebase_rules.json');
+        if (file2.existsSync()) {
+          rules = jsonDecode(file2.readAsStringSync());
+        }
+      }
+      if (rules != null &&
+          rules['layout_mappings'] != null &&
+          rules['layout_mappings']['coordinate_mapping'] != null) {
+        final Map<String, dynamic> rawMap = rules['layout_mappings']['coordinate_mapping'] as Map<String, dynamic>;
+        return rawMap.map((key, value) => MapEntry(key, value.toString()));
+      }
+    } catch (_) {}
+    return const <String, String>{
+      'x': 'position/dim_0',
+      'y': 'position/dim_1',
+      'z': 'position/dim_2',
+      't': 'position/time_index',
+      'trajectory': 'position/vector',
+    };
+  }
+
+  TopologyData _resolveTopologyData() {
+    final mapping = _resolveCoordinateMapping();
+    return TopologyData(
+      coordinateMapping: mapping,
+      nodes: defaultTopologyData.nodes,
+      links: defaultTopologyData.links,
+    );
+  }
+
+
   Future<void> _loadLayoutConfig() async {
     try {
       String jsonStr;
@@ -838,6 +876,7 @@ class _LayoutState extends State<Layout> {
                             onNodeSelect: (nodeId) {
                               _selectView(nodeId);
                             },
+                            data: _resolveTopologyData(),
                           ),
                         ),
                         // Splitter if child exists
