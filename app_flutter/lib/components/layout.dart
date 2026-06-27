@@ -18,6 +18,7 @@ import 'package:app_flutter/components/sidebar_tree.dart';
 import 'package:app_flutter/components/split_workspace.dart';
 import 'package:app_flutter/components/tabbed_container.dart';
 import 'package:app_flutter/components/topographical_view.dart';
+import 'package:app_flutter/services/properties_service.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -41,10 +42,11 @@ class Layout extends StatefulWidget {
 }
 
 class _LayoutState extends State<Layout> {
-  bool _didInitProperties = false;
-
   // Navigation & Tree Selection
   late String _currentView;
+
+  // Services
+  PropertiesService? _propertiesService;
 
   // Splitters sizing
 
@@ -59,10 +61,16 @@ class _LayoutState extends State<Layout> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_didInitProperties) {
-      _didInitProperties = true;
-      _subscribeToProperties(_currentView);
+    if (_propertiesService == null) {
+      final repo = RepositoryProvider.of(context);
+      _propertiesService = PropertiesService(repo)
+        ..addListener(_onPropertiesChanged)
+        ..subscribe(_currentView);
     }
+  }
+
+  void _onPropertiesChanged() {
+    if (mounted) setState(() {});
   }
 
   // Background Worker Simulation
@@ -82,21 +90,7 @@ class _LayoutState extends State<Layout> {
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
 
-  // Properties Reactive State
-  Map<String, dynamic>? _currentNodeData;
-  StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
-
-  void _subscribeToProperties(String nodeId) {
-    _propertiesSubscription?.cancel();
-    final resolvedRepo = RepositoryProvider.of(context);
-    _propertiesSubscription = resolvedRepo.watchProperties(nodeId).listen((data) {
-      if (mounted) {
-        setState(() {
-          _currentNodeData = data;
-        });
-      }
-    });
-  }
+  // Properties Reactive State - handled by PropertiesService
 
   @override
   void initState() {
@@ -122,7 +116,7 @@ class _LayoutState extends State<Layout> {
       setState(() {
         _currentView = widget.activeView!;
       });
-      _subscribeToProperties(_currentView);
+      _propertiesService?.subscribe(_currentView);
     }
     if (widget.themeMode != null && widget.themeMode != oldWidget.themeMode) {
       setState(() {
@@ -133,7 +127,7 @@ class _LayoutState extends State<Layout> {
 
   @override
   void dispose() {
-    _propertiesSubscription?.cancel();
+    _propertiesService?.dispose();
     _periodicTimer?.cancel();
     _tableVerticalController.dispose();
     _tableHorizontalController.dispose();
@@ -278,7 +272,7 @@ class _LayoutState extends State<Layout> {
     setState(() {
       _currentView = viewId;
     });
-    _subscribeToProperties(viewId);
+    _propertiesService?.subscribe(viewId);
     if (widget.onViewChange != null) {
       widget.onViewChange!(viewId);
     }
@@ -458,10 +452,10 @@ class _LayoutState extends State<Layout> {
     return PropertyGrid(
       activeView: _currentView,
       attributes: dynamicAttributes,
-      initialValues: _currentNodeData ?? {},
+      initialValues: _propertiesService?.currentNodeData ?? {},
       onSave: (String key, dynamic value) async {
         final resolvedRepo = RepositoryProvider.of(context);
-        final updatedData = Map<String, dynamic>.from(_currentNodeData ?? {});
+        final updatedData = Map<String, dynamic>.from(_propertiesService?.currentNodeData ?? {});
         updatedData[key] = value;
         await resolvedRepo.saveProperties(_currentView, updatedData);
       },
