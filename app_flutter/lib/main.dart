@@ -33,20 +33,73 @@ Future<void> main() async {
   final List<Map<String, dynamic>> countResult = await db.rawQuery('SELECT COUNT(*) as count FROM properties');
   final int count = countResult.first['count'] as int? ?? 0;
   if (count == 0) {
-    final defaultMap = {
-      "latitude": 37.7749,
-      "longitude": -122.4194,
-      "altitude": 10.0,
-      "roomName": "Main-Data-Room",
-      "gridRow": 12,
-      "gridColumn": 4,
-      "maxVoltage": 240.0,
-      "maxAllocatedPower": 15000.0,
-      "countryCode": "US",
-      "locationType": "room"
-    };
+    // Load and parse assets/logical-layout.json
+    final layoutJson = await rootBundle.loadString('assets/logical-layout.json');
+    final layoutConfig = jsonDecode(layoutJson) as Map<String, dynamic>;
+
+    // Dynamically extract the node list from the navigation tree/hierarchy inside the layout config
+    final layoutMap = layoutConfig['layout'] as Map<String, dynamic>?;
+    final rootContainer = layoutMap?['root_container'] as Map<String, dynamic>?;
+    final children = rootContainer?['children'] as List<dynamic>?;
+    List<dynamic>? hierarchy;
+    if (children != null) {
+      for (final child in children) {
+        if (child is Map<String, dynamic> && child['type'] == 'HierarchyTreeSelector') {
+          final props = child['props'] as Map<String, dynamic>?;
+          hierarchy = props?['hierarchy'] as List<dynamic>?;
+          break;
+        }
+      }
+    }
+
+    final List<String> nodes = [];
+    void traverse(List<dynamic>? items) {
+      if (items == null) return;
+      for (final item in items) {
+        if (item is Map<String, dynamic>) {
+          final id = item['id'];
+          if (id is String) {
+            nodes.add(id);
+          }
+          final nested = item['children'];
+          if (nested is List<dynamic>) {
+            traverse(nested);
+          }
+        }
+      }
+    }
+    traverse(hierarchy);
+
+    // Dynamically generate the default attribute values from the layout config
+    final attributes = layoutConfig['attributes'] as List<dynamic>? ?? [];
+    final defaultMap = <String, dynamic>{};
+    for (final attr in attributes) {
+      if (attr is Map<String, dynamic>) {
+        final key = attr['key'] as String?;
+        if (key == null) continue;
+        final type = attr['type'] as String?;
+        final minValue = attr['minValue'];
+        final options = attr['options'] as List<dynamic>?;
+
+        dynamic defaultValue;
+        if (type == 'int') {
+          defaultValue = minValue is num ? minValue.toInt() : 0;
+        } else if (type == 'double') {
+          defaultValue = minValue is num ? minValue.toDouble() : 0.0;
+        } else if (type == 'enumeration' || type == 'enum') {
+          if (options != null && options.isNotEmpty) {
+            defaultValue = options.first.toString();
+          } else {
+            defaultValue = '';
+          }
+        } else {
+          defaultValue = '';
+        }
+        defaultMap[key] = defaultValue;
+      }
+    }
+
     final defaultJson = jsonEncode(defaultMap);
-    final List<String> nodes = ['Ingestion', 'Metrics', 'Location', 'Chassis', 'Epics', 'Traceability'];
     for (final node in nodes) {
       await db.insert('properties', {'node_id': node, 'data_json': defaultJson});
     }
