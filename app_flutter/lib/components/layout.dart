@@ -94,7 +94,12 @@ class _LayoutState extends State<Layout> {
     _tableVerticalController = ScrollController();
     _tableHorizontalController = ScrollController();
 
-    _loadLayoutConfig();
+    if (widget.layoutConfig != null) {
+      _parsedLayout = jsonDecode(widget.layoutConfig!) as Map<String, dynamic>;
+      _updateCurrentViewFromLayout();
+    } else {
+      _loadLayoutConfig();
+    }
 
     _worker = BackgroundWorker()..start();
     _worker!.results.listen((_) {
@@ -106,10 +111,12 @@ class _LayoutState extends State<Layout> {
   void didUpdateWidget(covariant Layout oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.activeView != null && widget.activeView != oldWidget.activeView) {
-      setState(() {
-        _currentView = widget.activeView!;
-      });
-      _propertiesService?.subscribe(_currentView);
+      if (_currentView != widget.activeView) {
+        setState(() {
+          _currentView = widget.activeView!;
+        });
+        _propertiesService?.subscribe(_currentView);
+      }
     }
     if (widget.themeMode != null && widget.themeMode != oldWidget.themeMode) {
       setState(() {
@@ -203,24 +210,12 @@ class _LayoutState extends State<Layout> {
 
   Future<void> _loadLayoutConfig() async {
     try {
-      String jsonStr;
-      if (widget.layoutConfig != null) {
-        jsonStr = widget.layoutConfig!;
-        final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
-        if (mounted) {
-          setState(() {
-            _parsedLayout = parsed;
-            _updateCurrentViewFromLayout();
-          });
-        }
-      } else {
-        final parsed = await loadLayoutConfig('assets/logical-layout.json');
-        if (mounted) {
-          setState(() {
-            _parsedLayout = parsed;
-            _updateCurrentViewFromLayout();
-          });
-        }
+      final parsed = await loadLayoutConfig('assets/logical-layout.json');
+      if (mounted) {
+        setState(() {
+          _parsedLayout = parsed;
+          _updateCurrentViewFromLayout();
+        });
       }
     } catch (e) {
       debugPrint('Error loading layout configuration: $e');
@@ -247,13 +242,12 @@ class _LayoutState extends State<Layout> {
   List<TreeNode> get _treeData => _parseTreeHierarchy();
 
   void _selectView(String viewId) {
+    if (_currentView == viewId) return;
     setState(() {
       _currentView = viewId;
     });
     _propertiesService?.subscribe(viewId);
-    if (widget.onViewChange != null) {
-      widget.onViewChange!(viewId);
-    }
+    widget.onViewChange?.call(viewId);
   }
 
   Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
@@ -326,7 +320,9 @@ class _LayoutState extends State<Layout> {
       initialValues: nodeData,
       onSave: (String key, dynamic value) async {
         final resolvedRepo = RepositoryProvider.of(context);
-        final updatedData = Map<String, dynamic>.from(_propertiesService!.currentNodeData!);
+        final currentData = _propertiesService?.currentNodeData;
+        if (currentData == null) return;
+        final updatedData = Map<String, dynamic>.from(currentData);
         updatedData[key] = value;
         await resolvedRepo.saveProperties(_currentView, updatedData);
       },
