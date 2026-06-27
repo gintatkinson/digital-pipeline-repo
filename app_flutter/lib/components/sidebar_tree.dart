@@ -27,16 +27,22 @@ class SidebarTree extends StatefulWidget {
 }
 
 class _SidebarTreeState extends State<SidebarTree> {
-  final Map<String, bool> _expanded = {
-    'Monitoring': true,
-    'Spec': true,
-  };
+  final Map<String, bool> _expanded = {};
   final FocusNode _treeFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    _initExpandedFromTree();
     _expandParents(widget.currentView);
+  }
+
+  void _initExpandedFromTree() {
+    for (final node in widget.treeData) {
+      if (node.children != null && node.children!.isNotEmpty) {
+        _expanded[node.id] = true;
+      }
+    }
   }
 
   @override

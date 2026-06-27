@@ -94,7 +94,7 @@ class _LayoutState extends State<Layout> {
   void initState() {
     super.initState();
     _themeMode = widget.themeMode ?? 'system';
-    _currentView = widget.activeView ?? 'Ingestion';
+    _currentView = widget.activeView ?? _parseTreeHierarchy().first.id;
     _tableVerticalController = ScrollController();
     _tableHorizontalController = ScrollController();
 
@@ -212,6 +212,7 @@ class _LayoutState extends State<Layout> {
         if (mounted) {
           setState(() {
             _parsedLayout = parsed;
+            _updateCurrentViewFromLayout();
           });
         }
       } else {
@@ -219,11 +220,22 @@ class _LayoutState extends State<Layout> {
         if (mounted) {
           setState(() {
             _parsedLayout = parsed;
+            _updateCurrentViewFromLayout();
           });
         }
       }
     } catch (e) {
       debugPrint('Error loading layout configuration: $e');
+    }
+  }
+
+  void _updateCurrentViewFromLayout() {
+    if (widget.activeView == null) {
+      final treeData = _parseTreeHierarchy();
+      if (treeData.isNotEmpty) {
+        _currentView = treeData.first.id;
+        _propertiesService?.subscribe(_currentView);
+      }
     }
   }
 
