@@ -204,6 +204,82 @@
         "UP",
         "DOWN"
       ]
+    },
+    {
+      "key": "latitude",
+      "label": "Latitude",
+      "type": "double",
+      "sectionGroup": "Location",
+      "isRequired": false
+    },
+    {
+      "key": "longitude",
+      "label": "Longitude",
+      "type": "double",
+      "sectionGroup": "Location",
+      "isRequired": false
+    },
+    {
+      "key": "altitude",
+      "label": "Elevation / Altitude (m)",
+      "type": "int",
+      "sectionGroup": "Location",
+      "isRequired": false
+    },
+    {
+      "key": "roomName",
+      "label": "Room Identifier",
+      "type": "string",
+      "sectionGroup": "Alternate",
+      "isRequired": false
+    },
+    {
+      "key": "gridRow",
+      "label": "Grid Row",
+      "type": "int",
+      "sectionGroup": "Alternate",
+      "isRequired": false
+    },
+    {
+      "key": "gridColumn",
+      "label": "Grid Column",
+      "type": "int",
+      "sectionGroup": "Alternate",
+      "isRequired": false
+    },
+    {
+      "key": "maxVoltage",
+      "label": "Max Voltage (V)",
+      "type": "double",
+      "sectionGroup": "Alternate",
+      "isRequired": false
+    },
+    {
+      "key": "maxAllocatedPower",
+      "label": "Max Allocated Power (W)",
+      "type": "double",
+      "sectionGroup": "Alternate",
+      "isRequired": false
+    },
+    {
+      "key": "countryCode",
+      "label": "Country Code (ISO-2)",
+      "type": "string",
+      "sectionGroup": "Alternate",
+      "isRequired": false
+    },
+    {
+      "key": "locationType",
+      "label": "Location Hierarchy Type",
+      "type": "enumeration",
+      "sectionGroup": "Alternate",
+      "options": [
+        "site",
+        "room",
+        "building",
+        "invalid-test-option"
+      ],
+      "isRequired": false
     }
   ]
 }
