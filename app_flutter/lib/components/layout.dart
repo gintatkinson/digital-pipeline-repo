@@ -297,10 +297,7 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildChildWidget(BuildContext context) {
-    final nodeData = _propertiesService?.currentNodeData;
-    if (nodeData == null) {
-      return const SizedBox.shrink();
-    }
+    final nodeData = _propertiesService?.lastData ?? const {};
 
     List<AttributeDefinition>? dynamicAttributes;
     if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {

@@ -8,12 +8,13 @@ class PropertiesService extends ChangeNotifier {
   Map<String, dynamic>? _lastData;
   StreamSubscription<Map<String, dynamic>>? _subscription;
 
-  Map<String, dynamic>? get lastData => currentNodeData ?? _lastData;
+  Map<String, dynamic> get lastData => currentNodeData ?? _lastData ?? const {};
 
   PropertiesService(this._repository);
 
   void subscribe(String nodeId) {
     _subscription?.cancel();
+    _lastData = currentNodeData;
     currentNodeData = null;
     _subscription = _repository.watchProperties(nodeId).listen(
       (data) {
