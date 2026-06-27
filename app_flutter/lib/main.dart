@@ -4,7 +4,6 @@ import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/layout.dart';
-import 'package:app_flutter/components/property_grid.dart';
 import 'package:app_flutter/widgets/repository_provider.dart';
 
 Future<void> main() async {
@@ -166,8 +165,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
         final layoutConfig = snapshot.data;
 
-        // Render the Layout widget, passing the activeView, a callback to update activeView,
-        // and nesting the PropertyGrid(activeView: activeView) as the child.
         return Layout(
           activeView: _activeView,
           onViewChange: (newView) {
@@ -178,11 +175,6 @@ class _DashboardPageState extends State<DashboardPage> {
           layoutConfig: layoutConfig,
           themeMode: _getThemeModeString(),
           onThemeModeChange: widget.onThemeModeChange,
-          child: PropertyGrid(
-            activeView: _activeView,
-            initialValues: const {},
-            onSave: (key, value) {},
-          ),
         );
       },
     );

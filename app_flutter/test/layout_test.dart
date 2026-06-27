@@ -128,7 +128,6 @@ void main() {
           home: Scaffold(
             body: Layout(
               layoutConfig: testLayoutConfig,
-              child: Container(key: const Key('property_grid_stub'), height: 100),
             ),
           ),
         ),

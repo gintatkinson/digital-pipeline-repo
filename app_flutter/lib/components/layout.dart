@@ -91,7 +91,6 @@ const Map<String, TableViewConfig> _tableViewRegistry = {
 class Layout extends StatefulWidget {
   final String? activeView;
   final ValueChanged<String>? onViewChange;
-  final Widget? child;
   final String? layoutConfig;
   final String? themeMode;
   final ValueChanged<String>? onThemeModeChange;
@@ -100,7 +99,6 @@ class Layout extends StatefulWidget {
     super.key,
     this.activeView,
     this.onViewChange,
-    this.child,
     this.layoutConfig,
     this.themeMode,
     this.onThemeModeChange,
@@ -943,7 +941,7 @@ class _LayoutState extends State<Layout> {
         );
 
       case 'TopographicalView':
-        final hasChild = widget.child != null;
+        const hasChild = true;
         return Container(
           color: Theme.of(context).scaffoldBackgroundColor,
           child: Column(
@@ -1358,35 +1356,29 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildChildWidget() {
-    final child = widget.child;
-    if (child == null) return const SizedBox.shrink();
-    if (child is PropertyGrid) {
-      List<AttributeDefinition>? dynamicAttributes;
-      if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {
-        try {
-          final list = _parsedLayout!['attributes'] as List<dynamic>;
-          dynamicAttributes = list
-              .map((e) => AttributeDefinition.fromJson(e as Map<String, dynamic>))
-              .toList();
-        } catch (e) {
-          debugPrint('Error parsing dynamic attributes: $e');
-        }
+    List<AttributeDefinition>? dynamicAttributes;
+    if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {
+      try {
+        final list = _parsedLayout!['attributes'] as List<dynamic>;
+        dynamicAttributes = list
+            .map((e) => AttributeDefinition.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (e) {
+        debugPrint('Error parsing dynamic attributes: $e');
       }
-
-      return PropertyGrid(
-        key: child.key,
-        activeView: _currentView,
-        attributes: dynamicAttributes ?? child.attributes,
-        initialValues: _currentNodeData ?? {},
-        onSave: (String key, dynamic value) async {
-          final resolvedRepo = RepositoryProvider.of(context);
-          final updatedData = Map<String, dynamic>.from(_currentNodeData ?? {});
-          updatedData[key] = value;
-          await resolvedRepo.saveProperties(_currentView, updatedData);
-        },
-      );
     }
-    return child;
+
+    return PropertyGrid(
+      activeView: _currentView,
+      attributes: dynamicAttributes,
+      initialValues: _currentNodeData ?? {},
+      onSave: (String key, dynamic value) async {
+        final resolvedRepo = RepositoryProvider.of(context);
+        final updatedData = Map<String, dynamic>.from(_currentNodeData ?? {});
+        updatedData[key] = value;
+        await resolvedRepo.saveProperties(_currentView, updatedData);
+      },
+    );
   }
 }
 
