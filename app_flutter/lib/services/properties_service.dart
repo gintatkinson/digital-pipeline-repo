@@ -11,6 +11,7 @@ class PropertiesService extends ChangeNotifier {
 
   void subscribe(String nodeId) {
     _subscription?.cancel();
+    currentNodeData = null;
     _subscription = _repository.watchProperties(nodeId).listen((data) {
       currentNodeData = data;
       notifyListeners();

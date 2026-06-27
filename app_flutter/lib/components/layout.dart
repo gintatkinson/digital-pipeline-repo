@@ -299,6 +299,11 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildChildWidget(BuildContext context) {
+    final nodeData = _propertiesService?.currentNodeData;
+    if (nodeData == null) {
+      return const SizedBox.shrink();
+    }
+
     List<AttributeDefinition>? dynamicAttributes;
     if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {
       try {
@@ -314,10 +319,10 @@ class _LayoutState extends State<Layout> {
     return PropertyGrid(
       activeView: _currentView,
       attributes: dynamicAttributes,
-      initialValues: _propertiesService?.currentNodeData ?? {},
+      initialValues: nodeData,
       onSave: (String key, dynamic value) async {
         final resolvedRepo = RepositoryProvider.of(context);
-        final updatedData = Map<String, dynamic>.from(_propertiesService?.currentNodeData ?? {});
+        final updatedData = Map<String, dynamic>.from(_propertiesService!.currentNodeData!);
         updatedData[key] = value;
         await resolvedRepo.saveProperties(_currentView, updatedData);
       },
