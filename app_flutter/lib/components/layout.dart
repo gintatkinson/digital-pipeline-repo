@@ -17,6 +17,7 @@ import 'package:app_flutter/services/layout_config_service.dart';
 import 'package:app_flutter/services/layout_parser.dart';
 import 'package:app_flutter/components/sidebar_tree.dart';
 import 'package:app_flutter/components/split_workspace.dart';
+import 'package:app_flutter/components/tabbed_container.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -73,8 +74,7 @@ class _LayoutState extends State<Layout> {
   // Theme state
   late String _themeMode;
 
-  // TabbedContainer state
-  String _activeTabId = 'sub_elements_table';
+
 
   // Table Scroll Controllers
   late final ScrollController _tableVerticalController;
@@ -287,8 +287,6 @@ class _LayoutState extends State<Layout> {
 
   // Renders the dynamic component tree parsed from logical-layout.json
   Widget _renderComponent(Map<String, dynamic> node, double parentWidth, double parentHeight) {
-    final registry = DesignTokenProvider.of(context);
-    final brandPrimary = registry.getColor('alias.color.brand-primary');
 
     final type = node['type'] as String?;
     switch (type) {
@@ -465,73 +463,16 @@ class _LayoutState extends State<Layout> {
         final tabs = childrenList.map((c) {
           final id = c['id'] as String;
           final label = _resolveTabLabel(id);
-          return MapEntry(id, MapEntry(label, c));
+          return TabConfig(
+            id: id,
+            label: label,
+            contentBuilder: (_) => _renderComponent(c as Map<String, dynamic>, parentWidth, parentHeight),
+          );
         }).toList();
 
-        final activeTabEntry = tabs.firstWhere(
-          (t) => t.key == _activeTabId,
-          orElse: () => tabs.isNotEmpty ? tabs.first : MapEntry('', MapEntry('', null)),
-        );
-
-        return Container(
-          color: Theme.of(context).cardColor,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Tab Selector Row
-              Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Theme.of(context).dividerColor),
-                  ),
-                ),
-                child: Row(
-                  children: tabs.map((t) {
-                    final isSelected = t.key == _activeTabId;
-                    return InkWell(
-                      key: Key('tab_btn_${t.key}'),
-                      onTap: () {
-                        setState(() {
-                          _activeTabId = t.key;
-                        });
-                      },
-                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: isSelected ? brandPrimary : Colors.transparent,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          t.value.key,
-                          style: TextStyle(
-                            color: isSelected
-                                ? brandPrimary
-                                : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              // Tab content
-              Expanded(
-                child: activeTabEntry.value.value != null
-                    ? _renderComponent(
-                        activeTabEntry.value.value as Map<String, dynamic>,
-                        parentWidth,
-                        parentHeight,
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
+        return TabbedContainer(
+          tabs: tabs,
+          initialTabId: tabs.isNotEmpty ? tabs.first.id : '',
         );
 
       case 'TableView':
