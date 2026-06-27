@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/domain/types.dart';
 import 'package:app_flutter/domain/validation.dart';
@@ -126,14 +127,17 @@ class PropertyGrid extends StatefulWidget {
 
 class _PropertyGridState extends State<PropertyGrid> {
   // Design Token Colors
-  static const Color brandPrimary = Color(0xFF1A73E8);
-  static const Color textSecondary = Color(0xFF9AA0A6);
-  static const Color borderLight = Color(0xFFDADCE0);
-  static const Color borderDark = Color(0xFF3C4043);
-  static const Color surfaceLight = Color(0xFFF1F3F4);
-  static const Color surfaceDark = Color(0xFF202124);
-  static const Color terminalBgDark = Color(0xFF18191C);
-  static const Color terminalBgLight = Color(0xFFE8EAED);
+  Color get brandPrimary => DesignTokenProvider.of(context).getColor('alias.color.brand-primary');
+  Color get textSecondary {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return DesignTokenProvider.of(context).getColor('alias.color.background', theme: isDark ? 'light' : 'dark').withValues(alpha: 0.6);
+  }
+  Color get borderLight => DesignTokenProvider.of(context).getColor('global.color.gray-100');
+  Color get borderDark => DesignTokenProvider.of(context).getColor('global.color.gray-900');
+  Color get surfaceLight => DesignTokenProvider.of(context).getColor('alias.color.surface', theme: 'light');
+  Color get surfaceDark => DesignTokenProvider.of(context).getColor('alias.color.surface', theme: 'dark');
+  Color get terminalBgDark => DesignTokenProvider.of(context).getColor('global.color.black-12');
+  Color get terminalBgLight => DesignTokenProvider.of(context).getColor('global.color.gray-100');
 
   late List<AttributeDefinition> _resolvedAttributes;
   final Map<String, TextEditingController> _controllers = {};
@@ -493,7 +497,9 @@ class _PropertyGridState extends State<PropertyGrid> {
                     style: TextStyle(
                       fontSize: 15.0,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFFEEEEEE) : const Color(0xFF202124),
+                      color: isDark
+                          ? DesignTokenProvider.of(context).getColor('global.color.white')
+                          : DesignTokenProvider.of(context).getColor('global.color.gray-900'),
                     ),
                   ),
                 ),
@@ -655,7 +661,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.0,
             fontWeight: FontWeight.w500,
             color: textSecondary,
@@ -669,13 +675,15 @@ class _PropertyGridState extends State<PropertyGrid> {
           inputFormatters: inputFormatters,
           style: TextStyle(
             fontSize: 13.0,
-            color: isDark ? const Color(0xFFEEEEEE) : const Color(0xFF202124),
+            color: isDark
+                ? DesignTokenProvider.of(context).getColor('global.color.white')
+                : DesignTokenProvider.of(context).getColor('global.color.gray-900'),
           ),
           decoration: InputDecoration(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
             filled: true,
-            fillColor: isDark ? const Color(0xFF121212) : const Color(0xFFFFFFFF),
+            fillColor: DesignTokenProvider.of(context).getColor('alias.color.background', theme: isDark ? 'dark' : 'light'),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6.0),
               borderSide: BorderSide(
@@ -725,7 +733,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.0,
             fontWeight: FontWeight.w500,
             color: textSecondary,
@@ -745,16 +753,18 @@ class _PropertyGridState extends State<PropertyGrid> {
           child: DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: value,
-            dropdownColor: isDark ? surfaceDark : Colors.white,
+            dropdownColor: isDark ? surfaceDark : DesignTokenProvider.of(context).getColor('global.color.white'),
             style: TextStyle(
               fontSize: 13.0,
-              color: isDark ? const Color(0xFFEEEEEE) : const Color(0xFF202124),
+              color: isDark
+                  ? DesignTokenProvider.of(context).getColor('global.color.white')
+                  : DesignTokenProvider.of(context).getColor('global.color.gray-900'),
             ),
             decoration: InputDecoration(
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
               filled: true,
-              fillColor: isDark ? const Color(0xFF121212) : const Color(0xFFFFFFFF),
+              fillColor: DesignTokenProvider.of(context).getColor('alias.color.background', theme: isDark ? 'dark' : 'light'),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6.0),
                 borderSide: BorderSide(
@@ -810,7 +820,9 @@ class _PropertyGridState extends State<PropertyGrid> {
             style: TextStyle(
               fontSize: 12.0,
               fontWeight: FontWeight.w600,
-              color: isDark ? const Color(0xFFEEEEEE) : const Color(0xFF202124),
+              color: isDark
+                  ? DesignTokenProvider.of(context).getColor('global.color.white')
+                  : DesignTokenProvider.of(context).getColor('global.color.gray-900'),
             ),
           ),
           const SizedBox(height: 10.0),
@@ -818,7 +830,7 @@ class _PropertyGridState extends State<PropertyGrid> {
             width: double.infinity,
             padding: const EdgeInsets.all(12.0),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF121212) : Colors.white,
+              color: DesignTokenProvider.of(context).getColor('alias.color.background', theme: isDark ? 'dark' : 'light'),
               borderRadius: BorderRadius.circular(4.0),
               border: Border.all(
                 color: isDark ? borderDark : borderLight,

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:app_flutter/components/breadcrumbs.dart';
 import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/repository.dart';
+import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
 
@@ -122,9 +123,32 @@ class _LayoutState extends State<Layout> {
 
   // Splitters sizing
   double _sidebarWidth = 240.0;
+  bool _sidebarWidthInitialized = false;
   double _splitterHeight = 350.0;
   double _topoMapHeight = 200.0;
   bool _splitterInitialized = false;
+
+  double get _minPaneSize {
+    try {
+      return DesignTokenProvider.of(context).getDimension('component.splitter.min-pane-size');
+    } catch (_) {
+      return 150.0;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_sidebarWidthInitialized) {
+      try {
+        final registry = DesignTokenProvider.of(context);
+        _sidebarWidth = registry.getDimension('component.sidebar.width');
+      } catch (_) {
+        _sidebarWidth = 280.0;
+      }
+      _sidebarWidthInitialized = true;
+    }
+  }
 
   // Background Worker Simulation
   int? _workerResult;
@@ -614,6 +638,10 @@ class _LayoutState extends State<Layout> {
 
   // Renders the dynamic component tree parsed from logical-layout.json
   Widget _renderComponent(Map<String, dynamic> node, double parentWidth, double parentHeight) {
+    final registry = DesignTokenProvider.of(context);
+    final brandPrimary = registry.getColor('alias.color.brand-primary');
+    final whiteColor = registry.getColor('global.color.white');
+
     final type = node['type'] as String?;
     switch (type) {
       case 'SidebarLayout':
@@ -640,7 +668,7 @@ class _LayoutState extends State<Layout> {
               onHorizontalDragUpdate: (details) {
                 setState(() {
                   _sidebarWidth = (_sidebarWidth + details.delta.dx)
-                      .clamp(150.0, math.max(150.0, parentWidth - 300.0));
+                      .clamp(_minPaneSize, math.max(_minPaneSize, parentWidth - 300.0));
                 });
               },
               child: MouseRegion(
@@ -702,12 +730,12 @@ class _LayoutState extends State<Layout> {
                 child: Row(
                   children: [
                     ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Colors.blue, Colors.cyan],
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [brandPrimary, brandPrimary.withValues(alpha: 0.7)],
                       ).createShader(bounds),
-                      child: const Icon(
+                      child: Icon(
                         Icons.developer_board,
-                        color: Colors.white,
+                        color: whiteColor,
                         size: 24,
                       ),
                     ),
@@ -870,7 +898,7 @@ class _LayoutState extends State<Layout> {
               onVerticalDragUpdate: (details) {
                 setState(() {
                   _splitterHeight = (_splitterHeight + details.delta.dy)
-                      .clamp(150.0, math.max(150.0, parentHeight - 150.0));
+                      .clamp(_minPaneSize, math.max(_minPaneSize, parentHeight - _minPaneSize));
                 });
                 _runWorkerCalculation(_splitterHeight);
               },
@@ -1048,12 +1076,12 @@ class _LayoutState extends State<Layout> {
                           _activeTabId = t.key;
                         });
                       },
-                      child: Container(
+                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: isSelected ? Colors.blue : Colors.transparent,
+                              color: isSelected ? brandPrimary : Colors.transparent,
                               width: 2,
                             ),
                           ),
@@ -1062,7 +1090,7 @@ class _LayoutState extends State<Layout> {
                           t.value.key,
                           style: TextStyle(
                             color: isSelected
-                                ? Colors.blue
+                                ? brandPrimary
                                 : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             fontSize: 13,
@@ -1129,6 +1157,9 @@ class _LayoutState extends State<Layout> {
       }
     }
 
+    final registry = DesignTokenProvider.of(context);
+    final brandPrimary = registry.getColor('alias.color.brand-primary');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1142,11 +1173,11 @@ class _LayoutState extends State<Layout> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Colors.blue.withValues(alpha: 0.12)
+                  ? brandPrimary.withValues(alpha: 0.12)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(6.0),
               border: isSelected
-                  ? Border.all(color: Colors.blue.withValues(alpha: 0.3))
+                  ? Border.all(color: brandPrimary.withValues(alpha: 0.3))
                   : null,
             ),
             child: Row(
@@ -1173,7 +1204,7 @@ class _LayoutState extends State<Layout> {
                   icon,
                   size: 16,
                   color: isSelected
-                      ? Colors.blue
+                      ? brandPrimary
                       : Theme.of(context).iconTheme.color?.withValues(alpha: 0.7),
                 ),
                 const SizedBox(width: 8),
@@ -1184,7 +1215,7 @@ class _LayoutState extends State<Layout> {
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       color: isSelected
-                          ? Colors.blue
+                          ? brandPrimary
                           : Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
@@ -1280,18 +1311,26 @@ class _LayoutState extends State<Layout> {
 
   @override
   Widget build(BuildContext context) {
+    final registry = DesignTokenProvider.of(context);
     // Generate Theme based on selected mode
     final isDark = _themeMode == 'dark' ||
         (_themeMode == 'system' &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
+
+    final theme = isDark ? 'dark' : 'light';
+    final primary = registry.getColor('alias.color.brand-primary', theme: theme);
+    final bg = registry.getColor('alias.color.background', theme: theme);
+    final surface = registry.getColor('alias.color.surface', theme: theme);
+    final divider = registry.getColor(isDark ? 'global.color.gray-900' : 'global.color.gray-100');
+
     final themeData = ThemeData(
       brightness: isDark ? Brightness.dark : Brightness.light,
-      primaryColor: const Color(0xFF1A73E8),
-      scaffoldBackgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
-      cardColor: isDark ? const Color(0xFF202124) : const Color(0xFFF1F3F4),
-      dividerColor: isDark ? const Color(0xFF3C4043) : const Color(0xFFDADCE0),
+      primaryColor: primary,
+      scaffoldBackgroundColor: bg,
+      cardColor: surface,
+      dividerColor: divider,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1A73E8),
+        seedColor: primary,
         brightness: isDark ? Brightness.dark : Brightness.light,
       ),
     );

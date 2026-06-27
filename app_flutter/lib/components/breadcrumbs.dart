@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app_flutter/domain/design_tokens.dart';
 
 /// Represents a single item in the breadcrumbs navigation.
 class BreadcrumbItem {
@@ -67,15 +68,13 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
       renderedItems = widget.items;
     }
 
-    // Design Token Colors
-    // Blue-500: #1a73e8 (brand primary accent)
-    // Blue-600: #1557b0 (brand primary hover)
-    const Color brandPrimary = Color(0xFF1A73E8);
-    const Color textSecondary = Color(0xFF9AA0A6);
-    const Color separatorColor = Color(0xFF666666);
-
+    final registry = DesignTokenProvider.of(context);
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color currentTextColor = isDark ? const Color(0xFFEEEEEE) : const Color(0xFF202124);
+
+    final Color brandPrimary = registry.getColor('alias.color.brand-primary');
+    final Color currentTextColor = registry.getColor('alias.color.background', theme: isDark ? 'light' : 'dark');
+    final Color textSecondary = currentTextColor.withValues(alpha: 0.6);
+    final Color separatorColor = currentTextColor.withValues(alpha: 0.5);
 
     final List<Widget> children = <Widget>[];
     for (int i = 0; i < renderedItems.length; i++) {
@@ -85,8 +84,8 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
 
       if (i > 0) {
         children.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Text(
               '/',
               style: TextStyle(
@@ -115,7 +114,7 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
                 ),
                 child: Text(
                   item.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: textSecondary,
                     fontSize: 13.0,
                     fontWeight: FontWeight.normal,
@@ -149,7 +148,7 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
                 child: Text(
                   item.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: brandPrimary,
                     fontSize: 13.0,
                     fontWeight: FontWeight.w500,

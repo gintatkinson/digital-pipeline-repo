@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:app_flutter/domain/repository.dart';
+import 'package:app_flutter/domain/design_tokens.dart';
 import 'package:app_flutter/components/layout.dart';
 import 'package:app_flutter/components/property_grid.dart';
 
@@ -12,6 +13,10 @@ late final SqliteRepositoryAdapter repository;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load and parse assets/design-tokens.json
+  final tokensJson = await rootBundle.loadString('assets/design-tokens.json');
+  final registry = AppDesignTokenRegistry.parse(tokensJson);
 
   // Initialize SQLite FFI
   sqfliteFfiInit();
@@ -107,13 +112,18 @@ Future<void> main() async {
 
   repository = SqliteRepositoryAdapter(db);
 
-  runApp(MyApp(repository: repository));
+  runApp(MyApp(repository: repository, registry: registry));
 }
 
 /// MyApp is the root application widget that initializes the application theme and layout configurations.
 class MyApp extends StatefulWidget {
   final AbstractRepository repository;
-  const MyApp({super.key, required this.repository});
+  final DesignTokenRegistry registry;
+  MyApp({
+    super.key,
+    required this.repository,
+    DesignTokenRegistry? registry,
+  }) : registry = registry ?? DesignTokenRegistry.defaultRegistry;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -136,40 +146,53 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final lightPrimary = widget.registry.getColor('alias.color.brand-primary', theme: 'light');
+    final lightBg = widget.registry.getColor('alias.color.background', theme: 'light');
+    final lightSurface = widget.registry.getColor('alias.color.surface', theme: 'light');
+    final lightDivider = widget.registry.getColor('global.color.gray-100');
+
+    final darkPrimary = widget.registry.getColor('alias.color.brand-primary', theme: 'dark');
+    final darkBg = widget.registry.getColor('alias.color.background', theme: 'dark');
+    final darkSurface = widget.registry.getColor('alias.color.surface', theme: 'dark');
+    final darkDivider = widget.registry.getColor('global.color.gray-900');
+
     // Configure theme data for Light, Dark, and System modes matching the design tokens
     final ThemeData lightTheme = ThemeData(
       brightness: Brightness.light,
-      primaryColor: const Color(0xFF1A73E8),
-      scaffoldBackgroundColor: Colors.white,
-      cardColor: const Color(0xFFF1F3F4),
-      dividerColor: const Color(0xFFDADCE0),
+      primaryColor: lightPrimary,
+      scaffoldBackgroundColor: lightBg,
+      cardColor: lightSurface,
+      dividerColor: lightDivider,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1A73E8),
+        seedColor: lightPrimary,
         brightness: Brightness.light,
       ),
     );
 
     final ThemeData darkTheme = ThemeData(
       brightness: Brightness.dark,
-      primaryColor: const Color(0xFF1A73E8),
-      scaffoldBackgroundColor: const Color(0xFF121212),
-      cardColor: const Color(0xFF202124),
-      dividerColor: const Color(0xFF3C4043),
+      primaryColor: darkPrimary,
+      scaffoldBackgroundColor: darkBg,
+      cardColor: darkSurface,
+      dividerColor: darkDivider,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1A73E8),
+        seedColor: darkPrimary,
         brightness: Brightness.dark,
       ),
     );
 
-    return MaterialApp(
-      title: 'Antigravity Console',
-      theme: lightTheme,
-      darkTheme: darkTheme,
-      themeMode: _themeMode,
-      home: DashboardPage(
+    return DesignTokenProvider(
+      registry: widget.registry,
+      child: MaterialApp(
+        title: 'Antigravity Console',
+        theme: lightTheme,
+        darkTheme: darkTheme,
         themeMode: _themeMode,
-        onThemeModeChange: _updateThemeMode,
-        repository: widget.repository,
+        home: DashboardPage(
+          themeMode: _themeMode,
+          onThemeModeChange: _updateThemeMode,
+          repository: widget.repository,
+        ),
       ),
     );
   }

@@ -63,6 +63,7 @@ flutter:
 
   assets:
     - assets/logical-layout.json
+    - assets/design-tokens.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:
