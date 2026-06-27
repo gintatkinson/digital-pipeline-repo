@@ -22,10 +22,11 @@ class AttributeDefinition {
   });
 
   factory AttributeDefinition.fromJson(Map<String, dynamic> json) {
+    final typeStr = json['type'] as String;
     return AttributeDefinition(
       key: json['key'] as String,
       label: json['label'] as String,
-      type: json['type'] as String,
+      type: typeStr == 'enumeration' ? 'enum' : typeStr,
       sectionGroup: json['sectionGroup'] as String,
       options: (json['options'] as List<dynamic>?)?.map((e) => e as String).toList(),
       isRequired: json['isRequired'] as bool? ?? false,
