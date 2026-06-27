@@ -6,7 +6,7 @@ class ReferenceFrame {
   final String geodeticDatum;
 
   const ReferenceFrame({
-    required this.astronomicalBody,
+    this.astronomicalBody = AstronomicalBody.earth,
     this.alternateSystem,
     this.geodeticDatum = 'wgs-84',
   });

@@ -1,3 +1,4 @@
+import 'reference_frame.dart';
 import 'types.dart';
 
 /// Validates a TemporalContext.
@@ -66,4 +67,56 @@ bool validateChassisAllocation(ChassisContainmentSubsystem subsystem) {
     }
   }
   return true;
+}
+
+class ReferenceFrameValidation {
+  final bool isValid;
+  final ReferenceFrame sanitizedFrame;
+  final String sanitizedFrameName;
+
+  const ReferenceFrameValidation({
+    required this.isValid,
+    required this.sanitizedFrame,
+    required this.sanitizedFrameName,
+  });
+}
+
+String sanitizeFrameName(String name) {
+  var result = name.trim();
+  if (result.toLowerCase().startsWith('the-')) {
+    result = result.substring(4);
+  }
+  return result.toUpperCase();
+}
+
+ReferenceFrameValidation validateReferenceFrame(
+  ReferenceFrame frame, {
+  String? frameName,
+  bool alternateSystemEnabled = false,
+}) {
+  if (frameName != null) {
+    for (final codeUnit in frameName.codeUnits) {
+      if (codeUnit <= 0x1f || codeUnit == 0x7f) {
+        return ReferenceFrameValidation(
+          isValid: false,
+          sanitizedFrame: frame,
+          sanitizedFrameName: sanitizeFrameName(frameName),
+        );
+      }
+    }
+  }
+
+  if (frame.alternateSystem != null && !alternateSystemEnabled) {
+    return ReferenceFrameValidation(
+      isValid: false,
+      sanitizedFrame: frame,
+      sanitizedFrameName: frameName != null ? sanitizeFrameName(frameName) : '',
+    );
+  }
+
+  return ReferenceFrameValidation(
+    isValid: true,
+    sanitizedFrame: frame,
+    sanitizedFrameName: frameName != null ? sanitizeFrameName(frameName) : '',
+  );
 }
