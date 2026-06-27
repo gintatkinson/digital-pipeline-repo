@@ -16,6 +16,7 @@ import 'package:app_flutter/components/table_view_widget.dart';
 import 'package:app_flutter/services/layout_config_service.dart';
 import 'package:app_flutter/services/layout_parser.dart';
 import 'package:app_flutter/components/sidebar_tree.dart';
+import 'package:app_flutter/components/split_workspace.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -45,11 +46,7 @@ class _LayoutState extends State<Layout> {
   late String _currentView;
 
   // Splitters sizing
-  double _sidebarWidth = 240.0;
-  bool _sidebarWidthInitialized = false;
-  double _splitterHeight = 350.0;
   double _topoMapHeight = 200.0;
-  bool _splitterInitialized = false;
 
   double get _minPaneSize {
     try {
@@ -62,15 +59,6 @@ class _LayoutState extends State<Layout> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_sidebarWidthInitialized) {
-      try {
-        final registry = DesignTokenProvider.of(context);
-        _sidebarWidth = registry.getDimension('component.sidebar.width');
-      } catch (_) {
-        _sidebarWidth = 280.0;
-      }
-      _sidebarWidthInitialized = true;
-    }
     if (!_didInitProperties) {
       _didInitProperties = true;
       _subscribeToProperties(_currentView);
@@ -315,57 +303,17 @@ class _LayoutState extends State<Layout> {
           orElse: () => null,
         );
 
-        return Row(
-          children: [
-            if (sidebarChild != null)
-              SizedBox(
-                width: _sidebarWidth,
-                child: _renderComponent(sidebarChild as Map<String, dynamic>, parentWidth, parentHeight),
-              ),
-            // Vertical splitter bar
-            GestureDetector(
-              key: const Key('vertical_splitter'),
-              onHorizontalDragUpdate: (details) {
-                setState(() {
-                  _sidebarWidth = (_sidebarWidth + details.delta.dx)
-                      .clamp(_minPaneSize, math.max(_minPaneSize, parentWidth - 300.0));
-                });
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.resizeLeftRight,
-                child: Container(
-                  width: 8,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black26
-                        : Colors.grey.shade200,
-                    border: Border(
-                      left: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                        width: 1,
-                      ),
-                      right: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 2,
-                      height: 40,
-                      color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3) ??
-                          Colors.grey,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (splitWorkspaceChild != null)
-              Expanded(
-                child: _renderComponent(splitWorkspaceChild as Map<String, dynamic>, parentWidth, parentHeight),
-              ),
-          ],
+        return SplitWorkspace(
+          leading: sidebarChild != null
+              ? _renderComponent(sidebarChild as Map<String, dynamic>, parentWidth, parentHeight)
+              : const SizedBox.shrink(),
+          trailing: splitWorkspaceChild != null
+              ? _renderComponent(splitWorkspaceChild as Map<String, dynamic>, parentWidth, parentHeight)
+              : const SizedBox.shrink(),
+          direction: Axis.horizontal,
+          minFirstPaneSize: _minPaneSize,
+          initialRatio: 0.25,
+          splitterKey: const Key('vertical_splitter'),
         );
 
       case 'HierarchyTreeSelector':
@@ -396,64 +344,18 @@ class _LayoutState extends State<Layout> {
           orElse: () => null,
         );
 
-        if (!_splitterInitialized && parentHeight > 0) {
-          final ratio = _getDefaultRatio();
-          _splitterHeight = parentHeight * ratio;
-          _splitterInitialized = true;
-        }
-
-        return Column(
-          children: [
-            if (topoChild != null)
-              SizedBox(
-                height: _splitterHeight,
-                child: _renderComponent(topoChild as Map<String, dynamic>, parentWidth, parentHeight),
-              ),
-            // Horizontal SplitWorkspace splitter
-            GestureDetector(
-              key: const Key('horizontal_splitter'),
-              onVerticalDragUpdate: (details) {
-                setState(() {
-                  _splitterHeight = (_splitterHeight + details.delta.dy)
-                      .clamp(_minPaneSize, math.max(_minPaneSize, parentHeight - _minPaneSize));
-                });
-                _runWorkerCalculation(_splitterHeight);
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.resizeUpDown,
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black26
-                        : Colors.grey.shade200,
-                    border: Border(
-                      top: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                        width: 1,
-                      ),
-                      bottom: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 40,
-                      height: 2,
-                      color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3) ??
-                          Colors.grey,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (tabbedChild != null)
-              Expanded(
-                child: _renderComponent(tabbedChild as Map<String, dynamic>, parentWidth, parentHeight),
-              ),
-          ],
+        return SplitWorkspace(
+          leading: topoChild != null
+              ? _renderComponent(topoChild as Map<String, dynamic>, parentWidth, parentHeight)
+              : const SizedBox.shrink(),
+          trailing: tabbedChild != null
+              ? _renderComponent(tabbedChild as Map<String, dynamic>, parentWidth, parentHeight)
+              : const SizedBox.shrink(),
+          direction: Axis.vertical,
+          minFirstPaneSize: _minPaneSize,
+          initialRatio: _getDefaultRatio(),
+          splitterKey: const Key('horizontal_splitter'),
+          onDrag: _runWorkerCalculation,
         );
 
       case 'TopographicalView':
