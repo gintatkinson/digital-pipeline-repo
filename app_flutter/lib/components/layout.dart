@@ -10,7 +10,6 @@ import 'package:app_flutter/components/topology_map.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/components/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
-import 'package:app_flutter/main.dart' show repository;
 
 /// TreeNode representing hierarchy selector items
 class TreeNode {
@@ -54,9 +53,9 @@ class Layout extends StatefulWidget {
   final String? layoutConfig;
   final String? themeMode;
   final ValueChanged<String>? onThemeModeChange;
-  final AbstractRepository? repository;
+  final AbstractRepository repository;
 
-  const Layout({
+  Layout({
     super.key,
     this.activeView,
     this.onViewChange,
@@ -64,8 +63,8 @@ class Layout extends StatefulWidget {
     this.layoutConfig,
     this.themeMode,
     this.onThemeModeChange,
-    this.repository,
-  });
+    AbstractRepository? repository,
+  }) : repository = repository ?? _DummyRepository();
 
   @override
   State<Layout> createState() => _LayoutState();
@@ -110,12 +109,7 @@ class _LayoutState extends State<Layout> {
 
   void _subscribeToProperties(String nodeId) {
     _propertiesSubscription?.cancel();
-    AbstractRepository resolvedRepo;
-    try {
-      resolvedRepo = widget.repository ?? repository;
-    } catch (_) {
-      resolvedRepo = _DummyRepository();
-    }
+    final resolvedRepo = widget.repository;
     _propertiesSubscription = resolvedRepo.watchProperties(nodeId).listen((data) {
       if (mounted) {
         setState(() {
@@ -1145,12 +1139,7 @@ class _LayoutState extends State<Layout> {
         attributes: dynamicAttributes ?? child.attributes,
         initialValues: _currentNodeData ?? {},
         onSave: (String key, dynamic value) async {
-          AbstractRepository resolvedRepo;
-          try {
-            resolvedRepo = widget.repository ?? repository;
-          } catch (_) {
-            resolvedRepo = _DummyRepository();
-          }
+          final resolvedRepo = widget.repository;
           final updatedData = Map<String, dynamic>.from(_currentNodeData ?? {});
           updatedData[key] = value;
           await resolvedRepo.saveProperties(_currentView, updatedData);
