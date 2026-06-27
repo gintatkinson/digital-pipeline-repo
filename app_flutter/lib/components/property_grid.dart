@@ -16,12 +16,97 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
+const Map<String, dynamic> defaultFallbackInitialValues = {
+  'latitude': 37.7749,
+  'longitude': -122.4194,
+  'altitude': 10,
+  'roomName': 'Main-Data-Room',
+  'gridRow': 12,
+  'gridColumn': 4,
+  'maxVoltage': 240.0,
+  'maxAllocatedPower': 15000.0,
+  'countryCode': 'US',
+  'locationType': 'room',
+};
+
+String? defaultValidator(String key, String value, Map<String, dynamic> allValues) {
+  if (key == 'countryCode') {
+    final isCountryValid = validatePhysicalAddress(
+      PhysicalAddress(
+        address: '',
+        postalCode: '',
+        state: '',
+        city: '',
+        countryCode: value,
+      ),
+    );
+    if (!isCountryValid) {
+      return 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
+    }
+  } else if (key == 'locationType') {
+    final isLocTypeValid = validateLocationType(
+      LocationType(
+        identity: value,
+      ),
+    );
+    if (!isLocTypeValid) {
+      return "Must be 'site', 'room', or 'building'";
+    }
+  } else if (key == 'maxVoltage' || key == 'maxAllocatedPower') {
+    final vText = (key == 'maxVoltage' ? value : allValues['maxVoltage']?.toString()) ?? '0';
+    final pText = (key == 'maxAllocatedPower' ? value : allValues['maxAllocatedPower']?.toString()) ?? '0';
+    final rName = allValues['roomName']?.toString() ?? '';
+    final gRow = int.tryParse(allValues['gridRow']?.toString() ?? '0') ?? 0;
+    final gCol = int.tryParse(allValues['gridColumn']?.toString() ?? '0') ?? 0;
+
+    final double voltageVal = double.tryParse(vText) ?? 0.0;
+    final double powerVal = double.tryParse(pText) ?? 0.0;
+
+    final bool isRackValid = validateRack(
+      Rack(
+        maxVoltage: voltageVal,
+        maxAllocatedPower: powerVal,
+        heightUnits: 42,
+        location: RackLocation(
+          roomName: rName,
+          gridRow: gRow,
+          gridColumn: gCol,
+        ),
+      ),
+    );
+
+    if (!isRackValid) {
+      return 'Value cannot be negative';
+    }
+  }
+  return null;
+}
+
+const Map<String, Map<String, String>> defaultOptionDisplayNames = {
+  'locationType': {
+    'site': 'Site',
+    'room': 'Room',
+    'building': 'Building',
+    'invalid-test-option': 'Invalid (Test Only)',
+  },
+};
+
+bool defaultShouldPair(AttributeDefinition first, AttributeDefinition second) {
+  return (first.key == 'gridRow' && second.key == 'gridColumn') ||
+         (first.key == 'maxVoltage' && second.key == 'maxAllocatedPower') ||
+         (first.key == 'countryCode' && second.key == 'locationType');
+}
+
 /// PropertyGrid renders a key-value attribute grid mapped to a schema.
 class PropertyGrid extends StatefulWidget {
   final List<AttributeDefinition>? attributes;
   final Map<String, dynamic> initialValues;
   final Function? onSave;
   final String activeView;
+  final Map<String, dynamic> fallbackInitialValues;
+  final String? Function(String key, String value, Map<String, dynamic> allValues)? validator;
+  final Map<String, Map<String, String>>? optionDisplayNames;
+  final bool Function(AttributeDefinition first, AttributeDefinition second)? shouldPair;
 
   const PropertyGrid({
     super.key,
@@ -29,6 +114,10 @@ class PropertyGrid extends StatefulWidget {
     this.initialValues = const {},
     this.onSave,
     this.activeView = 'Location',
+    this.fallbackInitialValues = defaultFallbackInitialValues,
+    this.validator = defaultValidator,
+    this.optionDisplayNames = defaultOptionDisplayNames,
+    this.shouldPair = defaultShouldPair,
   });
 
   @override
@@ -59,18 +148,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   void initState() {
     super.initState();
     _resolvedAttributes = widget.attributes ?? defaultCoordinateAttributes;
-    committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? {
-      'latitude': 37.7749,
-      'longitude': -122.4194,
-      'altitude': 10,
-      'roomName': 'Main-Data-Room',
-      'gridRow': 12,
-      'gridColumn': 4,
-      'maxVoltage': 240.0,
-      'maxAllocatedPower': 15000.0,
-      'countryCode': 'US',
-      'locationType': 'room',
-    } : widget.initialValues);
+    committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? widget.fallbackInitialValues : widget.initialValues);
     _initializeFields(_resolvedAttributes, committedData);
   }
 
@@ -135,18 +213,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       setState(() {
         _disposeAllFields();
         _resolvedAttributes = newAttrs;
-        committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? {
-          'latitude': 37.7749,
-          'longitude': -122.4194,
-          'altitude': 10,
-          'roomName': 'Main-Data-Room',
-          'gridRow': 12,
-          'gridColumn': 4,
-          'maxVoltage': 240.0,
-          'maxAllocatedPower': 15000.0,
-          'countryCode': 'US',
-          'locationType': 'room',
-        } : widget.initialValues);
+        committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? widget.fallbackInitialValues : widget.initialValues);
         _initializeFields(_resolvedAttributes, committedData);
       });
     } else {
@@ -232,73 +299,37 @@ class _PropertyGridState extends State<PropertyGrid> {
       }
     }
 
-    // 5. Special fallback checks for backwards compatibility with tests / original validations
-    if (isValid) {
-      if (key == 'countryCode') {
-        final code = valueString;
-        final isCountryValid = validatePhysicalAddress(
-          PhysicalAddress(
-            address: '',
-            postalCode: '',
-            state: '',
-            city: '',
-            countryCode: code,
-          ),
-        );
-        if (!isCountryValid) {
-          isValid = false;
-          error = 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
-        }
-      } else if (key == 'locationType') {
-        final typeStr = valueString;
-        final isLocTypeValid = validateLocationType(
-          LocationType(
-            identity: typeStr,
-          ),
-        );
-        if (!isLocTypeValid) {
-          isValid = false;
-          error = "Must be 'site', 'room', or 'building'";
-        }
-      } else if (key == 'maxVoltage' || key == 'maxAllocatedPower') {
-        final vText = _controllers['maxVoltage']?.text ?? '0';
-        final pText = _controllers['maxAllocatedPower']?.text ?? '0';
-        final rName = _controllers['roomName']?.text ?? '';
-        final gRow = int.tryParse(_controllers['gridRow']?.text ?? '0') ?? 0;
-        final gCol = int.tryParse(_controllers['gridColumn']?.text ?? '0') ?? 0;
-
-        final double voltageVal = double.tryParse(vText) ?? 0.0;
-        final double powerVal = double.tryParse(pText) ?? 0.0;
-
-        final bool isRackValid = validateRack(
-          Rack(
-            maxVoltage: voltageVal,
-            maxAllocatedPower: powerVal,
-            heightUnits: 42,
-            location: RackLocation(
-              roomName: rName,
-              gridRow: gRow,
-              gridColumn: gCol,
-            ),
-          ),
-        );
-
-        if (!isRackValid) {
-          isValid = false;
-          error = 'Value cannot be negative';
-        }
+    // 5. Dynamic validation
+    if (isValid && widget.validator != null) {
+      final Map<String, dynamic> allValues = {};
+      for (final resolvedAttr in _resolvedAttributes) {
+        final ctrl = _controllers[resolvedAttr.key];
+        allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+      }
+      final errorMsg = widget.validator!(key, valueString, allValues);
+      if (errorMsg != null) {
+        isValid = false;
+        error = errorMsg;
       }
     }
 
     setState(() {
       if (isValid) {
         newErrors.remove(key);
+        // Clear paired/dependent field errors if they now pass validation.
         if (key == 'maxVoltage' || key == 'maxAllocatedPower') {
-          final double voltageVal = double.tryParse(_controllers['maxVoltage']?.text ?? '0') ?? 0.0;
-          final double powerVal = double.tryParse(_controllers['maxAllocatedPower']?.text ?? '0') ?? 0.0;
-          if (voltageVal >= 0 && powerVal >= 0) {
-            newErrors.remove('maxVoltage');
-            newErrors.remove('maxAllocatedPower');
+          final otherKey = key == 'maxVoltage' ? 'maxAllocatedPower' : 'maxVoltage';
+          final otherCtrl = _controllers[otherKey];
+          if (otherCtrl != null) {
+            final Map<String, dynamic> allValues = {};
+            for (final resolvedAttr in _resolvedAttributes) {
+              final ctrl = _controllers[resolvedAttr.key];
+              allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+            }
+            final otherErrorMsg = widget.validator?.call(otherKey, otherCtrl.text, allValues);
+            if (otherErrorMsg == null) {
+              newErrors.remove(otherKey);
+            }
           }
         }
       } else {
@@ -511,9 +542,7 @@ class _PropertyGridState extends State<PropertyGrid> {
 
       if (i + 1 < groupAttrs.length) {
         final nextAttr = groupAttrs[i + 1];
-        final bool shouldPair = (attr.key == 'gridRow' && nextAttr.key == 'gridColumn') ||
-                                (attr.key == 'maxVoltage' && nextAttr.key == 'maxAllocatedPower') ||
-                                (attr.key == 'countryCode' && nextAttr.key == 'locationType');
+        final bool shouldPair = widget.shouldPair?.call(attr, nextAttr) ?? false;
         if (shouldPair) {
           fields.add(
             Row(
@@ -560,10 +589,10 @@ class _PropertyGridState extends State<PropertyGrid> {
         isDark: isDark,
         items: options.map((opt) {
           String displayName = opt;
-          if (opt == 'site') displayName = 'Site';
-          else if (opt == 'room') displayName = 'Room';
-          else if (opt == 'building') displayName = 'Building';
-          else if (opt == 'invalid-test-option') displayName = 'Invalid (Test Only)';
+          final optionMap = widget.optionDisplayNames?[attr.key];
+          if (optionMap != null && optionMap.containsKey(opt)) {
+            displayName = optionMap[opt]!;
+          }
 
           return DropdownMenuItem<String>(
             value: opt,
