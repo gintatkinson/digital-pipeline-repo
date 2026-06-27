@@ -14,6 +14,7 @@ import 'package:app_flutter/widgets/repository_provider.dart';
 import 'package:app_flutter/components/tree_node.dart';
 import 'package:app_flutter/components/table_view_config.dart';
 import 'package:app_flutter/services/layout_config_service.dart';
+import 'package:app_flutter/services/layout_parser.dart';
 
 /// The Layout Widget realizes UML::Layout.
 class Layout extends StatefulWidget {
@@ -236,18 +237,23 @@ class _LayoutState extends State<Layout> {
       String jsonStr;
       if (widget.layoutConfig != null) {
         jsonStr = widget.layoutConfig!;
+        final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _parsedLayout = parsed;
+          });
+          _expandParents(_currentView);
+        }
       } else {
-        jsonStr = await DefaultAssetBundle.of(context)
-            .loadString('assets/logical-layout.json');
-      }
-      if (mounted) {
-        setState(() {
-          _parsedLayout = jsonDecode(jsonStr) as Map<String, dynamic>;
-        });
-        _expandParents(_currentView);
+        final parsed = await loadLayoutConfig('assets/logical-layout.json');
+        if (mounted) {
+          setState(() {
+            _parsedLayout = parsed;
+          });
+          _expandParents(_currentView);
+        }
       }
     } catch (e) {
-      // Fallback if layout file fails to load or during test contexts
       debugPrint('Error loading layout configuration: $e');
     }
   }
@@ -256,74 +262,7 @@ class _LayoutState extends State<Layout> {
     if (_parsedLayout == null) {
       return defaultTreeData;
     }
-    try {
-      Map<String, dynamic>? findHierarchyTreeSelector(Map<String, dynamic>? node) {
-        if (node == null) return null;
-        if (node['type'] == 'HierarchyTreeSelector') {
-          return node;
-        }
-        final children = node['children'];
-        if (children is List) {
-          for (final child in children) {
-            if (child is Map<String, dynamic>) {
-              final found = findHierarchyTreeSelector(child);
-              if (found != null) return found;
-            }
-          }
-        }
-        return null;
-      }
-
-      final layout = _parsedLayout!['layout'];
-      if (layout is! Map<String, dynamic>) {
-        return defaultTreeData;
-      }
-      final rootContainer = layout['root_container'];
-      if (rootContainer is! Map<String, dynamic>) {
-        return defaultTreeData;
-      }
-
-      final selector = findHierarchyTreeSelector(rootContainer);
-      if (selector == null) {
-        return defaultTreeData;
-      }
-
-      final props = selector['props'];
-      if (props is! Map<String, dynamic>) {
-        return defaultTreeData;
-      }
-
-      final hierarchy = props['hierarchy'];
-      if (hierarchy is! List) {
-        return defaultTreeData;
-      }
-
-      List<TreeNode> parseNodes(List<dynamic> jsonList) {
-        final List<TreeNode> list = [];
-        for (final item in jsonList) {
-          if (item is Map<String, dynamic>) {
-            final id = item['id'];
-            final label = item['label'];
-            if (id is String && label is String) {
-              List<TreeNode>? children;
-              if (item['children'] is List) {
-                children = parseNodes(item['children'] as List<dynamic>);
-              }
-              list.add(TreeNode(id: id, label: label, children: children));
-            }
-          }
-        }
-        return list;
-      }
-
-      final parsed = parseNodes(hierarchy);
-      if (parsed.isEmpty) {
-        return defaultTreeData;
-      }
-      return parsed;
-    } catch (_) {
-      return defaultTreeData;
-    }
+    return parseTreeHierarchy(_parsedLayout!);
   }
 
   List<TreeNode> get _treeData => _parseTreeHierarchy();
