@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:app_flutter/core/design_tokens.dart';
 import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/features/properties/property_defaults.dart';
 
@@ -275,14 +273,12 @@ class _PropertyGridState extends State<PropertyGrid> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final registry = context.read<DesignTokenRegistry>();
 
     final groups = <String>{};
     for (final attr in _resolvedAttributes) {
       groups.add(attr.sectionGroup);
     }
     
-    // Sort so 'Location' is always first, then 'Alternate', then any other groups
     final List<String> sortedGroups = groups.toList();
     sortedGroups.sort((a, b) {
       if (a == 'Location') return -1;
@@ -321,8 +317,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                   isAlternate: group == 'Alternate',
                   isDark: isDark,
                   width: cardWidth,
-                  registry: registry,
-                  child: _buildGroupFields(group, isDark, registry),
+                  child: _buildGroupFields(group, isDark),
                 );
               }).toList();
 
@@ -331,7 +326,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     sections[0],
-                    const SizedBox(width: 16.0),
+                    const SizedBox(width: 8),
                     sections[1],
                   ],
                 );
@@ -340,15 +335,15 @@ class _PropertyGridState extends State<PropertyGrid> {
                 for (int i = 0; i < sections.length; i++) {
                   columnChildren.add(sections[i]);
                   if (i < sections.length - 1) {
-                    columnChildren.add(const SizedBox(height: 16.0));
+                    columnChildren.add(const SizedBox(height: 8));
                   }
                 }
                 return Column(children: columnChildren);
               }
             },
           ),
-          const SizedBox(height: 20.0),
-          _buildCommittedStatePanel(isDark, registry),
+          const SizedBox(height: 8),
+          _buildCommittedStatePanel(isDark),
         ],
       ),
     );
@@ -360,16 +355,13 @@ class _PropertyGridState extends State<PropertyGrid> {
     required bool isAlternate,
     required bool isDark,
     required double width,
-    required DesignTokenRegistry registry,
     required Widget child,
   }) {
-    final Color brandPrimary = registry.getColor('alias.color.brand-primary');
-    final Color borderLight = registry.getColor('global.color.gray-100');
-    final Color borderDark = registry.getColor('global.color.gray-900');
-    final Color surfaceLight = registry.getColor('alias.color.surface', theme: 'light');
-    final Color surfaceDark = registry.getColor('alias.color.surface', theme: 'dark');
+    final cs = Theme.of(context).colorScheme;
+    final Color brandPrimary = cs.primary;
+    final Color borderColor = Theme.of(context).dividerColor;
+    final Color surfaceFill = cs.surfaceContainerHighest;
     final Color borderActive = brandPrimary;
-    final Color borderDimmed = isDark ? borderDark : borderLight;
 
     return Opacity(
       opacity: isActive ? 1.0 : 0.65,
@@ -377,10 +369,10 @@ class _PropertyGridState extends State<PropertyGrid> {
         width: width,
         padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
-          color: isDark ? surfaceDark : surfaceLight,
+          color: surfaceFill,
           borderRadius: BorderRadius.circular(12.0),
           border: Border.all(
-            color: isActive ? borderActive : borderDimmed,
+            color: isActive ? borderActive : borderColor,
             width: isActive ? 2.0 : 1.0,
           ),
           boxShadow: isActive
@@ -393,7 +385,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
                     blurRadius: 20.0,
                     offset: const Offset(0, 4),
                   )
@@ -408,43 +400,27 @@ class _PropertyGridState extends State<PropertyGrid> {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? registry.getColor('global.color.white')
-                          : registry.getColor('global.color.gray-900'),
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
-                if (isActive)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                    decoration: BoxDecoration(
-                      color: isAlternate
-                          ? const Color(0x2600D2FF)
-                          : const Color(0x261A73E8),
-                      borderRadius: BorderRadius.circular(4.0),
-                      border: Border.all(
-                        color: isAlternate
-                            ? const Color(0x4D00D2FF)
-                            : const Color(0x4D1A73E8),
+                  if (isActive)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4.0),
+                        border: Border.all(
+                          color: cs.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        'Active Reference',
+                        style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ),
-                    child: Text(
-                      'Active Reference',
-                      style: TextStyle(
-                        fontSize: 11.0,
-                        fontWeight: FontWeight.w700,
-                        color: isAlternate
-                            ? const Color(0xFF00D2FF)
-                            : brandPrimary,
-                      ),
-                    ),
-                  ),
               ],
             ),
-            const SizedBox(height: 18.0),
+            const SizedBox(height: 8),
             child,
           ],
         ),
@@ -452,7 +428,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
-  Widget _buildGroupFields(String group, bool isDark, DesignTokenRegistry registry) {
+  Widget _buildGroupFields(String group, bool isDark) {
     final groupAttrs = _resolvedAttributes.where((attr) => attr.sectionGroup == group).toList();
 
     final List<Widget> fields = [];
@@ -468,20 +444,20 @@ class _PropertyGridState extends State<PropertyGrid> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _buildAttrField(attr, isDark, registry)),
-                const SizedBox(width: 12.0),
-                Expanded(child: _buildAttrField(nextAttr, isDark, registry)),
+                Expanded(child: _buildAttrField(attr, isDark)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildAttrField(nextAttr, isDark)),
               ],
             ),
           );
-          fields.add(const SizedBox(height: 14.0));
+          fields.add(const SizedBox(height: 8));
           i += 2;
           continue;
         }
       }
 
-      fields.add(_buildAttrField(attr, isDark, registry));
-      fields.add(const SizedBox(height: 14.0));
+      fields.add(_buildAttrField(attr, isDark));
+      fields.add(const SizedBox(height: 8));
       i++;
     }
 
@@ -495,16 +471,11 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
-  Widget _buildAttrField(AttributeDefinition attr, bool isDark, DesignTokenRegistry registry) {
-    final Color brandPrimary = registry.getColor('alias.color.brand-primary');
-    final Color textSecondary;
-    {
-      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-      textSecondary = registry.getColor('alias.color.background', theme: isDarkMode ? 'light' : 'dark').withValues(alpha: 0.6);
-    }
-    final Color borderLight = registry.getColor('global.color.gray-100');
-    final Color borderDark = registry.getColor('global.color.gray-900');
-    final Color surfaceDark = registry.getColor('alias.color.surface', theme: 'dark');
+  Widget _buildAttrField(AttributeDefinition attr, bool isDark) {
+    final cs = Theme.of(context).colorScheme;
+    final Color brandPrimary = cs.primary;
+    final Color textSecondary = cs.onSurface.withValues(alpha: 0.6);
+    final Color borderColor = Theme.of(context).dividerColor;
 
     if (attr.type == 'enum') {
       final options = attr.options ?? const [];
@@ -518,10 +489,6 @@ class _PropertyGridState extends State<PropertyGrid> {
         errorText: _errors[attr.key],
         isDark: isDark,
         brandPrimary: brandPrimary,
-        borderLight: borderLight,
-        borderDark: borderDark,
-        surfaceDark: surfaceDark,
-        registry: registry,
         items: options.map((opt) {
           String displayName = opt;
           final optionMap = widget.optionDisplayNames?[attr.key];
@@ -569,10 +536,6 @@ class _PropertyGridState extends State<PropertyGrid> {
         errorText: _errors[attr.key],
         isDark: isDark,
         brandPrimary: brandPrimary,
-        textSecondary: textSecondary,
-        borderLight: borderLight,
-        borderDark: borderDark,
-        registry: registry,
         onChanged: (String val) {
           // Keep buffered state updated
         },
@@ -589,52 +552,40 @@ class _PropertyGridState extends State<PropertyGrid> {
     String? errorText,
     required bool isDark,
     required Color brandPrimary,
-    required Color textSecondary,
-    required Color borderLight,
-    required Color borderDark,
-    required DesignTokenRegistry registry,
     required ValueChanged<String> onChanged,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12.0,
-            fontWeight: FontWeight.w500,
-            color: textSecondary,
-          ),
+          style: Theme.of(context).textTheme.labelSmall,
         ),
-        const SizedBox(height: 6.0),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
           focusNode: focusNode,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          style: TextStyle(
-            fontSize: 13.0,
-            color: isDark
-                ? registry.getColor('global.color.white')
-                : registry.getColor('global.color.gray-900'),
-          ),
+          style: Theme.of(context).textTheme.bodyMedium,
           decoration: InputDecoration(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
             filled: true,
-            fillColor: registry.getColor('alias.color.background', theme: isDark ? 'dark' : 'light'),
+            fillColor: cs.surface,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6.0),
               borderSide: BorderSide(
                 color: errorText != null
-                    ? Colors.redAccent
-                    : (isDark ? borderDark : borderLight),
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).dividerColor,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6.0),
               borderSide: BorderSide(
-                color: errorText != null ? Colors.redAccent : brandPrimary,
+                color: errorText != null ? Theme.of(context).colorScheme.error : brandPrimary,
                 width: 1.5,
               ),
             ),
@@ -646,11 +597,7 @@ class _PropertyGridState extends State<PropertyGrid> {
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
               errorText,
-              style: const TextStyle(
-                color: Colors.redAccent,
-                fontSize: 11.0,
-                fontWeight: FontWeight.w500,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
       ],
@@ -667,25 +614,16 @@ class _PropertyGridState extends State<PropertyGrid> {
     String? errorText,
     required bool isDark,
     required Color brandPrimary,
-    required Color borderLight,
-    required Color borderDark,
-    required Color surfaceDark,
-    required DesignTokenRegistry registry,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12.0,
-            fontWeight: FontWeight.w500,
-            color: isDark
-                ? registry.getColor('alias.color.background', theme: 'light').withValues(alpha: 0.6)
-                : registry.getColor('alias.color.background', theme: 'dark').withValues(alpha: 0.6),
-          ),
+          style: Theme.of(context).textTheme.labelSmall,
         ),
-        const SizedBox(height: 6.0),
+        const SizedBox(height: 8),
         Focus(
           focusNode: focusNode,
           onFocusChange: (bool hasFocus) {
@@ -699,30 +637,25 @@ class _PropertyGridState extends State<PropertyGrid> {
           child: DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: value,
-            dropdownColor: isDark ? surfaceDark : registry.getColor('global.color.white'),
-            style: TextStyle(
-              fontSize: 13.0,
-              color: isDark
-                  ? registry.getColor('global.color.white')
-                  : registry.getColor('global.color.gray-900'),
-            ),
+            dropdownColor: isDark ? cs.surfaceContainerHighest : cs.surface,
+            style: Theme.of(context).textTheme.bodyMedium,
             decoration: InputDecoration(
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
               filled: true,
-              fillColor: registry.getColor('alias.color.background', theme: isDark ? 'dark' : 'light'),
+              fillColor: cs.surface,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6.0),
                 borderSide: BorderSide(
                   color: errorText != null
-                      ? Colors.redAccent
-                      : (isDark ? borderDark : borderLight),
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).dividerColor,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6.0),
                 borderSide: BorderSide(
-                  color: errorText != null ? Colors.redAccent : brandPrimary,
+                  color: errorText != null ? Theme.of(context).colorScheme.error : brandPrimary,
                   width: 1.5,
                 ),
               ),
@@ -736,26 +669,23 @@ class _PropertyGridState extends State<PropertyGrid> {
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
               errorText,
-              style: const TextStyle(
-                color: Colors.redAccent,
-                fontSize: 11.0,
-                fontWeight: FontWeight.w500,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
       ],
     );
   }
 
-  Widget _buildCommittedStatePanel(bool isDark, DesignTokenRegistry registry) {
+  Widget _buildCommittedStatePanel(bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: isDark ? registry.getColor('global.color.black-12') : registry.getColor('global.color.gray-100'),
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8.0),
         border: Border.all(
-          color: isDark ? registry.getColor('global.color.gray-900') : registry.getColor('global.color.gray-100'),
+          color: Theme.of(context).dividerColor,
         ),
       ),
       child: Column(
@@ -763,34 +693,24 @@ class _PropertyGridState extends State<PropertyGrid> {
         children: [
           Text(
             'Committed Pipeline Scope Data (onBlur verified)',
-            style: TextStyle(
-              fontSize: 12.0,
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? registry.getColor('global.color.white')
-                  : registry.getColor('global.color.gray-900'),
-            ),
+            style: Theme.of(context).textTheme.labelSmall,
           ),
-          const SizedBox(height: 10.0),
+          const SizedBox(height: 8),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12.0),
             decoration: BoxDecoration(
-              color: registry.getColor('alias.color.background', theme: isDark ? 'dark' : 'light'),
+              color: cs.surface,
               borderRadius: BorderRadius.circular(4.0),
               border: Border.all(
-                color: isDark ? registry.getColor('global.color.gray-900') : registry.getColor('global.color.gray-100'),
+                color: Theme.of(context).dividerColor,
               ),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Text(
                 const JsonEncoder.withIndent('  ').convert(committedData),
-                style: const TextStyle(
-                  fontFamily: 'Courier',
-                  fontSize: 12.0,
-                  color: Color(0xFF34A853),
-                ),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           ),

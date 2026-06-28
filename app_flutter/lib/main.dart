@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
-import 'package:app_flutter/core/design_tokens.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
+import 'package:app_flutter/core/theme/text_scaler.dart';
+import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/repository_resolver.dart';
 import 'package:app_flutter/app/app.dart';
@@ -10,15 +11,24 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    final tokensJson = await rootBundle.loadString('assets/design-tokens.json');
-    final registry = AppDesignTokenRegistry.parse(tokensJson);
-
     final repository = await RepositoryResolver.resolve();
 
+    // Theme
+    final themeService = SharedPreferencesThemeService();
+    final themeController = ThemeController(themeService);
+    await themeController.loadSettings();
+
+    final textScalerController = TextScalerController(themeService);
+    await textScalerController.load();
+
     runApp(
-      Provider<AbstractRepository>.value(
-        value: repository,
-        child: MyApp(registry: registry),
+      MultiProvider(
+        providers: [
+          Provider<AbstractRepository>.value(value: repository),
+          ChangeNotifierProvider<ThemeController>.value(value: themeController),
+          ChangeNotifierProvider<TextScalerController>.value(value: textScalerController),
+        ],
+        child: const MyApp(),
       ),
     );
   } catch (e, st) {

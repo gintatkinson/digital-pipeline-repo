@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:app_flutter/core/design_tokens.dart';
 
 class TabConfig {
   final String id;
@@ -31,85 +29,50 @@ class TabbedContainer extends StatefulWidget {
 }
 
 class _TabbedContainerState extends State<TabbedContainer> {
-  late String _activeTabId;
+  late int _activeTabIndex;
 
   @override
   void initState() {
     super.initState();
-    _activeTabId = widget.initialTabId;
+    _activeTabIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
+    if (_activeTabIndex < 0) _activeTabIndex = 0;
   }
 
   @override
   void didUpdateWidget(covariant TabbedContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTabId != oldWidget.initialTabId) {
-      _activeTabId = widget.initialTabId;
+      _activeTabIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
+      if (_activeTabIndex < 0) _activeTabIndex = 0;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final registry = context.watch<DesignTokenRegistry>();
-    final brandPrimary = registry.getColor('alias.color.brand-primary');
-
-    final activeTab = widget.tabs.firstWhere(
-      (t) => t.id == _activeTabId,
-      orElse: () => widget.tabs.isNotEmpty ? widget.tabs.first : TabConfig(id: '', label: '', contentBuilder: (_) => const SizedBox.shrink()),
-    );
-
     return Container(
       color: Theme.of(context).cardColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Tab Selector Row
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Theme.of(context).dividerColor),
+      child: DefaultTabController(
+        length: widget.tabs.length,
+        initialIndex: _activeTabIndex,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TabBar(
+              onTap: (index) {
+                setState(() {
+                  _activeTabIndex = index;
+                });
+                widget.onTabChanged?.call(widget.tabs[index].id);
+              },
+              tabs: widget.tabs.map((t) => Tab(text: t.label)).toList(),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: widget.tabs.map((t) => t.contentBuilder(context)).toList(),
               ),
             ),
-            child: Row(
-              children: widget.tabs.map((t) {
-                final isSelected = t.id == _activeTabId;
-                return InkWell(
-                  key: Key('tab_btn_${t.id}'),
-                  onTap: () {
-                    setState(() {
-                      _activeTabId = t.id;
-                    });
-                    widget.onTabChanged?.call(t.id);
-                  },
-                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: isSelected ? brandPrimary : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      t.label,
-                      style: TextStyle(
-                        color: isSelected
-                            ? brandPrimary
-                            : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          // Tab content
-          Expanded(
-            child: activeTab.contentBuilder(context),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

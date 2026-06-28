@@ -16,10 +16,8 @@ class ComponentFactory {
   final List<TreeNode> treeData;
   final String currentView;
   final int? workerResult;
-  final String themeMode;
   final Map<String, dynamic> parsedLayout;
   final void Function(String) onViewSelected;
-  final void Function(String) onThemeModeChange;
   final double minPaneSize;
   final double Function() defaultRatio;
   final TopologyData Function() resolveTopologyData;
@@ -31,10 +29,8 @@ class ComponentFactory {
     required this.treeData,
     required this.currentView,
     required this.workerResult,
-    required this.themeMode,
     required this.parsedLayout,
     required this.onViewSelected,
-    required this.onThemeModeChange,
     required this.minPaneSize,
     required this.defaultRatio,
     required this.resolveTopologyData,
@@ -77,9 +73,7 @@ class ComponentFactory {
         final tree = SidebarTree(
           treeData: treeData,
           workerResult: workerResult,
-          themeMode: themeMode,
           onViewSelected: onViewSelected,
-          onThemeModeChange: onThemeModeChange,
         );
         if (treeViewModel != null) {
           return ChangeNotifierProvider<TreeViewModel>.value(

@@ -54,9 +54,9 @@ class TopographicalView extends StatelessWidget {
               children: [
                 Text(
                   'Active View: $currentView',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Align(
                     alignment: Alignment.centerRight,

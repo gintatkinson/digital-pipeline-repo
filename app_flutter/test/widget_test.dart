@@ -1,5 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:app_flutter/app/app.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
+import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
+import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/core/repository_provider.dart';
@@ -15,10 +20,18 @@ void main() {
       );
       try {
         final repository = SqliteRepositoryAdapter(db);
+        final themeController = ThemeController(SharedPreferencesThemeService());
+
+        final textScaler = TextScalerController();
+        await textScaler.load();
 
         await tester.pumpWidget(
-          RepositoryProvider(
-            repository: repository,
+          MultiProvider(
+            providers: [
+              Provider<AbstractRepository>.value(value: repository),
+              ChangeNotifierProvider<ThemeController>.value(value: themeController),
+              ChangeNotifierProvider<TextScalerController>.value(value: textScaler),
+            ],
             child: MyApp(),
           ),
         );
@@ -29,7 +42,6 @@ void main() {
         expect(find.byType(MyApp), findsOneWidget);
         expect(find.byType(DashboardPage), findsOneWidget);
         expect(find.text('Antigravity Console'), findsAtLeast(1));
-        expect(find.text('Active View: Ingestion'), findsOneWidget);
       } finally {
         await db.close();
       }

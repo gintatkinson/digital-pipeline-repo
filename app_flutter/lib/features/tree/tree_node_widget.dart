@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
-import 'package:app_flutter/core/design_tokens.dart';
 
 class TreeNodeWidget extends StatelessWidget {
   final TreeNode node;
@@ -48,72 +47,51 @@ class TreeNodeWidget extends StatelessWidget {
       }
     }
 
-    final registry = context.watch<DesignTokenRegistry>();
-    final brandPrimary = registry.getColor('alias.color.brand-primary');
+    final brandPrimary = Theme.of(context).colorScheme.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        InkWell(
+        Material(
+          key: viewModel.nodeKey(node.id),
+          type: MaterialType.transparency,
+          child: ListTile(
           key: Key('node_${node.id}'),
+          dense: true,
+          selected: isSelected,
+          selectedTileColor: brandPrimary.withValues(alpha: 0.12),
+          leading: Icon(
+            icon,
+            size: 16,
+            color: isSelected
+                ? brandPrimary
+                : Theme.of(context).iconTheme.color?.withValues(alpha: 0.7),
+          ),
+          title: Text(
+            node.label,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          trailing: isParent
+              ? InkWell(
+                  key: Key('toggle_${node.id}'),
+                  onTap: () {
+                    viewModel.toggleExpand(node.id);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      isExpanded ? '−' : '+',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                  ),
+                )
+              : null,
           onTap: () {
             viewModel.selectView(node.id);
             viewModel.focusNode.requestFocus();
           },
-          child: Container(
-            key: viewModel.nodeKey(node.id),
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? brandPrimary.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6.0),
-              border: isSelected
-                  ? Border.all(color: brandPrimary.withValues(alpha: 0.3))
-                  : null,
-            ),
-            child: Row(
-              children: [
-                if (isParent)
-                  InkWell(
-                    key: Key('toggle_${node.id}'),
-                    onTap: () {
-                      viewModel.toggleExpand(node.id);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: Text(
-                        isExpanded ? '−' : '+',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 20),
-                Icon(
-                  icon,
-                  size: 16,
-                  color: isSelected
-                      ? brandPrimary
-                      : Theme.of(context).iconTheme.color?.withValues(alpha: 0.7),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    node.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      color: isSelected
-                          ? brandPrimary
-                          : Theme.of(context).textTheme.bodyMedium?.color,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
+          ),
         if (isParent && isExpanded)
           Padding(
             padding: const EdgeInsets.only(left: 16.0),

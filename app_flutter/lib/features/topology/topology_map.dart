@@ -202,12 +202,6 @@ class TopologyMap extends StatefulWidget {
 class _TopologyMapState extends State<TopologyMap>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
-  late final ScrollController _contentVerticalController;
-  late final ScrollController _scrollbarVerticalController;
-  late final ScrollController _contentHorizontalController;
-  late final ScrollController _scrollbarHorizontalController;
-  bool _isSyncingVertical = false;
-  bool _isSyncingHorizontal = false;
   double currentTimeIndex = 1.0;
   double playbackSpeedMultiplier = 1.0;
   bool isPlaying = false;
@@ -243,47 +237,6 @@ class _TopologyMapState extends State<TopologyMap>
   @override
   void initState() {
     super.initState();
-    _contentVerticalController = ScrollController();
-    _scrollbarVerticalController = ScrollController();
-    _contentHorizontalController = ScrollController();
-    _scrollbarHorizontalController = ScrollController();
-
-    _contentVerticalController.addListener(() {
-      if (_isSyncingVertical) return;
-      _isSyncingVertical = true;
-      if (_scrollbarVerticalController.hasClients) {
-        _scrollbarVerticalController.jumpTo(_contentVerticalController.offset);
-      }
-      _isSyncingVertical = false;
-    });
-
-    _scrollbarVerticalController.addListener(() {
-      if (_isSyncingVertical) return;
-      _isSyncingVertical = true;
-      if (_contentVerticalController.hasClients) {
-        _contentVerticalController.jumpTo(_scrollbarVerticalController.offset);
-      }
-      _isSyncingVertical = false;
-    });
-
-    _contentHorizontalController.addListener(() {
-      if (_isSyncingHorizontal) return;
-      _isSyncingHorizontal = true;
-      if (_scrollbarHorizontalController.hasClients) {
-        _scrollbarHorizontalController.jumpTo(_contentHorizontalController.offset);
-      }
-      _isSyncingHorizontal = false;
-    });
-
-    _scrollbarHorizontalController.addListener(() {
-      if (_isSyncingHorizontal) return;
-      _isSyncingHorizontal = true;
-      if (_contentHorizontalController.hasClients) {
-        _contentHorizontalController.jumpTo(_scrollbarHorizontalController.offset);
-      }
-      _isSyncingHorizontal = false;
-    });
-
     _ticker = createTicker(_onTick);
     currentTimeIndex = minTime;
   }
@@ -373,10 +326,6 @@ class _TopologyMapState extends State<TopologyMap>
 
   @override
   void dispose() {
-    _contentVerticalController.dispose();
-    _scrollbarVerticalController.dispose();
-    _contentHorizontalController.dispose();
-    _scrollbarHorizontalController.dispose();
     _ticker.dispose();
     super.dispose();
   }
@@ -385,234 +334,167 @@ class _TopologyMapState extends State<TopologyMap>
   Widget build(BuildContext context) {
     final TopologyData activeData = widget.data ?? defaultTopologyData;
 
-    return Theme(
-      data: ThemeData.dark().copyWith(
-        scrollbarTheme: ScrollbarThemeData(
-          thumbColor: WidgetStateProperty.all(const Color(0x80FFFFFF)),
-          trackColor: WidgetStateProperty.all(const Color(0x14FFFFFF)),
-          trackVisibility: WidgetStateProperty.all(true),
-          thickness: WidgetStateProperty.all(8.0),
-          radius: const Radius.circular(4.0),
-        ),
-      ),
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final double viewportWidth =
-              constraints.maxWidth.isFinite ? constraints.maxWidth : 800.0;
-          final double viewportHeight =
-              constraints.maxHeight.isFinite ? constraints.maxHeight : 500.0;
-          final double width = viewportWidth > 800.0 ? viewportWidth : 800.0;
-          final double height = viewportHeight > 500.0 ? viewportHeight : 500.0;
+    final colors = Theme.of(context).colorScheme;
 
-          return Container(
-            color: const Color(0xFF0F172A),
-            child: Column(
-              children: <Widget>[
-                // Scrollable Canvas Viewport
-                Expanded(
-                  child: Stack(
-                    children: <Widget>[
-                      // Main content
-                      Positioned.fill(
-                        child: SingleChildScrollView(
-                          controller: _contentVerticalController,
-                          scrollDirection: Axis.vertical,
-                          child: SingleChildScrollView(
-                            controller: _contentHorizontalController,
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(
-                              width: width,
-                              height: height,
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTapUp: (TapUpDetails details) =>
-                                    _handleTap(details, width, height),
-                                child: CustomPaint(
-                                  size: Size(width, height),
-                                  painter: TopologyPainter(
-                                    activeFocusedNode: widget.activeFocusedNode,
-                                    activeData: activeData,
-                                    currentTimeIndex: currentTimeIndex,
-                                  ),
-                                ),
-                              ),
-                            ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double viewportWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 800.0;
+        final double viewportHeight =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : 500.0;
+        final double width = viewportWidth > 800.0 ? viewportWidth : 800.0;
+        final double height = viewportHeight > 500.0 ? viewportHeight : 500.0;
+
+        return Container(
+          color: colors.surfaceContainerHighest,
+          child: Column(
+            children: <Widget>[
+              // Scrollable Canvas Viewport
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: width,
+                      height: height,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapUp: (TapUpDetails details) =>
+                            _handleTap(details, width, height),
+                        child: CustomPaint(
+                          size: Size(width, height),
+                          painter: TopologyPainter(
+                            activeFocusedNode: widget.activeFocusedNode,
+                            activeData: activeData,
+                            currentTimeIndex: currentTimeIndex,
+                            bgColor: colors.surfaceContainerHighest,
+                            gridColor: colors.outlineVariant,
+                            linkColor: colors.primary.withValues(alpha: 0.35),
+                            packetColor: colors.primary,
+                            velocityColor: colors.error.withValues(alpha: 0.4),
+                            nodeFillColor: colors.primary,
+                            nodeStrokeColor: colors.onPrimary,
+                            activeStatusColor: colors.tertiary,
+                            warningStatusColor: colors.error,
+                            haloColor: colors.primary.withValues(alpha: 0.3),
+                            labelColor: colors.onSurface,
                           ),
                         ),
                       ),
-                      // Vertical Scrollbar
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 12,
-                        width: 12,
-                        child: Scrollbar(
-                          controller: _scrollbarVerticalController,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _scrollbarVerticalController,
-                            scrollDirection: Axis.vertical,
-                            child: SizedBox(
-                              height: height,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Horizontal Scrollbar
-                      Positioned(
-                        left: 0,
-                        right: 12,
-                        bottom: 0,
-                        height: 12,
-                        child: Scrollbar(
-                          controller: _scrollbarHorizontalController,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _scrollbarHorizontalController,
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(
-                              width: width,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Playback Scrubber Panel
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0F172A),
-                    border: Border(
-                      top: BorderSide(color: Color(0xFF1E293B), width: 1.0),
                     ),
                   ),
-                  child: Row(
-                    children: <Widget>[
-                      // Play/Pause button
-                      ElevatedButton(
-                        key: const ValueKey<String>('playPauseButton'),
-                        onPressed: togglePlayback,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isPlaying
-                              ? const Color(0xFFEF4444)
-                              : const Color(0xFF3B82F6),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, vertical: 6.0),
-                          minimumSize: const Size(70, 32),
-                        ),
-                        child: Text(
-                          isPlaying ? 'Pause' : 'Play',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13.0),
-                        ),
-                      ),
-                      const SizedBox(width: 16.0),
-                      // Current time index display
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Text(
-                            't:',
-                            style:
-                                TextStyle(color: Color(0xFF94A3B8), fontSize: 13.0),
-                          ),
-                          const SizedBox(width: 8.0),
-                          SizedBox(
-                            width: 32.0,
-                            child: Text(
-                              currentTimeIndex.toStringAsFixed(1),
-                              style: const TextStyle(
-                                color: Color(0xFF94A3B8),
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13.0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16.0),
-                      // Timeline Slider
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 6.0,
-                            activeTrackColor: const Color(0xFF3B82F6),
-                            inactiveTrackColor: const Color(0xFF1E293B),
-                            thumbColor: const Color(0xFF3B82F6),
-                            overlayColor: const Color(0x293B82F6),
-                          ),
-                          child: Slider(
-                            key: const ValueKey<String>('timeSlider'),
-                            min: minTime,
-                            max: maxTime,
-                            divisions: 90,
-                            value: currentTimeIndex.clamp(minTime, maxTime),
-                            onChanged: (double value) {
-                              setPlayhead(value);
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16.0),
-                      // Speed dropdown
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Text(
-                            'Speed:',
-                            style:
-                                TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0),
-                          ),
-                          const SizedBox(width: 6.0),
-                          Theme(
-                            data: Theme.of(context).copyWith(
-                              canvasColor: const Color(0xFF1E293B),
-                            ),
-                            child: DropdownButton<double>(
-                              key: const ValueKey<String>('speedDropdown'),
-                              value: playbackSpeedMultiplier,
-                              underline: const SizedBox.shrink(),
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: Color(0xFF94A3B8)),
-                              style: const TextStyle(
-                                  color: Color(0xFFF8FAFC), fontSize: 12.0),
-                              items: const <DropdownMenuItem<double>>[
-                                DropdownMenuItem<double>(
-                                    value: 0.5, child: Text('0.5x')),
-                                DropdownMenuItem<double>(
-                                    value: 1.0, child: Text('1.0x')),
-                                DropdownMenuItem<double>(
-                                    value: 2.0, child: Text('2.0x')),
-                                DropdownMenuItem<double>(
-                                    value: 5.0, child: Text('5.0x')),
-                              ],
-                              onChanged: (double? value) {
-                                if (value != null) {
-                                  setState(() {
-                                    playbackSpeedMultiplier = value;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                ),
+              ),
+              // Playback Scrubber Panel
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  border: Border(
+                    top: BorderSide(color: colors.outlineVariant, width: 1.0),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+                child: Row(
+                  children: <Widget>[
+                    // Play/Pause button
+                    ElevatedButton(
+                      key: const ValueKey<String>('playPauseButton'),
+                      onPressed: togglePlayback,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isPlaying
+                            ? colors.error
+                            : colors.primary,
+                        foregroundColor: colors.onPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.0)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 6.0),
+                        minimumSize: const Size(70, 32),
+                      ),
+                      child: Text(
+                        isPlaying ? 'Pause' : 'Play',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                    ),
+                      const SizedBox(width: 8),
+                    // Current time index display
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          't:',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 32.0,
+                          child: Text(
+                            currentTimeIndex.toStringAsFixed(1),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    // Timeline Slider
+                    Expanded(
+                      child: Slider(
+                        key: const ValueKey<String>('timeSlider'),
+                        min: minTime,
+                        max: maxTime,
+                        divisions: 90,
+                        value: currentTimeIndex.clamp(minTime, maxTime),
+                        onChanged: (double value) {
+                          setPlayhead(value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Speed dropdown
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          'Speed:',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(width: 8),
+                        DropdownButton<double>(
+                          key: const ValueKey<String>('speedDropdown'),
+                          value: playbackSpeedMultiplier,
+                          underline: const SizedBox.shrink(),
+                          icon: const Icon(Icons.arrow_drop_down),
+                          style: Theme.of(context).textTheme.bodySmall,
+                          items: const <DropdownMenuItem<double>>[
+                            DropdownMenuItem<double>(
+                                value: 0.5, child: Text('0.5x')),
+                            DropdownMenuItem<double>(
+                                value: 1.0, child: Text('1.0x')),
+                            DropdownMenuItem<double>(
+                                value: 2.0, child: Text('2.0x')),
+                            DropdownMenuItem<double>(
+                                value: 5.0, child: Text('5.0x')),
+                          ],
+                          onChanged: (double? value) {
+                            if (value != null) {
+                              setState(() {
+                                playbackSpeedMultiplier = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -622,22 +504,44 @@ class TopologyPainter extends CustomPainter {
   final String? activeFocusedNode;
   final TopologyData activeData;
   final double currentTimeIndex;
+  final Color bgColor;
+  final Color gridColor;
+  final Color linkColor;
+  final Color packetColor;
+  final Color velocityColor;
+  final Color nodeFillColor;
+  final Color nodeStrokeColor;
+  final Color activeStatusColor;
+  final Color warningStatusColor;
+  final Color haloColor;
+  final Color labelColor;
 
   TopologyPainter({
     required this.activeFocusedNode,
     required this.activeData,
     required this.currentTimeIndex,
+    required this.bgColor,
+    required this.gridColor,
+    required this.linkColor,
+    required this.packetColor,
+    required this.velocityColor,
+    required this.nodeFillColor,
+    required this.nodeStrokeColor,
+    required this.activeStatusColor,
+    required this.warningStatusColor,
+    required this.haloColor,
+    required this.labelColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Draw dark background
-    final Paint bgPaint = Paint()..color = const Color(0xFF0F172A);
+    // 1. Draw background
+    final Paint bgPaint = Paint()..color = bgColor;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     // 2. Draw grid lines every 40px
     final Paint gridPaint = Paint()
-      ..color = const Color(0xFF1E293B)
+      ..color = gridColor
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -672,9 +576,9 @@ class TopologyPainter extends CustomPainter {
       final Offset? targetOffset = projectedPositions[link.target];
 
       if (sourceOffset != null && targetOffset != null) {
-        // Connector link line: rgba(59, 130, 246, 0.35), width 2
+        // Connector link line
         final Paint linkPaint = Paint()
-          ..color = const Color(0x593B82F6)
+          ..color = linkColor
           ..strokeWidth = 2.0
           ..style = PaintingStyle.stroke;
         canvas.drawLine(sourceOffset, targetOffset, linkPaint);
@@ -687,7 +591,7 @@ class TopologyPainter extends CustomPainter {
             sourceOffset.dy + (targetOffset.dy - sourceOffset.dy) * packetRatio;
 
         final Paint packetPaint = Paint()
-          ..color = const Color(0xFF60A5FA)
+          ..color = packetColor
           ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(px, py), 4.0, packetPaint);
       }
@@ -703,9 +607,9 @@ class TopologyPainter extends CustomPainter {
       final double vx = vector.isNotEmpty ? vector[0] : 0.0;
       final double vy = vector.length > 1 ? vector[1] : 0.0;
 
-      // Red velocity vector line: rgba(239, 68, 68, 0.4), width 1.5
+      // Velocity vector line
       final Paint vectorPaint = Paint()
-        ..color = const Color(0x66EF4444)
+        ..color = velocityColor
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       canvas.drawLine(
@@ -717,39 +621,38 @@ class TopologyPainter extends CustomPainter {
       final double radius = isFocused ? 12.0 : 9.0;
 
       if (isFocused) {
-        fillPaint.color = const Color(0xFF3B82F6);
+        fillPaint.color = nodeFillColor;
         strokePaint
-          ..color = Colors.white
+          ..color = nodeStrokeColor
           ..strokeWidth = 2.5;
       } else {
         fillPaint.color = node.status == 'Active'
-            ? const Color(0xFF10B981)
-            : const Color(0xFFF59E0B);
+            ? activeStatusColor
+            : warningStatusColor;
         strokePaint
-          ..color = const Color(0xFF1E293B)
+          ..color = gridColor
           ..strokeWidth = 2.0;
       }
 
       canvas.drawCircle(pos, radius, fillPaint);
       canvas.drawCircle(pos, radius, strokePaint);
 
-      // Pulsing halo ring around focused node (radius 20, stroke rgba(59, 130, 246, 0.3), width 1.5)
+      // Pulsing halo ring around focused node
       if (isFocused) {
         final Paint haloPaint = Paint()
-          ..color = const Color(0x4D3B82F6)
+          ..color = haloColor
           ..strokeWidth = 1.5
           ..style = PaintingStyle.stroke;
         canvas.drawCircle(pos, 20.0, haloPaint);
       }
 
-      // Draw node label below in white Color(0xFFF8FAFC)
+      // Draw node label below
       final TextPainter textPainter = TextPainter(
         text: TextSpan(
           text: node.label,
-          style: const TextStyle(
-            color: Color(0xFFF8FAFC),
+          style: TextStyle(
+            color: labelColor,
             fontSize: 12.0,
-            fontFamily: 'Outfit',
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -766,6 +669,17 @@ class TopologyPainter extends CustomPainter {
   bool shouldRepaint(covariant TopologyPainter oldDelegate) {
     return oldDelegate.currentTimeIndex != currentTimeIndex ||
         oldDelegate.activeFocusedNode != activeFocusedNode ||
-        oldDelegate.activeData != activeData;
+        oldDelegate.activeData != activeData ||
+        oldDelegate.bgColor != bgColor ||
+        oldDelegate.gridColor != gridColor ||
+        oldDelegate.linkColor != linkColor ||
+        oldDelegate.packetColor != packetColor ||
+        oldDelegate.velocityColor != velocityColor ||
+        oldDelegate.nodeFillColor != nodeFillColor ||
+        oldDelegate.nodeStrokeColor != nodeStrokeColor ||
+        oldDelegate.activeStatusColor != activeStatusColor ||
+        oldDelegate.warningStatusColor != warningStatusColor ||
+        oldDelegate.haloColor != haloColor ||
+        oldDelegate.labelColor != labelColor;
   }
 }

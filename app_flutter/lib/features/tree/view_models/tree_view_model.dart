@@ -6,7 +6,6 @@ class TreeViewModel extends ChangeNotifier {
   String _currentView;
   final Map<String, bool> _expanded = {};
   final FocusNode _treeFocusNode = FocusNode();
-  final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _nodeKeys = {};
   final ValueChanged<String>? onViewSelected;
 
@@ -23,7 +22,6 @@ class TreeViewModel extends ChangeNotifier {
   String get currentView => _currentView;
   Map<String, bool> get expanded => _expanded;
   FocusNode get focusNode => _treeFocusNode;
-  ScrollController get scrollController => _scrollController;
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
 
   void selectView(String viewId) {
@@ -114,7 +112,6 @@ class TreeViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _treeFocusNode.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 

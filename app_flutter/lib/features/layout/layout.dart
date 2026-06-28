@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:app_flutter/core/design_tokens.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/domain/repository.dart';
@@ -15,7 +14,6 @@ import 'package:app_flutter/features/topology/topology_defaults.dart';
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/properties_service.dart';
-import 'package:app_flutter/core/theme_builder.dart';
 import 'package:app_flutter/core/background_worker.dart';
 
 /// The Layout Widget realizes UML::Layout.
@@ -23,16 +21,12 @@ class Layout extends StatefulWidget {
   final String? activeView;
   final ValueChanged<String>? onViewChange;
   final String? layoutConfig;
-  final String? themeMode;
-  final ValueChanged<String>? onThemeModeChange;
 
   Layout({
     super.key,
     this.activeView,
     this.onViewChange,
     this.layoutConfig,
-    this.themeMode,
-    this.onThemeModeChange,
   });
 
   @override
@@ -49,14 +43,7 @@ class _LayoutState extends State<Layout> {
   // Tree ViewModel
   TreeViewModel? _treeViewModel;
 
-  // Splitters sizing
-  double _getMinPaneSize(DesignTokenRegistry registry) {
-    try {
-      return registry.getDimension('component.splitter.min-pane-size');
-    } catch (_) {
-      return 150.0;
-    }
-  }
+  static const double _minPaneSize = 150.0;
 
   @override
   void didChangeDependencies() {
@@ -76,11 +63,6 @@ class _LayoutState extends State<Layout> {
   // Background Worker
   BackgroundWorker? _worker;
 
-  // Theme state
-  late String _themeMode;
-
-
-
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
 
@@ -89,7 +71,6 @@ class _LayoutState extends State<Layout> {
   @override
   void initState() {
     super.initState();
-    _themeMode = widget.themeMode ?? 'system';
     _currentView = widget.activeView ?? _parseTreeHierarchy().first.id;
 
     _treeViewModel = TreeViewModel(
@@ -121,11 +102,6 @@ class _LayoutState extends State<Layout> {
         });
         _propertiesService?.subscribe(_currentView);
       }
-    }
-    if (widget.themeMode != null && widget.themeMode != oldWidget.themeMode) {
-      setState(() {
-        _themeMode = widget.themeMode!;
-      });
     }
   }
 
@@ -264,19 +240,14 @@ class _LayoutState extends State<Layout> {
     widget.onViewChange?.call(viewId);
   }
 
-  Widget _buildFromLayout(BuildContext context, BoxConstraints constraints, DesignTokenRegistry registry) {
+  Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
     final factory = ComponentFactory(
       treeData: _treeData,
       currentView: _currentView,
       workerResult: _worker?.lastResult,
-      themeMode: _themeMode,
       parsedLayout: _parsedLayout!,
       onViewSelected: _selectView,
-      onThemeModeChange: (val) {
-        setState(() => _themeMode = val);
-        widget.onThemeModeChange?.call(val);
-      },
-      minPaneSize: _getMinPaneSize(registry),
+      minPaneSize: _minPaneSize,
       defaultRatio: _getDefaultRatio,
       resolveTopologyData: _resolveTopologyData,
       resolveTabLabel: _resolveTabLabel,
@@ -290,22 +261,13 @@ class _LayoutState extends State<Layout> {
 
   @override
   Widget build(BuildContext context) {
-    final registry = context.watch<DesignTokenRegistry>();
-    final isDark = _themeMode == 'dark' ||
-        (_themeMode == 'system' &&
-            MediaQuery.of(context).platformBrightness == Brightness.dark);
-    final themeData = buildThemeFromTokens(registry, isDark);
-
-    return Theme(
-      data: themeData,
-      child: Scaffold(
-        body: _parsedLayout == null
-            ? const Center(child: CircularProgressIndicator())
-            : LayoutBuilder(
-                builder: (context, constraints) =>
-                    _buildFromLayout(context, constraints, registry),
-              ),
-      ),
+    return Scaffold(
+      body: _parsedLayout == null
+          ? const Center(child: CircularProgressIndicator())
+          : LayoutBuilder(
+              builder: (context, constraints) =>
+                  _buildFromLayout(context, constraints),
+            ),
     );
   }
 

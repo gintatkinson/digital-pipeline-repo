@@ -1,15 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/core/design_tokens.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
-
-Widget wrapWithTokens(Widget child) {
-  return DesignTokenProvider(
-    registry: DesignTokenRegistry.defaultRegistry,
-    child: child,
-  );
-}
 
 void main() {
   /// Helper finder to locate a TextField by its preceding label text.
@@ -54,12 +46,10 @@ void main() {
 
   testWidgets('Highlights Geodetic Coordinate Frame section when activeView is Location', (WidgetTester tester) async {
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: const PropertyGrid(activeView: 'Location'),
           ),
-        ),
       ),
     );
 
@@ -75,12 +65,10 @@ void main() {
 
   testWidgets('Highlights Alternate Structural Grid Frame section when activeView is not Location/Ingestion', (WidgetTester tester) async {
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: const PropertyGrid(activeView: 'Metrics'),
           ),
-        ),
       ),
     );
 
@@ -95,8 +83,7 @@ void main() {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: PropertyGrid(
               activeView: 'Location',
@@ -105,7 +92,6 @@ void main() {
               },
             ),
           ),
-        ),
       ),
     );
 
@@ -149,8 +135,7 @@ void main() {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: PropertyGrid(
               activeView: 'Metrics',
@@ -159,7 +144,6 @@ void main() {
               },
             ),
           ),
-        ),
       ),
     );
 
@@ -210,8 +194,7 @@ void main() {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: PropertyGrid(
               activeView: 'Metrics',
@@ -220,7 +203,6 @@ void main() {
               },
             ),
           ),
-        ),
       ),
     );
 

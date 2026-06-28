@@ -40,10 +40,7 @@ class TableViewWidget extends StatelessWidget {
                     .map((h) => DataColumn(
                           label: Text(
                             h,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12.0,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall,
                           ),
                         ))
                     .toList(),
@@ -53,9 +50,7 @@ class TableViewWidget extends StatelessWidget {
                               .map((cell) => DataCell(
                                     Text(
                                       cell,
-                                      style: const TextStyle(
-                                        fontSize: 12.0,
-                                      ),
+                                      style: Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ))
                               .toList(),

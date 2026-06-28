@@ -1,95 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:app_flutter/core/design_tokens.dart';
+import 'package:provider/provider.dart';
+import 'package:app_flutter/core/theme/app_themes.dart';
+import 'package:app_flutter/core/theme/text_scaler.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/features/layout/layout.dart';
 
-class MyApp extends StatefulWidget {
-  final DesignTokenRegistry registry;
-  MyApp({
-    super.key,
-    DesignTokenRegistry? registry,
-  }) : registry = registry ?? DesignTokenRegistry.defaultRegistry;
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.system;
-
-  void _updateThemeMode(String modeString) {
-    setState(() {
-      if (modeString == 'light') {
-        _themeMode = ThemeMode.light;
-      } else if (modeString == 'dark') {
-        _themeMode = ThemeMode.dark;
-      } else {
-        _themeMode = ThemeMode.system;
-      }
-    });
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final lightPrimary = widget.registry.getColor('alias.color.brand-primary', theme: 'light');
-    final lightBg = widget.registry.getColor('alias.color.background', theme: 'light');
-    final lightSurface = widget.registry.getColor('alias.color.surface', theme: 'light');
-    final lightDivider = widget.registry.getColor('global.color.gray-100');
+    final themeController = context.watch<ThemeController>();
+    final textScaler = context.watch<TextScalerController>();
 
-    final darkPrimary = widget.registry.getColor('alias.color.brand-primary', theme: 'dark');
-    final darkBg = widget.registry.getColor('alias.color.background', theme: 'dark');
-    final darkSurface = widget.registry.getColor('alias.color.surface', theme: 'dark');
-    final darkDivider = widget.registry.getColor('global.color.gray-900');
-
-    final ThemeData lightTheme = ThemeData(
-      brightness: Brightness.light,
-      primaryColor: lightPrimary,
-      scaffoldBackgroundColor: lightBg,
-      cardColor: lightSurface,
-      dividerColor: lightDivider,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: lightPrimary,
-        brightness: Brightness.light,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(textScaler.scale),
       ),
-    );
-
-    final ThemeData darkTheme = ThemeData(
-      brightness: Brightness.dark,
-      primaryColor: darkPrimary,
-      scaffoldBackgroundColor: darkBg,
-      cardColor: darkSurface,
-      dividerColor: darkDivider,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: darkPrimary,
-        brightness: Brightness.dark,
-      ),
-    );
-
-    return DesignTokenProvider(
-      registry: widget.registry,
       child: MaterialApp(
         title: 'Antigravity Console',
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: _themeMode,
-        home: DashboardPage(
-          themeMode: _themeMode,
-          onThemeModeChange: _updateThemeMode,
-        ),
+        themeMode: themeController.themeMode,
+        theme: AppThemes.light(custom: themeController.currentTheme),
+        darkTheme: AppThemes.dark(custom: themeController.currentTheme),
+        home: const DashboardPage(),
       ),
     );
   }
 }
 
 class DashboardPage extends StatefulWidget {
-  final ThemeMode themeMode;
-  final ValueChanged<String> onThemeModeChange;
-
-  const DashboardPage({
-    super.key,
-    required this.themeMode,
-    required this.onThemeModeChange,
-  });
+  const DashboardPage({super.key});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -103,17 +44,6 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _layoutConfigFuture = rootBundle.loadString('assets/logical-layout.json');
-  }
-
-  String _getThemeModeString() {
-    switch (widget.themeMode) {
-      case ThemeMode.light:
-        return 'light';
-      case ThemeMode.dark:
-        return 'dark';
-      case ThemeMode.system:
-        return 'system';
-    }
   }
 
   @override
@@ -147,8 +77,6 @@ class _DashboardPageState extends State<DashboardPage> {
             });
           },
           layoutConfig: layoutConfig,
-          themeMode: _getThemeModeString(),
-          onThemeModeChange: widget.onThemeModeChange,
         );
       },
     );

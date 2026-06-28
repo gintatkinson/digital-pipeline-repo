@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/core/design_tokens.dart';
+import 'package:provider/provider.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
+import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 import 'package:app_flutter/features/layout/layout.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/core/repository_provider.dart';
@@ -68,12 +70,14 @@ const String testLayoutConfig = '''
 ''';
 
 Widget wrapWithRepo(Widget child) {
-  return RepositoryProvider(
-    repository: _TestRepository(),
-    child: DesignTokenProvider(
-      registry: DesignTokenRegistry.defaultRegistry,
-      child: MaterialApp(home: child),
-    ),
+  return MultiProvider(
+    providers: [
+      Provider<AbstractRepository>.value(value: _TestRepository()),
+      ChangeNotifierProvider<ThemeController>.value(
+        value: ThemeController(SharedPreferencesThemeService()),
+      ),
+    ],
+    child: MaterialApp(home: child),
   );
 }
 
@@ -108,14 +112,14 @@ void main() {
     expect(find.byKey(const Key('status-table')), findsNothing);
 
     // Tap Status tab
-    await tester.tap(find.byKey(const Key('tab_btn_active_alarms_table')));
+    await tester.tap(find.widgetWithText(Tab, 'Status'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('items-table')), findsNothing);
     expect(find.byKey(const Key('status-table')), findsOneWidget);
 
     // Tap Activity tab
-    await tester.tap(find.byKey(const Key('tab_btn_historical_events_table')));
+    await tester.tap(find.widgetWithText(Tab, 'Activity'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('status-table')), findsNothing);
@@ -132,15 +136,17 @@ void main() {
     });
 
     await tester.pumpWidget(
-      RepositoryProvider(
-        repository: _TestRepository(),
-        child: DesignTokenProvider(
-          registry: DesignTokenRegistry.defaultRegistry,
-          child: MaterialApp(
-            home: Scaffold(
-              body: Layout(
-                layoutConfig: testLayoutConfig,
-              ),
+      MultiProvider(
+        providers: [
+          Provider<AbstractRepository>.value(value: _TestRepository()),
+          ChangeNotifierProvider<ThemeController>.value(
+            value: ThemeController(SharedPreferencesThemeService()),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Layout(
+              layoutConfig: testLayoutConfig,
             ),
           ),
         ),

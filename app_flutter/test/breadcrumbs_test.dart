@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/core/design_tokens.dart';
 import 'package:app_flutter/features/layout/breadcrumbs.dart';
-
-Widget wrapWithTokens(Widget child) {
-  return DesignTokenProvider(
-    registry: DesignTokenRegistry.defaultRegistry,
-    child: child,
-  );
-}
 
 void main() {
   testWidgets('Renders all items when total count <= maxItems', (WidgetTester tester) async {
@@ -21,12 +13,10 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: NavigationBreadcrumbs(items: items, maxItems: 4),
           ),
-        ),
       ),
     );
 
@@ -42,9 +32,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(clickedIds, contains('root'));
 
-    // Verify Level 2 (last item) is styled as bold (represented by fontWeight.w600)
+    // Verify Level 2 (last item) uses bodyMedium style from theme
     final Text textWidget = tester.widget<Text>(find.text('Level 2'));
-    expect(textWidget.style?.fontWeight, FontWeight.w600);
+    expect(textWidget.style?.fontWeight, FontWeight.w400);
   });
 
   testWidgets('Collapses middle items when total count > maxItems and expands on ellipsis click', (WidgetTester tester) async {
@@ -59,12 +49,10 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: NavigationBreadcrumbs(items: items, maxItems: 3),
           ),
-        ),
       ),
     );
 
@@ -101,12 +89,10 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      wrapWithTokens(
-        MaterialApp(
+      MaterialApp(
           home: Scaffold(
             body: NavigationBreadcrumbs(items: items),
           ),
-        ),
       ),
     );
 

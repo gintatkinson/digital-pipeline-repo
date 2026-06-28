@@ -77,9 +77,7 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
               width: isHorizontal ? 8 : double.infinity,
               height: isHorizontal ? double.infinity : 8,
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.black26
-                    : Colors.grey.shade200,
+                color: Theme.of(context).dividerColor,
                 border: isHorizontal
                     ? Border(
                         left: BorderSide(
@@ -107,7 +105,7 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
                   width: isHorizontal ? 2 : 40,
                   height: isHorizontal ? 40 : 2,
                   color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3) ??
-                      Colors.grey,
+                      Theme.of(context).dividerColor,
                 ),
               ),
             ),
