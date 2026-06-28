@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/components/breadcrumbs.dart';
+import 'package:app_flutter/core/design_tokens.dart';
+import 'package:app_flutter/features/layout/breadcrumbs.dart';
+
+Widget wrapWithTokens(Widget child) {
+  return DesignTokenProvider(
+    registry: DesignTokenRegistry.defaultRegistry,
+    child: child,
+  );
+}
 
 void main() {
   testWidgets('Renders all items when total count <= maxItems', (WidgetTester tester) async {
@@ -13,9 +21,11 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: NavigationBreadcrumbs(items: items, maxItems: 4),
+      wrapWithTokens(
+        MaterialApp(
+          home: Scaffold(
+            body: NavigationBreadcrumbs(items: items, maxItems: 4),
+          ),
         ),
       ),
     );
@@ -49,9 +59,11 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: NavigationBreadcrumbs(items: items, maxItems: 3),
+      wrapWithTokens(
+        MaterialApp(
+          home: Scaffold(
+            body: NavigationBreadcrumbs(items: items, maxItems: 3),
+          ),
         ),
       ),
     );
@@ -89,9 +101,11 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: NavigationBreadcrumbs(items: items),
+      wrapWithTokens(
+        MaterialApp(
+          home: Scaffold(
+            body: NavigationBreadcrumbs(items: items),
+          ),
         ),
       ),
     );

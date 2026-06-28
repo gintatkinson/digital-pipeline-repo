@@ -1,4 +1,4 @@
-import 'package:app_flutter/components/topology_map.dart';
+import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/components/layout.dart';
+import 'package:app_flutter/core/design_tokens.dart';
+import 'package:app_flutter/features/layout/layout.dart';
 import 'package:app_flutter/domain/repository.dart';
-import 'package:app_flutter/widgets/repository_provider.dart';
+import 'package:app_flutter/core/repository_provider.dart';
 
 class _TestRepository implements AbstractRepository {
   @override
@@ -69,7 +70,10 @@ const String testLayoutConfig = '''
 Widget wrapWithRepo(Widget child) {
   return RepositoryProvider(
     repository: _TestRepository(),
-    child: MaterialApp(home: child),
+    child: DesignTokenProvider(
+      registry: DesignTokenRegistry.defaultRegistry,
+      child: MaterialApp(home: child),
+    ),
   );
 }
 
@@ -130,10 +134,13 @@ void main() {
     await tester.pumpWidget(
       RepositoryProvider(
         repository: _TestRepository(),
-        child: MaterialApp(
-          home: Scaffold(
-            body: Layout(
-              layoutConfig: testLayoutConfig,
+        child: DesignTokenProvider(
+          registry: DesignTokenRegistry.defaultRegistry,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Layout(
+                layoutConfig: testLayoutConfig,
+              ),
             ),
           ),
         ),

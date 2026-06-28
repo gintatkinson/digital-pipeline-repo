@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/main.dart';
+import 'package:app_flutter/app/app.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/repository.dart';
-import 'package:app_flutter/widgets/repository_provider.dart';
+import 'package:app_flutter/core/repository_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
