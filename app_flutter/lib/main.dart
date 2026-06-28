@@ -12,26 +12,42 @@ import 'package:app_flutter/widgets/repository_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load and parse assets/design-tokens.json
-  final tokensJson = await rootBundle.loadString('assets/design-tokens.json');
-  final registry = AppDesignTokenRegistry.parse(tokensJson);
+  try {
+    // Load and parse assets/design-tokens.json
+    final tokensJson = await rootBundle.loadString('assets/design-tokens.json');
+    final registry = AppDesignTokenRegistry.parse(tokensJson);
 
-  // Copy pre-built database from assets to a writable location
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
-  final bytes = await rootBundle.load('assets/properties_db.db');
-  final dir = await getApplicationSupportDirectory();
-  final dbPath = p.join(dir.path, 'properties_db.db');
-  await File(dbPath).writeAsBytes(bytes.buffer.asUint8List());
-  final db = await databaseFactory.openDatabase(dbPath);
-  final repository = SqliteRepositoryAdapter(db);
+    // Copy pre-built database from assets to a writable location (only on first boot)
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+    final dir = await getApplicationSupportDirectory();
+    final dbPath = p.join(dir.path, 'properties_db.db');
+    final dbFile = File(dbPath);
+    if (!await dbFile.exists()) {
+      final bytes = await rootBundle.load('assets/properties_db.db');
+      await dbFile.writeAsBytes(bytes.buffer.asUint8List());
+    }
+    final db = await databaseFactory.openDatabase(dbPath);
+    final repository = SqliteRepositoryAdapter(db);
 
-  runApp(
-    RepositoryProvider(
-      repository: repository,
-      child: MyApp(registry: registry),
-    ),
-  );
+    runApp(
+      RepositoryProvider(
+        repository: repository,
+        child: MyApp(registry: registry),
+      ),
+    );
+  } catch (e, st) {
+    debugPrint('FATAL ERROR in main(): $e\n$st');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Startup error:\n$e'),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// MyApp is the root application widget that initializes the application theme and layout configurations.
