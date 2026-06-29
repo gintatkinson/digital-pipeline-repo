@@ -12,3 +12,4 @@ scratch/
 .env.*
 *define*.json
 config.json
+benchmark_results.jsonl
