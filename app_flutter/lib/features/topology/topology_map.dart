@@ -49,13 +49,15 @@ class TopologyNodePosition {
     );
   }
 
-  double resolveCoordinate(String key, Map<String, String>? coordinateMapping) {
+  String? _resolvePathWithMapping(String key, Map<String, String>? coordinateMapping) {
     final String? path = coordinateMapping?[key];
-    if (path != null) {
-      String resolvedPath = path;
-      if (path.startsWith('position/')) {
-        resolvedPath = path.substring(9);
-      }
+    if (path == null) return null;
+    return path.startsWith('position/') ? path.substring(9) : path;
+  }
+
+  double resolveCoordinate(String key, Map<String, String>? coordinateMapping) {
+    final String? resolvedPath = _resolvePathWithMapping(key, coordinateMapping);
+    if (resolvedPath != null) {
       final dynamic val = _resolvePath(rawProperties, resolvedPath);
       if (val is num) {
         return val.toDouble();
@@ -76,12 +78,8 @@ class TopologyNodePosition {
   }
 
   List<double> resolveVector(String key, Map<String, String>? coordinateMapping) {
-    final String? path = coordinateMapping?[key];
-    if (path != null) {
-      String resolvedPath = path;
-      if (path.startsWith('position/')) {
-        resolvedPath = path.substring(9);
-      }
+    final String? resolvedPath = _resolvePathWithMapping(key, coordinateMapping);
+    if (resolvedPath != null) {
       final dynamic val = _resolvePath(rawProperties, resolvedPath);
       if (val is List) {
         return val.map((dynamic e) => (e as num).toDouble()).toList();
