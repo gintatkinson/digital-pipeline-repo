@@ -30,6 +30,14 @@ void main() {
     test('handles empty string', () {
       expect(sanitizeFrameName(''), '');
     });
+
+    test('strips ASCII control characters', () {
+      expect(sanitizeFrameName('test\x00name'), 'TESTNAME');
+      expect(sanitizeFrameName('test\nname'), 'TESTNAME');
+      expect(sanitizeFrameName('test\tname'), 'TESTNAME');
+      expect(sanitizeFrameName('test\x0bname'), 'TESTNAME');
+      expect(sanitizeFrameName('test\x7fname'), 'TESTNAME');
+    });
   });
 
   group('validateReferenceFrame', () {

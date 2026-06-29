@@ -83,6 +83,7 @@ class ReferenceFrameValidation {
 
 String sanitizeFrameName(String name) {
   var result = name.trim();
+  result = result.replaceAll(RegExp(r'[\x00-\x1f\x7f]'), '');
   if (result.toLowerCase().startsWith('the-')) {
     result = result.substring(4);
   }
