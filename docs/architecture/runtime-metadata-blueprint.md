@@ -1,617 +1,476 @@
-# Runtime Metadata Architecture Blueprint
+# Runtime Metadata Architecture Blueprint (v2)
 
-> Goal: Make the Flutter app fully metadata-driven — discovering all object types, properties, labels, icons, and validation rules at runtime with zero code changes when new object types are added to the data source.
+> Goal: Make the Flutter app fully metadata-driven — the client knows **nothing** at compile time. Every object type, field, icon, validation rule, section label, and relationship is discovered at runtime from the connected data source.
 
----
-
-## 1. Current Hardcoding Inventory
-
-| File | Hardcoded Data | Line(s) | Schema Field That Replaces It |
-|---|---|---|---|
-| `tree_node_widget.dart` | Icon mapping: `node.id` → `IconData` (switch/case on `Ingestion`, `Metrics`, `Location`, `Chassis`, `Epics`, `Traceability`) | 26–48 | `icon` (string) in hierarchy node JSON |
-| `tree_node.dart` | `TreeNode` model lacks `icon` and `type` fields | 2–11 | Add `icon` (String?) and `type` (String?) fields |
-| `layout_parser.dart` | `parseTreeHierarchy` ignores `icon` and `type` keys | 54–70 | Parse `icon` and `type` from JSON into `TreeNode` |
-| `property_grid.dart` | Section titles: `"Geodetic Coordinate Frame"` for group `"Location"`, `"Alternate Structural Grid Frame"` for group `"Alternate"` | 305–310 | `sectionLabel` in attribute JSON |
-| `property_grid.dart` | Section ordering: `sortedGroups` with switch/case prioritizing `"Location"` then `"Alternate"` | 281–287 | `sectionOrder` in attribute JSON (or section-level metadata) |
-| `property_grid.dart` | Active section logic: `if/else` checking `_sectionLocation`, `_sectionAlternate`, `_viewIngestion` | 301–303 | Generic algorithm: section active when `sectionGroup` matches `activeView` or any ancestor view |
-| `property_grid.dart` | Country-code formatters: `UpperCaseTextFormatter` + `LengthLimitingTextInputFormatter(2)` hardcoded for `_keyCountryCode` | 519–524 | `inputFormatters` like `"uppercase"`, `"maxLength": 2` in attribute JSON |
-| `property_grid.dart` | Constants: `_typeDouble`, `_typeInt`, `_typeEnum` | 48–50 | Use `attr.type` directly |
-| `property_defaults.dart` | `defaultFallbackInitialValues` — mock values for 10 fields | 7–18 | Delete entirely; fallback uses `attr.defaultValue` from schema |
-| `property_defaults.dart` | `defaultOptionDisplayNames` — display names for `locationType` enum values | 21–28 | `optionDisplayNames` map in each enum attribute's `options` array |
-| `property_defaults.dart` | `defaultShouldPair` — pairing rules for `gridRow/gridColumn`, `maxVoltage/maxAllocatedPower`, `countryCode/locationType` | 31–35 | `pairKey` or `pairedWith` attribute in attribute JSON |
-| `property_defaults.dart` | `defaultValidator` — hardcoded validation per key (`countryCode`, `locationType`, `maxVoltage`/`maxAllocatedPower`) | 38–89 | Delete; use `minValue`, `maxValue`, `regexPattern`, `isRequired` from attribute JSON |
-| `topology_map.dart` | Status colors: `activeStatusColor` = `colors.tertiary`, `warningStatusColor` = `colors.error` | 495–496 | `statusColorMapping` or `statusColor` in topology node data |
-| `topology_map.dart` | Node paint logic: `node.status == 'Active'` branch determines fill color | 640–646 | Use color from `statusColorMapping` keyed by `node.status` |
-| `table_view_widget.dart` | `testId` switch/case on `viewModel.tabId` | 31–35 | Use `tabId` directly or read from layout config |
-| `layout.dart` | Tab label fallbacks: `sub_elements_table` → `"Items"`, etc. | 185–188 | Read label from layout config's `props.label` |
+**Core realization**: A static `logical-layout.json` with more fields is just hardcoding in a different format. The app must discover all schemas at runtime because:
+- Multiple domains are supported (telco, air traffic control, fleet management)
+- Data sources are swappable at runtime (SQLite ↔ Firebase ↔ gRPC/Protobuf ↔ REST)
+- For gRPC/Protobuf, the `.proto` file **is** the metadata — no separate schema file needed
 
 ---
 
-## 2. Target Runtime Data Model
+## 1. Core Abstraction: TypeDescriptor
 
-### 2.1 Extended `logical-layout.json` Schema
-
-```json
-{
-  "$schema": "https://example.com/schemas/logical-layout-v2.json",
-  "meta": {
-    "version": "2.0.0",
-    "schema_name": "systems_topology_dashboard"
-  },
-  "theme": { /* unchanged */ },
-
-  "hierarchy": [
-    {
-      "id": "Ingestion",
-      "label": "Ingestion",
-      "icon": "play_arrow",
-      "type": "process",
-      "children": []
-    },
-    {
-      "id": "Monitoring",
-      "label": "Monitoring",
-      "icon": "monitoring",
-      "type": "category",
-      "children": [
-        {
-          "id": "Metrics",
-          "label": "Metrics",
-          "icon": "bar_chart",
-          "type": "collector"
-        },
-        {
-          "id": "Location",
-          "label": "Location",
-          "icon": "location_on",
-          "type": "collector"
-        },
-        {
-          "id": "Chassis",
-          "label": "Chassis",
-          "icon": "dns",
-          "type": "hardware"
-        },
-        {
-          "id": "Uptime",
-          "label": "Uptime",
-          "icon": "timer",
-          "type": "monitor"
-        }
-      ]
-    }
-  ],
-
-  "sections": [
-    {
-      "id": "Location",
-      "label": "Geodetic Coordinate Frame",
-      "order": 0,
-      "activeWhen": ["Location", "Ingestion"]
-    },
-    {
-      "id": "Alternate",
-      "label": "Alternate Structural Grid Frame",
-      "order": 1,
-      "activeWhen": []
-    },
-    {
-      "id": "interface",
-      "label": "Interface Configuration",
-      "order": 2,
-      "activeWhen": ["Network", "InterfaceConfig"]
-    },
-    {
-      "id": "state",
-      "label": "Interface State",
-      "order": 3,
-      "activeWhen": ["Network"]
-    }
-  ],
-
-  "attributes": [
-    {
-      "key": "interfaces/interface/name",
-      "label": "The name of the interface",
-      "type": "string",
-      "sectionGroup": "interface",
-      "isRequired": false
-    },
-    {
-      "key": "interfaces/interface/state/mtu",
-      "label": "The Maximum Transmission Unit",
-      "type": "int",
-      "sectionGroup": "state",
-      "isRequired": true,
-      "minValue": 68,
-      "maxValue": 9216
-    },
-    {
-      "key": "interfaces/interface/state/admin-status",
-      "label": "The administrative status of the interface",
-      "type": "enumeration",
-      "sectionGroup": "state",
-      "isRequired": false,
-      "options": [
-        { "value": "UP", "displayName": "Up" },
-        { "value": "DOWN", "displayName": "Down" }
-      ]
-    },
-    {
-      "key": "latitude",
-      "label": "Latitude",
-      "type": "double",
-      "sectionGroup": "Location",
-      "isRequired": false,
-      "minValue": -90,
-      "maxValue": 90
-    },
-    {
-      "key": "longitude",
-      "label": "Longitude",
-      "type": "double",
-      "sectionGroup": "Location",
-      "isRequired": false,
-      "minValue": -180,
-      "maxValue": 180
-    },
-    {
-      "key": "countryCode",
-      "label": "Country Code (ISO-2)",
-      "type": "string",
-      "sectionGroup": "Alternate",
-      "isRequired": false,
-      "regexPattern": "^[A-Z]{2}$",
-      "inputFormatters": {
-        "uppercase": true,
-        "maxLength": 2
-      }
-    },
-    {
-      "key": "gridRow",
-      "label": "Grid Row",
-      "type": "int",
-      "sectionGroup": "Alternate",
-      "isRequired": false,
-      "pairedWith": "gridColumn"
-    },
-    {
-      "key": "gridColumn",
-      "label": "Grid Column",
-      "type": "int",
-      "sectionGroup": "Alternate",
-      "isRequired": false,
-      "pairedWith": "gridRow"
-    },
-    {
-      "key": "maxVoltage",
-      "label": "Max Voltage (V)",
-      "type": "double",
-      "sectionGroup": "Alternate",
-      "isRequired": false,
-      "pairedWith": "maxAllocatedPower",
-      "minValue": 0
-    },
-    {
-      "key": "maxAllocatedPower",
-      "label": "Max Allocated Power (W)",
-      "type": "double",
-      "sectionGroup": "Alternate",
-      "isRequired": false,
-      "pairedWith": "maxVoltage",
-      "minValue": 0
-    }
-  ],
-
-  "viewTypeConfigs": {
-    "collector": {
-      "defaultIcon": "bar_chart",
-      "topologyStatusColors": {
-        "Active": "#4CAF50",
-        "Idle": "#FF9800",
-        "Warning": "#F44336",
-        "Offline": "#9E9E9E"
-      }
-    },
-    "process": {
-      "defaultIcon": "settings",
-      "topologyStatusColors": {
-        "Active": "#2196F3",
-        "Idle": "#FF9800",
-        "Warning": "#F44336"
-      }
-    }
-  }
-}
-```
-
-### 2.2 Attribute JSON — Extended Fields
-
-| Field | Type | Description | Replacement For |
-|---|---|---|---|
-| `key` | string | Attribute identifier | — |
-| `label` | string | Display label | — |
-| `type` | `"string"` \| `"int"` \| `"double"` \| `"enumeration"` | Data type | — |
-| `sectionGroup` | string | Section this attribute belongs to | — |
-| `sectionLabel` | string | Human-readable section title | Hardcoded `"Geodetic Coordinate Frame"` etc. |
-| `sectionOrder` | int | Position among sections | Hardcoded sort logic |
-| `isRequired` | bool | Required field flag | — |
-| `minValue` | number | Min constraint (numeric types) | Hardcoded validation |
-| `maxValue` | number | Max constraint (numeric types) | Hardcoded validation |
-| `regexPattern` | string | Regex validation (string types) | Hardcoded `defaultValidator` |
-| `options` | `[{value, displayName}]` | Enum options with display names | `defaultOptionDisplayNames` |
-| `pairedWith` | string | Key of paired sibling attribute | `defaultShouldPair` |
-| `inputFormatters` | `{uppercase?, maxLength?, ...}` | Client-side input formatting rules | Hardcoded country-code formatters |
-| `defaultValue` | any | Default value when none provided | `defaultFallbackInitialValues` |
-
-### 2.3 Hierarchy Node — Extended Fields
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique identifier |
-| `label` | string | Display label |
-| `icon` | string | Material icon name (e.g. `"bar_chart"`, `"location_on"`) |
-| `type` | string | Object type key (e.g. `"collector"`, `"process"`, `"category"`) |
-| `children` | `TreeNode[]` | Child nodes |
-
-### 2.4 Section Metadata — New Top-Level Array
-
-```json
-{
-  "sections": [
-    {
-      "id": "Location",
-      "label": "Geodetic Coordinate Frame",
-      "order": 0,
-      "activeWhen": ["Location"]
-    }
-  ]
-}
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Matches attribute `sectionGroup` |
-| `label` | string | Display title |
-| `order` | int | Sorting order among sections |
-| `activeWhen` | string[] | List of view IDs that activate this section; empty = always inactive unless the view ID matches directly |
-
-### 2.5 `viewTypeConfigs` — New Top-Level Object
-
-Maps `type` (from hierarchy node) to configuration:
-
-```json
-{
-  "viewTypeConfigs": {
-    "collector": {
-      "defaultIcon": "bar_chart",
-      "topologyStatusColors": {
-        "Active": "#4CAF50",
-        "Idle": "#FF9800"
-      }
-    }
-  }
-}
-```
-
-This replaces hardcoded topology status colors by letting each object type define its own color scheme keyed by `TopologyNode.status`.
-
----
-
-## 3. Widget Changes Required
-
-### 3.1 `tree_node_widget.dart` and `tree_node.dart`
-
-| Current | Target |
-|---|---|
-| `switch (node.id)` on 6 known IDs to select `IconData` | `TreeNode` has `icon` field (string); read it directly |
-| Imports `Icons.*` directly | Delegate to a `IconMapper` service: `IconMapper.resolve(node.icon)` returns `IconData` |
-| `TreeNode` has 3 fields: `id`, `label`, `children` | Add `icon` (String?) and `type` (String?) |
-
-### 3.2 `layout_parser.dart`
-
-| Current | Target |
-|---|---|
-| Only parses `id` and `label` from hierarchy nodes | Parse `icon`, `type` into `TreeNode` constructor |
-| Ignores `sections` array | Parse `sections` into a new `SectionDefinition` model |
-| Ignores `viewTypeConfigs` | Parse into a `ViewTypeConfig` map |
-
-### 3.3 `property_grid.dart`
-
-| Current | Target |
-|---|---|
-| `const _sectionLocation = 'Location'` and `_sectionAlternate = 'Alternate'` | Delete; sections are discovered from metadata |
-| `sortedGroups` with hardcoded priority: `"Location"` → `"Alternate"` → rest | Read `sectionOrder` from section metadata |
-| `if (group == _sectionLocation) title = 'Geodetic Coordinate Frame'` | Read `sectionLabel` from section metadata |
-| Active-section logic: `if/else` on `_sectionLocation`, `_sectionAlternate`, `_viewIngestion` | Generic algorithm (see §4) |
-| `_keyCountryCode` + hardcoded formatters | Read `inputFormatters` from attribute JSON |
-| `_typeDouble`, `_typeInt`, `_typeEnum` string constants | Use `attr.type` as-is |
-| `widget.shouldPair` (imported from `property_defaults.dart`) | Read `pairedWith` from attribute JSON, group adjacent paired fields |
-| `widget.validator` (imported from `property_defaults.dart`) | Delete; validation comes from `minValue`, `maxValue`, `regexPattern`, `isRequired` on each attribute |
-| `widget.optionDisplayNames` (imported from `property_defaults.dart`) | Delete; display names come from `options[].displayName` |
-| `widget.fallbackInitialValues` (imported from `property_defaults.dart`) | Delete; defaults come from `attr.defaultValue` |
-
-### 3.4 `property_defaults.dart`
-
-| Current | Target |
-|---|---|
-| Entire file (4 exported defaults) | **Delete** — all logic moved to attribute metadata |
-
-### 3.5 `topology_map.dart`
-
-| Current | Target |
-|---|---|
-| `TopologyPainterColors` has `activeStatusColor` and `warningStatusColor` as fixed `Color` fields | Accept a `statusColorMapping` parameter (e.g. `Map<String, Color>`) passed from metadata |
-| `node.status == 'Active' ? colors.activeStatusColor : colors.warningStatusColor` | `statusColorMapping[node.status] ?? fallbackColor` |
-| Colors hardcoded in `build()` at line 495–496 | Colors resolved from `viewTypeConfigs[viewType].topologyStatusColors` |
-
-### 3.6 `table_view_widget.dart`
-
-| Current | Target |
-|---|---|
-| `testId` switch/case on `viewModel.tabId` | Use `viewModel.tabId` directly as the key; delete switch/case |
-
-### 3.7 `layout.dart`
-
-| Current | Target |
-|---|---|
-| `_resolveTabLabel` with hardcoded fallbacks | Read `props.label` from layout config; fallback to `tabId` (already correct after loading) |
-| `dynamicAttributes` parsed from `_parsedLayout!['attributes']` | Also parse `sections` and `viewTypeConfigs`, pass them down |
-
-### 3.8 New: `icon_mapper.dart` (shared service)
+Each data source returns one `TypeDescriptor` per object type. The client renders whatever this tells it — there is zero hardcoded knowledge.
 
 ```dart
-class IconMapper {
-  static const Map<String, IconData> _materialIcons = {
-    'bar_chart': Icons.bar_chart,
-    'location_on': Icons.location_on,
-    'dns': Icons.dns,
-    'play_arrow': Icons.play_arrow,
-    'album': Icons.album,
-    'link': Icons.link,
-    'folder': Icons.folder,
-    'folder_open': Icons.folder_open,
-    'insert_drive_file': Icons.insert_drive_file,
-    'timer': Icons.timer,
-    'monitoring': Icons.monitoring,
-    'settings': Icons.settings,
-    'security': Icons.security,
-    'storage': Icons.storage,
-    'network': Icons.network,
-    // ... extend as needed
-  };
-
-  static IconData resolve(String? iconName) {
-    if (iconName == null) return Icons.insert_drive_file;
-    return _materialIcons[iconName] ?? Icons.insert_drive_file;
-  }
+/// Describes one object type known to the connected data source.
+/// The client uses this to render trees, property forms, tables, and graphs.
+abstract class TypeDescriptor {
+  String get typeName;          // "Chassis", "Sensor", "FlightRoute"
+  String get displayName;       // "Chassis", "Sensor", "Flight Route"
+  IconData get icon;            // Icon resolved at runtime
+  List<FieldDescriptor> get fields;
+  List<TypeRelationDescriptor> get childTypes;   // tree hierarchy
+  List<TypeRelationDescriptor> get parentTypes;   // reverse hierarchy
 }
-```
 
-### 3.9 New: `section_definition.dart` (model)
-
-```dart
-class SectionDefinition {
-  final String id;
+class FieldDescriptor {
+  final String key;
   final String label;
-  final int order;
-  final List<String> activeWhen;
+  final FieldType type;             // string, int, double, enum, date, bool
+  final String? sectionLabel;       // UI grouping: "Power", "Location"
+  final int sectionOrder;
+  final bool required;
+  final num? minValue;
+  final num? maxValue;
+  final String? pattern;            // regex validation
+  final List<String>? enumOptions;
+  final List<String>? enumDisplayNames;
+  final dynamic defaultValue;
+  final List<InputFormatterDescriptor>? inputFormatters;
+}
 
-  const SectionDefinition({
-    required this.id,
-    required this.label,
-    required this.order,
-    this.activeWhen = const [],
-  });
+class TypeRelationDescriptor {
+  final String relationName;        // "contains", "connected_to", "depends_on"
+  final String targetTypeName;      // "Sensor", "Router", "RadarUnit"
+  final String displayLabel;        // "Sensors", "Connected Routers"
+}
 
-  factory SectionDefinition.fromJson(Map<String, dynamic> json) {
-    return SectionDefinition(
-      id: json['id'] as String,
-      label: json['label'] as String,
-      order: json['order'] as int? ?? 0,
-      activeWhen: (json['activeWhen'] as List<dynamic>?)
-              ?.map((e) => e as String).toList() ??
-          [],
-    );
-  }
+enum FieldType { string, int, double, enum_, date, bool }
+
+class InputFormatterDescriptor {
+  final String formatter;           // "uppercase", "maxLength", "prefix"
+  final dynamic value;
 }
 ```
 
-### 3.10 Updated `AttributeDefinition` (model)
+### What TypeDescriptor eliminates
 
-Add fields:
+| Current hardcoding | TypeDescriptor replacement |
+|---|---|
+| `switch(node.id)` for icons in `tree_node_widget.dart:26-48` | `typeDescriptor.icon` |
+| `_sectionLocation` / `_sectionAlternate` if/else in `property_grid.dart:45-46,301-303` | `fieldDescriptor.sectionLabel` + `sectionOrder` |
+| `defaultValidator` in `property_defaults.dart:38-89` | `fieldDescriptor.minValue` / `maxValue` / `pattern` / `required` |
+| `defaultShouldPair` in `property_defaults.dart:31-35` | Not needed — sections group fields; pairing is a UI concern the generic renderer handles by adjacency |
+| `defaultFallbackInitialValues` in `property_defaults.dart:7-18` | `fieldDescriptor.defaultValue` |
+| `defaultOptionDisplayNames` in `property_defaults.dart:21-28` | `fieldDescriptor.enumOptions` + `enumDisplayNames` |
+| `_keyCountryCode` formatter in `property_grid.dart:519-524` | `fieldDescriptor.inputFormatters` |
+| `_typeDouble` / `_typeInt` / `_typeEnum` in `property_grid.dart:48-50` | `fieldDescriptor.type` directly |
+
+---
+
+## 2. DataSource Abstraction
 
 ```dart
-class AttributeDefinition {
-  // Existing fields...
-  final String? pairedWith;
-  final Map<String, dynamic>? inputFormatters;
-  final List<OptionDefinition>? options;  // replaces List<String>?
-}
+/// Abstract interface for a data source that provides type metadata
+/// and CRUD operations. Implementations are swappable at runtime.
+abstract class DataSource {
+  String get name;                              // "sqlite", "firebase", "grpc", "rest"
 
-class OptionDefinition {
-  final String value;
+  /// Discover every object type this data source knows about.
+  Future<List<TypeDescriptor>> discoverTypes();
+
+  /// Get the TypeDescriptor for a single type.
+  Future<TypeDescriptor> typeFor(String typeName);
+
+  /// Fetch property values for one instance.
+  Future<Map<String, dynamic>> fetchProperties(
+    String typeName, String instanceId);
+
+  /// Fetch child instances linked via [relationName].
+  Future<List<Map<String, dynamic>>> fetchChildren(
+    String typeName, String parentId, String relationName);
+
+  /// Persist property values.
+  Future<void> saveProperties(
+    String typeName, String instanceId, Map<String, dynamic> data);
+
+  /// Reactive stream of property changes.
+  Stream<Map<String, dynamic>> watchProperties(
+    String typeName, String instanceId);
+}
+```
+
+### Relationship to existing AbstractRepository
+
+The current `AbstractRepository` (`app_flutter/lib/domain/repository.dart`) operates on opaque `nodeId` strings and has no concept of types. The `DataSource` supersedes it by adding:
+
+- **Type awareness** — every operation is scoped to a `typeName`
+- **Schema discovery** — `discoverTypes()` / `typeFor()`
+- **Named relations** — `fetchChildren()` replaces generic `fetchElements()`
+
+The `DataSource` interface will be implemented by adapters that wrap the existing `SqliteRepositoryAdapter` (or Firebase, gRPC, REST equivalents). The old `AbstractRepository` is either absorbed into the `DataSource` or kept as a backward-compatibility shim during migration.
+
+---
+
+## 3. Architecture Diagram
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      DataSource (pluggable)                       │
+│                                                                   │
+│  SqliteDataSource  ──  FirebaseDataSource  ──  GrpcDataSource     │
+│  discoverTypes() ─── typeFor() ─── CRUD ─── watchProperties()     │
+└──────────────────────────┬───────────────────────────────────────┘
+                           │
+                           ▼
+                TypeDescriptor[]
+                 │       │        │
+          ┌──────┘       │        └──────────┐
+          ▼              ▼                   ▼
+   TreeViewModel   PropertyViewModel   TablesViewModel
+   reads childTypes reads fields        reads childTypes
+   renders ANY tree renders ANY form    renders ANY table
+          │              │                   │
+          ▼              ▼                   ▼
+   TreeNodeWidget   PropertyGrid        TableViewWidget
+   (no switch)      (no if/else)         (no hardcoded IDs)
+
+   TopologyViewModel reads links → renders ANY graph
+```
+
+### Data flow
+
+```
+App starts
+  │
+  ├── 1. Select DataSource (DI / config file / env var)
+  │
+  ├── 2. dataSource.discoverTypes() → TypeDescriptor[]
+  │     │
+  │     ├── typeName: "Chassis"
+  │     ├── icon: Icons.dns
+  │     ├── fields: [FieldDescriptor(key:"maxVoltage", type:double, ...), ...]
+  │     ├── childTypes: [TypeRelation(relation:"contains", targetType:"Sensor"), ...]
+  │     └── parentTypes: [TypeRelation(relation:"contained_by", targetType:"Rack"), ...]
+  │
+  ├── 3. TypeDescriptor[] → build tree (TreeViewModel)
+  │     │
+  │     └── TreeNode.icon ← typeDescriptor.icon  (no switch)
+  │
+  ├── 4. User selects node → typeDescriptor.fields → PropertyGrid
+  │     │
+  │     └── sectionLabel / sectionOrder / validation / formatters ← FieldDescriptor
+  │
+  └── 5. User navigates to child table → typeDescriptor.childTypes → table columns
+```
+
+---
+
+## 4. Current Architecture Gaps
+
+### `app_flutter/lib/features/tree/tree_node_widget.dart`
+
+| Current | Problem | TypeDescriptor fix |
+|---|---|---|
+| `switch (node.id)` on 6 hardcoded IDs (`Ingestion`, `Metrics`, `Location`, `Chassis`, `Epics`, `Traceability`) to pick `IconData` (lines 26-48) | New object types require code changes + recompile | `typeDescriptor.icon` — every type knows its own icon |
+| Parent nodes get `Icons.folder` / `Icons.folder_open` (lines 23-24) | Assumes all expandable nodes are folders | `typeDescriptor.icon` applies uniformly; parent/child distinction is a tree-state concern, not icon concern |
+
+### `app_flutter/lib/features/properties/property_grid.dart`
+
+| Current | Problem | TypeDescriptor fix |
+|---|---|---|
+| `const _sectionLocation = 'Location'`, `_sectionAlternate = 'Alternate'` (lines 45-46) | Hardcodes domain-specific section IDs | Sections are derived from `FieldDescriptor.sectionLabel`; no named constants needed |
+| `sortedGroups` sort with if/else prioritizing `Location` > `Alternate` (lines 281-287) | Sort order cannot be configured per data source | `fieldDescriptor.sectionOrder` — sort numerically, no branches |
+| Active section logic: `if/else` on `_sectionLocation`, `_sectionAlternate`, `_viewIngestion` (lines 301-303) | Cannot handle new sections from a different domain | Section visibility is a render-time decision driven purely by section metadata; see generic algorithm in §3 of old blueprint (the `isSectionActive` logic remains valid, just driven by `FieldDescriptor.sectionLabel` instead of hardcoded group names) |
+| Hardcoded `_keyCountryCode` formatters: `UpperCaseTextFormatter` + `LengthLimitingTextInputFormatter(2)` (lines 519-524) | Per-field formatters baked into widget | `fieldDescriptor.inputFormatters` describes formatters generically |
+| `_typeDouble`, `_typeInt`, `_typeEnum` string constants (lines 48-50) | Redundant indirection | Use `fieldDescriptor.type` directly |
+| `widget.shouldPair` default from `property_defaults.dart` (line 38+) | Pairing rules hardcoded per domain | Paired rendering is a UI decision based on section adjacency — no `shouldPair` needed when sections already group logically related fields |
+
+### `app_flutter/lib/features/properties/property_defaults.dart`
+
+| Current | Problem | TypeDescriptor fix |
+|---|---|---|
+| `defaultFallbackInitialValues` — 10 hardcoded mock values (lines 7-18) | Domain-specific defaults baked into code | `fieldDescriptor.defaultValue` from each data source |
+| `defaultOptionDisplayNames` — display names for `locationType` enum (lines 21-28) | Enum display names hardcoded | `fieldDescriptor.enumDisplayNames` |
+| `defaultShouldPair` — static pairing rules for `gridRow/gridColumn`, `maxVoltage/maxAllocatedPower`, `countryCode/locationType` (lines 31-35) | Pairing logic cannot be extended for new types | Eliminated — sections group fields by `sectionLabel`; paired display is a generic layout optimization |
+| `defaultValidator` — validation per key (`countryCode`, `locationType`, `maxVoltage`/`maxAllocatedPower`) (lines 38-89) | Validation rules hardcoded per domain | `fieldDescriptor.minValue` / `maxValue` / `pattern` / `required` |
+| **Entire file** must be deleted | — | — |
+
+### `app_flutter/lib/domain/schema.dart`
+
+| Current | Problem | TypeDescriptor fix |
+|---|---|---|
+| `AttributeDefinition` is a compile-time model with domain-specific `defaultCoordinateAttributes` const list (lines 57-129) | The schema is baked into the binary | `FieldDescriptor` replaces `AttributeDefinition`; no const lists — all schemas come from `DataSource.discoverTypes()` |
+| `options` is `List<String>?` (line 5) — no display names | Lossy — cannot show user-friendly labels | `FieldDescriptor.enumOptions` + `enumDisplayNames` |
+| No `sectionLabel`, `sectionOrder`, `pairedWith`, `inputFormatters`, `defaultValue` | Missing metadata that forced hardcoded workarounds | All present in `FieldDescriptor` |
+
+### `app_flutter/lib/domain/repository.dart`
+
+| Current | Problem | DataSource fix |
+|---|---|---|
+| `fetchProperties(String nodeId)` — no type awareness | Tree could mix Sensors and Chassis; properties are fetched blind | `dataSource.fetchProperties(typeName, instanceId)` — scoped by type |
+| `fetchElements(String parentNodeId)` — generic child fetch | No way to distinguish "contains" vs "connected_to" vs "depends_on" | `dataSource.fetchChildren(typeName, parentId, relationName)` — named relations |
+| No schema discovery methods | Client cannot know what fields exist | `dataSource.discoverTypes()` + `typeFor()` |
+
+### `app_flutter/lib/features/layout/layout.dart`
+
+| Current | Problem | DataSource fix |
+|---|---|---|
+| `_resolveTabLabel` with hardcoded fallbacks (lines 185-188) | Tab labels baked into code | Tab labels come from `TypeRelationDescriptor.displayLabel` or data source |
+| `_buildChildWidget` parses `attributes` from `_parsedLayout` (lines 294-304) | Schema comes from JSON, not the data source | Properties view reads `typeDescriptor.fields` from the connected data source |
+| Entire layout assumes `logical-layout.json` is the single source of truth | JSON is just hardcoding in a different format | `DataSource` is the single source of truth; `logical-layout.json` is demoted to a layout-only config (position, sizing, split ratios) with no domain schema |
+
+### `app_flutter/lib/features/layout/component_factory.dart`
+
+| Current | Problem | DataSource fix |
+|---|---|---|
+| `TableView` hardcodes `AbstractRepository` (line 134) | No type awareness for table columns | Table ViewModel reads `typeDescriptor.fields` for column definitions |
+| No dynamic widget dispatch per type | Every view expects same schema shape | ComponentFactory can use `typeDescriptor.typeName` to select specialized views if needed |
+
+---
+
+## 5. Data Source Implementations (Conceptual)
+
+### 5.1 SQLite
+
+The SQLite database contains dedicated metadata tables that the data source queries to build `TypeDescriptor` instances:
+
+```sql
+-- Metadata tables (new)
+CREATE TABLE type_definitions (
+  type_name       TEXT PRIMARY KEY,
+  display_name    TEXT NOT NULL,
+  icon_name       TEXT NOT NULL        -- Material icon name
+);
+
+CREATE TABLE type_attributes (
+  id              INTEGER PRIMARY KEY,
+  type_name       TEXT NOT NULL REFERENCES type_definitions(type_name),
+  key             TEXT NOT NULL,
+  label           TEXT NOT NULL,
+  field_type      TEXT NOT NULL,        -- "string", "int", "double", "enum", "date", "bool"
+  section_label   TEXT,
+  section_order   INTEGER DEFAULT 0,
+  is_required     INTEGER DEFAULT 0,
+  min_value       REAL,
+  max_value       REAL,
+  pattern         TEXT,
+  enum_options    TEXT,                 -- JSON array or comma-separated
+  enum_display_names TEXT,              -- JSON map
+  default_value   TEXT,
+  input_formatters TEXT,                -- JSON array of formatter descriptors
+  FOREIGN KEY (type_name) REFERENCES type_definitions(type_name)
+);
+
+CREATE TABLE type_relations (
+  id              INTEGER PRIMARY KEY,
+  parent_type     TEXT NOT NULL,
+  relation_name   TEXT NOT NULL,
+  child_type      TEXT NOT NULL,
+  display_label   TEXT NOT NULL,
+  FOREIGN KEY (parent_type) REFERENCES type_definitions(type_name),
+  FOREIGN KEY (child_type) REFERENCES type_definitions(type_name)
+);
+```
+
+```dart
+class SqliteTypeDescriptor implements TypeDescriptor {
+  final String typeName;
   final String displayName;
+  final IconData icon;
+  final List<FieldDescriptor> fields;
+  final List<TypeRelationDescriptor> childTypes;
+  final List<TypeRelationDescriptor> parentTypes;
+
+  SqliteTypeDescriptor.fromDb(Map<String, dynamic> row, List<FieldDescriptor> fields,
+      List<TypeRelationDescriptor> childTypes, List<TypeRelationDescriptor> parentTypes)
+      : typeName = row['type_name'],
+        displayName = row['display_name'],
+        icon = IconMapper.resolve(row['icon_name']),
+        fields = fields,
+        childTypes = childTypes,
+        parentTypes = parentTypes;
+}
+
+class SqliteDataSource implements DataSource {
+  final Database db;
+
+  @override
+  Future<List<TypeDescriptor>> discoverTypes() async {
+    final typeRows = await db.query('type_definitions');
+    final descriptors = <TypeDescriptor>[];
+    for (final row in typeRows) {
+      descriptors.add(await _buildDescriptor(row['type_name']));
+    }
+    return descriptors;
+  }
+
+  Future<TypeDescriptor> _buildDescriptor(String typeName) async {
+    // Query type_attributes + type_relations → build TypeDescriptor
+  }
+  // ... fetchProperties, saveProperties, watchProperties ...
 }
 ```
 
----
+**Existing data tables** (`properties`, `elements`, `alarms`, `events`) remain unchanged — they store instance data. The new `type_definitions`, `type_attributes`, and `type_relations` tables store the schema that was previously hardcoded or in `logical-layout.json`.
 
-## 4. Generic Section Display Logic
-
-### Problem
-
-The current code (`property_grid.dart:301-303`) hardcodes which sections are active:
+### 5.2 Firebase
 
 ```dart
-final bool isActive = (group == _sectionLocation && (widget.activeView == _sectionLocation || widget.activeView == _viewIngestion)) ||
-                     (group == _sectionAlternate && widget.activeView != _sectionLocation && widget.activeView != _viewIngestion) ||
-                     (group != _sectionLocation && group != _sectionAlternate && widget.activeView == group);
-```
+class FirebaseDataSource implements DataSource {
+  final FirebaseFirestore firestore;
 
-This cannot handle new sections with new active-view rules.
-
-### Algorithm
-
-Replace with a function that works for any set of sections and any view:
-
-```
-function isSectionActive(section, currentView):
-    // Rule 1: If section.activeWhen is empty, only activate when
-    //         currentView == section.id
-    if section.activeWhen is empty:
-        return currentView == section.id
-
-    // Rule 2: If section.activeWhen is non-empty, activate when
-    //         currentView is in section.activeWhen OR any ancestor
-    //         of currentView (based on hierarchy) is in section.activeWhen
-    return isCurrentViewOrAncestorIn(currentView, section.activeWhen)
-```
-
-Implementation in Dart:
-
-```dart
-/// Returns `true` if [section] should appear active given [currentView].
-///
-/// A section is active if:
-///   - Its `activeWhen` list contains [currentView] OR any ancestor view ID
-///     (discovered by walking up the hierarchy tree).
-///   - If `activeWhen` is empty, only activates when [currentView] == section.id.
-bool isSectionActive(
-  SectionDefinition section,
-  String currentView,
-  Map<String, List<String>> ancestorMap,
-) {
-  if (section.activeWhen.isEmpty) {
-    return currentView == section.id;
+  @override
+  Future<List<TypeDescriptor>> discoverTypes() async {
+    final snapshot = await firestore.collection('schema/types').get();
+    return snapshot.docs.map((doc) => FirebaseTypeDescriptor.fromFirestore(doc)).toList();
   }
-  if (section.activeWhen.contains(currentView)) return true;
 
-  // Check ancestor chain
-  final ancestors = ancestorMap[currentView] ?? [];
-  for (final ancestor in ancestors) {
-    if (section.activeWhen.contains(ancestor)) return true;
-  }
-  return false;
+  // Each type document in Firestore:
+  // collection("schema").document("Chassis") → {
+  //   displayName: "Chassis",
+  //   icon: "dns",
+  //   fields: [
+  //     { key: "maxVoltage", label: "Max Voltage (V)", fieldType: "double", ... }
+  //   ],
+  //   childTypes: [
+  //     { relationName: "contains", targetType: "Sensor", displayLabel: "Sensors" }
+  //   ]
+  // }
 }
 ```
 
-The `ancestorMap` is built once from the hierarchy tree by walking parent-child relationships.
-
-### Section Ordering
+### 5.3 gRPC / Protobuf
 
 ```dart
-sections.sort((a, b) => a.order.compareTo(b.order));
-```
+class GrpcDataSource implements DataSource {
+  // Uses protobuf reflection or FileDescriptorSet to build TypeDescriptors.
+  //
+  // The .proto file defines the schema:
+  //   message Chassis {
+  //     string id = 1;
+  //     double max_voltage = 2 [(constraint) = "min:0, max:10000"];
+  //     double max_allocated_power = 3 [(constraint) = "min:0"];
+  //     string country_code = 4 [(validate) = "regex:^[A-Z]{2}$"];
+  //     LocationType location_type = 5;
+  //   }
+  //
+  // Proto field types → FieldType enum
+  // Proto custom options → minValue, maxValue, pattern, etc.
+  // Proto oneof / enum → FieldType.enum_ with options
+  // Message nesting → childTypes
 
-No more `if (a == _sectionLocation) return -1` — sections are ordered purely by their `order` field.
-
----
-
-## 5. Icon Mapping Scheme
-
-### Approach: Named Material Icon Strings
-
-Every Flutter Material icon has a name (e.g. `Icons.bar_chart` → `"bar_chart"`). We maintain a static `Map<String, IconData>` in a shared `IconMapper` class.
-
-```dart
-class IconMapper {
-  static const Map<String, IconData> _icons = {
-    'bar_chart': Icons.bar_chart,
-    'location_on': Icons.location_on,
-    'dns': Icons.dns,
-    'play_arrow': Icons.play_arrow,
-    'album': Icons.album,
-    'link': Icons.link,
-    'folder': Icons.folder,
-    'folder_open': Icons.folder_open,
-    'insert_drive_file': Icons.insert_drive_file,
-    'timer': Icons.timer,
-    'monitoring': Icons.monitoring_,
-    'settings': Icons.settings,
-    'security': Icons.security,
-    'storage': Icons.storage,
-    'network': Icons.lan,
-  };
-
-  static IconData resolve(String? iconName, {IconData fallback = Icons.insert_drive_file}) {
-    if (iconName == null) return fallback;
-    return _icons[iconName] ?? fallback;
+  @override
+  Future<TypeDescriptor> typeFor(String typeName) async {
+    final descriptor = _pool.findMessageByName(typeName);
+    return ProtoTypeDescriptor(descriptor);
   }
 }
 ```
 
-**Conventions for icon names in JSON:**
-- Use the snake_case name from `Icons.xxx` (e.g. `Icons.location_on` → `"location_on"`)
-- For reserved words, use trailing underscore if needed (e.g. `Icons.switch_` → `"switch_"`)
-- The mapper is a single source of truth that every widget imports
+**Key insight**: The `.proto` file **is** the metadata. Field names, types, relationships, and even constraints (via custom proto options) are all defined in the protobuf schema. No parallel JSON schema is needed.
 
-**Fallback chain:**
-1. Hierarchy node's `icon` field → `IconMapper.resolve()`
-2. If `icon` is null, use `viewTypeConfigs[node.type].defaultIcon`
-3. If still null, use `Icons.insert_drive_file`
+### 5.4 REST
+
+```dart
+class RestDataSource implements DataSource {
+  final HttpClient client;
+  final String baseUrl;
+
+  @override
+  Future<List<TypeDescriptor>> discoverTypes() async {
+    final response = await client.get('$baseUrl/api/schema/types');
+    // Expects JSON Schema or custom schema format:
+    // GET /api/schema/types → {
+    //   "types": [
+    //     {
+    //       "typeName": "Chassis",
+    //       "displayName": "Chassis",
+    //       "icon": "dns",
+    //       "fields": [...],
+    //       "childTypes": [...]
+    //     }
+    //   ]
+    // }
+    return response.types.map((t) => RestTypeDescriptor.fromJson(t)).toList();
+  }
+}
+```
 
 ---
 
 ## 6. Migration Strategy
 
-### Phase 1: Schema Extension (no behavioral changes)
+Each phase is independently testable — the app never enters a state where it depends on metadata that hasn't been deployed.
 
-1. Add new fields to `logical-layout.json`:
-   - `icon` and `type` to hierarchy nodes
-   - `sectionLabel`, `sectionOrder`, `pairedWith`, `inputFormatters`, `options[].displayName` to attributes
-   - `sections` array
-   - `viewTypeConfigs` object
-2. Add `SectionDefinition` model class
-3. Add `OptionDefinition` model class  
-4. Extend `TreeNode` with `icon` and `type` fields
-5. Extend `AttributeDefinition` with new optional fields
-6. Update `layout_parser.dart` to parse new fields
-7. **All existing defaults remain in place** — widgets still use old hardcoded paths.
+### Phase 1: Define abstractions (no behavior change)
 
-**Test:** App runs identically; JSON validates with the new fields present.
+1. Create `TypeDescriptor`, `FieldDescriptor`, `TypeRelationDescriptor`, `DataSource` as pure abstract classes in `lib/domain/`
+2. Create `IconMapper` service (as already described in v1 blueprint) — a static map from string to `IconData`
+3. **Test**: Compiles, zero behavioral change, all existing tests pass
 
-### Phase 2: Icon Mapper (tree node icons become dynamic)
+### Phase 2: Implement SqliteTypeDescriptor + DB schema
 
-1. Create `IconMapper` shared service
-2. Update `tree_node_widget.dart` to use `IconMapper.resolve(node.icon)` instead of switch/case
-3. Remove the hardcoded switch/case
-4. Pass `icon` values in the JSON
-5. **Test:** Each tree node renders the correct icon from JSON. If `icon` is missing/null, falls back to `Icons.insert_drive_file`.
+1. Create `type_definitions`, `type_attributes`, `type_relations` tables in SQLite
+2. Write seed migration that populates them from the current `logical-layout.json` + hardcoded `defaultCoordinateAttributes`
+3. Implement `SqliteTypeDescriptor` and `SqliteDataSource`
+4. **Test**: `SqliteDataSource.discoverTypes()` returns a `TypeDescriptor` for each type; the result matches what was previously hardcoded
 
-### Phase 3: Section Metadata (property grid sections become dynamic)
+### Phase 3: Wire TypeDescriptor into ViewModels (one at a time)
 
-1. Pass parsed `sections` into `PropertyGrid`
-2. Replace hardcoded section titles with `section.label`
-3. Replace hardcoded sort logic with `section.order`
-4. Implement generic `isSectionActive()` function (see §4)
-5. Remove `_sectionLocation`, `_sectionAlternate` constants and all if/else
-6. **Test:** Sections render with correct titles, in correct order, with correct active/inactive state — for both old views and new views defined only in JSON.
+Each ViewModel currently reads from hardcoded sources. Replace with reads from `TypeDescriptor`:
 
-### Phase 4: Attribute Validation (property_defaults.dart deletion)
+#### 3a. TreeViewModel
+- Add `List<TypeDescriptor>` to `TreeViewModel`
+- Replace `switch(node.id)` icon resolution with `typeDescriptor.icon` via `IconMapper`
+- **Test**: Tree renders identical icons, but icons now come from the data source
 
-1. Validation already works for `minValue`, `maxValue`, `regexPattern`, `isRequired` (code exists in `_validateField`)
-2. Remove `widget.validator` default — delete `defaultValidator` from `property_defaults.dart`
-3. Remove `widget.shouldPair` default — implement pairing from `pairedWith` attribute field
-4. Remove `widget.optionDisplayNames` default — read display names from `options[].displayName`
-5. Remove `widget.fallbackInitialValues` default — use `attr.defaultValue`
-6. Remove `_keyCountryCode` hardcoded formatter — implement via `inputFormatters` metadata
-7. **Delete `property_defaults.dart`** entirely
-8. **Test:** All existing validations (range, required, regex, pairing, enum display) work from JSON alone.
+#### 3b. PropertyViewModel (replaces PropertiesService + PropertyGrid defaults)
+- Read `typeDescriptor.fields` instead of `defaultCoordinateAttributes`
+- Replace hardcoded section titles and sort order with `fieldDescriptor.sectionLabel` / `sectionOrder`
+- Implement generic `isSectionActive()` algorithm (as described in v1 §4)
+- Replace `defaultValidator` with `fieldDescriptor.minValue/maxValue/pattern/required`
+- Replace `defaultFallbackInitialValues` with `fieldDescriptor.defaultValue`
+- Replace `defaultOptionDisplayNames` with `fieldDescriptor.enumDisplayNames`
+- Replace `_keyCountryCode` formatters with `fieldDescriptor.inputFormatters`
+- Delete `property_defaults.dart`
+- **Test**: Property form renders identically for existing types; adding a new type in DB produces a correct form with zero code changes
 
-### Phase 5: Topology Status Colors
+#### 3c. TablesViewModel
+- Read `typeDescriptor.childTypes` to determine table columns
+- Replace hardcoded `testId` switch/case
+- **Test**: Table columns match the data source schema
 
-1. Parse `viewTypeConfigs` in layout
-2. For each topology node, look up its type's `topologyStatusColors` map
-3. Replace hardcoded `activeStatusColor`/`warningStatusColor` with dynamic lookup
-4. **Test:** Topology node colors match the JSON configuration.
+### Phase 4: Connect DataSource to AbstractRepository
 
-### Phase 6: Cleanup
+1. Add a `DataSource` field to `Layout` (or inject it via DI)
+2. Have `SqliteDataSource` wrap the existing `SqliteRepositoryAdapter`
+3. Replace direct `AbstractRepository` calls with `DataSource` calls in ViewModels
+4. Remove the `attributes` array from `logical-layout.json` — schema now comes from `DataSource.discoverTypes()`
+5. Keep `logical-layout.json` only for layout structure (position, sizing, split ratios)
+6. **Test**: Full regression — app runs identically, but schema comes from the database
 
-1. Remove `table_view_widget.dart` hardcoded switch/case
-2. Remove `layout.dart` hardcoded tab label fallbacks
-3. Remove any remaining `_typeDouble`/`_typeInt`/`_typeEnum` constants (use `attr.type` directly)
-4. **Test:** Full regression — no hardcoded display data remains.
+### Phase 5: Firebase implementation (swappability proof)
+
+1. Implement `FirebaseDataSource` using the same `DataSource` interface
+2. Create a switch at app startup: read `DataSource` type from config
+3. **Test**: App launches with Firebase backend, discovers types from Firestore, renders identical UI
+
+### Phase 6: gRPC / Protobuf implementation
+
+1. Implement `GrpcDataSource` using protobuf reflection
+2. **Test**: App connects to a gRPC endpoint, discovers types from `.proto` descriptors, renders identical UI
+3. Optional: add REST implementation similarly
+
+### Phase 7: Cleanup
+
+1. Remove `property_defaults.dart` (if not already removed in Phase 3b)
+2. Remove `defaultCoordinateAttributes` from `schema.dart`
+3. Remove `_typeDouble`, `_typeInt`, `_typeEnum` from `property_grid.dart`
+4. Remove layout-parser schema parsing from `layout.dart` / `layout_parser.dart`
+5. **Test**: No hardcoded domain data remains in the codebase
 
 ---
 
@@ -621,31 +480,28 @@ class IconMapper {
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| `icon` field missing from existing hierarchy nodes | Tree nodes display fallback icon | Phase 2 — `IconMapper.resolve()` uses `Icons.insert_drive_file` fallback. Also accept `Icons.folder`/`Icons.folder_open` for parent nodes. |
-| `sections` array absent from JSON | Property grid shows no sections | Default to grouping attributes by `sectionGroup` alphabetically if no `sections` data. Old behavior preserved. |
-| `activeWhen` field missing from section | All sections appear inactive | Default `activeWhen` to `[section.id]` if absent; or treat empty as "match any view". |
-| `section.label` missing | Section shows `section.id + " Section"` fallback | Same as current behavior. |
-| `viewTypeConfigs` missing | Topology colors fall back to defaults | `TopologyPainterColors` keeps existing fixed colors as default. |
-| `pairedWith` attribute points to nonexistent key | Pairing silently ignored | Validate at parse time; log warning, skip invalid pairs. |
-| Enum `options` use old string-only format | Crash at fromJson | Accept both formats: `["a", "b"]` (old) and `[{"value": "a", "displayName": "A"}]` (new). |
-| New object type added to JSON without corresponding `type` in `viewTypeConfigs` | Topology colors use default | Use a global default color map as fallback. |
-| `regexPattern` is invalid regex | Crash on field validation | Wrap `RegExp` creation in try-catch; treat unparseable patterns as no constraint. |
-| `inputFormatters` uses unknown formatter name | Formatter silently skipped | Log warning + skip. |
+| `DataSource.discoverTypes()` returns empty list | App shows empty tree, no properties | Default to a minimal fallback `TypeDescriptor` (one "Unknown" type) or show a "no data source" screen |
+| `FieldDescriptor.enumOptions` vs old `options` string list mismatch | Enum fields render with no options | `FieldDescriptor` accepts both formats at construction; provide a static `fromLegacyAttributes(List<String>)` factory |
+| `AbstractRepository` consumers not yet migrated | Broken property loading | Phase 3/4 keeps both paths alive via a facade that delegates to `DataSource` when available, falls back to `AbstractRepository` |
+| `logical-layout.json` `attributes` array removed before ViewModels are migrated | Property grid shows no fields | Remove `attributes` from JSON only at Phase 4, after ViewModels read from `DataSource` |
+| Tree icons change visually during migration | UX regression | Phase 3a seeds `IconMapper` with the same icon names already used in the hardcoded switch — no visual change |
+| DB migration of type_definitions table fails | App starts with no schema | Seed the migration from `logical-layout.json` at first launch; version the schema and fall back to the embedded JSON if DB tables are empty |
+| gRPC `.proto` custom options for validation (min, max, regex) are not standard protobuf | Constraints are invisible | Define a well-known custom option proto (`validate.proto`) and document it; if absent, no constraint is applied (graceful degradation) |
+| Multiple data sources active simultaneously | Confusion about which source provides schema | The app selects one `DataSource` at startup via DI / config; future work could merge multiple sources |
+| `FieldDescriptor.sectionLabel` is null | Field appears in an unnamed section | Group into an "Other" section sorted last |
 
-### 7.2 Backward Compatibility Strategy
+### 7.2 Performance
 
-- All new JSON fields are **optional**.
-- The app loads the `meta.version` field; if `version` is `"1.0.0"`, run in strict backward-compatible mode (use all old hardcoded defaults).
-- Each widget reads its metadata and falls back to the old behavior when the metadata is absent.
-- Phase-by-phase rollout means each change is independently testable — the app never enters a state where it depends on metadata that hasn't been deployed yet.
+| Concern | Assessment |
+|---|---|
+| `discoverTypes()` queries on every startup | DB or Firestore query for N types is O(N) with small N (<100 types); negligible. Cache in memory after first load |
+| `IconMapper` resolution | Static map lookup O(1); no runtime overhead |
+| `TypeDescriptor` object count | One per object type, not per instance — minimal memory |
+| gRPC reflection for schema | Proto reflection is a small RPC call; cache the FileDescriptorSet after discovery |
 
-### 7.3 Performance Considerations
+### 7.3 Backward Compatibility
 
-- Parsing the full JSON once at startup is negligible (< 100KB).
-- `IconMapper` is a static const map — zero allocation.
-- `isSectionActive` with ancestor lookup is O(depth) per section, trivially fast.
-- Validation is already per-blur — no change needed.
-
-### 7.4 Data Consistency Guarantee
-
-The `meta.version` field in `logical-layout.json` must be bumped to `"2.0.0"` when the new schema is rolled out. A version compatibility check at startup ensures the app does not attempt to use v2 features with a v1 JSON (or vice versa). Schema migration documentation belongs in `docs/architecture/layout-schema.md`.
+- Phase 1-3: zero behavioral change — existing hardcoded paths remain in parallel
+- Phase 4: `AbstractRepository` wrapped by `SqliteDataSource` — all existing call sites continue to work
+- Phase 5-6: new data sources are opt-in via config; default remains SQLite
+- `logical-layout.json` retains its `attributes` array until Phase 4; after removal, old layouts with embedded attributes are ignored (the data source is the source of truth)
