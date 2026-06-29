@@ -1,5 +1,15 @@
 # Copyright Gint Atkinson, gint.atkinson@gmail.com
 
+"""
+Backlog reconciliation script that synchronises local markdown spec files
+with an external issue tracker (e.g. GitHub Issues).
+
+Scans epics/, features/, user-stories/ and use-cases/ directories,
+resolves issue-ID placeholders, updates dependency checklists, syncs
+issue bodies, and auto-closes completed items.  Hard-exits on any
+referenced issue that does not exist in the tracker (hallucination gate).
+"""
+
 #!/usr/bin/env python3
 import os
 import re
@@ -148,14 +158,12 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         
         if dep_issue is None:
             ref_str = format_issue_reference(dep_num, tracker_rules)
-            print(f"Warning: Invalid dependency reference {ref_str} in {os.path.basename(filepath)}")
-            if tracker_rules.get("strict_dependency_checks", False):
-                workspace_root = find_workspace_dir(filepath)
-                upstream_repo = get_upstream_repository(rules, workspace_root) if rules else "unknown"
-                troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
-                print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
-                sys.exit(1)
-            continue
+            print(f"Error: Invalid dependency reference {ref_str} in {os.path.basename(filepath)}")
+            workspace_root = find_workspace_dir(filepath)
+            upstream_repo = get_upstream_repository(rules, workspace_root) if rules else "unknown"
+            troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
+            print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
+            sys.exit(1)
             
         is_closed = (str(dep_issue[state_key]).upper() == closed_state)
         target_mark = 'x' if is_closed else ' '

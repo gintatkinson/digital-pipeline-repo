@@ -1,3 +1,12 @@
+"""
+CLI entry point for the Model Coverage Parity Audit tool.
+
+Parses command-line arguments, locates the workspace, initialises all
+validators, and orchestrates the full audit pipeline.  Delegates to
+UML-, behavioral-, codebase-, docs-, dependency-, sync-, schema-mapping-,
+profile-scoping- and test-completeness validators.
+"""
+
 import os
 import sys
 import re
@@ -19,6 +28,15 @@ from .validators.test_completeness_validator import TestCompletenessValidator
 from .utils.diagnostics import serialize_diagnostics
 
 def get_open_feature_issues() -> list:
+    """
+    Fetch open feature issues from GitHub via ``gh issue list``.
+
+    Filters out issues whose title contains known defect/bug/tooling keywords.
+
+    Returns:
+        List of issue dicts with 'number' and 'title' keys, or an empty list
+        when the ``gh`` CLI is unavailable or returns a non-zero exit code.
+    """
     import subprocess
     import json
     try:
@@ -42,6 +60,21 @@ def get_open_feature_issues() -> list:
         return []
 
 def _main_impl():
+    """
+    Orchestrate the full parity audit pipeline.
+
+    Discovers the workspace, resolves schema/features/epics directories,
+    parses schemas and feature files, then runs each validator in sequence
+    (UML, behavioral, codebase AST, docs, dependencies, sync, schema
+    mapping, profile scoping, test completeness).  Exits with code 1 on
+    any failure, writing a diagnostics JSON artifact.
+
+    Side effects:
+        - Reads codebase_rules.json for configuration.
+        - Invokes ``gh`` CLI for open-feature-issue discovery.
+        - Serialises diagnostics JSON to ``.pipeline/logical-ui/`` on failure.
+        - Prints audit progress and results to stdout.
+    """
     parser = argparse.ArgumentParser(description="Model Coverage Parity Audit CLI")
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
@@ -221,7 +254,7 @@ def _main_impl():
     coverage_gaps = []
     
     uml_validator = UmlValidator()
-    global_classes = uml_validator.build_global_classes(repo, features_dir, epics_dir) if features else {}
+    global_classes = uml_validator.build_global_classes(repo, features_dir, epics_dir)
     
     if not skip_coverage_checks and features:
         # Read codebase source files
@@ -521,6 +554,16 @@ def _main_impl():
         sys.exit(0)
 
 def main():
+    """
+    Entry point: strips dummy GITHUB_TOKEN, runs ``_main_impl()``, and
+    catches unhandled exceptions with a diagnostic report.
+
+    Side effects:
+        - Removes ``GITHUB_TOKEN`` from the environment if it contains
+          ``dummytoken``.
+        - Exits with code 1 on failure after writing a diagnostics JSON
+          artifact.
+    """
     if "GITHUB_TOKEN" in os.environ and "dummytoken" in os.environ["GITHUB_TOKEN"]:
         del os.environ["GITHUB_TOKEN"]
     try:

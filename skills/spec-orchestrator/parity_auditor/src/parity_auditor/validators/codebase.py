@@ -1,3 +1,12 @@
+"""
+Validator that enforces codebase compliance rules across React, Flutter,
+Python and specification files.
+
+Uses AST-based checks for import validation (C10) and event-echo guard
+enforcement (I4).  Detects hardcoded design-token colours, banned import
+libraries, missing write-lock controls, and missing playhead-rate clamps.
+"""
+
 import os
 import re
 import json
@@ -7,9 +16,34 @@ from ..core.workspace import WorkspaceRepository
 from ..utils.comment_utils import strip_c_style_comments
 from ..utils.color_utils import extract_hex_colors_from_json
 from ..utils.ast_utils import walk_json_ast_for_compliance, verify_python_ast
+from ..utils.codebase import ast_check_banned_imports, ast_check_event_echo_guard
 
 class CodebaseValidator(IValidator):
+    """Enforce codebase compliance: AST import checks, event-echo guard, design-token colours, forbidden libs."""
+
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
+        """
+        Run all codebase compliance checks.
+
+        Walks React, Flutter and Python source directories, verifying:
+          - No hardcoded design-token colours.
+          - No banned imported libraries (AST-based for Python, regex fallback
+            for JS/Dart).
+          - Event-Echo Guard: selection setters that emit callbacks must call
+            the configured guard method.
+          - Write-lock controls in network gateway files.
+          - Playhead-rate clamps in 4D viewport files.
+          - FFI memory-safety checks (NativeFinalizer + refcounting).
+
+        Also checks specification files for DOM and pixel-dimension leakage.
+
+        Args:
+            repo: WorkspaceRepository providing rules and target directories.
+            **kwargs: Unused additional keyword arguments.
+
+        Returns:
+            List of error strings, empty when all checks pass.
+        """
         errors = []
         workspace_dir = repo.workspace_dir
         rules = repo.get_codebase_rules()
@@ -121,22 +155,8 @@ class CodebaseValidator(IValidator):
                                 
                         clean_content = strip_c_style_comments(content)
                         
-                        ast_path = filepath + ".json-ast"
-                        ast_verified = False
-                        if os.path.exists(ast_path):
-                            try:
-                                with open(ast_path, "r", encoding="utf-8") as f:
-                                    ast_tree = json.load(f)
-                                if not walk_json_ast_for_compliance(ast_tree, react_ast_compliance_method, react_rules.__dict__):
-                                    errors.append(f"React File '{rel_path}' (AST Verified) fails Event-Echo Guard compliance check.")
-                                ast_verified = True
-                            except Exception:
-                                pass
-                                
-                        if not ast_verified:
-                            if any(kw in clean_content for kw in react_selection_keywords) and any(kw in clean_content for kw in react_interaction_keywords):
-                                if react_ast_compliance_method not in clean_content:
-                                    errors.append(f"React File '{rel_path}' triggers selection events on user interaction but does not call '{react_ast_compliance_method}()'. This violates the Event-Echo Guard.")
+                        if ast_check_event_echo_guard(content, react_selection_keywords, react_interaction_keywords, react_ast_compliance_method):
+                            errors.append(f"React File '{rel_path}' contains a programmatic selection setter that also emits callbacks without calling '{react_ast_compliance_method}()'. This violates the Event-Echo Guard.")
                                     
                         is_react_ui = False
                         for d in react_ui_dirs:
@@ -304,21 +324,21 @@ class CodebaseValidator(IValidator):
         return errors
         
     def _check_banned_imports(self, content: str, forbidden_words: List[str], file_ext: str) -> List[str]:
+        """
+        Check source code for banned import statements.
+
+        Delegates to ``ast_check_banned_imports`` which uses Python AST
+        parsing when possible and falls back to regex line-scanning for
+        non-Python (JS/Dart) files.
+
+        Args:
+            content: Source code text.
+            forbidden_words: List of package/module names to flag.
+            file_ext: File extension hint (``.js``, ``.dart``, ``.py``).
+
+        Returns:
+            List of unique forbidden words found in imports; empty if none.
+        """
         if not forbidden_words:
             return []
-        clean_content = strip_c_style_comments(content)
-        found_banned = []
-        lines = clean_content.splitlines()
-        for line in lines:
-            line_strip = line.strip()
-            is_import = False
-            if line_strip.startswith(("import ", "import'", "import\"", "export ", "export'", "export\"", "part ", "part'")):
-                is_import = True
-            elif "require(" in line_strip:
-                is_import = True
-                
-            if is_import:
-                for word in forbidden_words:
-                    if re.search(r'\b' + re.escape(word) + r'\b', line_strip):
-                        found_banned.append(word)
-        return list(set(found_banned))
+        return ast_check_banned_imports(content, forbidden_words)

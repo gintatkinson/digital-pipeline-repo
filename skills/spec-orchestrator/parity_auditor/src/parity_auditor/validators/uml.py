@@ -1,3 +1,12 @@
+"""
+Validator that enforces UML diagram compliance across feature, epic,
+user-story, and use-case specification files.
+
+Verifies class-diagram syntax, forbidden diagram types, required sections,
+sequence-diagram lifeline/method alignment with global class definitions,
+use-case diagram structural rules, and epic checklist formatting.
+"""
+
 import os
 import re
 from typing import List, Dict, Any, Set
@@ -712,6 +721,23 @@ class UmlValidator(IValidator):
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
         
     def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:
+        """
+        Build a global class dictionary from class diagrams in feature and epic files.
+
+        Parses all feature spec files, then optionally epic spec files, merging
+        their UML class diagrams into a single dictionary keyed by class name.
+        Duplicate attributes and methods are skipped (first-writer wins).
+
+        Args:
+            repo: WorkspaceRepository for accessing feature files.
+            features_dir: Path to the directory containing feature markdown files.
+            epics_dir: Optional path to epic markdown files; when provided, class
+                       diagrams from epic files are also merged.
+
+        Returns:
+            Dict mapping class names to dicts with keys ``name``, ``attributes``,
+            and ``methods``.  Empty dict if no UML class diagrams are found.
+        """
         global_classes = {}
         feature_files = repo.get_feature_files(features_dir)
         parser = MermaidClassDiagramParser(repo)
