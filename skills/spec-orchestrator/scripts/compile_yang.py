@@ -356,9 +356,11 @@ def parse_yang(input_path):
 
     repos = repository.FileRepository(
         os.path.dirname(input_path) if os.path.dirname(input_path) else '.',
-        no_path_recurse=False,
+        no_path_recurse=True,
     )
     ctx = context.Context(repos)
+    # Prevent pyang from scanning system directories by clearing
+    # the default search path that includes /var/folders/...
     ctx.opts = argparse.Namespace(input=input_path)
 
     with open(input_path, 'r') as f:
