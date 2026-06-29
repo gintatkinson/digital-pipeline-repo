@@ -66,6 +66,9 @@ class _LayoutState extends State<Layout> {
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
 
+  // Cached tree data (recomputed when _parsedLayout changes)
+  List<TreeNode>? _cachedTreeData;
+
   // Cached JSON files
   Map<String, dynamic>? _cachedRules;
   Map<String, dynamic>? _cachedLabels;
@@ -102,6 +105,7 @@ class _LayoutState extends State<Layout> {
 
     if (widget.layoutConfig != null) {
       _parsedLayout = jsonDecode(widget.layoutConfig!) as Map<String, dynamic>;
+      _cachedTreeData = null;
       _updateCurrentViewFromLayout();
     } else {
       _loadLayoutConfig();
@@ -180,6 +184,7 @@ class _LayoutState extends State<Layout> {
       if (mounted) {
         setState(() {
           _parsedLayout = parsed;
+          _cachedTreeData = null;
           _updateCurrentViewFromLayout();
           _treeViewModel?.dispose();
           _treeViewModel = TreeViewModel(
@@ -214,7 +219,10 @@ class _LayoutState extends State<Layout> {
     return parseTreeHierarchy(_parsedLayout!);
   }
 
-  List<TreeNode> get _treeData => _parseTreeHierarchy();
+  List<TreeNode> get _treeData {
+    _cachedTreeData ??= _parseTreeHierarchy();
+    return _cachedTreeData!;
+  }
 
   void _selectView(String viewId) {
     debugPrint('[LAYOUT] _selectView: viewId=$viewId, _currentView=$_currentView');
