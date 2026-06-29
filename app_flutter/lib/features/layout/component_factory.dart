@@ -115,13 +115,14 @@ class ComponentFactory {
       case 'TabbedContainer':
         final childrenList = node['children'] as List<dynamic>? ?? [];
         final tabs = childrenList.map((c) {
-          final id = c['id'] as String;
+          final id = c['id'] as String? ?? '';
           final label = resolveTabLabel(id);
           return TabConfig(
             id: id,
             label: label,
-            contentBuilder: (_) =>
-                build(c as Map<String, dynamic>, parentWidth, parentHeight, context),
+            contentBuilder: (_) => c is Map<String, dynamic>
+                ? build(c, parentWidth, parentHeight, context)
+                : const SizedBox.shrink(),
           );
         }).toList();
         return TabbedContainer(
