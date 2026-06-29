@@ -148,6 +148,19 @@ class _PropertyGridState extends State<PropertyGrid> {
     super.dispose();
   }
 
+  Map<String, dynamic> _buildAllValuesMap() {
+    final Map<String, dynamic> allValues = {};
+    for (final resolvedAttr in _resolvedAttributes) {
+      final ctrl = _controllers[resolvedAttr.key];
+      if (resolvedAttr.type == 'enum') {
+        allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
+      } else {
+        allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+      }
+    }
+    return allValues;
+  }
+
   void _triggerBlurSave(String key, AttributeDefinition attr) {
     final valueString = attr.type == 'enum'
         ? (committedData[key]?.toString() ?? '')
@@ -210,15 +223,7 @@ class _PropertyGridState extends State<PropertyGrid> {
 
     // 5. Dynamic validation
     if (isValid && widget.validator != null) {
-      final Map<String, dynamic> allValues = {};
-      for (final resolvedAttr in _resolvedAttributes) {
-        final ctrl = _controllers[resolvedAttr.key];
-        if (resolvedAttr.type == 'enum') {
-          allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
-        } else {
-          allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
-        }
-      }
+      final allValues = _buildAllValuesMap();
       final errorMsg = widget.validator!(key, valueString, allValues);
       if (errorMsg != null) {
         isValid = false;
@@ -234,15 +239,7 @@ class _PropertyGridState extends State<PropertyGrid> {
           final otherKey = key == 'maxVoltage' ? 'maxAllocatedPower' : 'maxVoltage';
           final otherCtrl = _controllers[otherKey];
           if (otherCtrl != null) {
-            final Map<String, dynamic> allValues = {};
-            for (final resolvedAttr in _resolvedAttributes) {
-              final ctrl = _controllers[resolvedAttr.key];
-              if (resolvedAttr.type == 'enum') {
-                allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
-              } else {
-                allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
-              }
-            }
+            final allValues = _buildAllValuesMap();
             final otherErrorMsg = widget.validator?.call(otherKey, otherCtrl.text, allValues);
             if (otherErrorMsg == null) {
               newErrors.remove(otherKey);
