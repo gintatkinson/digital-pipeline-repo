@@ -13,6 +13,21 @@ class TableViewWidget extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (viewModel.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            viewModel.error!,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
     final testId = viewModel.tabId == 'sub_elements_table'
         ? 'items-table'
         : viewModel.tabId == 'active_alarms_table'

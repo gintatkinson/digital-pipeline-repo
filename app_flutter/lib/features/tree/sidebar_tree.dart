@@ -5,6 +5,7 @@ import 'package:app_flutter/core/theme/widgets/settings_panel.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/tree_node_widget.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
+
 class SidebarTree extends StatelessWidget {
   final List<TreeNode> treeData;
   final int? workerResult;

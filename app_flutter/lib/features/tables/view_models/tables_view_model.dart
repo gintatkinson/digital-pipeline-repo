@@ -10,6 +10,7 @@ class TablesViewModel extends ChangeNotifier {
   List<List<String>> _rows = [];
   List<String> _headers = [];
   bool _loading = true;
+  String? _error;
 
   TablesViewModel(this._repository, this._tabId, this._activeView) {
     _loadData();
@@ -27,6 +28,9 @@ class TablesViewModel extends ChangeNotifier {
   /// Whether data is currently being fetched.
   bool get loading => _loading;
 
+  /// Error message if the last fetch failed, or null if no error.
+  String? get error => _error;
+
   /// Triggers a reload of table data.
   void reload(String tabId, String activeView) {
     _tabId = tabId;
@@ -36,6 +40,7 @@ class TablesViewModel extends ChangeNotifier {
 
   Future<void> _loadData() async {
     _loading = true;
+    _error = null;
     notifyListeners();
     try {
       final nodeId = _activeView;
@@ -82,8 +87,12 @@ class TablesViewModel extends ChangeNotifier {
       _headers = headers;
       _rows = rows;
       _loading = false;
-    } catch (_) {
+    } catch (e, st) {
+      _error = 'Failed to load table data';
+      _rows = [];
+      _headers = [];
       _loading = false;
+      debugPrint('TablesViewModel._loadData error: $e\n$st');
     }
     notifyListeners();
   }

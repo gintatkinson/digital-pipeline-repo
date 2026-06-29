@@ -294,7 +294,7 @@ class _TopologyMapState extends State<TopologyMap>
     });
   }
 
-  void _handleTap(TapUpDetails details, double width, double height) {
+  void _handleTap(TapUpDetails details) {
     final TopologyData activeData = widget.data ?? defaultTopologyData;
     final double clickX = details.localPosition.dx;
     final double clickY = details.localPosition.dy;
@@ -361,7 +361,7 @@ class _TopologyMapState extends State<TopologyMap>
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTapUp: (TapUpDetails details) =>
-                            _handleTap(details, width, height),
+                            _handleTap(details),
                         child: CustomPaint(
                           size: Size(width, height),
                           painter: TopologyPainter(
