@@ -142,6 +142,17 @@ class TopologyNode {
     }
     return position.resolveVector(key, coordinateMapping);
   }
+
+  Offset computePosition(TopologyData data, double timeIndex) {
+    final double nodeT = resolveCoordinate('t', data.coordinateMapping);
+    final double dt = timeIndex - nodeT;
+    final List<double> vector = resolveVector('trajectory', data.coordinateMapping);
+    final double vx = vector.isNotEmpty ? vector[0] : 0.0;
+    final double vy = vector.length > 1 ? vector[1] : 0.0;
+    final double nodeX = resolveCoordinate('x', data.coordinateMapping);
+    final double nodeY = resolveCoordinate('y', data.coordinateMapping);
+    return Offset(nodeX + dt * vx, nodeY + dt * vy);
+  }
 }
 
 /// Represents a link (connection) between two nodes.
@@ -312,22 +323,10 @@ class _TopologyMapState extends State<TopologyMap>
     final double clickY = details.localPosition.dy;
 
     for (final TopologyNode node in activeData.nodes) {
-      final double nodeT = node.resolveCoordinate('t', activeData.coordinateMapping);
-      final double dt = currentTimeIndex - nodeT;
-
-      final List<double> vector = node.resolveVector('trajectory', activeData.coordinateMapping);
-      final double vx = vector.isNotEmpty ? vector[0] : 0.0;
-      final double vy = vector.length > 1 ? vector[1] : 0.0;
-
-      final double nodeX = node.resolveCoordinate('x', activeData.coordinateMapping);
-      final double nodeY = node.resolveCoordinate('y', activeData.coordinateMapping);
-
-      final double x = nodeX + dt * vx;
-      final double y = nodeY + dt * vy;
-
+      final Offset pos = node.computePosition(activeData, currentTimeIndex);
       final double dist = math.sqrt(
-          (clickX - x) * (clickX - x) +
-              (clickY - y) * (clickY - y));
+          (clickX - pos.dx) * (clickX - pos.dx) +
+              (clickY - pos.dy) * (clickY - pos.dy));
 
       if (dist <= 20.0) {
         widget.onNodeSelect?.call(node.id);
@@ -567,19 +566,7 @@ class TopologyPainter extends CustomPainter {
     // 3. Compute projected positions
     final Map<String, Offset> projectedPositions = <String, Offset>{};
     for (final TopologyNode node in activeData.nodes) {
-      final double nodeT = node.resolveCoordinate('t', activeData.coordinateMapping);
-      final double dt = currentTimeIndex - nodeT;
-
-      final List<double> vector = node.resolveVector('trajectory', activeData.coordinateMapping);
-      final double vx = vector.isNotEmpty ? vector[0] : 0.0;
-      final double vy = vector.length > 1 ? vector[1] : 0.0;
-
-      final double nodeX = node.resolveCoordinate('x', activeData.coordinateMapping);
-      final double nodeY = node.resolveCoordinate('y', activeData.coordinateMapping);
-
-      final double x = nodeX + dt * vx;
-      final double y = nodeY + dt * vy;
-      projectedPositions[node.id] = Offset(x, y);
+      projectedPositions[node.id] = node.computePosition(activeData, currentTimeIndex);
     }
 
     // 4. Draw links
