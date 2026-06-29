@@ -634,7 +634,7 @@ class _PropertyGridState extends State<PropertyGrid> {
           },
           child: DropdownButtonFormField<String>(
             isExpanded: true,
-            initialValue: value,
+            value: value,
             dropdownColor: isDark ? cs.surfaceContainerHighest : cs.surface,
             style: Theme.of(context).textTheme.bodyMedium,
             decoration: InputDecoration(
