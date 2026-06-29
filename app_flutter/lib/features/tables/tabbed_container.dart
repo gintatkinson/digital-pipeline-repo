@@ -35,7 +35,8 @@ class _TabbedContainerState extends State<TabbedContainer> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _activeTabIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId).clamp(0, widget.tabs.length - 1);
+    final int foundIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
+    _activeTabIndex = foundIndex >= 0 ? foundIndex : 0;
     _tabController = TabController(length: widget.tabs.length, vsync: this, initialIndex: _activeTabIndex);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -47,7 +48,21 @@ class _TabbedContainerState extends State<TabbedContainer> with SingleTickerProv
   @override
   void didUpdateWidget(TabbedContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialTabId != oldWidget.initialTabId) {
+    if (widget.tabs.length != oldWidget.tabs.length) {
+      _tabController.dispose();
+      final int newIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
+      _activeTabIndex = newIndex >= 0 ? newIndex : 0;
+      _tabController = TabController(
+        length: widget.tabs.length,
+        vsync: this,
+        initialIndex: _activeTabIndex,
+      );
+      _tabController.addListener(() {
+        if (!_tabController.indexIsChanging) {
+          setState(() => _activeTabIndex = _tabController.index);
+        }
+      });
+    } else if (widget.initialTabId != oldWidget.initialTabId) {
       final newIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
       if (newIndex >= 0 && newIndex != _tabController.index) {
         _tabController.animateTo(newIndex);
