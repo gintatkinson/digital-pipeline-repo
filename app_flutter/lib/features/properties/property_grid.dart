@@ -129,6 +129,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         if (widget.initialValues.isNotEmpty) {
           committedData = Map<String, dynamic>.from(widget.initialValues);
         }
+        _errors = const {};
         for (final attr in _resolvedAttributes) {
           final focusNode = _focusNodes[attr.key];
           if (focusNode != null && !focusNode.hasFocus) {
