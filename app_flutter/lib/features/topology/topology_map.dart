@@ -484,17 +484,19 @@ class _TopologyMapState extends State<TopologyMap>
                             activeFocusedNode: widget.activeFocusedNode,
                             activeData: activeData,
                             currentTimeIndex: currentTimeIndex,
-                            bgColor: colors.surfaceContainerHighest,
-                            gridColor: colors.outlineVariant,
-                            linkColor: colors.primary.withValues(alpha: 0.35),
-                            packetColor: colors.primary,
-                            velocityColor: colors.error.withValues(alpha: 0.4),
-                            nodeFillColor: colors.primary,
-                            nodeStrokeColor: colors.onPrimary,
-                            activeStatusColor: colors.tertiary,
-                            warningStatusColor: colors.error,
-                            haloColor: colors.primary.withValues(alpha: 0.3),
-                            labelColor: colors.onSurface,
+                            colors: TopologyPainterColors(
+                              bgColor: colors.surfaceContainerHighest,
+                              gridColor: colors.outlineVariant,
+                              linkColor: colors.primary.withValues(alpha: 0.35),
+                              packetColor: colors.primary,
+                              velocityColor: colors.error.withValues(alpha: 0.4),
+                              nodeFillColor: colors.primary,
+                              nodeStrokeColor: colors.onPrimary,
+                              activeStatusColor: colors.tertiary,
+                              warningStatusColor: colors.error,
+                              haloColor: colors.primary.withValues(alpha: 0.3),
+                              labelColor: colors.onSurface,
+                            ),
                           ),
                         ),
                       ),
@@ -511,11 +513,8 @@ class _TopologyMapState extends State<TopologyMap>
   }
 }
 
-/// CanvasRenderer implementing node projection and line rendering.
-class TopologyPainter extends CustomPainter {
-  final String? activeFocusedNode;
-  final TopologyData activeData;
-  final double currentTimeIndex;
+/// Color palette for the topology map painter.
+class TopologyPainterColors {
   final Color bgColor;
   final Color gridColor;
   final Color linkColor;
@@ -528,10 +527,7 @@ class TopologyPainter extends CustomPainter {
   final Color haloColor;
   final Color labelColor;
 
-  TopologyPainter({
-    required this.activeFocusedNode,
-    required this.activeData,
-    required this.currentTimeIndex,
+  const TopologyPainterColors({
     required this.bgColor,
     required this.gridColor,
     required this.linkColor,
@@ -544,16 +540,31 @@ class TopologyPainter extends CustomPainter {
     required this.haloColor,
     required this.labelColor,
   });
+}
+
+/// CanvasRenderer implementing node projection and line rendering.
+class TopologyPainter extends CustomPainter {
+  final String? activeFocusedNode;
+  final TopologyData activeData;
+  final double currentTimeIndex;
+  final TopologyPainterColors colors;
+
+  TopologyPainter({
+    required this.activeFocusedNode,
+    required this.activeData,
+    required this.currentTimeIndex,
+    required this.colors,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     // 1. Draw background
-    final Paint bgPaint = Paint()..color = bgColor;
+    final Paint bgPaint = Paint()..color = colors.bgColor;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     // 2. Draw grid lines every 40px
     final Paint gridPaint = Paint()
-      ..color = gridColor
+      ..color = colors.gridColor
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -578,7 +589,7 @@ class TopologyPainter extends CustomPainter {
       if (sourceOffset != null && targetOffset != null) {
         // Connector link line
         final Paint linkPaint = Paint()
-          ..color = linkColor
+          ..color = colors.linkColor
           ..strokeWidth = 2.0
           ..style = PaintingStyle.stroke;
         canvas.drawLine(sourceOffset, targetOffset, linkPaint);
@@ -591,7 +602,7 @@ class TopologyPainter extends CustomPainter {
             sourceOffset.dy + (targetOffset.dy - sourceOffset.dy) * packetRatio;
 
         final Paint packetPaint = Paint()
-          ..color = packetColor
+          ..color = colors.packetColor
           ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(px, py), _kPacketRadius, packetPaint);
       }
@@ -609,7 +620,7 @@ class TopologyPainter extends CustomPainter {
 
       // Velocity vector line
       final Paint vectorPaint = Paint()
-        ..color = velocityColor
+        ..color = colors.velocityColor
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       canvas.drawLine(
@@ -621,16 +632,16 @@ class TopologyPainter extends CustomPainter {
       final double radius = isFocused ? _kNodeRadiusFocused : _kNodeRadiusDefault;
 
       if (isFocused) {
-        fillPaint.color = nodeFillColor;
+        fillPaint.color = colors.nodeFillColor;
         strokePaint
-          ..color = nodeStrokeColor
+          ..color = colors.nodeStrokeColor
           ..strokeWidth = 2.5;
       } else {
         fillPaint.color = node.status == 'Active'
-            ? activeStatusColor
-            : warningStatusColor;
+            ? colors.activeStatusColor
+            : colors.warningStatusColor;
         strokePaint
-          ..color = gridColor
+          ..color = colors.gridColor
           ..strokeWidth = 2.0;
       }
 
@@ -640,7 +651,7 @@ class TopologyPainter extends CustomPainter {
       // Pulsing halo ring around focused node
       if (isFocused) {
         final Paint haloPaint = Paint()
-          ..color = haloColor
+          ..color = colors.haloColor
           ..strokeWidth = 1.5
           ..style = PaintingStyle.stroke;
         canvas.drawCircle(pos, _kHaloRadius, haloPaint);
@@ -651,7 +662,7 @@ class TopologyPainter extends CustomPainter {
         text: TextSpan(
           text: node.label,
           style: TextStyle(
-            color: labelColor,
+            color: colors.labelColor,
             fontSize: 12.0,
           ),
         ),
@@ -670,16 +681,6 @@ class TopologyPainter extends CustomPainter {
     return oldDelegate.currentTimeIndex != currentTimeIndex ||
         oldDelegate.activeFocusedNode != activeFocusedNode ||
         oldDelegate.activeData != activeData ||
-        oldDelegate.bgColor != bgColor ||
-        oldDelegate.gridColor != gridColor ||
-        oldDelegate.linkColor != linkColor ||
-        oldDelegate.packetColor != packetColor ||
-        oldDelegate.velocityColor != velocityColor ||
-        oldDelegate.nodeFillColor != nodeFillColor ||
-        oldDelegate.nodeStrokeColor != nodeStrokeColor ||
-        oldDelegate.activeStatusColor != activeStatusColor ||
-        oldDelegate.warningStatusColor != warningStatusColor ||
-        oldDelegate.haloColor != haloColor ||
-        oldDelegate.labelColor != labelColor;
+        oldDelegate.colors != colors;
   }
 }
