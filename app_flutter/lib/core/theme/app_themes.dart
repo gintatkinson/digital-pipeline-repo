@@ -2,9 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 
+/// Defines the available color schemes and builds light/dark [ThemeData].
 class AppThemes {
   AppThemes._();
 
+  /// The list of custom [FlexSchemeData] schemes (Greys, Blue Whale, etc.).
   static const List<FlexSchemeData> customSchemes = [
     FlexSchemeData(
       name: 'Greys',
@@ -116,6 +118,7 @@ class AppThemes {
     ),
   ];
 
+  /// Builds a light [ThemeData] from an optional custom scheme.
   static ThemeData light({FlexSchemeData? custom}) {
     final data = custom ?? customSchemes[0];
     return FlexThemeData.light(
@@ -133,6 +136,7 @@ class AppThemes {
     );
   }
 
+  /// Builds a dark [ThemeData] from an optional custom scheme.
   static ThemeData dark({FlexSchemeData? custom}) {
     final data = custom ?? customSchemes[0];
     return FlexThemeData.dark(

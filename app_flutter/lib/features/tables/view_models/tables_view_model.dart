@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/repository.dart';
 
+/// View-model for a table tab. Loads rows/headers from the repository
+/// based on the tab type (sub-elements, alarms, or events).
 class TablesViewModel extends ChangeNotifier {
   final AbstractRepository _repository;
-  final String _tabId;
-  final String _activeView;
+  String _tabId;
+  String _activeView;
   List<List<String>> _rows = [];
   List<String> _headers = [];
   bool _loading = true;
@@ -13,12 +15,22 @@ class TablesViewModel extends ChangeNotifier {
     _loadData();
   }
 
+  /// The tab identifier (e.g. `'sub_elements_table'`).
   String get tabId => _tabId;
+
+  /// The loaded table rows (list of string lists).
   List<List<String>> get rows => _rows;
+
+  /// The loaded column headers.
   List<String> get headers => _headers;
+
+  /// Whether data is currently being fetched.
   bool get loading => _loading;
 
+  /// Triggers a reload of table data.
   void reload(String tabId, String activeView) {
+    _tabId = tabId;
+    _activeView = activeView;
     _loadData();
   }
 

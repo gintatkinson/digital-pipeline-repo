@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
+/// View-model for the navigation tree. Manages expansion state,
+/// keyboard navigation, and the currently selected view.
 class TreeViewModel extends ChangeNotifier {
   final List<TreeNode> treeData;
   String _currentView;
@@ -19,11 +21,19 @@ class TreeViewModel extends ChangeNotifier {
     _buildNodeKeys(treeData);
   }
 
+  /// The ID of the currently selected/active view.
   String get currentView => _currentView;
+
+  /// Map of node IDs to their expanded state.
   Map<String, bool> get expanded => _expanded;
+
+  /// [FocusNode] associated with the tree widget.
   FocusNode get focusNode => _treeFocusNode;
+
+  /// Returns the [GlobalKey] for the node with the given [id].
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
 
+  /// Selects [viewId] as the current view, expanding parents and scrolling.
   void selectView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -33,6 +43,7 @@ class TreeViewModel extends ChangeNotifier {
     onViewSelected?.call(viewId);
   }
 
+  /// Updates the current view without calling [onViewSelected].
   void updateCurrentView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -41,11 +52,13 @@ class TreeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Toggles the expanded state of the node with the given [id].
   void toggleExpand(String id) {
     _expanded[id] = !(_expanded[id] ?? false);
     notifyListeners();
   }
 
+  /// Moves selection to the next visible node.
   void handleArrowDown() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -55,6 +68,7 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Moves selection to the previous visible node.
   void handleArrowUp() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -64,6 +78,7 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Expands the current node or moves to its first child.
   void handleArrowRight() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -80,6 +95,7 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Collapses the current node or moves to its parent.
   void handleArrowLeft() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -109,11 +125,13 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Disposes the tree focus node.
   @override
   void dispose() {
     _treeFocusNode.dispose();
     super.dispose();
   }
+
 
   void _buildNodeKeys(List<TreeNode> nodes) {
     for (final node in nodes) {

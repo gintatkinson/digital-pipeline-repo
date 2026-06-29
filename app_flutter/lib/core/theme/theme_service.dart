@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Interface for persisting theme-related user preferences.
 abstract class ThemeService {
+  /// Loads the persisted [ThemeMode] (defaults to [ThemeMode.system]).
   Future<ThemeMode> loadThemeMode();
+
+  /// Persists the given [themeMode].
   Future<void> saveThemeMode(ThemeMode themeMode);
+
+  /// Loads the persisted color scheme index (defaults to 0).
   Future<int> loadThemeScheme();
+
+  /// Persists the given color scheme [index].
   Future<void> saveThemeScheme(int index);
+
+  /// Loads the persisted text scale factor (defaults to 1.0).
   Future<double> loadTextScale();
+
+  /// Persists the given text [scale] factor.
   Future<void> saveTextScale(double scale);
 }
 
+/// Implementation of [ThemeService] backed by [SharedPreferences].
 class SharedPreferencesThemeService implements ThemeService {
   static const _modeKey = 'theme_mode';
   static const _schemeKey = 'theme_scheme';

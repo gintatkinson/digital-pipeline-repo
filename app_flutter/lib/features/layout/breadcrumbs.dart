@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/layout/layout_parser.dart';
 
-/// Represents a single item in the breadcrumbs navigation.
+/// A single item in the breadcrumbs navigation.
 class BreadcrumbItem {
   final String id;
   final String label;
@@ -129,11 +129,14 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
   }
 }
 
+/// Returns the ID of the first leaf node reachable from [n].
 String getFirstLeafId(TreeNode n) {
   if (n.children == null || n.children!.isEmpty) return n.id;
   return getFirstLeafId(n.children!.first);
 }
 
+/// Builds a list of [BreadcrumbItem] from the current [view] and parsed
+/// layout hierarchy. The first item is always the root ("Antigravity Console").
 List<BreadcrumbItem> getBreadcrumbsItems(
   String view,
   Map<String, dynamic> parsedLayout, {

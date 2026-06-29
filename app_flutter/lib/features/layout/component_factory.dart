@@ -131,13 +131,60 @@ class ComponentFactory {
       case 'TableView':
         final id = node['id'] as String? ?? '';
         final repository = context.read<AbstractRepository>();
-        final tablesViewModel = TablesViewModel(repository, id, currentView);
-        return ChangeNotifierProvider<TablesViewModel>.value(
-          value: tablesViewModel,
-          child: const TableViewWidget(),
+        return _TableViewContainer(
+          tabId: id,
+          currentView: currentView,
+          repository: repository,
         );
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+class _TableViewContainer extends StatefulWidget {
+  final String tabId;
+  final String currentView;
+  final AbstractRepository repository;
+
+  const _TableViewContainer({
+    required this.tabId,
+    required this.currentView,
+    required this.repository,
+  });
+
+  @override
+  State<_TableViewContainer> createState() => _TableViewContainerState();
+}
+
+class _TableViewContainerState extends State<_TableViewContainer> {
+  late final TablesViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = TablesViewModel(widget.repository, widget.tabId, widget.currentView);
+  }
+
+  @override
+  void didUpdateWidget(_TableViewContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tabId != oldWidget.tabId || widget.currentView != oldWidget.currentView) {
+      _viewModel.reload(widget.tabId, widget.currentView);
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<TablesViewModel>.value(
+      value: _viewModel,
+      child: const TableViewWidget(),
+    );
   }
 }

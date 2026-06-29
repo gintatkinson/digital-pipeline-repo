@@ -4,6 +4,8 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/app_themes.dart';
 import 'package:app_flutter/core/theme/text_scaler.dart';
 
+/// A bottom-sheet-style panel for adjusting theme mode, color scheme,
+/// and text size.
 class SettingsPanel extends StatelessWidget {
   const SettingsPanel({super.key});
 
