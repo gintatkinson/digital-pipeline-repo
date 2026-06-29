@@ -17,7 +17,7 @@ class TextScalerController extends ChangeNotifier {
   void setScale(double value) {
     _scale = value.clamp(0.7, 1.5);
     notifyListeners();
-    unawaited(_themeService?.saveTextScale(_scale)?.catchError((Object e) {
+    unawaited(_themeService?.saveTextScale(_scale).catchError((Object e) {
       debugPrint('Failed to save text scale: $e');
     }));
   }
