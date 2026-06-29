@@ -48,7 +48,7 @@ As a domain engineer, I want to take a YANG data model file and automatically ge
 
 ```bash
 # AC1: Basic compilation
-python3 skills/spec-orchestrator/scripts/compile_yang.py \
+python3 scripts/compile_yang.py \
   --input /tmp/test-model.yang \
   --output /tmp/test-output.json && \
 python3 -c "
@@ -76,7 +76,7 @@ print('AC2 PASS')
 "
 
 # AC5: Error on invalid file
-python3 skills/spec-orchestrator/scripts/compile_yang.py \
+python3 scripts/compile_yang.py \
   --input /tmp/nonexistent.yang \
   --output /tmp/test-output.json 2>&1 && echo 'FAIL: Should have errored' || echo 'AC5 PASS: Correctly errored'
 

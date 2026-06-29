@@ -34,11 +34,6 @@ class RepositoryResolver {
           dbAssetPath: dbAssetPath,
           inMemory: sqliteInMemory,
         );
-      default:
-        return _createSqliteAdapter(
-          dbAssetPath: dbAssetPath,
-          inMemory: sqliteInMemory,
-        );
     }
   }
 

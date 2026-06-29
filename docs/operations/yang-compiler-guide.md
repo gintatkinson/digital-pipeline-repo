@@ -19,7 +19,7 @@
 
 ## 1. Overview
 
-The YANG compiler (`skills/spec-orchestrator/scripts/compile_yang.py`) is the
+The YANG compiler (`scripts/compile_yang.py`) is the
 build-time component of the **YANG-to-LUI (Logical UI) Translation Pipeline**
 mandated by the persistence architecture blueprint.
 
@@ -78,7 +78,7 @@ cd digital-pipeline-repo
 ### Test that the compiler is importable
 
 ```bash
-python3 skills/spec-orchestrator/scripts/compile_yang.py --help
+python3 scripts/compile_yang.py --help
 ```
 
 Expected output:
@@ -103,7 +103,7 @@ optional arguments:
 ### Basic command
 
 ```bash
-python3 skills/spec-orchestrator/scripts/compile_yang.py \
+python3 scripts/compile_yang.py \
   --input path/to/model.yang \
   --output assets/logical-layout.json
 ```
@@ -134,7 +134,7 @@ Add a build step to your pipeline (GitHub Actions, GitLab CI, Jenkins):
 - name: Compile YANG models
   run: |
     pip install pyang
-    python3 skills/spec-orchestrator/scripts/compile_yang.py \
+    python3 scripts/compile_yang.py \
       --input yang-models/openconfig-interfaces.yang \
       --output app_flutter/assets/logical-layout.json
 ```
@@ -147,7 +147,7 @@ static asset.
 ## 4. YANG-to-LUI Mapping Reference
 
 The compiler maps YANG constructs to LUI JSON properties using the following
-rules. These rules are implemented in `skills/spec-orchestrator/scripts/compile_yang.py`.
+rules. These rules are implemented in `scripts/compile_yang.py`.
 
 ### 4.1. Hierarchy Mapping
 
@@ -457,7 +457,7 @@ cp logical-layout.json app_flutter/assets/logical-layout.json
 Or point the compiler directly:
 
 ```bash
-python3 skills/spec-orchestrator/scripts/compile_yang.py \
+python3 scripts/compile_yang.py \
   --input yang-models/openconfig-interfaces.yang \
   --output app_flutter/assets/logical-layout.json
 ```
@@ -574,7 +574,7 @@ module example-system {
 ### 7.2. Run the Compiler
 
 ```bash
-python3 skills/spec-orchestrator/scripts/compile_yang.py \
+python3 scripts/compile_yang.py \
   --input example-system.yang \
   --output example-logical-layout.json
 ```
@@ -754,7 +754,7 @@ pyang --errors path/to/model.yang
 **Solution**: Use an absolute path or a relative path from the working directory:
 
 ```bash
-python3 skills/spec-orchestrator/scripts/compile_yang.py \
+python3 scripts/compile_yang.py \
   --input $(pwd)/yang-models/model.yang \
   --output logical-layout.json
 ```

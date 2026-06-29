@@ -1,6 +1,11 @@
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
+/// Fallback [DataSource] used when the pre-built database has no metadata tables.
+///
+/// Provides a minimal single-type ontology so the app is usable without
+/// any domain configuration. Replace with SqliteDataSource or a custom
+/// DataSource for production deployments.
 class FallbackDataSource implements DataSource {
   @override
   String get name => 'fallback';
@@ -21,8 +26,13 @@ class FallbackDataSource implements DataSource {
   ];
 
   @override
-  Future<TypeDescriptor?> typeFor(String typeName) async =>
-      (await discoverTypes()).firstWhere((t) => t.typeName == typeName);
+  Future<TypeDescriptor?> typeFor(String typeName) async {
+    try {
+      return (await discoverTypes()).firstWhere((t) => t.typeName == typeName);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<List<(String, String)>> discoverHierarchy() async => [];
