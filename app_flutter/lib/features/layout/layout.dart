@@ -95,6 +95,14 @@ class _LayoutState extends State<Layout> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.layoutConfig != null) {
+      _parsedLayout = jsonDecode(widget.layoutConfig!) as Map<String, dynamic>;
+      _updateCurrentViewFromLayout();
+    } else {
+      _loadLayoutConfig();
+    }
+
     _currentView = widget.activeView ?? _parseTreeHierarchy().first.id;
 
     _treeViewModel = TreeViewModel(
@@ -102,14 +110,6 @@ class _LayoutState extends State<Layout> {
       initialView: _currentView,
       onViewSelected: _selectView,
     );
-
-    if (widget.layoutConfig != null) {
-      _parsedLayout = jsonDecode(widget.layoutConfig!) as Map<String, dynamic>;
-      _cachedTreeData = null;
-      _updateCurrentViewFromLayout();
-    } else {
-      _loadLayoutConfig();
-    }
 
     _worker = BackgroundWorker()..start();
     _worker!.results.listen((_) {
