@@ -255,14 +255,8 @@ class _PropertyGridState extends State<PropertyGrid> {
     });
 
     if (isValid) {
-      dynamic finalCastedValue = parsedValue;
-      if (attr.type == 'double') {
-        finalCastedValue = double.tryParse(valueString) ?? 0.0;
-      } else if (attr.type == 'int') {
-        finalCastedValue = int.tryParse(valueString) ?? 0;
-      }
       setState(() {
-        committedData[key] = finalCastedValue;
+        committedData[key] = parsedValue;
       });
 
       widget.onSave?.call(Map<String, dynamic>.from(committedData));
