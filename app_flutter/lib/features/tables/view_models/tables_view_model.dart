@@ -19,11 +19,7 @@ class TablesViewModel extends ChangeNotifier {
   bool get loading => _loading;
 
   void reload(String tabId, String activeView) {
-    if (tabId != _tabId || activeView != _activeView) {
-      // This ViewModel is created per-instance, so tabId and activeView
-      // are fixed at construction time. Reload for the given params.
-      _loadData();
-    }
+    _loadData();
   }
 
   Future<void> _loadData() async {
