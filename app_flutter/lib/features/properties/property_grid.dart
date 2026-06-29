@@ -161,6 +161,18 @@ class _PropertyGridState extends State<PropertyGrid> {
     return allValues;
   }
 
+  void _clearPairedErrors(String key, Map<String, String> newErrors) {
+    if (key != 'maxVoltage' && key != 'maxAllocatedPower') return;
+    final otherKey = key == 'maxVoltage' ? 'maxAllocatedPower' : 'maxVoltage';
+    final otherCtrl = _controllers[otherKey];
+    if (otherCtrl == null) return;
+    final allValues = _buildAllValuesMap();
+    final otherErrorMsg = widget.validator?.call(otherKey, otherCtrl.text, allValues);
+    if (otherErrorMsg == null) {
+      newErrors.remove(otherKey);
+    }
+  }
+
   void _triggerBlurSave(String key, AttributeDefinition attr) {
     final valueString = attr.type == 'enum'
         ? (committedData[key]?.toString() ?? '')
@@ -234,18 +246,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     setState(() {
       if (isValid) {
         newErrors.remove(key);
-        // Clear paired/dependent field errors if they now pass validation.
-        if (key == 'maxVoltage' || key == 'maxAllocatedPower') {
-          final otherKey = key == 'maxVoltage' ? 'maxAllocatedPower' : 'maxVoltage';
-          final otherCtrl = _controllers[otherKey];
-          if (otherCtrl != null) {
-            final allValues = _buildAllValuesMap();
-            final otherErrorMsg = widget.validator?.call(otherKey, otherCtrl.text, allValues);
-            if (otherErrorMsg == null) {
-              newErrors.remove(otherKey);
-            }
-          }
-        }
+        _clearPairedErrors(key, newErrors);
       } else {
         newErrors[key] = error ?? 'Invalid value';
       }
