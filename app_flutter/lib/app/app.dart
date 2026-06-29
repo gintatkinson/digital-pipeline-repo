@@ -14,17 +14,20 @@ class MyApp extends StatelessWidget {
     final themeController = context.watch<ThemeController>();
     final textScaler = context.watch<TextScalerController>();
 
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: TextScaler.linear(textScaler.scale),
-      ),
-      child: MaterialApp(
-        title: 'Antigravity Console',
-        themeMode: themeController.themeMode,
-        theme: AppThemes.light(custom: themeController.currentTheme),
-        darkTheme: AppThemes.dark(custom: themeController.currentTheme),
-        home: const DashboardPage(),
-      ),
+    return MaterialApp(
+      title: 'Antigravity Console',
+      themeMode: themeController.themeMode,
+      theme: AppThemes.light(custom: themeController.currentTheme),
+      darkTheme: AppThemes.dark(custom: themeController.currentTheme),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScaler.scale),
+          ),
+          child: child!,
+        );
+      },
+      home: const DashboardPage(),
     );
   }
 }
