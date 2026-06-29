@@ -76,13 +76,21 @@ class SqliteRepositoryAdapter implements AbstractRepository {
 
   /// Yields current properties then streams live updates for [nodeId].
   @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
-    yield await fetchProperties(nodeId);
-    await for (final event in _controller.stream) {
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) {
+    final controller = StreamController<Map<String, dynamic>>();
+    unawaited(fetchProperties(nodeId).then((data) {
+      if (!controller.isClosed) controller.add(data);
+    }));
+    final sub = _controller.stream.listen((event) {
       if (event['nodeId'] == nodeId) {
-        yield event['data'] as Map<String, dynamic>;
+        controller.add(event['data'] as Map<String, dynamic>);
       }
-    }
+    });
+    controller.onCancel = () {
+      sub.cancel();
+      return Future.value();
+    };
+    return controller.stream;
   }
 
   /// Queries the `elements` table by [parentNodeId].

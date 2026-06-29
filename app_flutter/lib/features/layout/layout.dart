@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -62,6 +63,7 @@ class _LayoutState extends State<Layout> {
 
   // Background Worker
   BackgroundWorker? _worker;
+  StreamSubscription<int>? _workerSubscription;
 
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
@@ -112,7 +114,7 @@ class _LayoutState extends State<Layout> {
     );
 
     _worker = BackgroundWorker()..start();
-    _worker!.results.listen((_) {
+    _workerSubscription = _worker!.results.listen((_) {
       if (mounted) setState(() {});
     });
   }
@@ -133,6 +135,7 @@ class _LayoutState extends State<Layout> {
   @override
   void dispose() {
     _propertiesService?.dispose();
+    _workerSubscription?.cancel();
     _worker?.dispose();
     _treeViewModel?.dispose();
     super.dispose();
