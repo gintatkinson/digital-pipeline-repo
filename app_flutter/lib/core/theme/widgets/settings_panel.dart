@@ -12,6 +12,7 @@ class SettingsPanel extends StatelessWidget {
     final themeController = context.watch<ThemeController>();
     final textScaler = context.watch<TextScalerController>();
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -19,7 +20,7 @@ class SettingsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text('Theme', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           SegmentedButton<ThemeMode>(
             segments: const [
@@ -34,7 +35,7 @@ class SettingsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          const Text('Color', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text('Color', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Wrap(
             spacing: 12,
@@ -56,7 +57,7 @@ class SettingsPanel extends StatelessWidget {
                   ),
                   child: ClipOval(
                     child: Container(
-                      color: scheme.light.primary,
+                      color: isDark ? scheme.dark.primary : scheme.light.primary,
                       alignment: Alignment.center,
                       child: isSelected
                           ? Icon(Icons.check, size: 16, color: scheme.light.primary.computeLuminance() > 0.5 ? Colors.black : Colors.white)
@@ -69,7 +70,7 @@ class SettingsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          const Text('Text Size', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text('Text Size', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Row(
             children: [

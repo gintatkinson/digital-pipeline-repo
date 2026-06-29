@@ -28,52 +28,57 @@ class TabbedContainer extends StatefulWidget {
   State<TabbedContainer> createState() => _TabbedContainerState();
 }
 
-class _TabbedContainerState extends State<TabbedContainer> {
-  late int _activeTabIndex;
+class _TabbedContainerState extends State<TabbedContainer> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  int _activeTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _activeTabIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
-    if (_activeTabIndex < 0) _activeTabIndex = 0;
+    _activeTabIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId).clamp(0, widget.tabs.length - 1);
+    _tabController = TabController(length: widget.tabs.length, vsync: this, initialIndex: _activeTabIndex);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() => _activeTabIndex = _tabController.index);
+      }
+    });
   }
 
   @override
-  void didUpdateWidget(covariant TabbedContainer oldWidget) {
+  void didUpdateWidget(TabbedContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTabId != oldWidget.initialTabId) {
-      _activeTabIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
-      if (_activeTabIndex < 0) _activeTabIndex = 0;
+      final newIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
+      if (newIndex >= 0 && newIndex != _tabController.index) {
+        _tabController.animateTo(newIndex);
+      }
     }
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).cardColor,
-      child: DefaultTabController(
-        length: widget.tabs.length,
-        initialIndex: _activeTabIndex,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TabBar(
-              onTap: (index) {
-                setState(() {
-                  _activeTabIndex = index;
-                });
-                widget.onTabChanged?.call(widget.tabs[index].id);
-              },
-              tabs: widget.tabs.map((t) => Tab(text: t.label)).toList(),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: widget.tabs.map((t) => t.contentBuilder(context)).toList(),
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        Material(
+          color: Theme.of(context).cardColor,
+          child: TabBar(
+            controller: _tabController,
+            tabs: widget.tabs.map((t) => Tab(text: t.label)).toList(),
+          ),
         ),
-      ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: widget.tabs.map((t) => t.contentBuilder(context)).toList(),
+          ),
+        ),
+      ],
     );
   }
 }

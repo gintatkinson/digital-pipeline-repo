@@ -212,7 +212,11 @@ class _PropertyGridState extends State<PropertyGrid> {
       final Map<String, dynamic> allValues = {};
       for (final resolvedAttr in _resolvedAttributes) {
         final ctrl = _controllers[resolvedAttr.key];
-        allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+        if (resolvedAttr.type == 'enum') {
+          allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
+        } else {
+          allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+        }
       }
       final errorMsg = widget.validator!(key, valueString, allValues);
       if (errorMsg != null) {
@@ -232,7 +236,11 @@ class _PropertyGridState extends State<PropertyGrid> {
             final Map<String, dynamic> allValues = {};
             for (final resolvedAttr in _resolvedAttributes) {
               final ctrl = _controllers[resolvedAttr.key];
-              allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+              if (resolvedAttr.type == 'enum') {
+                allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
+              } else {
+                allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
+              }
             }
             final otherErrorMsg = widget.validator?.call(otherKey, otherCtrl.text, allValues);
             if (otherErrorMsg == null) {

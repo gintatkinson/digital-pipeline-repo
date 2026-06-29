@@ -13,6 +13,7 @@ abstract class ThemeService {
 class SharedPreferencesThemeService implements ThemeService {
   static const _modeKey = 'theme_mode';
   static const _schemeKey = 'theme_scheme';
+  static const _textScaleKey = 'text_scale';
 
   @override
   Future<ThemeMode> loadThemeMode() async {
@@ -45,8 +46,6 @@ class SharedPreferencesThemeService implements ThemeService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_schemeKey, index);
   }
-
-  static const _textScaleKey = 'text_scale';
 
   @override
   Future<double> loadTextScale() async {

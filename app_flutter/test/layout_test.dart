@@ -7,7 +7,6 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 import 'package:app_flutter/features/layout/layout.dart';
 import 'package:app_flutter/domain/repository.dart';
-import 'package:app_flutter/core/repository_provider.dart';
 
 class _TestRepository implements AbstractRepository {
   @override

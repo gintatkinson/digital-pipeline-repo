@@ -66,6 +66,27 @@ class _LayoutState extends State<Layout> {
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
 
+  // Cached JSON files
+  Map<String, dynamic>? _cachedRules;
+  Map<String, dynamic>? _cachedLabels;
+
+  Map<String, dynamic> _loadJsonOnce(String path) {
+    if (_cachedRules != null && path.contains('codebase_rules')) return _cachedRules!;
+    if (_cachedLabels != null && path.contains('labels')) return _cachedLabels!;
+    try {
+      for (final candidate in [path, '../$path']) {
+        final file = File(candidate);
+        if (file.existsSync()) {
+          final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+          if (path.contains('codebase_rules')) _cachedRules = data;
+          if (path.contains('labels')) _cachedLabels = data;
+          return data;
+        }
+      }
+    } catch (_) {}
+    return {};
+  }
+
   // Properties Reactive State - handled by PropertiesService
 
   @override
@@ -114,52 +135,18 @@ class _LayoutState extends State<Layout> {
   }
 
   double _getDefaultRatio() {
-    try {
-      for (final path in ['../.pipeline/logical-ui/codebase_rules.json', '.pipeline/logical-ui/codebase_rules.json']) {
-        final file = File(path);
-        if (file.existsSync()) {
-          final rules = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
-          return getDefaultRatio(rules, 'layout_properties.default_ratio', 0.5);
-        }
-      }
-    } catch (_) {}
-    return 0.5;
+    final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
+    return getDefaultRatio(rules, 'layout_properties.default_ratio', 0.5);
   }
 
   Map<String, String> _resolveCoordinateMapping() {
-    try {
-      Map<String, dynamic>? rules;
-      final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
-      if (file1.existsSync()) {
-        rules = jsonDecode(file1.readAsStringSync()) as Map<String, dynamic>?;
-      } else {
-        final file2 = File('.pipeline/logical-ui/codebase_rules.json');
-        if (file2.existsSync()) {
-          rules = jsonDecode(file2.readAsStringSync()) as Map<String, dynamic>?;
-        }
-      }
-      return resolveCoordinateMapping(rules ?? <String, dynamic>{});
-    } catch (_) {
-      return resolveCoordinateMapping(<String, dynamic>{});
-    }
+    final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
+    return resolveCoordinateMapping(rules);
   }
 
   Map<String, String> _resolveLabelsMapping() {
-    try {
-      Map<String, dynamic>? rules;
-      final file1 = File('../.pipeline/logical-ui/codebase_rules.json');
-      if (file1.existsSync()) {
-        rules = jsonDecode(file1.readAsStringSync()) as Map<String, dynamic>?;
-      } else {
-        final file2 = File('.pipeline/logical-ui/codebase_rules.json');
-        if (file2.existsSync()) {
-          rules = jsonDecode(file2.readAsStringSync()) as Map<String, dynamic>?;
-        }
-      }
-      return resolveLabelsMapping(rules ?? <String, dynamic>{});
-    } catch (_) {
-      return resolveLabelsMapping(<String, dynamic>{});
-    }
+    final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
+    return resolveLabelsMapping(rules);
   }
 
   String _resolveTabLabel(String tabId) {
