@@ -11,6 +11,7 @@ class TablesViewModel extends ChangeNotifier {
   List<String> _headers = [];
   bool _loading = true;
   String? _error;
+  int _requestId = 0;
 
   TablesViewModel(this._repository, this._tabId, this._activeView) {
     _loadData();
@@ -39,6 +40,7 @@ class TablesViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadData() async {
+    final requestId = ++_requestId;
     _loading = true;
     _error = null;
     notifyListeners();
@@ -58,6 +60,8 @@ class TablesViewModel extends ChangeNotifier {
         data = await _repository.fetchEvents(nodeId);
         headers = ['Event ID', 'Source', 'Message', 'Timestamp'];
       }
+
+      if (requestId != _requestId) return;
 
       final rows = data.map((row) {
         if (_tabId == 'sub_elements_table') {
@@ -84,10 +88,13 @@ class TablesViewModel extends ChangeNotifier {
         }
       }).toList();
 
+      if (requestId != _requestId) return;
+
       _headers = headers;
       _rows = rows;
       _loading = false;
     } catch (e, st) {
+      if (requestId != _requestId) return;
       _error = 'Failed to load table data';
       _rows = [];
       _headers = [];
