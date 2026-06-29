@@ -624,14 +624,6 @@ class _PropertyGridState extends State<PropertyGrid> {
         const SizedBox(height: 8),
         Focus(
           focusNode: focusNode,
-          onFocusChange: (bool hasFocus) {
-            if (!hasFocus) {
-              final index = _resolvedAttributes.indexWhere((a) => a.key == key);
-              if (index != -1) {
-                _triggerBlurSave(key, _resolvedAttributes[index]);
-              }
-            }
-          },
           child: DropdownButtonFormField<String>(
             isExpanded: true,
             // ignore: deprecated_member_use
