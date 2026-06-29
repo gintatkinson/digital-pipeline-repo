@@ -121,5 +121,11 @@ void main() {
         await tester.pump();
       }
     }
+
+    // Drain pending async saves before teardown
+    for (int i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pump();
   });
 }

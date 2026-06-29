@@ -7,6 +7,10 @@ import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/repository_resolver.dart';
 import 'package:app_flutter/app/app.dart';
 
+// Benchmark access hooks — set after initialization
+ThemeController? globalThemeController;
+TextScalerController? globalTextScalerController;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -20,6 +24,9 @@ Future<void> main() async {
 
     final textScalerController = TextScalerController(themeService);
     await textScalerController.load();
+
+    globalThemeController = themeController;
+    globalTextScalerController = textScalerController;
 
     runApp(
       MultiProvider(
