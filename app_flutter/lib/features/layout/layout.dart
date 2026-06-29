@@ -120,7 +120,7 @@ class _LayoutState extends State<Layout> {
       _loadLayoutConfig();
     }
 
-    _currentView = widget.activeView ?? 'Ingestion';
+    _currentView = widget.activeView ?? 'root';
 
     _worker = BackgroundWorker()..start();
     _workerSubscription = _worker!.results.listen((_) {

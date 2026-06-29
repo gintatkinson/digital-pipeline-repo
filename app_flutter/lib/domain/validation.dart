@@ -15,9 +15,9 @@ bool validateTemporalContext(Map<String, dynamic> context) {
   return vu.compareTo(ts) >= 0;
 }
 
-/// Validates a PhysicalAddress.
+/// Validates a PostalAddress.
 /// Property coverage: address, postalCode, state, city, countryCode
-bool validatePhysicalAddress(Map<String, dynamic> addr) {
+bool validatePostalAddress(Map<String, dynamic> addr) {
   final countryCode = addr['countryCode'] as String? ?? '';
   if (countryCode.isEmpty) {
     return false;
@@ -27,50 +27,49 @@ bool validatePhysicalAddress(Map<String, dynamic> addr) {
   return countryRegex.hasMatch(countryCode);
 }
 
-/// Validates a LocationType.
+/// Validates a PlaceType.
 /// Property coverage: identity
-bool validateLocationType(Map<String, dynamic> locType) {
-  // Location Identity Validation: LocationType must match 'site', 'room', or 'building'
-  const validIdentities = ['site', 'room', 'building'];
-  return validIdentities.contains(locType['identity'] as String? ?? '');
+bool validatePlaceType(Map<String, dynamic> placeType) {
+  const validIdentities = ['zone', 'area', 'cluster'];
+  return validIdentities.contains(placeType['identity'] as String? ?? '');
 }
 
-/// Validates a Rack.
-/// Property coverage: maxVoltage, maxAllocatedPower, heightUnits, location
-bool validateRack(Map<String, dynamic> rack) {
-  final maxVoltage = (rack['maxVoltage'] as num?)?.toDouble() ?? 0.0;
-  final maxAllocatedPower = (rack['maxAllocatedPower'] as num?)?.toDouble() ?? 0.0;
-  final heightUnits = (rack['heightUnits'] as num?)?.toInt() ?? 0;
-  // Rack Validation: maxVoltage and maxAllocatedPower must be non-negative
+/// Validates a LoadSpec.
+/// Property coverage: maxVoltage, maxAllocatedPower, capacity, location
+bool validateLoadSpec(Map<String, dynamic> spec) {
+  final maxVoltage = (spec['maxVoltage'] as num?)?.toDouble() ?? 0.0;
+  final maxAllocatedPower = (spec['maxAllocatedPower'] as num?)?.toDouble() ?? 0.0;
+  final capacity = (spec['capacity'] as num?)?.toInt() ?? 0;
+  // Load Validation: maxVoltage and maxAllocatedPower must be non-negative
   if (maxVoltage < 0 || maxAllocatedPower < 0) {
     return false;
   }
-  if (heightUnits < 0) {
+  if (capacity < 0) {
     return false;
   }
   return true;
 }
 
-/// Validates slot overlap between two ContainedChassis instances.
-/// Property coverage: chassisId, startSlot, slotWidth
-bool hasSlotOverlap(Map<String, dynamic> chassis1, Map<String, dynamic> chassis2) {
-  final start1 = (chassis1['startSlot'] as num?)?.toInt() ?? 0;
-  final width1 = (chassis1['slotWidth'] as num?)?.toInt() ?? 0;
-  final start2 = (chassis2['startSlot'] as num?)?.toInt() ?? 0;
-  final width2 = (chassis2['slotWidth'] as num?)?.toInt() ?? 0;
+/// Validates slot overlap between two contained units.
+/// Property coverage: unitId, startSlot, slotWidth
+bool hasSlotOverlap(Map<String, dynamic> unit1, Map<String, dynamic> unit2) {
+  final start1 = (unit1['startSlot'] as num?)?.toInt() ?? 0;
+  final width1 = (unit1['slotWidth'] as num?)?.toInt() ?? 0;
+  final start2 = (unit2['startSlot'] as num?)?.toInt() ?? 0;
+  final width2 = (unit2['slotWidth'] as num?)?.toInt() ?? 0;
   return start1 < start2 + width2 &&
       start2 < start1 + width1;
 }
 
-/// Validates slot allocations for a ChassisContainmentSubsystem to ensure no overlaps.
-/// Property coverage: chassis, validateAllocation, validateSlotOverlap
-bool validateChassisAllocation(Map<String, dynamic> subsystem) {
-  final chassisList = (subsystem['chassis'] as List<dynamic>?) ?? [];
-  for (int i = 0; i < chassisList.length; i++) {
-    for (int j = i + 1; j < chassisList.length; j++) {
+/// Validates slot allocations for a containment subsystem to ensure no overlaps.
+/// Property coverage: units, validateAllocation, validateSlotOverlap
+bool validateUnitAllocation(Map<String, dynamic> subsystem) {
+  final unitList = (subsystem['units'] as List<dynamic>?) ?? [];
+  for (int i = 0; i < unitList.length; i++) {
+    for (int j = i + 1; j < unitList.length; j++) {
       if (hasSlotOverlap(
-        chassisList[i] as Map<String, dynamic>,
-        chassisList[j] as Map<String, dynamic>,
+        unitList[i] as Map<String, dynamic>,
+        unitList[j] as Map<String, dynamic>,
       )) {
         return false;
       }

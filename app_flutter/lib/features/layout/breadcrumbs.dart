@@ -151,7 +151,7 @@ List<BreadcrumbItem> getBreadcrumbsItems(
         if (treeData.isNotEmpty) {
           onSelectView?.call(getFirstLeafId(treeData.first));
         } else {
-          onSelectView?.call('Ingestion');
+          onSelectView?.call(getFirstLeafId(treeData.first));
         }
       },
     ),

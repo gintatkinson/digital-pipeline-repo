@@ -6,13 +6,13 @@
 ///
 /// One [TypeDescriptor] instance exists per object type, not per instance.
 class TypeDescriptor {
-  /// Internal identifier matching the data source, e.g. "Chassis".
+  /// Internal identifier matching the data source, e.g. "device".
   final String typeName;
 
-  /// Human-readable label for UI display, e.g. "Chassis".
+  /// Human-readable label for UI display, e.g. "Device".
   final String displayName;
 
-  /// Material icon name string, e.g. "dns". Resolved to [IconData] by [IconMapper].
+  /// Material icon name string, e.g. "developer_board". Resolved to [IconData] by [IconMapper].
   final String iconName;
 
   /// All editable fields/attributes of this type.

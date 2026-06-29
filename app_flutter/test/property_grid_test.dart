@@ -44,30 +44,30 @@ void main() {
     );
   }
 
-  testWidgets('Highlights Geodetic Coordinate Frame section when activeView is Location', (WidgetTester tester) async {
+  testWidgets('Highlights Primary Reference Frame section when activeView is Primary', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
           home: Scaffold(
-            body: const PropertyGrid(activeView: 'Location'),
+            body: const PropertyGrid(activeView: 'Primary'),
           ),
       ),
     );
 
-    // Verify Active Reference tag is shown in Geodetic, and NOT Alternate
+    // Verify Active Reference tag is shown in Primary, and NOT Secondary
     expect(find.text('Active Reference'), findsOneWidget);
     
-    // The Geodetic section should be fully opaque (opacity 1.0)
+    // The Primary section should be fully opaque (opacity 1.0)
     // Find the Opacity widget wrapping the first system section
     final List<Opacity> opacities = tester.widgetList<Opacity>(find.byType(Opacity)).toList();
-    expect(opacities[0].opacity, 1.0); // Geodetic is active
-    expect(opacities[1].opacity, 0.65); // Alternate is dimmed
+    expect(opacities[0].opacity, 1.0); // Primary is active
+    expect(opacities[1].opacity, 0.65); // Secondary is dimmed
   });
 
-  testWidgets('Highlights Alternate Structural Grid Frame section when activeView is not Location/Ingestion', (WidgetTester tester) async {
+  testWidgets('Highlights Secondary Reference Frame section when activeView is not Primary/root', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
           home: Scaffold(
-            body: const PropertyGrid(activeView: 'Metrics'),
+            body: const PropertyGrid(activeView: 'Secondary'),
           ),
       ),
     );
@@ -75,8 +75,8 @@ void main() {
     expect(find.text('Active Reference'), findsOneWidget);
     
     final List<Opacity> opacities = tester.widgetList<Opacity>(find.byType(Opacity)).toList();
-    expect(opacities[0].opacity, 0.65); // Geodetic is dimmed
-    expect(opacities[1].opacity, 1.0); // Alternate is active
+    expect(opacities[0].opacity, 0.65); // Primary is dimmed
+    expect(opacities[1].opacity, 1.0); // Secondary is active
   });
 
   testWidgets('Buffers input locally and performs validation/commit on focus loss for countryCode', (WidgetTester tester) async {
@@ -86,7 +86,7 @@ void main() {
       MaterialApp(
           home: Scaffold(
             body: PropertyGrid(
-              activeView: 'Location',
+              activeView: 'Primary',
               onSave: (dynamic data) {
                 savedData = data as Map<String, dynamic>?;
               },
@@ -138,7 +138,7 @@ void main() {
       MaterialApp(
           home: Scaffold(
             body: PropertyGrid(
-              activeView: 'Metrics',
+              activeView: 'Secondary',
               onSave: (dynamic data) {
                 savedData = data as Map<String, dynamic>?;
               },
@@ -190,14 +190,14 @@ void main() {
     expect(savedData!['maxAllocatedPower'], 15000.0);
   });
 
-  testWidgets('Validates locationType immediately upon selection change and on blur', (WidgetTester tester) async {
+  testWidgets('Validates placeType immediately upon selection change and on blur', (WidgetTester tester) async {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
       MaterialApp(
           home: Scaffold(
             body: PropertyGrid(
-              activeView: 'Metrics',
+              activeView: 'Secondary',
               onSave: (dynamic data) {
                 savedData = data as Map<String, dynamic>?;
               },
@@ -206,34 +206,34 @@ void main() {
       ),
     );
 
-    // Find the location hierarchy type dropdown
-    final Finder dropdownFinder = findDropdownByLabel('Location Hierarchy Type');
+    // Find the place classification dropdown
+    final Finder dropdownFinder = findDropdownByLabel('Place Classification');
     expect(dropdownFinder, findsOneWidget);
 
-    // Tap the dropdown to open it (initial value is 'Room' / 'room')
-    await tester.tap(find.text('Room'));
+    // Tap the dropdown to open it (initial value is 'Zone' / 'zone')
+    await tester.tap(find.text('Zone'));
     await tester.pumpAndSettle();
 
-    // Select the invalid test option
-    await tester.tap(find.text('Invalid (Test Only)').last);
+    // Select the test option
+    await tester.tap(find.text('Test Option').last);
     await tester.pumpAndSettle();
 
     // Verify validation error is displayed
-    expect(find.text("Must be 'site', 'room', or 'building'"), findsOneWidget);
+    expect(find.text("Must be 'zone', 'area', or 'cluster'"), findsOneWidget);
     
     // Clear savedData so that we only assert selection changes do not commit invalid state
     savedData = null;
     expect(savedData, isNull);
 
-    // Select a valid option (Site / site)
-    await tester.tap(find.text('Invalid (Test Only)'));
+    // Select a valid option (Zone / zone)
+    await tester.tap(find.text('Test Option'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Site').last);
+    await tester.tap(find.text('Zone').last);
     await tester.pumpAndSettle();
 
     // Verify error is cleared and state committed
-    expect(find.text("Must be 'site', 'room', or 'building'"), findsNothing);
-    expect(savedData!['locationType'], 'site');
+    expect(find.text("Must be 'zone', 'area', or 'cluster'"), findsNothing);
+    expect(savedData!['placeType'], 'zone');
   });
 }

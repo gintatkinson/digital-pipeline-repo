@@ -18,33 +18,11 @@ class TreeNodeWidget extends StatelessWidget {
     final isParent = node.children != null && node.children!.isNotEmpty;
     final isExpanded = viewModel.expanded[node.id] == true;
 
-    // TODO(#79): Replace hardcoded icon mappings with dynamic config-driven mapping.
     IconData icon;
     if (isParent) {
       icon = isExpanded ? Icons.folder_open : Icons.folder;
     } else {
-      switch (node.id) {
-        case 'Ingestion':
-          icon = Icons.play_arrow;
-          break;
-        case 'Metrics':
-          icon = Icons.bar_chart;
-          break;
-        case 'Location':
-          icon = Icons.location_on;
-          break;
-        case 'Chassis':
-          icon = Icons.dns;
-          break;
-        case 'Epics':
-          icon = Icons.album;
-          break;
-        case 'Traceability':
-          icon = Icons.link;
-          break;
-        default:
-          icon = Icons.insert_drive_file;
-      }
+      icon = Icons.insert_drive_file;
     }
 
     final brandPrimary = Theme.of(context).colorScheme.primary;

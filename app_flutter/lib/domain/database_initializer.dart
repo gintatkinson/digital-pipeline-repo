@@ -8,17 +8,17 @@ class DatabaseInitializer {
   static const _entriesPerNode = 15;
 
   static const _nodeIds = [
-    'Ingestion',
-    'Monitoring', 'Metrics', 'Location', 'Chassis', 'Uptime',
-    'Spec', 'Epics', 'Traceability', 'Requirements', 'Releases',
-    'Security', 'Access', 'Firewall', 'Certificates', 'Audit',
-    'Infrastructure', 'Servers', 'Storage', 'Network',
+    'root',
+    'Overview', 'Watch', 'Measure', 'Position', 'Unit', 'Status',
+    'Spec', 'Capability', 'Path', 'Objective', 'Phase',
+    'Perimeter', 'Entry', 'Bridge', 'Principal', 'Journal',
+    'Base', 'Process', 'Store', 'Mesh',
   ];
 
   static const _types = [
-    'Worker', 'Collector', 'Sensor', 'Power', 'Planning',
-    'Compliance', 'Gateway', 'Router', 'Switch', 'Firewall',
-    'LoadBalancer', 'Database', 'Cache', 'Queue', 'Monitor',
+    'Processor', 'Collector', 'Sensor', 'Actuator', 'Controller',
+    'Validator', 'Dispatcher', 'Distributor', 'Adapter', 'Filter',
+    'Aggregator', 'Store', 'Buffer', 'Channel', 'Observer',
   ];
 
   static const _severities = [
@@ -26,13 +26,13 @@ class DatabaseInitializer {
   ];
 
   static const _sources = [
-    'System', 'Metrics', 'Geo', 'Chassis', 'Agile',
-    'Compliance', 'Security', 'Network', 'Storage', 'Database',
-    'Orchestrator', 'Monitor', 'Scheduler', 'Auditor', 'Ingress',
+    'Core', 'Count', 'Coord', 'Unit', 'Plan',
+    'Rule', 'Gate', 'Link', 'Archive', 'Catalog',
+    'Coordinator', 'Watch', 'Timer', 'Checker', 'Entry',
   ];
 
-  static const _adminStatuses = ['UP', 'DOWN'];
-  static const _locationTypes = ['site', 'room', 'building'];
+  static const _adminStatuses = ['ACTIVE', 'INACTIVE'];
+  static const _placeTypes = ['zone', 'area', 'cluster'];
 
   static Future<Database> create({String? dbPath, bool seed = true}) async {
     sqfliteFfiInit();
@@ -144,13 +144,13 @@ class DatabaseInitializer {
       'latitude': 40.0 + index + 0.5,
       'longitude': -74.0 - index * 0.1,
       'altitude': index * 5,
-      'roomName': 'Room ${String.fromCharCode(65 + index % 26)}-${index + 1}',
+      'placeName': 'Place ${String.fromCharCode(65 + index % 26)}-${index + 1}',
       'gridRow': index + 1,
       'gridColumn': (index % 10) + 1,
       'maxVoltage': 120.0 + index * 10.0,
       'maxAllocatedPower': 1000.0 + index * 250.0,
       'countryCode': ['US', 'UK', 'DE', 'JP', 'SG'][index % 5],
-      'locationType': _locationTypes[index % _locationTypes.length],
+      'placeType': _placeTypes[index % _placeTypes.length],
     };
     return jsonEncode(data);
   }

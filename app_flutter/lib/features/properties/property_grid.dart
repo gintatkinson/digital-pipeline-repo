@@ -31,7 +31,7 @@ class PropertyGrid extends StatefulWidget {
     this.attributes,
     this.initialValues = const {},
     this.onSave,
-    this.activeView = 'Location',
+    this.activeView = 'root',
     this.fallbackInitialValues = defaultFallbackInitialValues,
     this.validator = defaultValidator,
     this.optionDisplayNames = defaultOptionDisplayNames,
@@ -42,9 +42,9 @@ class PropertyGrid extends StatefulWidget {
   State<PropertyGrid> createState() => _PropertyGridState();
 }
 
-const _sectionLocation = 'Location';
-const _sectionAlternate = 'Alternate';
-const _viewIngestion = 'Ingestion';
+const _sectionPrimary = 'Primary';
+const _sectionSecondary = 'Secondary';
+const _viewDefault = 'root';
 const _typeDouble = 'double';
 const _typeInt = 'int';
 const _typeEnum = 'enum';
@@ -279,10 +279,10 @@ class _PropertyGridState extends State<PropertyGrid> {
     
     final List<String> sortedGroups = groups.toList();
     sortedGroups.sort((a, b) {
-      if (a == _sectionLocation) return -1;
-      if (b == _sectionLocation) return 1;
-      if (a == _sectionAlternate) return -1;
-      if (b == _sectionAlternate) return 1;
+      if (a == _sectionPrimary) return -1;
+      if (b == _sectionPrimary) return 1;
+      if (a == _sectionSecondary) return -1;
+      if (b == _sectionSecondary) return 1;
       return a.compareTo(b);
     });
 
@@ -298,21 +298,21 @@ class _PropertyGridState extends State<PropertyGrid> {
                   : constraints.maxWidth;
 
               final List<Widget> sections = sortedGroups.map((group) {
-                final bool isActive = (group == _sectionLocation && (widget.activeView == _sectionLocation || widget.activeView == _viewIngestion)) ||
-                                     (group == _sectionAlternate && widget.activeView != _sectionLocation && widget.activeView != _viewIngestion) ||
-                                     (group != _sectionLocation && group != _sectionAlternate && widget.activeView == group);
+                final bool isActive = (group == _sectionPrimary && (widget.activeView == _sectionPrimary || widget.activeView == _viewDefault)) ||
+                                     (group == _sectionSecondary && widget.activeView != _sectionPrimary && widget.activeView != _viewDefault) ||
+                                     (group != _sectionPrimary && group != _sectionSecondary && widget.activeView == group);
 
                 String title = '$group Section';
-                if (group == _sectionLocation) {
-                  title = 'Geodetic Coordinate Frame';
-                } else if (group == _sectionAlternate) {
-                  title = 'Alternate Structural Grid Frame';
+                if (group == _sectionPrimary) {
+                  title = 'Primary Reference Frame';
+                } else if (group == _sectionSecondary) {
+                  title = 'Secondary Reference Frame';
                 }
 
                 return _buildSystemSection(
                   title: title,
                   isActive: isActive,
-                  isAlternate: group == _sectionAlternate,
+                  isAlternate: group == _sectionSecondary,
                   isDark: isDark,
                   width: cardWidth,
                   child: _buildGroupFields(group, isDark),
