@@ -192,9 +192,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   (bool isValid, dynamic parsedValue, String? error) _validateField(
     String key, AttributeDefinition attr, String valueString,
   ) {
-    bool isValid = true;
     dynamic parsedValue;
-    String? error;
 
     if (attr.isRequired && valueString.trim().isEmpty) {
       return (false, null, '${attr.label} is required');
