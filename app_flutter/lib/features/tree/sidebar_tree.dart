@@ -125,7 +125,7 @@ class SidebarTree extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.settings, size: 18),
                   onPressed: () {
-                    showModalBottomSheet(
+                    showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
                       builder: (context) => const SettingsPanel(),

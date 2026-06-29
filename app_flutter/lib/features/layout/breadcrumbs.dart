@@ -69,10 +69,7 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
       renderedItems = widget.items;
     }
 
-    final Color brandPrimary = Theme.of(context).colorScheme.primary;
-    final Color currentTextColor = Theme.of(context).colorScheme.onSurface;
-    final Color textSecondary = currentTextColor.withValues(alpha: 0.6);
-    final Color separatorColor = currentTextColor.withValues(alpha: 0.5);
+
 
     final List<Widget> children = <Widget>[];
     for (int i = 0; i < renderedItems.length; i++) {

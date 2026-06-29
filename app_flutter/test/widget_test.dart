@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/app/app.dart';
@@ -7,7 +6,6 @@ import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreference
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/repository.dart';
-import 'package:app_flutter/core/repository_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -36,7 +34,6 @@ void main() {
           ),
         );
 
-        await Future<void>.delayed(const Duration(milliseconds: 100));
         await tester.pump();
 
         expect(find.byType(MyApp), findsOneWidget);

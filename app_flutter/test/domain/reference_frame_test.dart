@@ -14,9 +14,6 @@ void main() {
   group('ReferenceFrame', () {
     const marsFrame = ReferenceFrame(astronomicalBody: AstronomicalBody.mars);
     const earthFrame = ReferenceFrame(astronomicalBody: AstronomicalBody.earth);
-    const earthFrameWithDatum =
-        ReferenceFrame(astronomicalBody: AstronomicalBody.earth, geodeticDatum: 'wgs-84');
-
     test('constructor defaults geodeticDatum to wgs-84', () {
       expect(marsFrame.geodeticDatum, 'wgs-84');
       expect(earthFrame.geodeticDatum, 'wgs-84');

@@ -474,8 +474,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   Widget _buildAttrField(AttributeDefinition attr, bool isDark) {
     final cs = Theme.of(context).colorScheme;
     final Color brandPrimary = cs.primary;
-    final Color textSecondary = cs.onSurface.withValues(alpha: 0.6);
-    final Color borderColor = Theme.of(context).dividerColor;
+
 
     if (attr.type == 'enum') {
       final options = attr.options ?? const [];
