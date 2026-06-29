@@ -277,13 +277,9 @@ class _LayoutState extends State<Layout> {
       activeView: _currentView,
       attributes: dynamicAttributes,
       initialValues: nodeData,
-      onSave: (String key, dynamic value) async {
+      onSave: (Map<String, dynamic> data) async {
         final resolvedRepo = context.read<AbstractRepository>();
-        final currentData = _propertiesService?.currentNodeData;
-        if (currentData == null) return;
-        final updatedData = Map<String, dynamic>.from(currentData);
-        updatedData[key] = value;
-        await resolvedRepo.saveProperties(_currentView, updatedData);
+        await resolvedRepo.saveProperties(_currentView, data);
       },
     );
   }
