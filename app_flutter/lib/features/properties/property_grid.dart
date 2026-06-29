@@ -476,7 +476,6 @@ class _PropertyGridState extends State<PropertyGrid> {
 
       return _buildDropdownField(
         label: attr.label,
-        key: attr.key,
         focusNode: _focusNodes[attr.key]!,
         value: currentValue as String,
         errorText: _errors[attr.key],
@@ -599,7 +598,6 @@ class _PropertyGridState extends State<PropertyGrid> {
 
   Widget _buildDropdownField({
     required String label,
-    required String key,
     required FocusNode focusNode,
     required String value,
     required List<DropdownMenuItem<String>> items,
