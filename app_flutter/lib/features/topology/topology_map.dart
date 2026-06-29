@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:app_flutter/features/topology/topology_defaults.dart';
+import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData;
 
 dynamic _resolvePath(Map<String, dynamic> map, String path) {
   final List<String> parts = path.split('/');
@@ -178,6 +178,20 @@ class TopologyData {
     required this.nodes,
     required this.links,
   });
+
+  factory TopologyData.fromJson(Map<String, dynamic> json) {
+    return TopologyData(
+      coordinateMapping: Map<String, String>.from(
+        json['coordinate_mapping'] as Map,
+      ),
+      nodes: (json['nodes'] as List<dynamic>)
+          .map((n) => TopologyNode.fromJson(n as Map<String, dynamic>))
+          .toList(),
+      links: (json['links'] as List<dynamic>)
+          .map((l) => TopologyLink.fromJson(l as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 /// TopologyMap Widget
@@ -208,7 +222,7 @@ class _TopologyMapState extends State<TopologyMap>
   Duration _lastElapsed = Duration.zero;
 
   double get minTime {
-    final TopologyData activeData = widget.data ?? defaultTopologyData;
+    final TopologyData activeData = widget.data ?? emptyTopologyData;
     if (activeData.nodes.isEmpty) return 1.0;
     double minT = double.infinity;
     for (final TopologyNode node in activeData.nodes) {
@@ -219,7 +233,7 @@ class _TopologyMapState extends State<TopologyMap>
   }
 
   double get maxTime {
-    final TopologyData activeData = widget.data ?? defaultTopologyData;
+    final TopologyData activeData = widget.data ?? emptyTopologyData;
     if (activeData.nodes.isEmpty) return 10.0;
     double maxT = -double.infinity;
     for (final TopologyNode node in activeData.nodes) {
@@ -295,7 +309,7 @@ class _TopologyMapState extends State<TopologyMap>
   }
 
   void _handleTap(TapUpDetails details) {
-    final TopologyData activeData = widget.data ?? defaultTopologyData;
+    final TopologyData activeData = widget.data ?? emptyTopologyData;
     final double clickX = details.localPosition.dx;
     final double clickY = details.localPosition.dy;
 
@@ -332,7 +346,7 @@ class _TopologyMapState extends State<TopologyMap>
 
   @override
   Widget build(BuildContext context) {
-    final TopologyData activeData = widget.data ?? defaultTopologyData;
+    final TopologyData activeData = widget.data ?? emptyTopologyData;
 
     final colors = Theme.of(context).colorScheme;
 

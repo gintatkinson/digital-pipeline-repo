@@ -2,6 +2,65 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const TopologyData _testTopologyData = TopologyData(
+  coordinateMapping: {},
+  nodes: <TopologyNode>[
+    TopologyNode(
+      id: 'Ingestion',
+      label: 'Ingestion',
+      position: TopologyNodePosition(
+        dim0: 100,
+        dim1: 140,
+        dim2: 0.0,
+        timeIndex: 1.0,
+        vector: <double>[15, 3, 0.0],
+      ),
+      status: 'Active',
+    ),
+    TopologyNode(
+      id: 'Metrics',
+      label: 'Metrics',
+      position: TopologyNodePosition(
+        dim0: 320,
+        dim1: 90,
+        dim2: 0.0,
+        timeIndex: 1.0,
+        vector: <double>[8, -4, 0.0],
+      ),
+      status: 'Active',
+    ),
+    TopologyNode(
+      id: 'Location',
+      label: 'Location',
+      position: TopologyNodePosition(
+        dim0: 240,
+        dim1: 220,
+        dim2: 0.0,
+        timeIndex: 1.0,
+        vector: <double>[4, 10, 0.0],
+      ),
+      status: 'Active',
+    ),
+    TopologyNode(
+      id: 'Chassis',
+      label: 'Chassis',
+      position: TopologyNodePosition(
+        dim0: 480,
+        dim1: 180,
+        dim2: 0.0,
+        timeIndex: 1.0,
+        vector: <double>[-6, 6, 0.0],
+      ),
+      status: 'Idle',
+    ),
+  ],
+  links: <TopologyLink>[
+    TopologyLink(source: 'Ingestion', target: 'Metrics', type: 'data-flow'),
+    TopologyLink(source: 'Metrics', target: 'Chassis', type: 'data-flow'),
+    TopologyLink(source: 'Location', target: 'Chassis', type: 'data-flow'),
+  ],
+);
+
 void main() {
   test('Coordinate projection math holds true', () {
     const TopologyNode node = TopologyNode(
@@ -72,6 +131,7 @@ void main() {
               width: 800,
               height: 600,
               child: TopologyMap(
+                data: _testTopologyData,
                 onNodeSelect: (String id) {
                   selectedNodeId = id;
                 },

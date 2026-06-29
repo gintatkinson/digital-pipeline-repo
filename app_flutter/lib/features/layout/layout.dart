@@ -11,7 +11,7 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/layout/layout_config_service.dart';
 import 'package:app_flutter/features/layout/layout_parser.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
-import 'package:app_flutter/features/topology/topology_defaults.dart';
+import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData, loadTopologyData;
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/properties_service.dart';
@@ -94,6 +94,9 @@ class _LayoutState extends State<Layout> {
 
   // Properties Reactive State - handled by PropertiesService
 
+  // Preloaded topology data from external JSON asset.
+  TopologyData? _topologyData;
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +120,21 @@ class _LayoutState extends State<Layout> {
     _workerSubscription = _worker!.results.listen((_) {
       if (mounted) setState(() {});
     });
+
+    _preloadTopologyData();
+  }
+
+  Future<void> _preloadTopologyData() async {
+    try {
+      final data = await loadTopologyData();
+      if (mounted) {
+        setState(() {
+          _topologyData = data;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading topology data: $e');
+    }
   }
 
   @override
@@ -173,10 +191,11 @@ class _LayoutState extends State<Layout> {
   // TODO(#79): Replace mock topology nodes/links with DB-backed data.
   TopologyData _resolveTopologyData() {
     final mapping = _resolveCoordinateMapping();
+    final data = _topologyData ?? emptyTopologyData;
     return TopologyData(
       coordinateMapping: mapping,
-      nodes: defaultTopologyData.nodes,
-      links: defaultTopologyData.links,
+      nodes: data.nodes,
+      links: data.links,
     );
   }
 

@@ -18,13 +18,21 @@ metadata:
 
 # Recursive Debugging Protocol
 
-## Step 0 — Verify: Is this a bug?
+## Step 0 — Profiling Scan & Bug Detection
 
-Before starting, confirm:
-- Is there existing behavior that is wrong? (bug)
-- Or is this adding new behavior that doesn't exist yet? (feature)
-
-If bug — proceed to Step 0.1.
+1. Run `cd app_flutter && flutter test -d macos integration_test/benchmark_test.dart`
+2. Read the last entry from `benchmark_results.jsonl`
+3. Check if a crash occurred (search for `BENCHMARK_CRASH` in output)
+4. Check for memory leak warnings (search for `BENCHMARK_LEAK` in output)
+5. Compare timing against the FIRST entry in `benchmark_results.jsonl` (baseline)
+6. If any issue found, file a GitHub bug:
+   ```bash
+   gh issue create --repo gintatkinson/digital-pipeline-repo \
+     --title "Performance regression: [metric]" \
+     --label "bug" \
+     --body "[paste structured data from benchmark output]"
+   ```
+7. Proceed to Step 1 to fix.
 
 ### Step 0.1 — Pre-flight: Unattended Setup
 To prevent the user from being interrupted by endless permission prompts, the executing agent MUST immediately request the following permissions at the start of the task using the `ask_permission` tool:
@@ -56,7 +64,7 @@ Dispatch a subagent to: Distinguish root cause from symptoms. Apply "5 whys" to 
 Dispatch a subagent to: Design and implement the minimal fix. Consider side effects. Add regression tests. Document the fix. Stage, commit, and push all changes to the remote repository. Update the GitHub issue with root cause and fix details. Return fix summary and issue URL.
 
 ## Step 7 — Verification Subagent
-Dispatch a subagent to: Confirm bug is fixed using original reproduction steps. Test edge cases. Verify no regressions (test suite must pass). Once verified, comment on and close the GitHub issue to mark it as resolved. Return pass/fail result.
+Dispatch a subagent to: Confirm bug is fixed using original reproduction steps. Test edge cases. Verify no regressions (test suite must pass). Run the benchmark and compare runtime against baseline — flag any regression >10%. Once verified, comment on and close the GitHub issue to mark it as resolved. Return pass/fail result.
 
 ## Step 8 — Loop Decision
 If Step 7 failed, return to Step 1. Do NOT give up after one or two failed hypotheses. If stuck, reconsider assumptions.
@@ -86,5 +94,5 @@ On completion of the current bug, query the repository for the next unresolved b
 - [ ] Step 4 subagent dispatched and reported
 - [ ] Step 5 subagent dispatched and reported
 - [ ] Step 6 subagent dispatched, fix applied, changes committed and pushed, issue updated
-- [ ] Step 7 subagent dispatched, tests pass, issue closed
+- [ ] Step 7 subagent dispatched, tests pass, benchmark passes, issue closed
 - [ ] Loop closed (bug fixed) or loop restarted (bug persists)
