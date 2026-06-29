@@ -42,6 +42,16 @@ class PropertyGrid extends StatefulWidget {
   State<PropertyGrid> createState() => _PropertyGridState();
 }
 
+const _sectionLocation = 'Location';
+const _sectionAlternate = 'Alternate';
+const _viewIngestion = 'Ingestion';
+const _typeDouble = 'double';
+const _typeInt = 'int';
+const _typeEnum = 'enum';
+const _keyMaxVoltage = 'maxVoltage';
+const _keyMaxAllocatedPower = 'maxAllocatedPower';
+const _keyCountryCode = 'countryCode';
+
 class _PropertyGridState extends State<PropertyGrid> {
   late List<AttributeDefinition> _resolvedAttributes;
   final Map<String, TextEditingController> _controllers = {};
@@ -71,7 +81,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       _focusNodes[attr.key] = focusNode;
       _hadFocus[attr.key] = false;
 
-      if (attr.type != 'enum') {
+      if (attr.type != _typeEnum) {
         focusNode.addListener(() {
           final bool currentlyHasFocus = focusNode.hasFocus;
           final bool previouslyHadFocus = _hadFocus[attr.key] ?? false;
@@ -152,7 +162,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     final Map<String, dynamic> allValues = {};
     for (final resolvedAttr in _resolvedAttributes) {
       final ctrl = _controllers[resolvedAttr.key];
-      if (resolvedAttr.type == 'enum') {
+      if (resolvedAttr.type == _typeEnum) {
         allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
       } else {
         allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
@@ -162,8 +172,8 @@ class _PropertyGridState extends State<PropertyGrid> {
   }
 
   void _clearPairedErrors(String key, Map<String, String> newErrors) {
-    if (key != 'maxVoltage' && key != 'maxAllocatedPower') return;
-    final otherKey = key == 'maxVoltage' ? 'maxAllocatedPower' : 'maxVoltage';
+    if (key != _keyMaxVoltage && key != _keyMaxAllocatedPower) return;
+    final otherKey = key == _keyMaxVoltage ? _keyMaxAllocatedPower : _keyMaxVoltage;
     final otherCtrl = _controllers[otherKey];
     if (otherCtrl == null) return;
     final allValues = _buildAllValuesMap();
@@ -184,13 +194,13 @@ class _PropertyGridState extends State<PropertyGrid> {
       return (false, null, '${attr.label} is required');
     }
 
-    if (attr.type == 'double') {
+    if (attr.type == _typeDouble) {
       final val = double.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid double');
       }
       parsedValue = val;
-    } else if (attr.type == 'int') {
+    } else if (attr.type == _typeInt) {
       final val = int.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid integer');
@@ -228,7 +238,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   }
 
   void _triggerBlurSave(String key, AttributeDefinition attr) {
-    final valueString = attr.type == 'enum'
+    final valueString = attr.type == _typeEnum
         ? (committedData[key]?.toString() ?? '')
         : (_controllers[key]?.text ?? '');
     final Map<String, String> newErrors = Map<String, String>.from(_errors);
@@ -265,10 +275,10 @@ class _PropertyGridState extends State<PropertyGrid> {
     
     final List<String> sortedGroups = groups.toList();
     sortedGroups.sort((a, b) {
-      if (a == 'Location') return -1;
-      if (b == 'Location') return 1;
-      if (a == 'Alternate') return -1;
-      if (b == 'Alternate') return 1;
+      if (a == _sectionLocation) return -1;
+      if (b == _sectionLocation) return 1;
+      if (a == _sectionAlternate) return -1;
+      if (b == _sectionAlternate) return 1;
       return a.compareTo(b);
     });
 
@@ -284,21 +294,21 @@ class _PropertyGridState extends State<PropertyGrid> {
                   : constraints.maxWidth;
 
               final List<Widget> sections = sortedGroups.map((group) {
-                final bool isActive = (group == 'Location' && (widget.activeView == 'Location' || widget.activeView == 'Ingestion')) ||
-                                     (group == 'Alternate' && widget.activeView != 'Location' && widget.activeView != 'Ingestion') ||
-                                     (group != 'Location' && group != 'Alternate' && widget.activeView == group);
+                final bool isActive = (group == _sectionLocation && (widget.activeView == _sectionLocation || widget.activeView == _viewIngestion)) ||
+                                     (group == _sectionAlternate && widget.activeView != _sectionLocation && widget.activeView != _viewIngestion) ||
+                                     (group != _sectionLocation && group != _sectionAlternate && widget.activeView == group);
 
                 String title = '$group Section';
-                if (group == 'Location') {
+                if (group == _sectionLocation) {
                   title = 'Geodetic Coordinate Frame';
-                } else if (group == 'Alternate') {
+                } else if (group == _sectionAlternate) {
                   title = 'Alternate Structural Grid Frame';
                 }
 
                 return _buildSystemSection(
                   title: title,
                   isActive: isActive,
-                  isAlternate: group == 'Alternate',
+                  isAlternate: group == _sectionAlternate,
                   isDark: isDark,
                   width: cardWidth,
                   child: _buildGroupFields(group, isDark),
@@ -460,7 +470,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     final Color brandPrimary = cs.primary;
 
 
-    if (attr.type == 'enum') {
+    if (attr.type == _typeEnum) {
       final options = attr.options ?? const [];
       final currentValue = committedData[attr.key] ?? (options.isNotEmpty ? options.first : '');
 
@@ -496,13 +506,13 @@ class _PropertyGridState extends State<PropertyGrid> {
       TextInputType keyboardType = TextInputType.text;
       List<TextInputFormatter>? inputFormatters;
 
-      if (attr.type == 'double') {
+      if (attr.type == _typeDouble) {
         keyboardType = const TextInputType.numberWithOptions(decimal: true);
-      } else if (attr.type == 'int') {
+      } else if (attr.type == _typeInt) {
         keyboardType = TextInputType.number;
       }
 
-      if (attr.key == 'countryCode') {
+      if (attr.key == _keyCountryCode) {
         inputFormatters = [
           LengthLimitingTextInputFormatter(2),
           UpperCaseTextFormatter(),
