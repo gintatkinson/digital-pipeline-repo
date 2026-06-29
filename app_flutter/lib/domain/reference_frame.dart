@@ -12,9 +12,13 @@ class ReferenceFrame {
   });
 
   factory ReferenceFrame.fromJson(Map<String, dynamic> json) {
+    final bodyName = (json['astronomicalBody'] as String? ?? '').toLowerCase();
     return ReferenceFrame(
       astronomicalBody:
-          AstronomicalBody.values.firstWhere((e) => e.name == json['astronomicalBody'] as String),
+          AstronomicalBody.values.firstWhere(
+            (e) => e.name == bodyName,
+            orElse: () => AstronomicalBody.earth,
+          ),
       alternateSystem: json['alternateSystem'] as String?,
       geodeticDatum: json['geodeticDatum'] as String? ?? 'wgs-84',
     );

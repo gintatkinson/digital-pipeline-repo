@@ -82,6 +82,24 @@ void main() {
         expect(frame.geodeticDatum, 'wgs-84');
       });
 
+      test('fromJson defaults astronomicalBody to earth when missing', () {
+        final json = <String, dynamic>{};
+        final frame = ReferenceFrame.fromJson(json);
+        expect(frame.astronomicalBody, AstronomicalBody.earth);
+      });
+
+      test('fromJson defaults astronomicalBody to earth when null', () {
+        final json = <String, dynamic>{'astronomicalBody': null};
+        final frame = ReferenceFrame.fromJson(json);
+        expect(frame.astronomicalBody, AstronomicalBody.earth);
+      });
+
+      test('fromJson defaults astronomicalBody to earth on unrecognized value', () {
+        final json = <String, dynamic>{'astronomicalBody': 'pluto'};
+        final frame = ReferenceFrame.fromJson(json);
+        expect(frame.astronomicalBody, AstronomicalBody.earth);
+      });
+
       test('serializes astronomicalBody as name string', () {
         final frame = ReferenceFrame(astronomicalBody: AstronomicalBody.mars);
         final json = frame.toJson();
