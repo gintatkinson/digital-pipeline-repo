@@ -13,7 +13,6 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
 class ComponentFactory {
-  final List<TreeNode> treeData;
   final String currentView;
   final int? workerResult;
   final Map<String, dynamic> parsedLayout;
@@ -26,7 +25,6 @@ class ComponentFactory {
   final TreeViewModel? treeViewModel;
 
   ComponentFactory({
-    required this.treeData,
     required this.currentView,
     required this.workerResult,
     required this.parsedLayout,
@@ -71,7 +69,6 @@ class ComponentFactory {
         );
       case 'HierarchyTreeSelector':
         final tree = SidebarTree(
-          treeData: treeData,
           workerResult: workerResult,
           onViewSelected: onViewSelected,
         );
@@ -105,12 +102,14 @@ class ComponentFactory {
           splitterKey: const Key('horizontal_splitter'),
         );
       case 'TopographicalView':
+        final treeData = treeViewModel?.treeData ?? [];
         return TopographicalView(
           currentView: currentView,
           parsedLayout: parsedLayout,
           onViewSelected: onViewSelected,
           child: buildChildWidget(context),
           topologyData: resolveTopologyData(),
+          treeData: treeData,
         );
       case 'TabbedContainer':
         final childrenList = node['children'] as List<dynamic>? ?? [];

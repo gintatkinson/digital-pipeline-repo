@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:app_flutter/features/layout/breadcrumbs.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/layout/split_workspace.dart';
+import 'package:app_flutter/features/tree/tree_node.dart';
 
 class TopographicalView extends StatelessWidget {
   final String currentView;
@@ -9,6 +10,7 @@ class TopographicalView extends StatelessWidget {
   final ValueChanged<String> onViewSelected;
   final Widget? child;
   final TopologyData topologyData;
+  final List<TreeNode> treeData;
 
   const TopographicalView({
     super.key,
@@ -17,6 +19,7 @@ class TopographicalView extends StatelessWidget {
     required this.onViewSelected,
     this.child,
     required this.topologyData,
+    this.treeData = const [],
   });
 
   @override
@@ -61,7 +64,7 @@ class TopographicalView extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: NavigationBreadcrumbs(
-                      items: getBreadcrumbsItems(currentView, parsedLayout, onSelectView: onViewSelected),
+                      items: getBreadcrumbsItems(currentView, treeData, onSelectView: onViewSelected),
                     ),
                   ),
                 ),

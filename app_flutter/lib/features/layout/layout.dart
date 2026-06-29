@@ -2,17 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
+import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
 import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/domain/repository.dart';
-import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/layout/layout_config_service.dart';
-import 'package:app_flutter/features/layout/layout_parser.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData, loadTopologyData;
-import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/properties_service.dart';
 import 'package:app_flutter/core/background_worker.dart';
@@ -55,10 +54,27 @@ class _LayoutState extends State<Layout> {
         ..addListener(_onPropertiesChanged)
         ..subscribe(_currentView);
     }
+    if (_treeViewModel == null) {
+      final dataSource = context.read<DataSource>();
+      _treeViewModel = TreeViewModel(
+        dataSource,
+        initialView: _currentView,
+        onViewSelected: _selectView,
+      )
+        ..addListener(_onTreeViewModelChanged)
+        ..loadTree();
+    }
   }
 
   void _onPropertiesChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onTreeViewModelChanged() {
+    if (mounted) {
+      _updateCurrentViewFromLayout();
+      setState(() {});
+    }
   }
 
   // Background Worker
@@ -67,9 +83,6 @@ class _LayoutState extends State<Layout> {
 
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
-
-  // Cached tree data (recomputed when _parsedLayout changes)
-  List<TreeNode>? _cachedTreeData;
 
   // Cached JSON files
   Map<String, dynamic>? _cachedRules;
@@ -103,18 +116,11 @@ class _LayoutState extends State<Layout> {
 
     if (widget.layoutConfig != null) {
       _parsedLayout = jsonDecode(widget.layoutConfig!) as Map<String, dynamic>;
-      _updateCurrentViewFromLayout();
     } else {
       _loadLayoutConfig();
     }
 
-    _currentView = widget.activeView ?? _parseTreeHierarchy().first.id;
-
-    _treeViewModel = TreeViewModel(
-      treeData: _treeData,
-      initialView: _currentView,
-      onViewSelected: _selectView,
-    );
+    _currentView = widget.activeView ?? 'Ingestion';
 
     _worker = BackgroundWorker()..start();
     _workerSubscription = _worker!.results.listen((_) {
@@ -155,6 +161,7 @@ class _LayoutState extends State<Layout> {
     _propertiesService?.dispose();
     _workerSubscription?.cancel();
     _worker?.dispose();
+    _treeViewModel?.removeListener(_onTreeViewModelChanged);
     _treeViewModel?.dispose();
     super.dispose();
   }
@@ -202,18 +209,12 @@ class _LayoutState extends State<Layout> {
 
   Future<void> _loadLayoutConfig() async {
     try {
-      final parsed = await loadLayoutConfig('assets/logical-layout.json');
+      final jsonStr = await rootBundle.loadString('assets/logical-layout.json');
+      final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
       if (mounted) {
         setState(() {
           _parsedLayout = parsed;
-          _cachedTreeData = null;
           _updateCurrentViewFromLayout();
-          _treeViewModel?.dispose();
-          _treeViewModel = TreeViewModel(
-            treeData: _treeData,
-            initialView: _currentView,
-            onViewSelected: _selectView,
-          );
         });
       }
     } catch (e) {
@@ -223,27 +224,11 @@ class _LayoutState extends State<Layout> {
 
   void _updateCurrentViewFromLayout() {
     debugPrint('[LAYOUT] _updateCurrentViewFromLayout: activeView=${widget.activeView}');
-    if (widget.activeView == null) {
-      final treeData = _parseTreeHierarchy();
-      debugPrint('[LAYOUT] _updateCurrentViewFromLayout: treeData=${treeData.map((n) => n.id).toList()}');
-      if (treeData.isNotEmpty) {
-        _currentView = treeData.first.id;
-        debugPrint('[LAYOUT] _updateCurrentViewFromLayout: setting _currentView=$_currentView');
-        _propertiesService?.subscribe(_currentView);
-      }
+    if (widget.activeView == null && _treeViewModel != null && _treeViewModel!.treeData.isNotEmpty) {
+      _currentView = _treeViewModel!.treeData.first.id;
+      debugPrint('[LAYOUT] _updateCurrentViewFromLayout: setting _currentView=$_currentView');
+      _propertiesService?.subscribe(_currentView);
     }
-  }
-
-  List<TreeNode> _parseTreeHierarchy() {
-    if (_parsedLayout == null) {
-      return defaultTreeData;
-    }
-    return parseTreeHierarchy(_parsedLayout!);
-  }
-
-  List<TreeNode> get _treeData {
-    _cachedTreeData ??= _parseTreeHierarchy();
-    return _cachedTreeData!;
   }
 
   void _selectView(String viewId) {
@@ -258,8 +243,8 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
+    final treeData = _treeViewModel?.treeData ?? [];
     final factory = ComponentFactory(
-      treeData: _treeData,
       currentView: _currentView,
       workerResult: _worker?.lastResult,
       parsedLayout: _parsedLayout!,

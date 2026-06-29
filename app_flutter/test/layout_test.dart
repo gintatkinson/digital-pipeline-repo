@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
+import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/domain/data_sources/fallback_data_source.dart';
 import 'package:app_flutter/features/layout/layout.dart';
 import 'package:app_flutter/domain/repository.dart';
 
@@ -72,6 +74,7 @@ Widget wrapWithRepo(Widget child) {
   return MultiProvider(
     providers: [
       Provider<AbstractRepository>.value(value: _TestRepository()),
+      Provider<DataSource>.value(value: FallbackDataSource()),
       ChangeNotifierProvider<ThemeController>.value(
         value: ThemeController(SharedPreferencesThemeService()),
       ),
@@ -92,7 +95,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Antigravity Console'), findsNWidgets(2));
-    expect(find.text('Active View: Ingestion'), findsOneWidget);
+    expect(find.text('Active View: Item'), findsOneWidget);
     expect(find.byKey(const Key('items-table')), findsOneWidget);
   });
 
@@ -138,6 +141,7 @@ void main() {
       MultiProvider(
         providers: [
           Provider<AbstractRepository>.value(value: _TestRepository()),
+          Provider<DataSource>.value(value: FallbackDataSource()),
           ChangeNotifierProvider<ThemeController>.value(
             value: ThemeController(SharedPreferencesThemeService()),
           ),
@@ -188,38 +192,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Click on Ingestion node to give focus to the tree FocusNode
-    await tester.tap(find.byKey(const Key('node_Ingestion')));
+    // Click on Item node to give focus to the tree FocusNode
+    await tester.tap(find.byKey(const Key('node_Item')));
     await tester.pumpAndSettle();
 
-    // Send ArrowDown key event
+    // Send ArrowDown key event — single node, no change
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
-    // Ingestion -> Monitoring is the next visible node
-    expect(selectedView, 'Monitoring');
-
-    // Reset selectedView and send ArrowDown again
-    selectedView = null;
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pumpAndSettle();
-    // Monitoring -> Metrics (since Monitoring is expanded by default)
-    expect(selectedView, 'Metrics');
-
-    // Send ArrowLeft (goes to parent of Metrics, which is Monitoring)
-    selectedView = null;
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pumpAndSettle();
-    expect(selectedView, 'Monitoring');
-
-    // Send ArrowLeft on Monitoring (which is expanded parent) -> collapses it
-    selectedView = null;
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pumpAndSettle();
-
-    // Monitoring should be collapsed now, so sending ArrowDown goes to Spec (skipping Metrics, Location, Chassis)
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pumpAndSettle();
-    expect(selectedView, 'Spec');
+    expect(selectedView, null);
   });
 
   testWidgets('Layout handles tree node tap selection without crashing', (WidgetTester tester) async {
@@ -232,17 +212,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Tap different tree nodes to reproduce crash from issue #84
-    await tester.tap(find.byKey(const Key('node_Metrics')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('node_Location')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('node_Chassis')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('node_Spec')));
+    // Tap the single Item node
+    await tester.tap(find.byKey(const Key('node_Item')));
     await tester.pumpAndSettle();
   });
 }

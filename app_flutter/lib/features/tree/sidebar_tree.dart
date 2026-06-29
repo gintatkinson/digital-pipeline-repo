@@ -7,13 +7,11 @@ import 'package:app_flutter/features/tree/tree_node_widget.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
 class SidebarTree extends StatelessWidget {
-  final List<TreeNode> treeData;
   final int? workerResult;
   final ValueChanged<String> onViewSelected;
 
   const SidebarTree({
     super.key,
-    required this.treeData,
     this.workerResult,
     required this.onViewSelected,
   });
@@ -21,6 +19,7 @@ class SidebarTree extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TreeViewModel>();
+    final treeData = viewModel.treeData;
     final brandPrimary = Theme.of(context).colorScheme.primary;
 
     return Container(

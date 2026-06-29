@@ -20,4 +20,9 @@ abstract class DataSource {
   ///
   /// Returns null if the type is not known to this data source.
   Future<TypeDescriptor?> typeFor(String typeName);
+
+  /// Discover the tree hierarchy: parent-child relationships.
+  ///
+  /// Returns a list of (parentTypeName, childTypeName) pairs.
+  Future<List<(String, String)>> discoverHierarchy();
 }

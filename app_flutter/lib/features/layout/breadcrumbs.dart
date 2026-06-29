@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
-import 'package:app_flutter/features/layout/layout_parser.dart';
 
 /// A single item in the breadcrumbs navigation.
 class BreadcrumbItem {
@@ -135,15 +134,14 @@ String getFirstLeafId(TreeNode n) {
   return getFirstLeafId(n.children!.first);
 }
 
-/// Builds a list of [BreadcrumbItem] from the current [view] and parsed
-/// layout hierarchy. The first item is always the root ("Antigravity Console").
+/// Builds a list of [BreadcrumbItem] from the current [view] and the tree
+/// hierarchy. The first item is always the root ("Antigravity Console").
 List<BreadcrumbItem> getBreadcrumbsItems(
   String view,
-  Map<String, dynamic> parsedLayout, {
+  List<TreeNode> treeData, {
   ValueChanged<String>? onSelectView,
 }) {
   debugPrint('[BREADCRUMBS] getBreadcrumbsItems: view=$view');
-  final treeData = parseTreeHierarchy(parsedLayout);
 
   final List<BreadcrumbItem> base = [
     BreadcrumbItem(

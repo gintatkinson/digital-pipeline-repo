@@ -32,6 +32,15 @@ class SqliteDataSource implements DataSource {
     return _buildType(rows.first);
   }
 
+  @override
+  Future<List<(String, String)>> discoverHierarchy() async {
+    final rows = await _db.query('type_relations');
+    return rows.map((r) => (
+      r['parent_type_name'] as String,
+      r['child_type_name'] as String,
+    )).toList();
+  }
+
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {
     final typeName = typeRow['type_name'] as String;
     final attrRows = await _db.query('type_attributes',

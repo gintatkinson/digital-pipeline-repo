@@ -1,39 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
-/// View-model for the navigation tree. Manages expansion state,
-/// keyboard navigation, and the currently selected view.
 class TreeViewModel extends ChangeNotifier {
-  final List<TreeNode> treeData;
+  TreeViewModel(this._dataSource, {
+    String initialView = '',
+    this.onViewSelected,
+  }) : _currentView = initialView;
+
+  final DataSource _dataSource;
+  final ValueChanged<String>? onViewSelected;
+  List<TreeNode> _treeData = [];
   String _currentView;
   final Map<String, bool> _expanded = {};
   final FocusNode _treeFocusNode = FocusNode();
   final Map<String, GlobalKey> _nodeKeys = {};
-  final ValueChanged<String>? onViewSelected;
 
-  TreeViewModel({
-    required this.treeData,
-    required String initialView,
-    this.onViewSelected,
-  }) : _currentView = initialView {
-    _initExpandedFromTree();
-    _expandParents(initialView);
-    _buildNodeKeys(treeData);
-  }
-
-  /// The ID of the currently selected/active view.
+  List<TreeNode> get treeData => _treeData;
   String get currentView => _currentView;
-
-  /// Map of node IDs to their expanded state.
   Map<String, bool> get expanded => _expanded;
-
-  /// [FocusNode] associated with the tree widget.
   FocusNode get focusNode => _treeFocusNode;
-
-  /// Returns the [GlobalKey] for the node with the given [id].
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
 
-  /// Selects [viewId] as the current view, expanding parents and scrolling.
+  Future<void> loadTree() async {
+    final types = await _dataSource.discoverTypes();
+    final hierarchy = await _dataSource.discoverHierarchy();
+    _treeData = _buildTree(types, hierarchy);
+
+    if (_currentView.isEmpty && _treeData.isNotEmpty) {
+      _currentView = _treeData.first.id;
+    }
+
+    _initExpandedFromTree();
+    _expandParents(_currentView);
+    _buildNodeKeys(_treeData);
+    notifyListeners();
+  }
+
+  List<TreeNode> _buildTree(List<TypeDescriptor> types, List<(String, String)> hierarchy) {
+    final typeMap = {for (final t in types) t.typeName: t};
+    final children = <String, List<TreeNode>>{};
+    final hasParent = <String>{};
+
+    for (final (parent, child) in hierarchy) {
+      children.putIfAbsent(parent, () => []);
+      if (typeMap.containsKey(child)) {
+        children[parent]!.add(TreeNode(id: child, label: typeMap[child]!.displayName));
+        hasParent.add(child);
+      }
+    }
+
+    return types
+        .where((t) => !hasParent.contains(t.typeName))
+        .map((t) => TreeNode(
+              id: t.typeName,
+              label: t.displayName,
+              children: children[t.typeName],
+            ))
+        .toList();
+  }
+
   void selectView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -43,7 +70,6 @@ class TreeViewModel extends ChangeNotifier {
     onViewSelected?.call(viewId);
   }
 
-  /// Updates the current view without calling [onViewSelected].
   void updateCurrentView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -52,13 +78,11 @@ class TreeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Toggles the expanded state of the node with the given [id].
   void toggleExpand(String id) {
     _expanded[id] = !(_expanded[id] ?? false);
     notifyListeners();
   }
 
-  /// Moves selection to the next visible node.
   void handleArrowDown() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -68,7 +92,6 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Moves selection to the previous visible node.
   void handleArrowUp() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -78,7 +101,6 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Expands the current node or moves to its first child.
   void handleArrowRight() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -95,7 +117,6 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Collapses the current node or moves to its parent.
   void handleArrowLeft() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -118,20 +139,18 @@ class TreeViewModel extends ChangeNotifier {
         return null;
       }
 
-      final parent = findParent(treeData, currentNode.id, null);
+      final parent = findParent(_treeData, currentNode.id, null);
       if (parent != null) {
         selectView(parent.id);
       }
     }
   }
 
-  /// Disposes the tree focus node.
   @override
   void dispose() {
     _treeFocusNode.dispose();
     super.dispose();
   }
-
 
   void _buildNodeKeys(List<TreeNode> nodes) {
     for (final node in nodes) {
@@ -143,7 +162,7 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   void _initExpandedFromTree() {
-    for (final node in treeData) {
+    for (final node in _treeData) {
       if (node.children != null && node.children!.isNotEmpty) {
         _expanded[node.id] = true;
       }
@@ -172,7 +191,7 @@ class TreeViewModel extends ChangeNotifier {
       return false;
     }
 
-    findAndExpandParents(treeData, targetView, []);
+    findAndExpandParents(_treeData, targetView, []);
     if (changed) {
       notifyListeners();
     }
@@ -186,7 +205,7 @@ class TreeViewModel extends ChangeNotifier {
         node.children!.forEach(traverse);
       }
     }
-    treeData.forEach(traverse);
+    _treeData.forEach(traverse);
     return result;
   }
 
