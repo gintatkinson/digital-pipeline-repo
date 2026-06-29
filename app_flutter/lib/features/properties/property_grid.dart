@@ -51,6 +51,12 @@ const _typeEnum = 'enum';
 const _keyMaxVoltage = 'maxVoltage';
 const _keyMaxAllocatedPower = 'maxAllocatedPower';
 const _keyCountryCode = 'countryCode';
+const _wideLayoutBreakpoint = 700.0;
+const _inactiveSectionOpacity = 0.65;
+const _activeShadowOpacity = 0.1;
+const _inactiveShadowOpacity = 0.05;
+const _activeBadgeBgOpacity = 0.15;
+const _activeBadgeBorderOpacity = 0.3;
 
 class _PropertyGridState extends State<PropertyGrid> {
   late List<AttributeDefinition> _resolvedAttributes;
@@ -289,7 +295,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         children: [
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final double cardWidth = constraints.maxWidth > 700
+              final double cardWidth = constraints.maxWidth > _wideLayoutBreakpoint
                   ? (constraints.maxWidth - 16.0) / 2.0
                   : constraints.maxWidth;
 
@@ -315,7 +321,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                 );
               }).toList();
 
-              if (constraints.maxWidth > 700 && sections.length >= 2) {
+              if (constraints.maxWidth > _wideLayoutBreakpoint && sections.length >= 2) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -358,7 +364,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     final Color borderActive = brandPrimary;
 
     return Opacity(
-      opacity: isActive ? 1.0 : 0.65,
+      opacity: isActive ? 1.0 : _inactiveSectionOpacity,
       child: Container(
         width: width,
         padding: const EdgeInsets.all(20.0),
@@ -372,14 +378,14 @@ class _PropertyGridState extends State<PropertyGrid> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: brandPrimary.withValues(alpha: 0.1),
+                    color: brandPrimary.withValues(alpha: _activeShadowOpacity),
                     blurRadius: 24.0,
                     offset: const Offset(0, 4),
                   )
                 ]
               : [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
+                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: _inactiveShadowOpacity),
                     blurRadius: 20.0,
                     offset: const Offset(0, 4),
                   )
@@ -401,10 +407,10 @@ class _PropertyGridState extends State<PropertyGrid> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                       decoration: BoxDecoration(
-                        color: cs.primary.withValues(alpha: 0.15),
+                        color: cs.primary.withValues(alpha: _activeBadgeBgOpacity),
                         borderRadius: BorderRadius.circular(4.0),
                         border: Border.all(
-                          color: cs.primary.withValues(alpha: 0.3),
+                          color: cs.primary.withValues(alpha: _activeBadgeBorderOpacity),
                         ),
                       ),
                       child: Text(
