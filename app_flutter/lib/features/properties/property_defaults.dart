@@ -1,5 +1,4 @@
 import 'package:app_flutter/domain/schema.dart';
-import 'package:app_flutter/domain/types.dart';
 import 'package:app_flutter/domain/validation.dart';
 
 // TODO(#79): Replace mock fallback initial values with dynamic DB-backed defaults.
@@ -37,24 +36,16 @@ bool defaultShouldPair(AttributeDefinition first, AttributeDefinition second) {
 // TODO(#79): Replace hardcoded validation with schema-driven validation rules.
 String? defaultValidator(String key, String value, Map<String, dynamic> allValues) {
   if (key == 'countryCode') {
-    final isCountryValid = validatePhysicalAddress(
-      PhysicalAddress(
-        address: '',
-        postalCode: '',
-        state: '',
-        city: '',
-        countryCode: value,
-      ),
-    );
+    final isCountryValid = validatePhysicalAddress({
+      'countryCode': value,
+    });
     if (!isCountryValid) {
       return 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
     }
   } else if (key == 'locationType') {
-    final isLocTypeValid = validateLocationType(
-      LocationType(
-        identity: value,
-      ),
-    );
+    final isLocTypeValid = validateLocationType({
+      'identity': value,
+    });
     if (!isLocTypeValid) {
       return "Must be 'site', 'room', or 'building'";
     }
@@ -68,18 +59,14 @@ String? defaultValidator(String key, String value, Map<String, dynamic> allValue
     final double voltageVal = double.tryParse(vText) ?? 0.0;
     final double powerVal = double.tryParse(pText) ?? 0.0;
 
-    final bool isRackValid = validateRack(
-      Rack(
-        maxVoltage: voltageVal,
-        maxAllocatedPower: powerVal,
-        heightUnits: 42,
-        location: RackLocation(
-          roomName: rName,
-          gridRow: gRow,
-          gridColumn: gCol,
-        ),
-      ),
-    );
+    final bool isRackValid = validateRack({
+      'maxVoltage': voltageVal,
+      'maxAllocatedPower': powerVal,
+      'heightUnits': 42,
+      'roomName': rName,
+      'gridRow': gRow,
+      'gridColumn': gCol,
+    });
 
     if (!isRackValid) {
       return 'Value cannot be negative';

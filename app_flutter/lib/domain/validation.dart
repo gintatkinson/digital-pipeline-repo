@@ -1,14 +1,13 @@
-import 'reference_frame.dart';
-import 'types.dart';
-
 /// Validates a TemporalContext.
 /// Property coverage: timestamp, validUntil, velocity
-bool validateTemporalContext(TemporalContext context) {
-  if (context.timestamp.isEmpty || context.validUntil.isEmpty) {
+bool validateTemporalContext(Map<String, dynamic> context) {
+  final timestamp = context['timestamp'] as String? ?? '';
+  final validUntil = context['validUntil'] as String? ?? '';
+  if (timestamp.isEmpty || validUntil.isEmpty) {
     return false;
   }
-  final ts = DateTime.tryParse(context.timestamp);
-  final vu = DateTime.tryParse(context.validUntil);
+  final ts = DateTime.tryParse(timestamp);
+  final vu = DateTime.tryParse(validUntil);
   if (ts == null || vu == null) {
     return false;
   }
@@ -18,31 +17,35 @@ bool validateTemporalContext(TemporalContext context) {
 
 /// Validates a PhysicalAddress.
 /// Property coverage: address, postalCode, state, city, countryCode
-bool validatePhysicalAddress(PhysicalAddress addr) {
-  if (addr.countryCode.isEmpty) {
+bool validatePhysicalAddress(Map<String, dynamic> addr) {
+  final countryCode = addr['countryCode'] as String? ?? '';
+  if (countryCode.isEmpty) {
     return false;
   }
   // Country Code Validation: countryCode must match /^[A-Z]{2}$/ regex
   final countryRegex = RegExp(r'^[A-Z]{2}$');
-  return countryRegex.hasMatch(addr.countryCode);
+  return countryRegex.hasMatch(countryCode);
 }
 
 /// Validates a LocationType.
 /// Property coverage: identity
-bool validateLocationType(LocationType locType) {
+bool validateLocationType(Map<String, dynamic> locType) {
   // Location Identity Validation: LocationType must match 'site', 'room', or 'building'
   const validIdentities = ['site', 'room', 'building'];
-  return validIdentities.contains(locType.identity);
+  return validIdentities.contains(locType['identity'] as String? ?? '');
 }
 
 /// Validates a Rack.
 /// Property coverage: maxVoltage, maxAllocatedPower, heightUnits, location
-bool validateRack(Rack rack) {
+bool validateRack(Map<String, dynamic> rack) {
+  final maxVoltage = (rack['maxVoltage'] as num?)?.toDouble() ?? 0.0;
+  final maxAllocatedPower = (rack['maxAllocatedPower'] as num?)?.toDouble() ?? 0.0;
+  final heightUnits = (rack['heightUnits'] as num?)?.toInt() ?? 0;
   // Rack Validation: maxVoltage and maxAllocatedPower must be non-negative
-  if (rack.maxVoltage < 0 || rack.maxAllocatedPower < 0) {
+  if (maxVoltage < 0 || maxAllocatedPower < 0) {
     return false;
   }
-  if (rack.heightUnits < 0) {
+  if (heightUnits < 0) {
     return false;
   }
   return true;
@@ -50,18 +53,25 @@ bool validateRack(Rack rack) {
 
 /// Validates slot overlap between two ContainedChassis instances.
 /// Property coverage: chassisId, startSlot, slotWidth
-bool hasSlotOverlap(ContainedChassis chassis1, ContainedChassis chassis2) {
-  return chassis1.startSlot < chassis2.startSlot + chassis2.slotWidth &&
-      chassis2.startSlot < chassis1.startSlot + chassis1.slotWidth;
+bool hasSlotOverlap(Map<String, dynamic> chassis1, Map<String, dynamic> chassis2) {
+  final start1 = (chassis1['startSlot'] as num?)?.toInt() ?? 0;
+  final width1 = (chassis1['slotWidth'] as num?)?.toInt() ?? 0;
+  final start2 = (chassis2['startSlot'] as num?)?.toInt() ?? 0;
+  final width2 = (chassis2['slotWidth'] as num?)?.toInt() ?? 0;
+  return start1 < start2 + width2 &&
+      start2 < start1 + width1;
 }
 
 /// Validates slot allocations for a ChassisContainmentSubsystem to ensure no overlaps.
 /// Property coverage: chassis, validateAllocation, validateSlotOverlap
-bool validateChassisAllocation(ChassisContainmentSubsystem subsystem) {
-  final list = subsystem.chassis;
-  for (int i = 0; i < list.length; i++) {
-    for (int j = i + 1; j < list.length; j++) {
-      if (hasSlotOverlap(list[i], list[j])) {
+bool validateChassisAllocation(Map<String, dynamic> subsystem) {
+  final chassisList = (subsystem['chassis'] as List<dynamic>?) ?? [];
+  for (int i = 0; i < chassisList.length; i++) {
+    for (int j = i + 1; j < chassisList.length; j++) {
+      if (hasSlotOverlap(
+        chassisList[i] as Map<String, dynamic>,
+        chassisList[j] as Map<String, dynamic>,
+      )) {
         return false;
       }
     }
@@ -71,7 +81,7 @@ bool validateChassisAllocation(ChassisContainmentSubsystem subsystem) {
 
 class ReferenceFrameValidation {
   final bool isValid;
-  final ReferenceFrame sanitizedFrame;
+  final Map<String, dynamic> sanitizedFrame;
   final String sanitizedFrameName;
 
   const ReferenceFrameValidation({
@@ -91,7 +101,7 @@ String sanitizeFrameName(String name) {
 }
 
 ReferenceFrameValidation validateReferenceFrame(
-  ReferenceFrame frame, {
+  Map<String, dynamic> frame, {
   String? frameName,
   bool alternateSystemEnabled = false,
 }) {
@@ -107,7 +117,7 @@ ReferenceFrameValidation validateReferenceFrame(
     }
   }
 
-  if (frame.alternateSystem != null && !alternateSystemEnabled) {
+  if (frame['alternateSystem'] != null && !alternateSystemEnabled) {
     return ReferenceFrameValidation(
       isValid: false,
       sanitizedFrame: frame,

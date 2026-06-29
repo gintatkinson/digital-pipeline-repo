@@ -1,4 +1,3 @@
-import 'package:app_flutter/domain/reference_frame.dart';
 import 'package:app_flutter/domain/validation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -41,93 +40,61 @@ void main() {
   });
 
   group('validateReferenceFrame', () {
-    group('scenario 1: default earth body', () {
-      test('frame with no astronomicalBody specified defaults to EARTH, passes', () {
-        final frame = ReferenceFrame();
-        final result = validateReferenceFrame(frame);
-        expect(result.isValid, isTrue);
-        expect(result.sanitizedFrame.astronomicalBody, AstronomicalBody.earth);
-      });
-
-      test('explicit earth body passes', () {
-        final frame = ReferenceFrame(astronomicalBody: AstronomicalBody.earth);
-        final result = validateReferenceFrame(frame);
-        expect(result.isValid, isTrue);
-      });
+    test('empty frame passes', () {
+      final frame = <String, dynamic>{};
+      final result = validateReferenceFrame(frame);
+      expect(result.isValid, isTrue);
     });
 
-    group('scenario 2: non-earth body accepted', () {
-      test('moon is accepted', () {
-        final frame = ReferenceFrame(astronomicalBody: AstronomicalBody.moon);
-        final result = validateReferenceFrame(frame);
-        expect(result.isValid, isTrue);
-      });
-
-      test('mars is accepted', () {
-        final frame = ReferenceFrame(astronomicalBody: AstronomicalBody.mars);
-        final result = validateReferenceFrame(frame);
-        expect(result.isValid, isTrue);
-      });
-    });
-
-    group('scenario 3: feature gate accept', () {
+    group('feature gate accept', () {
       test('alternateSystem set with alternateSystemEnabled true passes', () {
-        final frame = ReferenceFrame(
-          astronomicalBody: AstronomicalBody.mars,
-          alternateSystem: 'IAU',
-        );
+        final frame = <String, dynamic>{'alternateSystem': 'IAU'};
         final result = validateReferenceFrame(frame, alternateSystemEnabled: true);
         expect(result.isValid, isTrue);
       });
     });
 
-    group('scenario 4: feature gate reject', () {
+    group('feature gate reject', () {
       test('alternateSystem set with alternateSystemEnabled false fails', () {
-        final frame = ReferenceFrame(
-          astronomicalBody: AstronomicalBody.mars,
-          alternateSystem: 'IAU',
-        );
+        final frame = <String, dynamic>{'alternateSystem': 'IAU'};
         final result = validateReferenceFrame(frame, alternateSystemEnabled: false);
         expect(result.isValid, isFalse);
       });
 
       test('alternateSystem set with alternateSystemEnabled default (false) fails', () {
-        final frame = ReferenceFrame(
-          astronomicalBody: AstronomicalBody.mars,
-          alternateSystem: 'IAU',
-        );
+        final frame = <String, dynamic>{'alternateSystem': 'IAU'};
         final result = validateReferenceFrame(frame);
         expect(result.isValid, isFalse);
       });
     });
 
-    group('scenario 5: control characters rejected', () {
+    group('control characters rejected', () {
       test('null byte in frameName fails', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'test\x00name');
         expect(result.isValid, isFalse);
       });
 
       test('newline in frameName fails', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'test\nname');
         expect(result.isValid, isFalse);
       });
 
       test('tab in frameName fails', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'test\tname');
         expect(result.isValid, isFalse);
       });
 
       test('DEL character (0x7f) in frameName fails', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'test\x7fname');
         expect(result.isValid, isFalse);
       });
 
       test('control character check precedes feature gate check', () {
-        final frame = ReferenceFrame(alternateSystem: 'IAU');
+        final frame = <String, dynamic>{'alternateSystem': 'IAU'};
         final result = validateReferenceFrame(
           frame,
           frameName: 'test\x00name',
@@ -137,35 +104,35 @@ void main() {
       });
     });
 
-    group('scenario 6: uppercase normalized', () {
+    group('uppercase normalized', () {
       test('frameName is uppercased in sanitizedFrameName', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'mars');
         expect(result.sanitizedFrameName, 'MARS');
       });
 
       test('mixed case frameName is uppercased', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'MarsMoon');
         expect(result.sanitizedFrameName, 'MARSMOON');
       });
     });
 
-    group('scenario 7: the- prefix stripped', () {
+    group('the- prefix stripped', () {
       test('leading the- stripped case-insensitively', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'the-mars');
         expect(result.sanitizedFrameName, 'MARS');
       });
 
       test('leading THE- stripped', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: 'THE-MARS');
         expect(result.sanitizedFrameName, 'MARS');
       });
 
       test('the- stripping happens before uppercasing', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame, frameName: '  the-moon  ');
         expect(result.sanitizedFrameName, 'MOON');
       });
@@ -173,7 +140,7 @@ void main() {
 
     group('sanitizedFrame passed through', () {
       test('sanitizedFrame is the same reference', () {
-        final frame = ReferenceFrame(astronomicalBody: AstronomicalBody.mars);
+        final frame = <String, dynamic>{'alternateSystem': 'IAU'};
         final result = validateReferenceFrame(frame);
         expect(result.sanitizedFrame, same(frame));
       });
@@ -181,13 +148,13 @@ void main() {
 
     group('edge cases', () {
       test('frameName is null, result has empty sanitizedFrameName', () {
-        final frame = ReferenceFrame();
+        final frame = <String, dynamic>{};
         final result = validateReferenceFrame(frame);
         expect(result.sanitizedFrameName, '');
       });
 
       test('no alternateSystem passes regardless of gate', () {
-        final frame = ReferenceFrame(astronomicalBody: AstronomicalBody.moon);
+        final frame = <String, dynamic>{};
         final resultEnabled = validateReferenceFrame(frame, alternateSystemEnabled: true);
         final resultDisabled = validateReferenceFrame(frame, alternateSystemEnabled: false);
         expect(resultEnabled.isValid, isTrue);
