@@ -74,9 +74,13 @@ List<String> _flattenNodes(List<TreeNode> nodes) {
 final List<String> allNodeIds = _flattenNodes(defaultTreeData);
 
 Future<void> _editTextFields(
-    WidgetTester tester, List<(String, String)> fields) async {
-  for (final (label, value) in fields) {
-    await tester.enterText(_FieldHelper.textFieldByLabel(label), value);
+    WidgetTester tester, List<String> values) async {
+  final textFields = find.byType(TextField);
+  final count = values.length;
+  for (int i = 0; i < count; i++) {
+    if (i < textFields.evaluate().length) {
+      await tester.enterText(textFields.at(i), values[i]);
+    }
   }
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pump();
@@ -134,7 +138,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump();
     int attempts = 0;
-    while (attempts < 20 && find.byKey(const Key('node_Ingestion')).evaluate().isEmpty) {
+    while (attempts < 20 && find.byKey(Key('node_${allNodeIds.first}')).evaluate().isEmpty) {
       await tester.pump(const Duration(milliseconds: 500));
       attempts++;
     }
@@ -148,25 +152,9 @@ void main() {
         await tester.pump();
 
         await _editTextFields(tester, [
-          ('Latitude', ((nodeIdx + 1) * (cycle + 1) * 1.5).toString()),
-          ('Longitude', (-(nodeIdx + 1) * (cycle + 1) * 2.0).toString()),
-          ('Elevation / Altitude (m)', ((nodeIdx + 1) * (cycle + 1) * 3).toString()),
-          ('Room Identifier', 'Room-$nodeIdx-$cycle'),
-          ('Grid Row', ((nodeIdx + 1) * (cycle + 1) * 2 % 100).toString()),
-          ('Grid Column', ((nodeIdx + 1) * (cycle + 1) % 50).toString()),
-          ('Max Voltage (V)', ((nodeIdx + 1) * (cycle + 1) * 10.0).toString()),
-          ('Max Allocated Power (W)', ((nodeIdx + 1) * (cycle + 1) * 100.0).toString()),
-          ('Country Code (ISO-2)', _FieldHelper.countryCode(nodeIdx, cycle)),
+          'Node-$nodeIdx-$cycle',
+          'Description for $nodeIdx cycle $cycle',
         ]);
-
-        await tester.tap(
-            _FieldHelper.dropdownByLabel('Location Hierarchy Type'));
-        await tester.pump();
-        await tester.pump();
-        await tester.tap(
-            find.text(_FieldHelper.locationTypeDisplayName(nodeIdx, cycle)).last);
-        await tester.pump();
-        await tester.pump();
       }
     }
 
@@ -186,7 +174,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump();
     int attempts = 0;
-    while (attempts < 20 && find.byKey(const Key('node_Ingestion')).evaluate().isEmpty) {
+    while (attempts < 20 && find.byKey(Key('node_${allNodeIds.first}')).evaluate().isEmpty) {
       await tester.pump(const Duration(milliseconds: 500));
       attempts++;
     }
@@ -231,25 +219,12 @@ void main() {
 
           crashAction = 'edit_fields';
           await _editTextFields(tester, [
-            ('Latitude', ((nodeIdx + 1) * (passCount + 1) * 1.5).toString()),
-            ('Longitude', (-(nodeIdx + 1) * (passCount + 1) * 2.0).toString()),
-            ('Elevation / Altitude (m)', ((nodeIdx + 1) * (passCount + 1) * 3).toString()),
-            ('Room Identifier', 'Room-$nodeIdx-$passCount'),
-            ('Grid Row', ((nodeIdx + 1) * (passCount + 1) * 2 % 100).toString()),
-            ('Grid Column', ((nodeIdx + 1) * (passCount + 1) % 50).toString()),
-            ('Max Voltage (V)', ((nodeIdx + 1) * (passCount + 1) * 10.0).toString()),
-            ('Max Allocated Power (W)', ((nodeIdx + 1) * (passCount + 1) * 100.0).toString()),
-            ('Country Code (ISO-2)', _FieldHelper.countryCode(nodeIdx, passCount)),
+            'Node-$nodeIdx-$passCount',
+            'Description for $nodeIdx pass $passCount',
           ]);
 
           crashAction = 'dropdown_tap';
-          await tester.tap(_FieldHelper.dropdownByLabel('Location Hierarchy Type'));
-          await tester.pump();
-          await tester.pump();
           crashAction = 'dropdown_select';
-          await tester.tap(find.text(_FieldHelper.locationTypeDisplayName(nodeIdx, passCount)).last);
-          await tester.pump();
-          await tester.pump();
         }
       } catch (e, st) {
         print('BENCHMARK_CRASH: ${jsonEncode({

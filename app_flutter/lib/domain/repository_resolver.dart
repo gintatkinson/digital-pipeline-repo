@@ -34,6 +34,11 @@ class RepositoryResolver {
           dbAssetPath: dbAssetPath,
           inMemory: sqliteInMemory,
         );
+      default:
+        return _createSqliteAdapter(
+          dbAssetPath: dbAssetPath,
+          inMemory: sqliteInMemory,
+        );
     }
   }
 
@@ -64,9 +69,8 @@ class RepositoryResolver {
 
     int typeCount = 0;
     try {
-      typeCount = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM type_definitions'),
-      ) ?? 0;
+      final result = await db.rawQuery('SELECT COUNT(*) AS c FROM type_definitions');
+      typeCount = result.isNotEmpty ? (result.first['c'] as int? ?? 0) : 0;
     } catch (_) {
       // metadata tables may not exist in pre-built DB
     }

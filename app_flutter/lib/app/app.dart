@@ -40,7 +40,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String _activeView = 'root';
+  String _activeView = 'Item';
   late Future<String> _layoutConfigFuture;
 
   @override
