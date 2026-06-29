@@ -526,11 +526,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         errorText: _errors[attr.key],
-        isDark: isDark,
         brandPrimary: brandPrimary,
-        onChanged: (String val) {
-          // Keep buffered state updated
-        },
       );
     }
   }
@@ -542,9 +538,8 @@ class _PropertyGridState extends State<PropertyGrid> {
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
     String? errorText,
-    required bool isDark,
     required Color brandPrimary,
-    required ValueChanged<String> onChanged,
+    ValueChanged<String>? onChanged,
   }) {
     final cs = Theme.of(context).colorScheme;
     return Column(
