@@ -173,75 +173,67 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
+  (bool isValid, dynamic parsedValue, String? error) _validateField(
+    String key, AttributeDefinition attr, String valueString,
+  ) {
+    bool isValid = true;
+    dynamic parsedValue;
+    String? error;
+
+    if (attr.isRequired && valueString.trim().isEmpty) {
+      return (false, null, '${attr.label} is required');
+    }
+
+    if (attr.type == 'double') {
+      final val = double.tryParse(valueString);
+      if (val == null && valueString.isNotEmpty) {
+        return (false, null, 'Must be a valid double');
+      }
+      parsedValue = val;
+    } else if (attr.type == 'int') {
+      final val = int.tryParse(valueString);
+      if (val == null && valueString.isNotEmpty) {
+        return (false, null, 'Must be a valid integer');
+      }
+      parsedValue = val;
+    } else {
+      parsedValue = valueString;
+    }
+
+    if (attr.regexPattern != null && valueString.isNotEmpty) {
+      final reg = RegExp(attr.regexPattern!);
+      if (!reg.hasMatch(valueString)) {
+        return (false, parsedValue, 'Invalid format');
+      }
+    }
+
+    if (parsedValue is num) {
+      if (attr.minValue != null && parsedValue < attr.minValue!) {
+        return (false, parsedValue, 'Value cannot be less than ${attr.minValue}');
+      }
+      if (attr.maxValue != null && parsedValue > attr.maxValue!) {
+        return (false, parsedValue, 'Value cannot be greater than ${attr.maxValue}');
+      }
+    }
+
+    if (widget.validator != null) {
+      final allValues = _buildAllValuesMap();
+      final errorMsg = widget.validator!(key, valueString, allValues);
+      if (errorMsg != null) {
+        return (false, parsedValue, errorMsg);
+      }
+    }
+
+    return (true, parsedValue, null);
+  }
+
   void _triggerBlurSave(String key, AttributeDefinition attr) {
     final valueString = attr.type == 'enum'
         ? (committedData[key]?.toString() ?? '')
         : (_controllers[key]?.text ?? '');
     final Map<String, String> newErrors = Map<String, String>.from(_errors);
 
-    dynamic parsedValue;
-    bool isValid = true;
-    String? error;
-
-    // 1. Is Required check
-    if (attr.isRequired && valueString.trim().isEmpty) {
-      isValid = false;
-      error = '${attr.label} is required';
-    }
-
-    // 2. Parse numeric values if double or int
-    if (isValid) {
-      if (attr.type == 'double') {
-        final val = double.tryParse(valueString);
-        if (val == null && valueString.isNotEmpty) {
-          isValid = false;
-          error = 'Must be a valid double';
-        } else {
-          parsedValue = val;
-        }
-      } else if (attr.type == 'int') {
-        final val = int.tryParse(valueString);
-        if (val == null && valueString.isNotEmpty) {
-          isValid = false;
-          error = 'Must be a valid integer';
-        } else {
-          parsedValue = val;
-        }
-      } else {
-        parsedValue = valueString;
-      }
-    }
-
-    // 3. Regex checks
-    if (isValid && attr.regexPattern != null && valueString.isNotEmpty) {
-      final reg = RegExp(attr.regexPattern!);
-      if (!reg.hasMatch(valueString)) {
-        isValid = false;
-        error = 'Invalid format';
-      }
-    }
-
-    // 4. Min/Max value checks
-    if (isValid && parsedValue is num) {
-      if (attr.minValue != null && parsedValue < attr.minValue!) {
-        isValid = false;
-        error = 'Value cannot be less than ${attr.minValue}';
-      }
-      if (attr.maxValue != null && parsedValue > attr.maxValue!) {
-        isValid = false;
-        error = 'Value cannot be greater than ${attr.maxValue}';
-      }
-    }
-
-    // 5. Dynamic validation
-    if (isValid && widget.validator != null) {
-      final allValues = _buildAllValuesMap();
-      final errorMsg = widget.validator!(key, valueString, allValues);
-      if (errorMsg != null) {
-        isValid = false;
-        error = errorMsg;
-      }
-    }
+    final (bool isValid, dynamic parsedValue, String? error) = _validateField(key, attr, valueString);
 
     setState(() {
       if (isValid) {
