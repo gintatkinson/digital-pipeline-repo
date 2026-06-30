@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     final textScaler = context.watch<TextScalerController>();
 
     return MaterialApp(
-      title: 'Antigravity Console',
+      title: 'Console',
       themeMode: themeController.themeMode,
       theme: AppThemes.light(custom: themeController.currentTheme),
       darkTheme: AppThemes.dark(custom: themeController.currentTheme),

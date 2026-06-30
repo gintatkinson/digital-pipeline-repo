@@ -41,7 +41,7 @@ void main() {
 
         expect(find.byType(MyApp), findsOneWidget);
         expect(find.byType(DashboardPage), findsOneWidget);
-        expect(find.text('Antigravity Console'), findsAtLeast(1));
+        expect(find.text('Console'), findsAtLeast(1));
       } finally {
         await db.close();
       }

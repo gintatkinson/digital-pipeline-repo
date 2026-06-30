@@ -146,7 +146,7 @@ List<BreadcrumbItem> getBreadcrumbsItems(
   final List<BreadcrumbItem> base = [
     BreadcrumbItem(
       id: 'home',
-      label: 'Antigravity Console',
+      label: 'Console',
       onClick: () {
         if (treeData.isNotEmpty) {
           onSelectView?.call(getFirstLeafId(treeData.first));

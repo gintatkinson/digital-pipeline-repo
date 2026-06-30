@@ -94,7 +94,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Antigravity Console'), findsNWidgets(2));
+    expect(find.text('Console'), findsNWidgets(2));
     expect(find.text('Active View: Item'), findsOneWidget);
     expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
   });
