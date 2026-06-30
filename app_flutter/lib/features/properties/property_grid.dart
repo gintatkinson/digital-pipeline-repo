@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
+/// A [TextInputFormatter] that converts all input characters to uppercase.
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -13,10 +14,21 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
+/// A stateful widget that renders an editable property grid for [FieldDescriptor]s.
+///
+/// Displays fields grouped by section, supports text input, dropdown (enum),
+/// validation, and blur-based saving. Emits committed data via [onSave].
 class PropertyGrid extends StatefulWidget {
+  /// The list of field descriptors to display.
   final List<FieldDescriptor> fields;
+
+  /// Initial values keyed by field key.
   final Map<String, dynamic> initialValues;
+
+  /// Called with the current committed data on each successful blur save.
   final void Function(Map<String, dynamic>)? onSave;
+
+  /// The currently active view name used to highlight the matching section.
   final String activeView;
 
   const PropertyGrid({

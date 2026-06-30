@@ -10,6 +10,8 @@ import 'package:app_flutter/features/tables/tabbed_container.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
+/// Factory that interprets a parsed layout tree and builds the corresponding
+/// Flutter widget hierarchy (sidebar, split workspace, topology, tabs, etc.).
 class ComponentFactory {
   final String currentView;
   final int? workerResult;
@@ -22,6 +24,7 @@ class ComponentFactory {
   final Widget Function(BuildContext) buildChildWidget;
   final TreeViewModel? treeViewModel;
 
+  /// Creates a [ComponentFactory] with the required dependency resolvers.
   ComponentFactory({
     required this.currentView,
     required this.workerResult,
@@ -35,6 +38,8 @@ class ComponentFactory {
     this.treeViewModel,
   });
 
+  /// Builds a widget subtree from a layout [node] using the given
+  /// [parentWidth], [parentHeight], and [context].
   Widget build(
     Map<String, dynamic> node,
     double parentWidth,

@@ -3,7 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
+/// A [DataSource] implementation backed by Cloud Firestore.
+///
+/// Type schemas are stored in the `schema` collection (`types` and `hierarchy`
+/// documents). Instance data lives in the `data` collection, while elements,
+/// alarms, and events are stored in their own collections indexed by
+/// `parent_node_id`. Property changes are broadcast via an in-memory
+/// [StreamController] so that all watchers see live updates.
 class FirebaseDataSource implements DataSource {
+  /// Creates a [FirebaseDataSource] connected to the given [Firestore] instance.
   FirebaseDataSource(this._firestore);
   final FirebaseFirestore _firestore;
   final StreamController<Map<String, dynamic>> _propertiesController =
@@ -13,6 +21,13 @@ class FirebaseDataSource implements DataSource {
   String get name => 'firebase';
 
   @override
+  /// Fetches all type descriptors from the `schema/types` Firestore document.
+  ///
+  /// Returns an empty list if the document does not exist or has no `fields`
+  /// entry. Each field entry is parsed into a [TypeDescriptor] including its
+  /// display name, icon, fields, and relation descriptors.
+  ///
+  /// Throws a [FirebaseException] if the underlying Firestore read fails.
   Future<List<TypeDescriptor>> discoverTypes() async {
     final snapshot = await _firestore.collection('schema').doc('types').get();
     final data = snapshot.data();
@@ -36,6 +51,8 @@ class FirebaseDataSource implements DataSource {
   }
 
   @override
+  /// Returns the [TypeDescriptor] whose [TypeDescriptor.typeName] matches
+  /// [typeName], or `null` if no such type exists in the data source.
   Future<TypeDescriptor?> typeFor(String typeName) async {
     final types = await discoverTypes();
     for (final t in types) {
@@ -45,6 +62,10 @@ class FirebaseDataSource implements DataSource {
   }
 
   @override
+  /// Reads the `schema/hierarchy` Firestore document and returns parent-child
+  /// type pairs `(parentTypeName, childTypeName)`.
+  ///
+  /// Returns an empty list if the document is missing or has no `pairs` field.
   Future<List<(String, String)>> discoverHierarchy() async {
     final snapshot = await _firestore.collection('schema').doc('hierarchy').get();
     final data = snapshot.data();
@@ -57,6 +78,10 @@ class FirebaseDataSource implements DataSource {
   }
 
   @override
+  /// Fetches the property map for the node identified by [nodeId] from the
+  /// `data` Firestore collection.
+  ///
+  /// Returns an empty map if the document does not exist.
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
     final doc = await _firestore.collection('data').doc(nodeId).get();
     final data = doc.data();
@@ -65,12 +90,18 @@ class FirebaseDataSource implements DataSource {
   }
 
   @override
+  /// Persists [data] as the properties for [nodeId] in the `data` Firestore
+  /// collection using a deep merge. After saving, a change event is broadcast
+  /// to all active [watchProperties] subscribers.
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     await _firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
     _propertiesController.add({'nodeId': nodeId, 'data': data});
   }
 
   @override
+  /// Returns a broadcast stream that first emits the current properties for
+  /// [nodeId], then yields subsequent updates whenever [saveProperties] is
+  /// called for the same [nodeId].
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield await fetchProperties(nodeId);
     await for (final event in _propertiesController.stream) {
@@ -81,6 +112,8 @@ class FirebaseDataSource implements DataSource {
   }
 
   @override
+  /// Queries the `elements` Firestore collection for all documents whose
+  /// `parent_node_id` equals [parentNodeId].
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
     final snapshot = await _firestore
         .collection('elements')

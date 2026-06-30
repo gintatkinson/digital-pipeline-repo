@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
+/// Displays tabular data from a [TablesViewModel] as a scrollable
+/// [DataTable], showing a loading indicator or error message as appropriate.
 class TableViewWidget extends StatelessWidget {
+  /// Creates a [TableViewWidget].
   const TableViewWidget({super.key});
 
   @override
