@@ -142,7 +142,6 @@ class ComponentFactory {
       default:
         return const SizedBox.shrink();
     }
-    return const SizedBox.shrink();
   }
 
   /// Reads the `axis` prop from a layout [node] and returns the corresponding

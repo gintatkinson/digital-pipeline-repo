@@ -415,83 +415,87 @@ class _TopologyMapState extends State<TopologyMap>
           top: BorderSide(color: colors.outlineVariant, width: 1.0),
         ),
       ),
-      child: Row(
-        children: <Widget>[
-          ElevatedButton(
-            key: const ValueKey<String>('playPauseButton'),
-            onPressed: togglePlayback,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isPlaying ? colors.error : colors.primary,
-              foregroundColor: colors.onPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4.0)),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12.0, vertical: 6.0),
-              minimumSize: const Size(70, 32),
-            ),
-            child: Text(
-              isPlaying ? 'Pause' : 'Play',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text('t:', style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: widget.timeDisplayWidth,
-                child: Text(
-                  currentTimeIndex.toStringAsFixed(1),
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: <Widget>[
+            ElevatedButton(
+              key: const ValueKey<String>('playPauseButton'),
+              onPressed: togglePlayback,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isPlaying ? colors.error : colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.0)),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0, vertical: 6.0),
+                minimumSize: const Size(70, 32),
               ),
-            ],
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Slider(
-              key: const ValueKey<String>('timeSlider'),
-              min: minTime,
-              max: maxTime,
-              divisions: widget.sliderDivisions,
-              value: currentTimeIndex.clamp(minTime, maxTime),
-              onChanged: (double value) {
-                setPlayhead(value);
-              },
+              child: Text(
+                isPlaying ? 'Pause' : 'Play',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text('Speed:', style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(width: 8),
-              DropdownButton<double>(
-                key: const ValueKey<String>('speedDropdown'),
-                value: playbackSpeedMultiplier,
-                underline: const SizedBox.shrink(),
-                icon: const Icon(Icons.arrow_drop_down),
-                style: Theme.of(context).textTheme.bodySmall,
-                items: const <DropdownMenuItem<double>>[
-                  DropdownMenuItem<double>(value: 0.5, child: Text('0.5x')),
-                  DropdownMenuItem<double>(value: 1.0, child: Text('1.0x')),
-                  DropdownMenuItem<double>(value: 2.0, child: Text('2.0x')),
-                  DropdownMenuItem<double>(value: 5.0, child: Text('5.0x')),
-                ],
-                onChanged: (double? value) {
-                  if (value != null) {
-                    setState(() {
-                      playbackSpeedMultiplier = value;
-                    });
-                  }
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text('t:', style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: widget.timeDisplayWidth,
+                  child: Text(
+                    currentTimeIndex.toStringAsFixed(1),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 200,
+              child: Slider(
+                key: const ValueKey<String>('timeSlider'),
+                min: minTime,
+                max: maxTime,
+                divisions: widget.sliderDivisions,
+                value: currentTimeIndex.clamp(minTime, maxTime),
+                onChanged: (double value) {
+                  setPlayhead(value);
                 },
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text('Speed:', style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(width: 8),
+                DropdownButton<double>(
+                  key: const ValueKey<String>('speedDropdown'),
+                  value: playbackSpeedMultiplier,
+                  underline: const SizedBox.shrink(),
+                  icon: const Icon(Icons.arrow_drop_down),
+                  style: Theme.of(context).textTheme.bodySmall,
+                  items: const <DropdownMenuItem<double>>[
+                    DropdownMenuItem<double>(value: 0.5, child: Text('0.5x')),
+                    DropdownMenuItem<double>(value: 1.0, child: Text('1.0x')),
+                    DropdownMenuItem<double>(value: 2.0, child: Text('2.0x')),
+                    DropdownMenuItem<double>(value: 5.0, child: Text('5.0x')),
+                  ],
+                  onChanged: (double? value) {
+                    if (value != null) {
+                      setState(() {
+                        playbackSpeedMultiplier = value;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
         ],
+      ),
       ),
     );
   }
