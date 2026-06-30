@@ -82,6 +82,12 @@ class RepositoryResolver {
     }
   }
 
+  /// Initialies Firebase and returns a Firestore-backed pair.
+  ///
+  /// Calls [Firebase.initializeApp] first (idempotent if already called).
+  /// When [useEmulator] is true, redirects Firestore to the local emulator
+  /// at localhost:8080 — useful for development without a real Firebase
+  /// project. Throws if Firebase initialisation fails (missing config, etc.).
   static Future<(FirebaseRepositoryAdapter, FirebaseDataSource)> _createFirebaseAdapter({
     bool useEmulator = true,
   }) async {
@@ -93,6 +99,14 @@ class RepositoryResolver {
     return (FirebaseRepositoryAdapter(firestore), FirebaseDataSource(firestore));
   }
 
+  /// Initialises SQLite FFI and returns an SQLite-backed pair.
+  ///
+  /// When [inMemory] is true, creates a transient in-memory database
+  /// (data is lost on app restart). Otherwise, copies the asset database
+  /// from [dbAssetPath] (or the default asset) to the app support directory
+  /// and opens it. Checks for `type_definitions` table to decide between
+  /// [SqliteDataSource] (real schema) and [FallbackDataSource] (demo view).
+  /// Throws on file I/O errors or database corruption.
   static Future<(SqliteRepositoryAdapter, DataSource)> _createSqliteAdapter({
     String? dbAssetPath,
     bool inMemory = false,
