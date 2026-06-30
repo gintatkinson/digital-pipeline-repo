@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -128,7 +129,7 @@ void main() {
                   pattern: r'^[A-Z]{2}$',
                   inputFormatters: ['uppercase', 'maxLength:2']),
             ],
-            onSave: (data) {
+            onSave: (data) async {
               savedData = data;
             },
           ),
@@ -182,7 +183,7 @@ void main() {
                   minValue: 0,
                   maxValue: 100),
             ],
-            onSave: (data) {
+            onSave: (data) async {
               savedData = data;
             },
           ),
@@ -246,7 +247,7 @@ void main() {
                   enumOptions: ['a', 'b', 'c'],
                   enumDisplayNames: ['Option A', 'Option B', 'Option C']),
             ],
-            onSave: (data) {
+            onSave: (data) async {
               savedData = data;
             },
           ),
@@ -265,5 +266,67 @@ void main() {
 
     expect(savedData, isNotNull);
     expect(savedData!['type'], 'c');
+  });
+
+  testWidgets('Rapid blur of two fields serializes saves - no lost updates',
+      (WidgetTester tester) async {
+    final List<Map<String, dynamic>> savedSnapshots = [];
+    late Completer<void> saveCompleter;
+    bool firstCall = true;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PropertyGrid(
+            onSave: (data) async {
+              savedSnapshots.add(Map<String, dynamic>.from(data));
+              if (firstCall) {
+                firstCall = false;
+                saveCompleter = Completer<void>();
+                return saveCompleter.future;
+              }
+              return;
+            },
+            fields: const [
+              FieldDescriptor(
+                  key: 'a',
+                  label: 'A',
+                  type: 'string',
+                  sectionLabel: 'S',
+                  sectionOrder: 0),
+              FieldDescriptor(
+                  key: 'b',
+                  label: 'B',
+                  type: 'string',
+                  sectionLabel: 'S',
+                  sectionOrder: 1),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Blur field A
+    await tester.enterText(findTextFieldByLabel('A'), 'valA');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+
+    // Blur field B
+    await tester.enterText(findTextFieldByLabel('B'), 'valB');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+
+    // With serialization: only first save has fired (second is queued)
+    expect(savedSnapshots.length, 1);
+
+    // Complete first save so second can proceed
+    saveCompleter.complete();
+    await tester.pump();
+
+    expect(savedSnapshots.length, 2);
+    expect(savedSnapshots[1]['a'], 'valA');
+    expect(savedSnapshots[1]['b'], 'valB');
   });
 }

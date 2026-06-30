@@ -62,7 +62,7 @@ class PropertyGrid extends StatefulWidget {
   /// blur. Not called if validation fails. The callback receives a fresh
   /// `Map<String, dynamic>` of the entire committed state, not just the edited
   /// field. Can be null to opt out of save notifications.
-  final void Function(Map<String, dynamic>)? onSave;
+  final Future<void> Function(Map<String, dynamic> data)? onSave;
 
   /// The currently active view name used to highlight the matching section.
   /// When set to `'root'`, the first section (alphabetically) is highlighted.
@@ -132,6 +132,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   final Map<String, bool> _hadFocus = {};
 
   late Map<String, dynamic> committedData;
+  Future<void>? _pendingSave;
 
   @override
   void initState() {
@@ -328,7 +329,10 @@ class _PropertyGridState extends State<PropertyGrid> {
         committedData[key] = parsedValue;
       });
 
-      widget.onSave?.call(Map<String, dynamic>.from(committedData));
+      final data = Map<String, dynamic>.from(committedData);
+      _pendingSave = (_pendingSave ?? Future.value()).then((_) {
+        return widget.onSave?.call(data);
+      });
     }
   }
 
