@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
 
 void main() {
-  /// Helper finder to locate a TextField by its preceding label text.
   Finder findTextFieldByLabel(String labelText) {
     final Finder columnFinder = find.byWidgetPredicate((Widget widget) {
       if (widget is Column) {
@@ -24,7 +24,6 @@ void main() {
     );
   }
 
-  /// Helper finder to locate a DropdownButtonFormField by its label text.
   Finder findDropdownByLabel(String labelText) {
     final Finder columnFinder = find.byWidgetPredicate((Widget widget) {
       if (widget is Column) {
@@ -44,196 +43,227 @@ void main() {
     );
   }
 
-  testWidgets('Highlights Primary Reference Frame section when activeView is Primary', (WidgetTester tester) async {
+  testWidgets('Highlights first section when activeView matches section label',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-          home: Scaffold(
-            body: const PropertyGrid(activeView: 'Primary'),
+        home: Scaffold(
+          body: PropertyGrid(
+            activeView: 'Primary',
+            fields: const [
+              FieldDescriptor(
+                  key: 'f1',
+                  label: 'Field 1',
+                  type: 'string',
+                  sectionLabel: 'Primary',
+                  sectionOrder: 0),
+              FieldDescriptor(
+                  key: 'f2',
+                  label: 'Field 2',
+                  type: 'string',
+                  sectionLabel: 'Secondary',
+                  sectionOrder: 0),
+            ],
           ),
-      ),
-    );
-
-    // Verify Active Reference tag is shown in Primary, and NOT Secondary
-    expect(find.text('Active Reference'), findsOneWidget);
-    
-    // The Primary section should be fully opaque (opacity 1.0)
-    // Find the Opacity widget wrapping the first system section
-    final List<Opacity> opacities = tester.widgetList<Opacity>(find.byType(Opacity)).toList();
-    expect(opacities[0].opacity, 1.0); // Primary is active
-    expect(opacities[1].opacity, 0.65); // Secondary is dimmed
-  });
-
-  testWidgets('Highlights Secondary Reference Frame section when activeView is not Primary/root', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-          home: Scaffold(
-            body: const PropertyGrid(activeView: 'Secondary'),
-          ),
+        ),
       ),
     );
 
     expect(find.text('Active Reference'), findsOneWidget);
-    
-    final List<Opacity> opacities = tester.widgetList<Opacity>(find.byType(Opacity)).toList();
-    expect(opacities[0].opacity, 0.65); // Primary is dimmed
-    expect(opacities[1].opacity, 1.0); // Secondary is active
+
+    final List<Opacity> opacities =
+        tester.widgetList<Opacity>(find.byType(Opacity)).toList();
+    expect(opacities[0].opacity, 1.0);
+    expect(opacities[1].opacity, 0.65);
   });
 
-  testWidgets('Buffers input locally and performs validation/commit on focus loss for countryCode', (WidgetTester tester) async {
+  testWidgets('Highlights first section when activeView is root',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PropertyGrid(
+            activeView: 'root',
+            fields: const [
+              FieldDescriptor(
+                  key: 'f1',
+                  label: 'Field 1',
+                  type: 'string',
+                  sectionLabel: 'Alpha',
+                  sectionOrder: 0),
+              FieldDescriptor(
+                  key: 'f2',
+                  label: 'Field 2',
+                  type: 'string',
+                  sectionLabel: 'Beta',
+                  sectionOrder: 0),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Active Reference'), findsOneWidget);
+
+    final List<Opacity> opacities =
+        tester.widgetList<Opacity>(find.byType(Opacity)).toList();
+    expect(opacities[0].opacity, 1.0);
+    expect(opacities[1].opacity, 0.65);
+  });
+
+  testWidgets('Performs pattern validation on blur',
+      (WidgetTester tester) async {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
       MaterialApp(
-          home: Scaffold(
-            body: PropertyGrid(
-              activeView: 'Primary',
-              onSave: (dynamic data) {
-                savedData = data as Map<String, dynamic>?;
-              },
-            ),
+        home: Scaffold(
+          body: PropertyGrid(
+            activeView: 'root',
+            fields: const [
+              FieldDescriptor(
+                  key: 'code',
+                  label: 'Code',
+                  type: 'string',
+                  pattern: r'^[A-Z]{2}$',
+                  inputFormatters: ['uppercase', 'maxLength:2']),
+            ],
+            onSave: (data) {
+              savedData = data;
+            },
           ),
+        ),
       ),
     );
 
-    final Finder countryCodeField = findTextFieldByLabel('Country Code (ISO-2)');
-    expect(countryCodeField, findsOneWidget);
+    final Finder codeField = findTextFieldByLabel('Code');
+    expect(codeField, findsOneWidget);
 
-    // Enter invalid country code "U1"
-    await tester.enterText(countryCodeField, 'U1');
-    await tester.pumpAndSettle(); // Let the focus system register the focus gain
-    
-    // Verify savedData is NOT updated yet (buffered locally)
+    await tester.enterText(codeField, 'U1');
+    await tester.pumpAndSettle();
+
     expect(savedData, isNull);
 
-    // Lose focus to trigger validation
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
-    // Verify validation error is displayed and state NOT committed
-    expect(find.text('Must match ISO 2-letter uppercase pattern (e.g. US, FI)'), findsOneWidget);
+    expect(find.text('Invalid format'), findsOneWidget);
     expect(savedData, isNull);
 
-    // Enter valid country code "FI"
-    await tester.enterText(countryCodeField, 'FI');
+    await tester.enterText(codeField, 'FI');
     await tester.pumpAndSettle();
-    
-    // Lose focus
+
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
-    // Verify error is cleared, state is committed, and onSave callback triggered
-    expect(find.text('Must match ISO 2-letter uppercase pattern (e.g. US, FI)'), findsNothing);
+    expect(find.text('Invalid format'), findsNothing);
     expect(savedData, isNotNull);
-    expect(savedData!['countryCode'], 'FI');
+    expect(savedData!['code'], 'FI');
 
-    // Verify committed JSON display matches committed data
-    final String jsonString = const JsonEncoder.withIndent('  ').convert(savedData);
+    final String jsonString =
+        const JsonEncoder.withIndent('  ').convert(savedData);
     expect(find.text(jsonString), findsOneWidget);
   });
 
-  testWidgets('Performs validation/commit for maxVoltage and maxAllocatedPower on focus loss', (WidgetTester tester) async {
+  testWidgets('Performs numeric min/max validation on blur',
+      (WidgetTester tester) async {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
       MaterialApp(
-          home: Scaffold(
-            body: PropertyGrid(
-              activeView: 'Secondary',
-              onSave: (dynamic data) {
-                savedData = data as Map<String, dynamic>?;
-              },
-            ),
+        home: Scaffold(
+          body: PropertyGrid(
+            activeView: 'root',
+            fields: const [
+              FieldDescriptor(
+                  key: 'value',
+                  label: 'Value',
+                  type: 'int',
+                  minValue: 0,
+                  maxValue: 100),
+            ],
+            onSave: (data) {
+              savedData = data;
+            },
           ),
+        ),
       ),
     );
 
-    final Finder voltageField = findTextFieldByLabel('Max Voltage (V)');
-    final Finder powerField = findTextFieldByLabel('Max Allocated Power (W)');
+    final Finder valueField = findTextFieldByLabel('Value');
+    expect(valueField, findsOneWidget);
 
-    // Enter negative maxVoltage
-    await tester.enterText(voltageField, '-240');
+    await tester.enterText(valueField, '-1');
     await tester.pumpAndSettle();
-    
+
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
-    expect(find.text('Value cannot be negative'), findsOneWidget);
+    expect(find.text('Value cannot be less than 0'), findsOneWidget);
     expect(savedData, isNull);
 
-    // Correct maxVoltage to positive
-    await tester.enterText(voltageField, '240');
+    await tester.enterText(valueField, '50');
     await tester.pumpAndSettle();
-    
+
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
-    expect(find.text('Value cannot be negative'), findsNothing);
-    expect(savedData!['maxVoltage'], 240.0);
+    expect(find.text('Value cannot be less than 0'), findsNothing);
+    expect(savedData!['value'], 50);
 
-    // Enter negative maxAllocatedPower
-    await tester.enterText(powerField, '-15000');
+    await tester.enterText(valueField, '101');
     await tester.pumpAndSettle();
-    
+
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
-    expect(find.text('Value cannot be negative'), findsOneWidget);
+    expect(find.text('Value cannot be greater than 100'), findsOneWidget);
 
-    // Correct power to positive
-    await tester.enterText(powerField, '15000');
+    await tester.enterText(valueField, '100');
     await tester.pumpAndSettle();
-    
+
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
-    expect(find.text('Value cannot be negative'), findsNothing);
-    expect(savedData!['maxAllocatedPower'], 15000.0);
+    expect(find.text('Value cannot be greater than 100'), findsNothing);
+    expect(savedData!['value'], 100);
   });
 
-  testWidgets('Validates placeType immediately upon selection change and on blur', (WidgetTester tester) async {
+  testWidgets('Enum dropdown renders and commits on change',
+      (WidgetTester tester) async {
     Map<String, dynamic>? savedData;
 
     await tester.pumpWidget(
       MaterialApp(
-          home: Scaffold(
-            body: PropertyGrid(
-              activeView: 'Secondary',
-              onSave: (dynamic data) {
-                savedData = data as Map<String, dynamic>?;
-              },
-            ),
+        home: Scaffold(
+          body: PropertyGrid(
+            activeView: 'root',
+            fields: const [
+              FieldDescriptor(
+                  key: 'type',
+                  label: 'Type',
+                  type: 'enum',
+                  enumOptions: ['a', 'b', 'c'],
+                  enumDisplayNames: ['Option A', 'Option B', 'Option C']),
+            ],
+            onSave: (data) {
+              savedData = data;
+            },
           ),
+        ),
       ),
     );
 
-    // Find the place classification dropdown
-    final Finder dropdownFinder = findDropdownByLabel('Place Classification');
+    final Finder dropdownFinder = findDropdownByLabel('Type');
     expect(dropdownFinder, findsOneWidget);
 
-    // Tap the dropdown to open it (initial value is 'Zone' / 'zone')
-    await tester.tap(find.text('Zone'));
+    await tester.tap(find.text('Option A'));
     await tester.pumpAndSettle();
 
-    // Select the test option
-    await tester.tap(find.text('Test Option').last);
+    await tester.tap(find.text('Option C').last);
     await tester.pumpAndSettle();
 
-    // Verify validation error is displayed
-    expect(find.text("Must be 'zone', 'area', or 'cluster'"), findsOneWidget);
-    
-    // Clear savedData so that we only assert selection changes do not commit invalid state
-    savedData = null;
-    expect(savedData, isNull);
-
-    // Select a valid option (Zone / zone)
-    await tester.tap(find.text('Test Option'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Zone').last);
-    await tester.pumpAndSettle();
-
-    // Verify error is cleared and state committed
-    expect(find.text("Must be 'zone', 'area', or 'cluster'"), findsNothing);
-    expect(savedData!['placeType'], 'zone');
+    expect(savedData, isNotNull);
+    expect(savedData!['type'], 'c');
   });
 }

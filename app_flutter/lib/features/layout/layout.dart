@@ -6,7 +6,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
-import 'package:app_flutter/domain/schema.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/layout/layout_config_service.dart';
@@ -14,6 +13,7 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData, loadTopologyData;
 import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/properties_service.dart';
+import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 import 'package:app_flutter/core/background_worker.dart';
 
 /// The Layout Widget realizes UML::Layout.
@@ -43,6 +43,9 @@ class _LayoutState extends State<Layout> {
   // Tree ViewModel
   TreeViewModel? _treeViewModel;
 
+  // Properties ViewModel
+  PropertiesViewModel? _propertiesViewModel;
+
   static const double _minPaneSize = 150.0;
 
   @override
@@ -64,9 +67,19 @@ class _LayoutState extends State<Layout> {
         ..addListener(_onTreeViewModelChanged)
         ..loadTree();
     }
+    if (_propertiesViewModel == null) {
+      final dataSource = context.read<DataSource>();
+      _propertiesViewModel = PropertiesViewModel(dataSource)
+        ..addListener(_onPropertiesViewModelChanged)
+        ..loadType(_currentView);
+    }
   }
 
   void _onPropertiesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onPropertiesViewModelChanged() {
     if (mounted) setState(() {});
   }
 
@@ -152,6 +165,7 @@ class _LayoutState extends State<Layout> {
           _currentView = widget.activeView!;
         });
         _propertiesService?.subscribe(_currentView);
+        _propertiesViewModel?.loadType(_currentView);
       }
     }
   }
@@ -163,6 +177,8 @@ class _LayoutState extends State<Layout> {
     _worker?.dispose();
     _treeViewModel?.removeListener(_onTreeViewModelChanged);
     _treeViewModel?.dispose();
+    _propertiesViewModel?.removeListener(_onPropertiesViewModelChanged);
+    _propertiesViewModel?.dispose();
     super.dispose();
   }
 
@@ -228,6 +244,7 @@ class _LayoutState extends State<Layout> {
       _currentView = _treeViewModel!.treeData.first.id;
       debugPrint('[LAYOUT] _updateCurrentViewFromLayout: setting _currentView=$_currentView');
       _propertiesService?.subscribe(_currentView);
+      _propertiesViewModel?.loadType(_currentView);
     }
   }
 
@@ -239,6 +256,7 @@ class _LayoutState extends State<Layout> {
     });
     _treeViewModel?.updateCurrentView(viewId);
     _propertiesService?.subscribe(viewId);
+    _propertiesViewModel?.loadType(viewId);
     widget.onViewChange?.call(viewId);
   }
 
@@ -275,22 +293,11 @@ class _LayoutState extends State<Layout> {
 
   Widget _buildChildWidget(BuildContext context) {
     final nodeData = _propertiesService?.lastData ?? const {};
-
-    List<AttributeDefinition>? dynamicAttributes;
-    if (_parsedLayout != null && _parsedLayout!['attributes'] != null) {
-      try {
-        final list = _parsedLayout!['attributes'] as List<dynamic>;
-        dynamicAttributes = list
-            .map((e) => AttributeDefinition.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } catch (e) {
-        debugPrint('Error parsing dynamic attributes: $e');
-      }
-    }
+    final fields = _propertiesViewModel?.fields ?? [];
 
     return PropertyGrid(
       activeView: _currentView,
-      attributes: dynamicAttributes,
+      fields: fields,
       initialValues: nodeData,
       onSave: (Map<String, dynamic> data) async {
         final resolvedRepo = context.read<AbstractRepository>();

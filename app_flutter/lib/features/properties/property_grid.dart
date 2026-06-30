@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:app_flutter/domain/schema.dart';
-import 'package:app_flutter/features/properties/property_defaults.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// UpperCaseTextFormatter forces character inputs to uppercase.
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -15,42 +13,27 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
-/// PropertyGrid renders a key-value attribute grid mapped to a schema.
 class PropertyGrid extends StatefulWidget {
-  final List<AttributeDefinition>? attributes;
+  final List<FieldDescriptor> fields;
   final Map<String, dynamic> initialValues;
   final void Function(Map<String, dynamic>)? onSave;
   final String activeView;
-  final Map<String, dynamic> fallbackInitialValues;
-  final String? Function(String key, String value, Map<String, dynamic> allValues)? validator;
-  final Map<String, Map<String, String>>? optionDisplayNames;
-  final bool Function(AttributeDefinition first, AttributeDefinition second)? shouldPair;
 
   const PropertyGrid({
     super.key,
-    this.attributes,
+    this.fields = const [],
     this.initialValues = const {},
     this.onSave,
     this.activeView = 'root',
-    this.fallbackInitialValues = defaultFallbackInitialValues,
-    this.validator = defaultValidator,
-    this.optionDisplayNames = defaultOptionDisplayNames,
-    this.shouldPair = defaultShouldPair,
   });
 
   @override
   State<PropertyGrid> createState() => _PropertyGridState();
 }
 
-const _sectionPrimary = 'Primary';
-const _sectionSecondary = 'Secondary';
-const _viewDefault = 'root';
 const _typeDouble = 'double';
 const _typeInt = 'int';
 const _typeEnum = 'enum';
-const _keyMaxVoltage = 'maxVoltage';
-const _keyMaxAllocatedPower = 'maxAllocatedPower';
-const _keyCountryCode = 'countryCode';
 const _wideLayoutBreakpoint = 700.0;
 const _inactiveSectionOpacity = 0.65;
 const _activeShadowOpacity = 0.1;
@@ -59,42 +42,41 @@ const _activeBadgeBgOpacity = 0.15;
 const _activeBadgeBorderOpacity = 0.3;
 
 class _PropertyGridState extends State<PropertyGrid> {
-  late List<AttributeDefinition> _resolvedAttributes;
+  late List<FieldDescriptor> _fields;
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
   Map<String, String> _errors = const {};
   final Map<String, bool> _hadFocus = {};
 
-  /// Local committed state simulated for this component scope.
   late Map<String, dynamic> committedData;
 
   @override
   void initState() {
     super.initState();
-    _resolvedAttributes = widget.attributes ?? defaultCoordinateAttributes;
-    committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? widget.fallbackInitialValues : widget.initialValues);
-    _initializeFields(_resolvedAttributes, committedData);
+    _fields = widget.fields;
+    committedData = Map<String, dynamic>.from(widget.initialValues);
+    _initializeFields(_fields, committedData);
   }
 
-  void _initializeFields(List<AttributeDefinition> attributes, Map<String, dynamic> nodeData) {
-    for (final attr in attributes) {
-      final val = nodeData[attr.key];
+  void _initializeFields(List<FieldDescriptor> fields, Map<String, dynamic> nodeData) {
+    for (final field in fields) {
+      final val = nodeData[field.key];
       final text = val != null ? val.toString() : '';
       final controller = TextEditingController(text: text);
       final focusNode = FocusNode();
 
-      _controllers[attr.key] = controller;
-      _focusNodes[attr.key] = focusNode;
-      _hadFocus[attr.key] = false;
+      _controllers[field.key] = controller;
+      _focusNodes[field.key] = focusNode;
+      _hadFocus[field.key] = false;
 
-      if (attr.type != _typeEnum) {
+      if (field.type != _typeEnum) {
         focusNode.addListener(() {
           final bool currentlyHasFocus = focusNode.hasFocus;
-          final bool previouslyHadFocus = _hadFocus[attr.key] ?? false;
-          _hadFocus[attr.key] = currentlyHasFocus;
+          final bool previouslyHadFocus = _hadFocus[field.key] ?? false;
+          _hadFocus[field.key] = currentlyHasFocus;
 
           if (previouslyHadFocus && !currentlyHasFocus) {
-            _triggerBlurSave(attr.key, attr);
+            _triggerBlurSave(field.key, field);
           }
         });
       }
@@ -118,27 +100,27 @@ class _PropertyGridState extends State<PropertyGrid> {
   void didUpdateWidget(PropertyGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    final oldAttrs = oldWidget.attributes ?? defaultCoordinateAttributes;
-    final newAttrs = widget.attributes ?? defaultCoordinateAttributes;
+    final oldFields = oldWidget.fields;
+    final newFields = widget.fields;
 
-    bool attributesChanged = oldAttrs.length != newAttrs.length;
-    if (!attributesChanged) {
-      for (int i = 0; i < newAttrs.length; i++) {
-        if (oldAttrs[i].key != newAttrs[i].key ||
-            oldAttrs[i].type != newAttrs[i].type ||
-            oldAttrs[i].sectionGroup != newAttrs[i].sectionGroup) {
-          attributesChanged = true;
+    bool fieldsChanged = oldFields.length != newFields.length;
+    if (!fieldsChanged) {
+      for (int i = 0; i < newFields.length; i++) {
+        if (oldFields[i].key != newFields[i].key ||
+            oldFields[i].type != newFields[i].type ||
+            oldFields[i].sectionLabel != newFields[i].sectionLabel) {
+          fieldsChanged = true;
           break;
         }
       }
     }
 
-    if (attributesChanged) {
+    if (fieldsChanged) {
       setState(() {
         _disposeAllFields();
-        _resolvedAttributes = newAttrs;
-        committedData = Map<String, dynamic>.from(widget.initialValues.isEmpty ? widget.fallbackInitialValues : widget.initialValues);
-        _initializeFields(_resolvedAttributes, committedData);
+        _fields = newFields;
+        committedData = Map<String, dynamic>.from(widget.initialValues);
+        _initializeFields(_fields, committedData);
       });
     } else {
       setState(() {
@@ -146,12 +128,12 @@ class _PropertyGridState extends State<PropertyGrid> {
           committedData = Map<String, dynamic>.from(widget.initialValues);
         }
         _errors = const {};
-        for (final attr in _resolvedAttributes) {
-          final focusNode = _focusNodes[attr.key];
+        for (final field in _fields) {
+          final focusNode = _focusNodes[field.key];
           if (focusNode != null && !focusNode.hasFocus) {
-            final newVal = widget.initialValues[attr.key] ?? committedData[attr.key];
+            final newVal = widget.initialValues[field.key] ?? committedData[field.key];
             final text = newVal != null ? newVal.toString() : '';
-            _controllers[attr.key]?.text = text;
+            _controllers[field.key]?.text = text;
           }
         }
       });
@@ -164,47 +146,22 @@ class _PropertyGridState extends State<PropertyGrid> {
     super.dispose();
   }
 
-  Map<String, dynamic> _buildAllValuesMap() {
-    final Map<String, dynamic> allValues = {};
-    for (final resolvedAttr in _resolvedAttributes) {
-      final ctrl = _controllers[resolvedAttr.key];
-      if (resolvedAttr.type == _typeEnum) {
-        allValues[resolvedAttr.key] = committedData[resolvedAttr.key]?.toString() ?? '';
-      } else {
-        allValues[resolvedAttr.key] = ctrl?.text ?? committedData[resolvedAttr.key];
-      }
-    }
-    return allValues;
-  }
-
-  void _clearPairedErrors(String key, Map<String, String> newErrors) {
-    if (key != _keyMaxVoltage && key != _keyMaxAllocatedPower) return;
-    final otherKey = key == _keyMaxVoltage ? _keyMaxAllocatedPower : _keyMaxVoltage;
-    final otherCtrl = _controllers[otherKey];
-    if (otherCtrl == null) return;
-    final allValues = _buildAllValuesMap();
-    final otherErrorMsg = widget.validator?.call(otherKey, otherCtrl.text, allValues);
-    if (otherErrorMsg == null) {
-      newErrors.remove(otherKey);
-    }
-  }
-
   (bool isValid, dynamic parsedValue, String? error) _validateField(
-    String key, AttributeDefinition attr, String valueString,
+    String key, FieldDescriptor field, String valueString,
   ) {
     dynamic parsedValue;
 
-    if (attr.isRequired && valueString.trim().isEmpty) {
-      return (false, null, '${attr.label} is required');
+    if (field.required && valueString.trim().isEmpty) {
+      return (false, null, '${field.label} is required');
     }
 
-    if (attr.type == _typeDouble) {
+    if (field.type == _typeDouble) {
       final val = double.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid double');
       }
       parsedValue = val;
-    } else if (attr.type == _typeInt) {
+    } else if (field.type == _typeInt) {
       final val = int.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid integer');
@@ -214,45 +171,36 @@ class _PropertyGridState extends State<PropertyGrid> {
       parsedValue = valueString;
     }
 
-    if (attr.regexPattern != null && valueString.isNotEmpty) {
-      final reg = RegExp(attr.regexPattern!);
+    if (field.pattern != null && valueString.isNotEmpty) {
+      final reg = RegExp(field.pattern!);
       if (!reg.hasMatch(valueString)) {
         return (false, parsedValue, 'Invalid format');
       }
     }
 
     if (parsedValue is num) {
-      if (attr.minValue != null && parsedValue < attr.minValue!) {
-        return (false, parsedValue, 'Value cannot be less than ${attr.minValue}');
+      if (field.minValue != null && parsedValue < field.minValue!) {
+        return (false, parsedValue, 'Value cannot be less than ${field.minValue}');
       }
-      if (attr.maxValue != null && parsedValue > attr.maxValue!) {
-        return (false, parsedValue, 'Value cannot be greater than ${attr.maxValue}');
-      }
-    }
-
-    if (widget.validator != null) {
-      final allValues = _buildAllValuesMap();
-      final errorMsg = widget.validator!(key, valueString, allValues);
-      if (errorMsg != null) {
-        return (false, parsedValue, errorMsg);
+      if (field.maxValue != null && parsedValue > field.maxValue!) {
+        return (false, parsedValue, 'Value cannot be greater than ${field.maxValue}');
       }
     }
 
     return (true, parsedValue, null);
   }
 
-  void _triggerBlurSave(String key, AttributeDefinition attr) {
-    final valueString = attr.type == _typeEnum
+  void _triggerBlurSave(String key, FieldDescriptor field) {
+    final valueString = field.type == _typeEnum
         ? (committedData[key]?.toString() ?? '')
         : (_controllers[key]?.text ?? '');
     final Map<String, String> newErrors = Map<String, String>.from(_errors);
 
-    final (bool isValid, dynamic parsedValue, String? error) = _validateField(key, attr, valueString);
+    final (bool isValid, dynamic parsedValue, String? error) = _validateField(key, field, valueString);
 
     setState(() {
       if (isValid) {
         newErrors.remove(key);
-        _clearPairedErrors(key, newErrors);
       } else {
         newErrors[key] = error ?? 'Invalid value';
       }
@@ -268,23 +216,36 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
+  List<TextInputFormatter>? _resolveInputFormatters(FieldDescriptor field) {
+    if (field.inputFormatters == null || field.inputFormatters!.isEmpty) return null;
+    final List<TextInputFormatter> formatters = [];
+    for (final fmt in field.inputFormatters!) {
+      if (fmt == 'uppercase') {
+        formatters.add(UpperCaseTextFormatter());
+      } else if (fmt.startsWith('maxLength:')) {
+        final parts = fmt.split(':');
+        if (parts.length == 2) {
+          final len = int.tryParse(parts[1]);
+          if (len != null) {
+            formatters.add(LengthLimitingTextInputFormatter(len));
+          }
+        }
+      }
+    }
+    return formatters.isNotEmpty ? formatters : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     final groups = <String>{};
-    for (final attr in _resolvedAttributes) {
-      groups.add(attr.sectionGroup);
+    for (final field in _fields) {
+      groups.add(field.sectionLabel ?? 'Other');
     }
-    
+
     final List<String> sortedGroups = groups.toList();
-    sortedGroups.sort((a, b) {
-      if (a == _sectionPrimary) return -1;
-      if (b == _sectionPrimary) return 1;
-      if (a == _sectionSecondary) return -1;
-      if (b == _sectionSecondary) return 1;
-      return a.compareTo(b);
-    });
+    sortedGroups.sort();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -298,21 +259,12 @@ class _PropertyGridState extends State<PropertyGrid> {
                   : constraints.maxWidth;
 
               final List<Widget> sections = sortedGroups.map((group) {
-                final bool isActive = (group == _sectionPrimary && (widget.activeView == _sectionPrimary || widget.activeView == _viewDefault)) ||
-                                     (group == _sectionSecondary && widget.activeView != _sectionPrimary && widget.activeView != _viewDefault) ||
-                                     (group != _sectionPrimary && group != _sectionSecondary && widget.activeView == group);
-
-                String title = '$group Section';
-                if (group == _sectionPrimary) {
-                  title = 'Primary Reference Frame';
-                } else if (group == _sectionSecondary) {
-                  title = 'Secondary Reference Frame';
-                }
+                final bool isActive = group == widget.activeView ||
+                    (widget.activeView == 'root' && group == sortedGroups.first);
 
                 return _buildSystemSection(
-                  title: title,
+                  title: group,
                   isActive: isActive,
-                  isAlternate: group == _sectionSecondary,
                   isDark: isDark,
                   width: cardWidth,
                   child: _buildGroupFields(group, isDark),
@@ -350,7 +302,6 @@ class _PropertyGridState extends State<PropertyGrid> {
   Widget _buildSystemSection({
     required String title,
     required bool isActive,
-    required bool isAlternate,
     required bool isDark,
     required double width,
     required Widget child,
@@ -427,36 +378,15 @@ class _PropertyGridState extends State<PropertyGrid> {
   }
 
   Widget _buildGroupFields(String group, bool isDark) {
-    final groupAttrs = _resolvedAttributes.where((attr) => attr.sectionGroup == group).toList();
+    final groupFields = _fields
+        .where((field) => (field.sectionLabel ?? 'Other') == group)
+        .toList()
+      ..sort((a, b) => a.sectionOrder.compareTo(b.sectionOrder));
 
     final List<Widget> fields = [];
-    int i = 0;
-    while (i < groupAttrs.length) {
-      final attr = groupAttrs[i];
-
-      if (i + 1 < groupAttrs.length) {
-        final nextAttr = groupAttrs[i + 1];
-        final bool shouldPair = widget.shouldPair?.call(attr, nextAttr) ?? false;
-        if (shouldPair) {
-          fields.add(
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildAttrField(attr, isDark)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildAttrField(nextAttr, isDark)),
-              ],
-            ),
-          );
-          fields.add(const SizedBox(height: 8));
-          i += 2;
-          continue;
-        }
-      }
-
-      fields.add(_buildAttrField(attr, isDark));
+    for (final field in groupFields) {
+      fields.add(_buildAttrField(field, isDark));
       fields.add(const SizedBox(height: 8));
-      i++;
     }
 
     if (fields.isNotEmpty) {
@@ -469,29 +399,28 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
-  Widget _buildAttrField(AttributeDefinition attr, bool isDark) {
+  Widget _buildAttrField(FieldDescriptor field, bool isDark) {
     final cs = Theme.of(context).colorScheme;
     final Color brandPrimary = cs.primary;
 
-
-    if (attr.type == _typeEnum) {
-      final options = attr.options ?? const [];
-      final currentValue = committedData[attr.key] ?? (options.isNotEmpty ? options.first : '');
+    if (field.type == _typeEnum) {
+      final options = field.enumOptions ?? const [];
+      final currentValue = committedData[field.key] ?? (options.isNotEmpty ? options.first : '');
 
       return _buildDropdownField(
-        label: attr.label,
-        focusNode: _focusNodes[attr.key]!,
+        label: field.label,
+        focusNode: _focusNodes[field.key]!,
         value: currentValue as String,
-        errorText: _errors[attr.key],
+        errorText: _errors[field.key],
         isDark: isDark,
         brandPrimary: brandPrimary,
-        items: options.map((opt) {
+        items: options.asMap().entries.map((entry) {
+          final int idx = entry.key;
+          final String opt = entry.value;
           String displayName = opt;
-          final optionMap = widget.optionDisplayNames?[attr.key];
-          if (optionMap != null && optionMap.containsKey(opt)) {
-            displayName = optionMap[opt]!;
+          if (field.enumDisplayNames != null && idx < field.enumDisplayNames!.length) {
+            displayName = field.enumDisplayNames![idx];
           }
-
           return DropdownMenuItem<String>(
             value: opt,
             child: Text(displayName),
@@ -500,9 +429,9 @@ class _PropertyGridState extends State<PropertyGrid> {
         onChanged: (String? val) {
           if (val != null) {
             setState(() {
-              committedData[attr.key] = val;
+              committedData[field.key] = val;
             });
-            _triggerBlurSave(attr.key, attr);
+            _triggerBlurSave(field.key, field);
           }
         },
       );
@@ -510,26 +439,21 @@ class _PropertyGridState extends State<PropertyGrid> {
       TextInputType keyboardType = TextInputType.text;
       List<TextInputFormatter>? inputFormatters;
 
-      if (attr.type == _typeDouble) {
+      if (field.type == _typeDouble) {
         keyboardType = const TextInputType.numberWithOptions(decimal: true);
-      } else if (attr.type == _typeInt) {
+      } else if (field.type == _typeInt) {
         keyboardType = TextInputType.number;
       }
 
-      if (attr.key == _keyCountryCode) {
-        inputFormatters = [
-          LengthLimitingTextInputFormatter(2),
-          UpperCaseTextFormatter(),
-        ];
-      }
+      inputFormatters = _resolveInputFormatters(field);
 
       return _buildTextField(
-        label: attr.label,
-        controller: _controllers[attr.key]!,
-        focusNode: _focusNodes[attr.key]!,
+        label: field.label,
+        controller: _controllers[field.key]!,
+        focusNode: _focusNodes[field.key]!,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        errorText: _errors[attr.key],
+        errorText: _errors[field.key],
         brandPrimary: brandPrimary,
       );
     }
@@ -614,12 +538,11 @@ class _PropertyGridState extends State<PropertyGrid> {
           style: Theme.of(context).textTheme.labelSmall,
         ),
         const SizedBox(height: 8),
-        Focus(
-          focusNode: focusNode,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            // ignore: deprecated_member_use
-            value: value,
+          Focus(
+            focusNode: focusNode,
+            child: DropdownButtonFormField<String>(
+              isExpanded: true,
+              initialValue: value,
             dropdownColor: isDark ? cs.surfaceContainerHighest : cs.surface,
             style: Theme.of(context).textTheme.bodyMedium,
             decoration: InputDecoration(
