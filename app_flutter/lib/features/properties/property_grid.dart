@@ -31,9 +31,6 @@ class PropertyGrid extends StatefulWidget {
   State<PropertyGrid> createState() => _PropertyGridState();
 }
 
-const _typeDouble = 'double';
-const _typeInt = 'int';
-const _typeEnum = 'enum';
 const _wideLayoutBreakpoint = 700.0;
 const _inactiveSectionOpacity = 0.65;
 const _activeShadowOpacity = 0.1;
@@ -69,7 +66,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       _focusNodes[field.key] = focusNode;
       _hadFocus[field.key] = false;
 
-      if (field.type != _typeEnum) {
+      if (field.type != 'enum') {
         focusNode.addListener(() {
           final bool currentlyHasFocus = focusNode.hasFocus;
           final bool previouslyHadFocus = _hadFocus[field.key] ?? false;
@@ -153,13 +150,13 @@ class _PropertyGridState extends State<PropertyGrid> {
       return (false, null, '${field.label} is required');
     }
 
-    if (field.type == _typeDouble) {
+    if (field.type == 'double') {
       final val = double.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid double');
       }
       parsedValue = val;
-    } else if (field.type == _typeInt) {
+    } else if (field.type == 'int') {
       final val = int.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid integer');
@@ -189,7 +186,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   }
 
   void _triggerBlurSave(String key, FieldDescriptor field) {
-    final valueString = field.type == _typeEnum
+    final valueString = field.type == 'enum'
         ? (committedData[key]?.toString() ?? '')
         : (_controllers[key]?.text ?? '');
     final Map<String, String> newErrors = Map<String, String>.from(_errors);
@@ -401,7 +398,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     final cs = Theme.of(context).colorScheme;
     final Color brandPrimary = cs.primary;
 
-    if (field.type == _typeEnum) {
+    if (field.type == 'enum') {
       final options = field.enumOptions ?? const [];
       final currentValue = committedData[field.key] ?? (options.isNotEmpty ? options.first : '');
 
@@ -437,9 +434,9 @@ class _PropertyGridState extends State<PropertyGrid> {
       TextInputType keyboardType = TextInputType.text;
       List<TextInputFormatter>? inputFormatters;
 
-      if (field.type == _typeDouble) {
+      if (field.type == 'double') {
         keyboardType = const TextInputType.numberWithOptions(decimal: true);
-      } else if (field.type == _typeInt) {
+      } else if (field.type == 'int') {
         keyboardType = TextInputType.number;
       }
 
