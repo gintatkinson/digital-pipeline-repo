@@ -108,7 +108,7 @@ void main() {
         findsOneWidget);
 
     // Verify nested scroll views (vertical wrapping horizontal)
-    expect(find.byType(SingleChildScrollView), findsNWidgets(2));
+    expect(find.byType(SingleChildScrollView), findsNWidgets(3));
 
     // Verify scrubber controls are present
     expect(
