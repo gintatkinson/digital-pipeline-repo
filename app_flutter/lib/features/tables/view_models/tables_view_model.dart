@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
@@ -50,6 +51,7 @@ class TablesViewModel extends ChangeNotifier {
   String? _selectedTabId;
   List<String> _headers = [];
   List<List<String>> _rows = [];
+  List<ColumnModel> _columnModels = [];
   bool _loading = true;
   String? _error;
   int _requestId = 0;
@@ -71,6 +73,9 @@ class TablesViewModel extends ChangeNotifier {
 
   /// Column headers for the currently selected tab.
   List<String> get headers => _headers;
+
+  /// Column models for the currently selected tab.
+  List<ColumnModel> get columnModels => _columnModels;
 
   /// Loaded table rows for the currently selected tab.
   List<List<String>> get rows => _rows;
@@ -133,6 +138,7 @@ class TablesViewModel extends ChangeNotifier {
         _selectedTabId = null;
         _rows = [];
         _headers = [];
+        _columnModels = [];
         _loading = false;
       }
       notifyListeners();
@@ -141,6 +147,7 @@ class TablesViewModel extends ChangeNotifier {
       _error = 'Failed to load table data';
       _rows = [];
       _headers = [];
+      _columnModels = [];
       _loading = false;
       debugPrint('TablesViewModel.loadForNode error: $e\n$st');
       notifyListeners();
@@ -167,6 +174,7 @@ class TablesViewModel extends ChangeNotifier {
   Future<void> _loadData(TabDescriptor tab, int requestId) async {
     try {
       _headers = tab.columns.map((f) => f.label).toList();
+      _columnModels = tab.columns.map(ColumnModel.fromFieldDescriptor).toList();
       final data = switch (tab.id) {
         'Alarm' => await _dataSource.fetchAlarms(_activeView),
         'Event' => await _dataSource.fetchEvents(_activeView),
@@ -189,6 +197,7 @@ class TablesViewModel extends ChangeNotifier {
       _error = 'Failed to load table data';
       _rows = [];
       _headers = [];
+      _columnModels = [];
       _loading = false;
       debugPrint('TablesViewModel._loadData error: $e\n$st');
       notifyListeners();

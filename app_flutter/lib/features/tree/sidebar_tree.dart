@@ -13,12 +13,18 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 /// is scrollable vertically. A footer shows the current worker state and a
 /// settings button that opens [SettingsPanel] in a modal bottom sheet.
 ///
+/// [contentPadding] controls the padding around the scrollable tree content area.
+///
 /// Edge cases: when [workerResult] is null, displays "Idle"; when the tree
 /// data is empty the panel renders an empty column. The settings icon is
 /// always visible regardless of worker state.
 class SidebarTree extends StatelessWidget {
   final int? workerResult;
   final ValueChanged<String> onViewSelected;
+  /// The padding around the scrollable tree content area.
+  ///
+  /// Applied to the [SingleChildScrollView] that wraps the tree nodes.
+  /// Defaults to `EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0)`.
   final EdgeInsetsGeometry contentPadding;
 
   const SidebarTree({

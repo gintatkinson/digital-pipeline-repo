@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
 /// Renders tabular data from a [TablesViewModel] as a horizontally
@@ -61,6 +62,7 @@ class TableViewWidget extends StatelessWidget {
     }
 
     final headers = viewModel.headers;
+    final columnModels = viewModel.columnModels;
     final rows = viewModel.rows;
     final testId = '${viewModel.tabId}-table';
 
@@ -107,6 +109,7 @@ class TableViewWidget extends StatelessWidget {
                   right: 0,
                   child: _HeaderRow(
                     headers: headers,
+                    columnModels: columnModels,
                     colWidth: colWidth,
                     headingRowHeight: headingRowHeight,
                     horizontalMargin: horizontalMargin,
@@ -125,6 +128,7 @@ class TableViewWidget extends StatelessWidget {
 
 class _HeaderRow extends StatelessWidget {
   final List<String> headers;
+  final List<ColumnModel> columnModels;
   final double colWidth;
   final double headingRowHeight;
   final double horizontalMargin;
@@ -133,6 +137,7 @@ class _HeaderRow extends StatelessWidget {
 
   const _HeaderRow({
     required this.headers,
+    required this.columnModels,
     required this.colWidth,
     required this.headingRowHeight,
     required this.horizontalMargin,
@@ -155,7 +160,7 @@ class _HeaderRow extends StatelessWidget {
         children: [
           for (int i = 0; i < headers.length; i++)
             _HeaderCell(
-              label: headers[i],
+              label: i < columnModels.length ? columnModels[i].label : headers[i],
               colWidth: colWidth,
               horizontalMargin: horizontalMargin,
               columnSpacing: columnSpacing,

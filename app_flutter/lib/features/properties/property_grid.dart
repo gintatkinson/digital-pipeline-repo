@@ -30,6 +30,13 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 /// data source). Use this widget whenever you need inline editing of structured
 /// properties with validation, enum dropdowns, and blur-based commit.
 ///
+/// Configuration options:
+///   - [wideLayoutBreakpoint] controls the responsive breakpoint at which the
+///     grid switches from single-column to two-column layout.
+///   - [sectionPadding], [gapSize], [cardBorderRadius], and
+///     [inputBorderRadius] let you tune the visual appearance of section cards
+///     and input fields without rebuilding the widget tree.
+///
 /// Edge cases:
 ///   - An empty [fields] list renders a no-op grid with nothing to edit.
 ///   - [initialValues] may omit keys present in [fields]; those fields start
@@ -81,6 +88,19 @@ class PropertyGrid extends StatefulWidget {
   /// `BorderRadius.circular(6.0)`.
   final BorderRadius inputBorderRadius;
 
+  /// Creates a [PropertyGrid] with the given field descriptors, initial values,
+  /// and visual configuration.
+  ///
+  /// All visual parameters have sensible defaults so that a basic grid works
+  /// out of the box. Override them to match a specific design system:
+  ///
+  ///   - [wideLayoutBreakpoint] — when the available width exceeds this value,
+  ///     the first two sections render side-by-side; below it they stack.
+  ///   - [sectionPadding] — whitespace inside each section's card container.
+  ///   - [gapSize] — vertical spacing between fields and sections.
+  ///   - [cardBorderRadius] — corner rounding for section cards.
+  ///   - [inputBorderRadius] — corner rounding for text field and dropdown
+  ///     input borders.
   const PropertyGrid({
     super.key,
     this.fields = const [],
@@ -121,6 +141,11 @@ class _PropertyGridState extends State<PropertyGrid> {
     _initializeFields(_fields, committedData);
   }
 
+  /// Creates a [TextEditingController] and [FocusNode] for every field in
+  /// [fields], seeding each controller with the value from [nodeData].
+  ///
+  /// Enum fields do not receive a focus listener because their value is
+  /// committed immediately on selection change rather than on blur.
   void _initializeFields(List<FieldDescriptor> fields, Map<String, dynamic> nodeData) {
     for (final field in fields) {
       final val = nodeData[field.key];
@@ -146,6 +171,12 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
+  /// Disposes all [TextEditingController] and [FocusNode] instances, then
+  /// clears internal maps and resets the error state.
+  ///
+  /// Called from [dispose] and from [didUpdateWidget] when the field list
+  /// changes. After this method returns the widget is left in a clean state
+  /// ready for [_initializeFields] to re-create everything.
   void _disposeAllFields() {
     for (final controller in _controllers.values) {
       controller.dispose();
@@ -207,6 +238,20 @@ class _PropertyGridState extends State<PropertyGrid> {
     super.dispose();
   }
 
+  /// Validates a field's string value according to the rules declared on
+  /// [field].
+  ///
+  /// Returns a tuple of (isValid, parsedValue, errorMessage):
+  ///   - [isValid] is true when all checks pass.
+  ///   - [parsedValue] is the value coerced to `double`, `int`, or kept as
+  ///     `String` depending on [field.type].
+  ///   - [error] is a human-readable message when validation fails, or null
+  ///     on success.
+  ///
+  /// Checks performed in order: required (non-empty), numeric parse,
+  /// regex pattern, numeric bounds. Validation is skipped entirely when
+  /// [valueString] is empty and the field is not required, allowing optional
+  /// fields to remain blank.
   (bool isValid, dynamic parsedValue, String? error) _validateField(
     String key, FieldDescriptor field, String valueString,
   ) {
@@ -251,6 +296,16 @@ class _PropertyGridState extends State<PropertyGrid> {
     return (true, parsedValue, null);
   }
 
+  /// Validates the current value of [field] on blur and, if valid, commits it
+  /// to [committedData] and fires [widget.onSave].
+  ///
+  /// For enum fields the value is read from [committedData] (already updated
+  /// by the dropdown's onChanged); for all other types it is read from the
+  /// associated [TextEditingController].
+  ///
+  /// On validation failure the error message is stored in [_errors] and
+  /// displayed inline below the input. The callback is NOT fired on failure so
+  /// that callers only see consistent, valid state snapshots.
   void _triggerBlurSave(String key, FieldDescriptor field) {
     final valueString = field.type == 'enum'
         ? (committedData[key]?.toString() ?? '')
@@ -277,6 +332,15 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
+  /// Resolves the list of [TextInputFormatter]s declared on [field].
+  ///
+  /// Supported [FieldDescriptor.inputFormatters] directives:
+  ///   - `"uppercase"` — applies [UpperCaseTextFormatter].
+  ///   - `"maxLength:N"` — applies [LengthLimitingTextInputFormatter] with
+  ///     limit N.
+  ///
+  /// Returns null when no formatters are configured, which allows callers to
+  /// pass null directly to the [TextField.inputFormatters] parameter.
   List<TextInputFormatter>? _resolveInputFormatters(FieldDescriptor field) {
     if (field.inputFormatters == null || field.inputFormatters!.isEmpty) return null;
     final List<TextInputFormatter> formatters = [];
@@ -360,6 +424,16 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
+  /// Builds a single section card with a title header, an optional "Active
+  /// Reference" badge, and the field content.
+  ///
+  /// The [isActive] flag controls opacity, border width, border color, and
+  /// shadow intensity. Active sections use [widget.cardBorderRadius] and the
+  /// primary brand color for their border and shadow; inactive sections are
+  /// dimmed with a subtler shadow and a neutral border.
+  ///
+  /// The [width] parameter is applied to the outer container so that sections
+  /// can be laid out side-by-side by the caller.
   Widget _buildSystemSection({
     required String title,
     required bool isActive,
@@ -438,6 +512,10 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
+  /// Builds all fields belonging to [group], sorted by [FieldDescriptor.sectionOrder].
+  ///
+  /// Each field is separated by [widget.gapSize] of vertical space. An empty
+  /// group renders an empty [Column] with no visible output.
   Widget _buildGroupFields(String group, bool isDark) {
     final groupFields = _fields
         .where((field) => (field.sectionLabel ?? 'Other') == group)
@@ -460,6 +538,17 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
+  /// Builds the input widget for a single [field], dispatching to either a
+  /// dropdown (for `enum` fields) or a text field (for all other types).
+  ///
+  /// The dispatched type is determined by [FieldDescriptor.type]. Numeric
+  /// fields (`double`, `int`) receive the appropriate keyboard type.
+  /// The current error state, if any, is passed down from [_errors].
+  ///
+  /// Edge cases: enum fields with no options render an empty dropdown with
+  /// the first available option implicitly selected; missing enum options or
+  /// missing display names are handled gracefully (falling back to the raw
+  /// value or index).
   Widget _buildAttrField(FieldDescriptor field, bool isDark) {
     final cs = Theme.of(context).colorScheme;
     final Color brandPrimary = cs.primary;
@@ -520,6 +609,17 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
+  /// Builds a labelled [TextField] bound to [controller] and [focusNode].
+  ///
+  /// The text field uses [widget.inputBorderRadius] for its [OutlineInputBorder]
+  /// and displays [errorText] below the field when validation fails. The
+  /// border color switches to the theme error color when an error is present
+  /// and to [brandPrimary] when focused.
+  ///
+  /// The label is rendered above the field using the theme's `labelSmall` text
+  /// style. Keyboard type and input formatters are forwarded to the
+  /// [TextField] unchanged; pass null for [inputFormatters] when no
+  /// formatting is required.
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -578,6 +678,16 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
+  /// Builds a labelled [DropdownButtonFormField] bound to [focusNode].
+  ///
+  /// The dropdown uses [widget.inputBorderRadius] for its [OutlineInputBorder]
+  /// and displays [errorText] below the field when validation fails. Its
+  /// background adjusts to the current brightness via [isDark] to remain
+  /// legible in both light and dark themes.
+  ///
+  /// The label is rendered above the dropdown using the theme's `labelSmall`
+  /// text style. The [onChanged] callback is typically wired to
+  /// [_triggerBlurSave] so that enum value changes are committed immediately.
   Widget _buildDropdownField({
     required String label,
     required FocusNode focusNode,
@@ -641,6 +751,12 @@ class _PropertyGridState extends State<PropertyGrid> {
     );
   }
 
+  /// Builds a read-only panel showing the current [committedData] as
+  /// pretty-printed JSON.
+  ///
+  /// Exists primarily for development and debugging workflows where operators
+  /// need to inspect the accumulated committed values at a glance. The panel
+  /// scrolls horizontally to accommodate wide payloads without wrapping.
   Widget _buildCommittedStatePanel(bool isDark) {
     final cs = Theme.of(context).colorScheme;
     return Container(

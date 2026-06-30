@@ -26,11 +26,33 @@ dynamic _resolvePath(Map<String, dynamic> map, String path) {
 /// Edge cases: missing dimensions default to 0.0; empty vector yields zero
 /// velocity in [TopologyNode.computePosition].
 class TopologyNodePosition {
+  /// First spatial coordinate (x-axis). Parsed from JSON key `dim_0`.
+  /// Defaults to 0.0 when missing. Used as the primary x-position on canvas.
   final double dim0;
+
+  /// Second spatial coordinate (y-axis). Parsed from JSON key `dim_1`.
+  /// Defaults to 0.0 when missing. Used as the primary y-position on canvas.
   final double dim1;
+
+  /// Third spatial coordinate (z-axis). Parsed from JSON key `dim_2`.
+  /// Defaults to 0.0 when missing. Not directly rendered; available for
+  /// downstream consumers.
   final double dim2;
+
+  /// Timestamp index for this node position. Parsed from JSON key
+  /// `time_index`. Used by [TopologyNode.computePosition] to calculate
+  /// displacement from the trajectory vector.
   final double timeIndex;
+
+  /// Velocity / trajectory vector for this position. The first two elements
+  /// are interpreted as (vx, vy) and scaled by
+  /// [TopologyPainter.velocityScale] during rendering. An empty list is
+  /// treated as zero velocity.
   final List<double> vector;
+
+  /// Unprocessed JSON payload for this node. Preserved for arbitrary
+  /// downstream lookups and coordinate resolution via
+  /// [resolveCoordinate] / [resolveVector].
   final Map<String, dynamic> rawProperties;
 
   const TopologyNodePosition({
@@ -112,10 +134,25 @@ class TopologyNodePosition {
 /// Edge cases: missing id/label default to empty string; an empty trajectory
 /// vector is treated as zero velocity (static position).
 class TopologyNode {
+  /// Unique identifier for this node. Used as a key for link source/target
+  /// references and for focus tracking via [TopologyMap.activeFocusedNode].
   final String id;
+
+  /// Human-readable label rendered below the node circle on canvas.
   final String label;
+
+  /// Encapsulated position data including coordinates, time index, and
+  /// trajectory vector. See [TopologyNodePosition] for details.
   final TopologyNodePosition position;
+
+  /// Status string used for colour selection. "Active" receives the
+  /// [TopologyPainterColors.activeStatusColor]; all other values receive
+  /// the [TopologyPainterColors.warningStatusColor].
   final String status;
+
+  /// Unprocessed JSON payload for this node. Preserved for arbitrary
+  /// downstream lookups and coordinate resolution via
+  /// [resolveCoordinate] / [resolveVector].
   final Map<String, dynamic> rawProperties;
 
   const TopologyNode({
@@ -180,8 +217,18 @@ class TopologyNode {
 /// [TopologyPainter.paint] and carry no runtime state. Invalid source/target
 /// references result in a silent no-op during rendering (no line drawn).
 class TopologyLink {
+  /// ID of the source node for this directed link.
+  /// Must match a [TopologyNode.id] in the parent [TopologyData]; otherwise
+  /// the link is silently skipped during rendering.
   final String source;
+
+  /// ID of the target node for this directed link.
+  /// Must match a [TopologyNode.id] in the parent [TopologyData]; otherwise
+  /// the link is silently skipped during rendering.
   final String target;
+
+  /// Semantic label describing the link type (e.g. "depends_on", "connects").
+  /// Used solely as a data attribute; not rendered on canvas.
   final String type;
 
   const TopologyLink({
@@ -208,8 +255,18 @@ class TopologyLink {
 /// Edge cases: empty nodes/links lists are valid and produce a blank canvas;
 /// a missing mapping key falls back to the baked-in position fields.
 class TopologyData {
+  /// Maps logical axis names ("x", "y", "z", "t", "trajectory") to
+  /// dot-separated paths in each node's [TopologyNode.rawProperties].
+  /// When a key is absent, the corresponding baked-in field
+  /// ([TopologyNodePosition.dim0] etc.) is used as fallback.
   final Map<String, String> coordinateMapping;
+
+  /// All nodes in the topology. Each node is projected to canvas space
+  /// by [TopologyNode.computePosition] before rendering.
   final List<TopologyNode> nodes;
+
+  /// Directed connections between nodes. Each link references nodes by
+  /// their [TopologyNode.id]; invalid references produce a silent no-op.
   final List<TopologyLink> links;
 
   const TopologyData({
@@ -242,30 +299,110 @@ class TopologyData {
 /// A playback panel at the bottom provides play/pause, time slider, and speed
 /// control.
 ///
-/// Tap detection uses [tapProximity] (20 px). If no node is close enough
-/// the tap is silently ignored. When [data] is null, falls back to
+/// Tap detection uses [tapProximity] (default 20 px). If no node is close
+/// enough the tap is silently ignored. When [data] is null, falls back to
 /// [emptyTopologyData] (empty nodes/links). On data change, the playhead
 /// is clamped to the new [minTime]–[maxTime] range.
+///
+/// Many visual and behavioural parameters — node radii, grid spacing,
+/// animation speed, viewport constraints, and layout sizes — are exposed as
+/// constructor parameters with sensible defaults, allowing callers to tune
+/// the appearance without subclassing.
 class TopologyMap extends StatefulWidget {
+  /// Identifier of the node that should be visually focused (halo + larger
+  /// radius). Pass `null` to clear focus. Controlled externally by the parent
+  /// widget.
   final String? activeFocusedNode;
+
+  /// Callback invoked when the user taps a node within [tapProximity].
+  /// Receives the tapped node's [TopologyNode.id]. Not called for taps on
+  /// empty canvas space.
   final ValueChanged<String>? onNodeSelect;
+
+  /// The topology data to render. When `null`, a default empty
+  /// [emptyTopologyData] is used, producing a blank canvas with grid.
   final TopologyData? data;
 
+  // -- Rendering constants --
+
+  /// Maximum distance (in logical pixels) from a node's centre for a tap to
+  /// register as a selection. Larger values make nodes easier to hit on
+  /// touch screens; smaller values reduce false positives on dense maps.
+  /// Default: 20.0.
   final double tapProximity;
+
+  /// Spacing (in logical pixels) between consecutive background grid lines.
+  /// Used both horizontally and vertically. Smaller values produce a denser
+  /// grid; larger values reduce visual clutter. Default: 40.0.
   final double gridSpacing;
+
+  /// Radius (in logical pixels) of the animated data-packet dot travelling
+  /// along each link. Default: 4.0.
   final double packetRadius;
+
+  /// Duration (in seconds) of one full packet animation cycle along a link.
+  /// The packet dot completes one source-to-target traversal every
+  /// [packetAnimationPeriod] seconds. Default: 2.0.
   final double packetAnimationPeriod;
+
+  /// Radius (in logical pixels) of non-focused node circles. Default: 9.0.
   final double nodeRadiusDefault;
+
+  /// Radius (in logical pixels) of the currently focused node circle.
+  /// Should be larger than [nodeRadiusDefault] for visual emphasis.
+  /// Default: 12.0.
   final double nodeRadiusFocused;
+
+  /// Multiplier applied to trajectory velocity vectors when rendering the
+  /// velocity indicator line. A value of 1.0 draws the line at true vector
+  /// length; 2.0 doubles the visual length for readability on sparse maps.
+  /// Default: 2.0.
   final double velocityScale;
-  final double defaultMinTime;
-  final double defaultMaxTime;
-  final double minViewportWidth;
-  final double minViewportHeight;
-  final double timeDisplayWidth;
+
+  /// Radius (in logical pixels) of the pulsing halo ring drawn around the
+  /// focused node. Default: 20.0.
   final double haloRadius;
-  final int sliderDivisions;
+
+  /// Font size (in logical pixels) for node labels rendered below each node
+  /// circle. Default: 12.0.
   final double labelFontSize;
+
+  // -- Playback constants --
+
+  /// Fallback minimum time index used when the topology data is empty or no
+  /// node has a valid time coordinate. Inferred from data when possible.
+  /// Default: 1.0.
+  final double defaultMinTime;
+
+  /// Fallback maximum time index used when the topology data is empty or no
+  /// node has a valid time coordinate. Inferred from data when possible.
+  /// If all nodes share the same time, [maxTime] is widened to
+  /// [defaultMinTime] + ([defaultMaxTime] - [defaultMinTime]).
+  /// Default: 10.0.
+  final double defaultMaxTime;
+
+  /// The number of discrete steps in the playback time slider. Higher values
+  /// provide finer granularity for scrubbing. Applied via `Slider.divisions`.
+  /// Default: 90.
+  final int sliderDivisions;
+
+  // -- Layout constants --
+
+  /// Minimum viewport width (in logical pixels) for the scrollable canvas.
+  /// When the available width from [LayoutBuilder] exceeds this value the
+  /// actual available width is used; otherwise this value becomes the canvas
+  /// width. Default: 800.0.
+  final double minViewportWidth;
+
+  /// Minimum viewport height (in logical pixels) for the scrollable canvas.
+  /// When the available height from [LayoutBuilder] exceeds this value the
+  /// actual available height is used; otherwise this value becomes the canvas
+  /// height. Default: 500.0.
+  final double minViewportHeight;
+
+  /// Width (in logical pixels) allocated to the numeric time display in the
+  /// playback panel. Default: 32.0.
+  final double timeDisplayWidth;
 
   const TopologyMap({
     super.key,
@@ -586,16 +723,40 @@ class _TopologyMapState extends State<TopologyMap>
 /// Immutable; should be constructed once per paint cycle from the current
 /// [ColorScheme] to stay in sync with theme changes.
 class TopologyPainterColors {
+  /// Canvas background colour. Fills the entire paint area before any other
+  /// element is drawn.
   final Color bgColor;
+
+  /// Colour for the background grid lines.
   final Color gridColor;
+
+  /// Colour for link lines connecting nodes.
   final Color linkColor;
+
+  /// Colour for the animated data-packet dot that travels along each link.
   final Color packetColor;
+
+  /// Colour for the velocity / trajectory vector line emanating from each
+  /// node.
   final Color velocityColor;
+
+  /// Fill colour for the focused node circle.
   final Color nodeFillColor;
+
+  /// Stroke (outline) colour for the focused node circle.
   final Color nodeStrokeColor;
+
+  /// Fill colour for nodes whose [TopologyNode.status] equals "Active".
   final Color activeStatusColor;
+
+  /// Fill colour for nodes whose [TopologyNode.status] is anything other
+  /// than "Active".
   final Color warningStatusColor;
+
+  /// Colour for the pulsing halo ring drawn around the focused node.
   final Color haloColor;
+
+  /// Colour for node labels rendered below each node circle.
   final Color labelColor;
 
   const TopologyPainterColors({
@@ -619,19 +780,61 @@ class TopologyPainterColors {
 /// Paint order: background → grid → node positions → links → packets →
 /// nodes (fill + stroke) → halo (focused only) → labels. Redraws when
 /// [currentTimeIndex], [activeFocusedNode], [activeData], or [colors] change.
+///
+/// Visual parameters such as [gridSpacing], [nodeRadiusDefault],
+/// [velocityScale], and others are configurable via constructor fields with
+/// sensible defaults, allowing callers to tune rendering without subclassing.
 class TopologyPainter extends CustomPainter {
+  /// Identifier of the node that should receive visual focus (larger radius,
+  /// halo ring). Pass `null` to clear focus.
   final String? activeFocusedNode;
+
+  /// The topology data rendered in the current paint cycle. Must be non-null;
+  /// use [emptyTopologyData] for a blank canvas.
   final TopologyData activeData;
+
+  /// Current playback time index. Used to compute node positions via
+  /// [TopologyNode.computePosition] and to animate packet dots along links.
   final double currentTimeIndex;
+
+  /// Colour palette for all painted elements. Should be reconstructed each
+  /// paint cycle from the current [ColorScheme] to reflect theme changes.
   final TopologyPainterColors colors;
 
+  // -- Geometry & layout --
+
+  /// Horizontal and vertical spacing (in logical pixels) between consecutive
+  /// background grid lines. Default: 40.0.
   final double gridSpacing;
+
+  /// Radius (in logical pixels) of the animated data-packet dot that travels
+  /// along each link. Default: 4.0.
   final double packetRadius;
+
+  /// Duration (in seconds) of one full packet animation cycle along a link.
+  /// The packet dot completes one source-to-target traversal every
+  /// [packetAnimationPeriod] seconds. Default: 2.0.
   final double packetAnimationPeriod;
+
+  /// Radius (in logical pixels) of non-focused node circles. Default: 9.0.
   final double nodeRadiusDefault;
+
+  /// Radius (in logical pixels) of the currently focused node circle.
+  /// Should be larger than [nodeRadiusDefault] for visual distinction.
+  /// Default: 12.0.
   final double nodeRadiusFocused;
+
+  /// Multiplier applied to trajectory velocity vectors when drawing the
+  /// velocity indicator line. Higher values exaggerate direction for
+  /// readability. Default: 2.0.
   final double velocityScale;
+
+  /// Radius (in logical pixels) of the pulsing halo ring drawn around the
+  /// focused node. Default: 20.0.
   final double haloRadius;
+
+  /// Font size (in logical pixels) for node labels rendered below each node
+  /// circle. Default: 12.0.
   final double labelFontSize;
 
   TopologyPainter({

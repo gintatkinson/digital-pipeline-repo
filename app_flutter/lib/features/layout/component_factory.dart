@@ -23,14 +23,47 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 /// as callbacks rather than hard-coded so the same factory can be reused
 /// across different layout configurations.
 class ComponentFactory {
+  /// The identifier of the currently selected view, used to select tabs,
+  /// reload topology data, and highlight the active node in the sidebar.
   final String currentView;
+
+  /// The last result emitted by the worker isolate, passed through so that
+  /// [SidebarTree] can display progress or error states without re-linking
+  /// the worker itself. `null` when no result has been produced yet.
   final int? workerResult;
+
+  /// Callback invoked when the user selects a different view from the sidebar
+  /// or the topology map. The receiver is expected to update [currentView].
   final void Function(String) onViewSelected;
+
+  /// The minimum size (in logical pixels) for the first pane in a split
+  /// layout ([SplitWorkspace], [TopographicalView]). Read from the layout
+  /// configuration so that panes cannot be resized below a usable threshold.
   final double minPaneSize;
+
+  /// Returns the default split ratio used when a [SplitWorkspace] or
+  /// [TopographicalView] is first rendered. The value is resolved from the
+  /// `codebase_rules.json` config token so it can be tuned without code
+  /// changes.
   final double Function() defaultRatio;
+
+  /// Resolves the [TopologyData] for the current view. Called lazily during
+  /// build so that the topology provider can be fetched from the widget tree
+  /// rather than passed at construction time.
   final TopologyData Function() resolveTopologyData;
+
+  /// Resolves a human-readable label for the tab identified by the given
+  /// string key. Used by [TabbedContainer] to render tab headers.
   final String Function(String) resolveTabLabel;
+
+  /// Builds an arbitrary child widget inside a [TopographicalView]. The
+  /// returned widget is inserted below the topology map and above the
+  /// selection controls.
   final Widget Function(BuildContext) buildChildWidget;
+
+  /// The [TreeViewModel] for the hierarchy tree sidebar. `null` when the
+  /// current layout does not include a sidebar, in which case
+  /// [HierarchyTreeSelector] is skipped entirely.
   final TreeViewModel? treeViewModel;
 
   /// Creates a [ComponentFactory] with the required dependency resolvers.

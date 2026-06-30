@@ -12,12 +12,18 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 /// [TreeViewModel.selectView], while parent nodes show a toggle handle to
 /// expand/collapse children.
 ///
+/// [childIndent] controls the left indentation applied to child nodes.
+///
 /// Edge cases: root-level nodes with no parent; nodes whose parent is
 /// collapsed are not rendered on screen (filtered by [TreeViewModel]'s
 /// visible-node walk). Does not trigger [notifyListeners] directly — all
 /// state changes are delegated to the view model.
 class TreeNodeWidget extends StatelessWidget {
   final TreeNode node;
+  /// The left indentation for child nodes in the tree.
+  ///
+  /// Applied as [EdgeInsets.only(left: childIndent)] to the [Padding] that
+  /// wraps recursively rendered children. Defaults to 16.0.
   final double childIndent;
 
   const TreeNodeWidget({

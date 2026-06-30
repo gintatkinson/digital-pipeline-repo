@@ -63,6 +63,11 @@ class _LayoutState extends State<Layout> {
 
   static const double _minPaneSize = 150.0;
 
+  /// Subscribes to property changes for the given [nodeId].
+  ///
+  /// Cancels any previous subscription before creating a new one. Updates
+  /// [_nodeData] on each data event and triggers a rebuild. Errors are logged
+  /// via [debugPrint].
   void _subscribeProperties(String nodeId) {
     _propertiesSubscription?.cancel();
     _nodeData = const {};
@@ -105,10 +110,13 @@ class _LayoutState extends State<Layout> {
     }
   }
 
+  /// Triggers a rebuild when the properties view model notifies listeners.
   void _onPropertiesViewModelChanged() {
     if (mounted) setState(() {});
   }
 
+  /// Rebuilds the UI and syncs the current view from the tree when the tree
+  /// view model notifies listeners.
   void _onTreeViewModelChanged() {
     if (mounted) {
       _updateCurrentViewFromLayout();
@@ -127,6 +135,11 @@ class _LayoutState extends State<Layout> {
   Map<String, dynamic>? _cachedRules;
   Map<String, dynamic>? _cachedLabels;
 
+  /// Loads a JSON file from disk, caching results by type.
+  ///
+  /// Checks [path] and `../$path` for the file; returns an empty map if
+  /// neither exists or parsing fails. Caches `codebase_rules` and `labels`
+  /// files separately so repeated calls avoid I/O.
   Map<String, dynamic> _loadJsonOnce(String path) {
     if (_cachedRules != null && path.contains('codebase_rules')) return _cachedRules!;
     if (_cachedLabels != null && path.contains('labels')) return _cachedLabels!;
@@ -169,6 +182,10 @@ class _LayoutState extends State<Layout> {
     _preloadTopologyData();
   }
 
+  /// Preloads topology data from an external JSON asset for later use.
+  ///
+  /// Called once during init. Stores the result in [_topologyData]; errors are
+  /// logged and do not crash the widget.
   Future<void> _preloadTopologyData() async {
     try {
       final data = await loadTopologyData();
@@ -208,21 +225,32 @@ class _LayoutState extends State<Layout> {
     super.dispose();
   }
 
+  /// Returns the default split ratio for the properties panel.
+  ///
+  /// Reads from the codebase rules JSON; falls back to 0.5 if the rule is
+  /// missing.
   double _getDefaultRatio() {
     final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
     return getDefaultRatio(rules, 'layout_properties.default_ratio', 0.5);
   }
 
+  /// Resolves the coordinate-to-location mapping from codebase rules.
   Map<String, String> _resolveCoordinateMapping() {
     final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
     return resolveCoordinateMapping(rules);
   }
 
+  /// Resolves the label mapping from codebase rules.
   Map<String, String> _resolveLabelsMapping() {
     final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
     return resolveLabelsMapping(rules);
   }
 
+  /// Returns a human-readable label for the given [tabId].
+  ///
+  /// Uses the resolved label mapping first; falls back to hardcoded defaults
+  /// for known tab IDs (Items, Status, Activity). Returns the raw [tabId] as a
+  /// last resort.
   String _resolveTabLabel(String tabId) {
     final mapping = _resolveLabelsMapping();
     for (final entry in mapping.entries) {
@@ -238,6 +266,10 @@ class _LayoutState extends State<Layout> {
   }
 
   // TODO(#79): Replace mock topology nodes/links with DB-backed data.
+  /// Builds a [TopologyData] with the coordinate mapping applied.
+  ///
+  /// Uses preloaded [_topologyData] if available, otherwise falls back to
+  /// [emptyTopologyData].
   TopologyData _resolveTopologyData() {
     final mapping = _resolveCoordinateMapping();
     final data = _topologyData ?? emptyTopologyData;
@@ -249,6 +281,10 @@ class _LayoutState extends State<Layout> {
   }
 
 
+  /// Loads the logical layout configuration from the bundled assets.
+  ///
+  /// Reads `assets/logical-layout.json` and updates the parsed layout and
+  /// current view on success. Errors are logged via [debugPrint].
   Future<void> _loadLayoutConfig() async {
     try {
       final jsonStr = await rootBundle.loadString('assets/logical-layout.json');
@@ -264,6 +300,12 @@ class _LayoutState extends State<Layout> {
     }
   }
 
+  /// Updates [_currentView] to the root of the tree data when no explicit
+  /// active view is set externally.
+  ///
+  /// Called after the tree view model loads or changes. If
+  /// [widget.activeView] is null and tree data is available, sets the current
+  /// view to the first tree node and resubscribes properties.
   void _updateCurrentViewFromLayout() {
     if (widget.activeView == null && _treeViewModel != null && _treeViewModel!.treeData.isNotEmpty) {
       _currentView = _treeViewModel!.treeData.first.id;
@@ -272,6 +314,11 @@ class _LayoutState extends State<Layout> {
     }
   }
 
+  /// Selects a view by [viewId], updating state, tree model, properties, and
+  /// notifying the parent widget.
+  ///
+  /// No-op if [viewId] equals [_currentView]. Resubscribes to properties for
+  /// the new view and reloads the properties view model type.
   void _selectView(String viewId) {
     if (_currentView == viewId) return;
     setState(() {
@@ -283,6 +330,10 @@ class _LayoutState extends State<Layout> {
     widget.onViewChange?.call(viewId);
   }
 
+  /// Builds the full widget tree from the parsed layout configuration.
+  ///
+  /// Delegates to [ComponentFactory] with the current view, callbacks, and
+  /// resolvers. Constrained by [constraints] from the parent [LayoutBuilder].
   Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
     final factory = ComponentFactory(
       currentView: _currentView,
@@ -312,6 +363,10 @@ class _LayoutState extends State<Layout> {
     );
   }
 
+  /// Builds the child widget displayed in the properties panel.
+  ///
+  /// Creates a [PropertyGrid] with the current fields, values, and a save
+  /// callback. Used as a builder callback by [ComponentFactory].
   Widget _buildChildWidget(BuildContext context) {
     final fields = _propertiesViewModel?.fields ?? [];
 
