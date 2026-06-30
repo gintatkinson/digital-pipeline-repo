@@ -117,15 +117,15 @@ void main() {
     expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
     expect(find.byKey(const Key('Alarm-table')), findsNothing);
 
-    // Tap Status tab
-    await tester.tap(find.widgetWithText(Tab, 'Status'));
+    // Tap Alarms tab
+    await tester.tap(find.widgetWithText(Tab, 'Alarms'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('SubElement-table')), findsNothing);
     expect(find.byKey(const Key('Alarm-table')), findsOneWidget);
 
-    // Tap Activity tab
-    await tester.tap(find.widgetWithText(Tab, 'Activity'));
+    // Tap Events tab
+    await tester.tap(find.widgetWithText(Tab, 'Events'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('Alarm-table')), findsNothing);

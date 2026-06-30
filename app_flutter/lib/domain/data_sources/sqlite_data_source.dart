@@ -120,6 +120,7 @@ class SqliteDataSource implements DataSource {
         childTypeName: r['child_type_name'] as String,
         childLabel: r['child_label'] as String,
       )).toList(),
+      relatedTypes: [],
       parentTypes: [], // populated by caller if needed
     );
   }

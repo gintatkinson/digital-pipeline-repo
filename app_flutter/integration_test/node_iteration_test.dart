@@ -4,8 +4,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:app_flutter/main.dart' as app_main;
-import 'package:app_flutter/core/theme/theme_controller.dart';
-import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/theme/widgets/settings_panel.dart';
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
@@ -13,52 +11,6 @@ import 'package:app_flutter/features/tree/tree_node.dart';
 final File benchmarkLogFile = File(
   '/Users/perkunas/opcode/digital-pipeline-repo/benchmark_results.jsonl',
 );
-
-class _FieldHelper {
-  static Finder textFieldByLabel(String labelText) {
-    final Finder columnFinder = find.byWidgetPredicate((Widget widget) {
-      if (widget is Column) {
-        final List<Widget> children = widget.children;
-        if (children.isNotEmpty && children.first is Text) {
-          return (children.first as Text).data == labelText;
-        }
-      }
-      return false;
-    });
-    return find.descendant(
-      of: columnFinder,
-      matching: find.byType(TextField),
-    );
-  }
-
-  static Finder dropdownByLabel(String labelText) {
-    final Finder columnFinder = find.byWidgetPredicate((Widget widget) {
-      if (widget is Column) {
-        final List<Widget> children = widget.children;
-        if (children.isNotEmpty && children.first is Text) {
-          return (children.first as Text).data == labelText;
-        }
-      }
-      return false;
-    });
-    return find.descendant(
-      of: columnFinder,
-      matching: find.byType(DropdownButtonFormField<String>),
-    );
-  }
-
-  static String countryCode(int nodeIndex, int cycle) {
-    final int c1 = 65 + ((nodeIndex + cycle) % 26);
-    final int c2 = 65 + ((nodeIndex * 3 + cycle * 7) % 26);
-    return String.fromCharCodes([c1, c2]);
-  }
-
-  static String locationTypeDisplayName(int nodeIndex, int cycle) {
-    const List<String> options = ['site', 'room', 'building'];
-    final String value = options[(nodeIndex + cycle) % options.length];
-    return '${value[0].toUpperCase()}${value.substring(1)}';
-  }
-}
 
 List<String> _flattenNodes(List<TreeNode> nodes) {
   final List<String> result = [];

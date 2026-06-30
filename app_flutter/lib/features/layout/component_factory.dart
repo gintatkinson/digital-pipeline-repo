@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/tree/sidebar_tree.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
@@ -11,8 +10,6 @@ import 'package:app_flutter/features/tables/tabbed_container.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
-import 'package:app_flutter/features/tree/tree_node.dart';
-
 class ComponentFactory {
   final String currentView;
   final int? workerResult;
@@ -131,7 +128,7 @@ class ComponentFactory {
 class _TabbedContainerHost extends StatefulWidget {
   final String currentView;
 
-  const _TabbedContainerHost({required this.currentView, super.key});
+  const _TabbedContainerHost({required this.currentView});
 
   @override
   State<_TabbedContainerHost> createState() => _TabbedContainerHostState();
@@ -146,9 +143,8 @@ class _TabbedContainerHostState extends State<_TabbedContainerHost> {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      final repo = context.read<AbstractRepository>();
       final ds = context.read<DataSource>();
-      _viewModel = TablesViewModel(repo, ds, widget.currentView)
+      _viewModel = TablesViewModel(ds, widget.currentView)
         ..loadForNode(widget.currentView);
     }
   }
@@ -199,9 +195,8 @@ class _TableViewContainerState extends State<_TableViewContainer> {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      final repo = context.read<AbstractRepository>();
       final ds = context.read<DataSource>();
-      _viewModel = TablesViewModel(repo, ds, widget.currentView)
+      _viewModel = TablesViewModel(ds, widget.currentView)
         ..loadForNode(widget.currentView);
     }
   }

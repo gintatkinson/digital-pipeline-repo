@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// Describes one tab discovered from [TypeDescriptor.childTypes].
+/// Describes one tab discovered from [TypeDescriptor.childTypes] or [TypeDescriptor.relatedTypes].
 class TabDescriptor {
   final String id;
   final String label;
@@ -20,7 +19,6 @@ class TabDescriptor {
 /// column headers from the [DataSource]’s [TypeDescriptor.childTypes]
 /// instead of hardcoding them.
 class TablesViewModel extends ChangeNotifier {
-  final AbstractRepository _repository;
   final DataSource _dataSource;
   String _activeView;
   List<TabDescriptor> _tabs = [];
@@ -31,7 +29,7 @@ class TablesViewModel extends ChangeNotifier {
   String? _error;
   int _requestId = 0;
 
-  TablesViewModel(this._repository, this._dataSource, this._activeView);
+  TablesViewModel(this._dataSource, this._activeView);
 
   /// All discovered tabs for the current node.
   List<TabDescriptor> get tabs => _tabs;
@@ -69,6 +67,8 @@ class TablesViewModel extends ChangeNotifier {
       if (typeDescriptor == null || requestId != _requestId) return;
 
       final List<TabDescriptor> tabs = [];
+
+      // 1. Child types (hierarchy containment)
       for (final ct in typeDescriptor.childTypes) {
         final childDesc = await _dataSource.typeFor(ct.childTypeName);
         if (childDesc == null || requestId != _requestId) return;
@@ -76,6 +76,17 @@ class TablesViewModel extends ChangeNotifier {
           id: ct.childTypeName,
           label: ct.childLabel,
           columns: childDesc.fields,
+        ));
+      }
+
+      // 2. Related types (events, alarms, etc.)
+      for (final rt in typeDescriptor.relatedTypes) {
+        final relDesc = await _dataSource.typeFor(rt.childTypeName);
+        if (relDesc == null || requestId != _requestId) return;
+        tabs.add(TabDescriptor(
+          id: rt.childTypeName,
+          label: rt.childLabel,
+          columns: relDesc.fields,
         ));
       }
 

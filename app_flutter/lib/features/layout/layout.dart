@@ -272,7 +272,6 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
-    final treeData = _treeViewModel?.treeData ?? [];
     final factory = ComponentFactory(
       currentView: _currentView,
       workerResult: _worker?.lastResult,

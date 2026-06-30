@@ -22,8 +22,10 @@ class FallbackDataSource implements DataSource {
       ],
       childTypes: [
         TypeRelationDescriptor(relationName: 'contains', childTypeName: 'SubElement', childLabel: 'Items'),
-        TypeRelationDescriptor(relationName: 'affects', childTypeName: 'Alarm', childLabel: 'Status'),
-        TypeRelationDescriptor(relationName: 'records', childTypeName: 'Event', childLabel: 'Activity'),
+      ],
+      relatedTypes: [
+        TypeRelationDescriptor(relationName: 'affects', childTypeName: 'Alarm', childLabel: 'Alarms'),
+        TypeRelationDescriptor(relationName: 'records', childTypeName: 'Event', childLabel: 'Events'),
       ],
       parentTypes: [],
     ),
@@ -38,7 +40,8 @@ class FallbackDataSource implements DataSource {
         FieldDescriptor(key: 'status', label: 'Status', type: 'string'),
       ],
       childTypes: [],
-      parentTypes: [],
+      relatedTypes: [],
+      parentTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Item')],
     ),
     TypeDescriptor(
       typeName: 'Alarm',
@@ -51,7 +54,8 @@ class FallbackDataSource implements DataSource {
         FieldDescriptor(key: 'timestamp', label: 'Timestamp', type: 'string'),
       ],
       childTypes: [],
-      parentTypes: [],
+      relatedTypes: [],
+      parentTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Item')],
     ),
     TypeDescriptor(
       typeName: 'Event',
@@ -64,7 +68,8 @@ class FallbackDataSource implements DataSource {
         FieldDescriptor(key: 'timestamp', label: 'Timestamp', type: 'string'),
       ],
       childTypes: [],
-      parentTypes: [],
+      relatedTypes: [],
+      parentTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Item')],
     ),
   ];
 

@@ -51,6 +51,25 @@ class TreeViewModel extends ChangeNotifier {
       }
     }
 
+    // Build children from childTypes (used for tree hierarchy)
+    for (final type in types) {
+      for (final ct in type.childTypes) {
+        final childName = ct.childTypeName;
+        if (typeMap.containsKey(childName)) {
+          children.putIfAbsent(type.typeName, () => []);
+          children[type.typeName]!.add(TreeNode(id: childName, label: typeMap[childName]!.displayName));
+          hasParent.add(childName);
+        }
+      }
+    }
+
+    // Types referenced in parentTypes also have parents
+    for (final type in types) {
+      for (final pt in type.parentTypes) {
+        hasParent.add(type.typeName);
+      }
+    }
+
     return types
         .where((t) => !hasParent.contains(t.typeName))
         .map((t) => TreeNode(

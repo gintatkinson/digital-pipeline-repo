@@ -18,8 +18,12 @@ class TypeDescriptor {
   /// All editable fields/attributes of this type.
   final List<FieldDescriptor> fields;
 
-  /// Child object types (for tree hierarchy and tab tables).
+  /// Child object types (for tree hierarchy).
   final List<TypeRelationDescriptor> childTypes;
+
+  /// Object types related to this one (events, alerts, logs, etc.).
+  /// These appear as tabs in the detail pane but NOT as tree children.
+  final List<TypeRelationDescriptor> relatedTypes;
 
   /// Parent object types (for reverse tree navigation).
   final List<TypeRelationDescriptor> parentTypes;
@@ -30,6 +34,7 @@ class TypeDescriptor {
     required this.iconName,
     required this.fields,
     required this.childTypes,
+    required this.relatedTypes,
     required this.parentTypes,
   });
 }
