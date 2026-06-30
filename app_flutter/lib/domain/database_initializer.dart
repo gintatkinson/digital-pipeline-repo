@@ -4,9 +4,24 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// Creates and optionally seeds a local SQLite database for development
+/// and testing.
+///
+/// Generates the full schema (`properties`, `elements`, `alarms`, `events`,
+/// `type_definitions`, `type_attributes`, `type_relations`) and populates
+/// sample data when [seed] is true. Used at app startup when no pre-built
+/// database asset exists, or when running in CI/testing environments.
+///
+/// Call [create] once before any repository operation. The returned
+/// [Database] is shared across [SqliteRepositoryAdapter] and
+/// [SqliteDataSource]. Do not call [create] multiple times for the
+/// same path — it reopens the same file and re-runs `CREATE TABLE IF NOT
+/// EXISTS`, which is safe but wasteful.
 class DatabaseInitializer {
+  /// Number of seed rows per node (elements, alarms, events each get this many).
   static const _entriesPerNode = 15;
 
+  /// Node IDs seeded as root and tree branches for demo data.
   static const _nodeIds = [
     'root',
     'Overview', 'Watch', 'Measure', 'Position', 'Unit', 'Status',
@@ -15,25 +30,42 @@ class DatabaseInitializer {
     'Base', 'Process', 'Store', 'Mesh',
   ];
 
+  /// Object type names assigned to seeded elements.
   static const _types = [
     'Processor', 'Collector', 'Sensor', 'Actuator', 'Controller',
     'Validator', 'Dispatcher', 'Distributor', 'Adapter', 'Filter',
     'Aggregator', 'Store', 'Buffer', 'Channel', 'Observer',
   ];
 
+  /// Alarm severity levels cycled through seeded alarms.
   static const _severities = [
     'Critical', 'Warning', 'Info', 'Major', 'Minor',
   ];
 
+  /// Event source names cycled through seeded events.
   static const _sources = [
     'Core', 'Count', 'Coord', 'Unit', 'Plan',
     'Rule', 'Gate', 'Link', 'Archive', 'Catalog',
     'Coordinator', 'Watch', 'Timer', 'Checker', 'Entry',
   ];
 
+  /// Admin status values assigned alternately to seed data.
   static const _adminStatuses = ['ACTIVE', 'INACTIVE'];
+
+  /// Geographic place types assigned cyclically to seed locations.
   static const _placeTypes = ['zone', 'area', 'cluster'];
 
+  /// Opens (or creates) the database and ensures all tables exist.
+  ///
+  /// If [dbPath] is null, the database is placed in the app support
+  /// directory as `properties_db.db`. When [seed] is true and the
+  /// `properties` table is empty, sample data is inserted for every
+  /// node defined in [_nodeIds] — each with 15 elements, alarms, and
+  /// events. Idempotent for the tables (uses `CREATE TABLE IF NOT
+  /// EXISTS`) but NOT for seeding (checks row count first).
+  ///
+  /// Throws on I/O errors (path resolution, file creation) or SQL
+  /// execution failures.
   static Future<Database> create({String? dbPath, bool seed = true}) async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -135,6 +167,12 @@ class DatabaseInitializer {
     return db;
   }
 
+  /// Builds a varied JSON property payload for a given node at [index].
+  ///
+  /// Fields cycle through predefined values (admin statuses, country codes,
+  /// place types) using [index] so that different nodes get different data.
+  /// The generated JSON is deterministic: same [nodeId] + [index] always
+  /// produces the same result.
   static String _makeDataJson(String nodeId, int index) {
     final data = {
       'interfaces/interface/name': '${nodeId.toLowerCase()}-eth0',
@@ -155,6 +193,12 @@ class DatabaseInitializer {
     return jsonEncode(data);
   }
 
+  /// Inserts sample data for every node in [_nodeIds].
+  ///
+  /// Each node gets one property row and [_entriesPerNode] elements,
+  /// alarms, and events. Uses a batch for performance. Throws on
+  /// constraint violations (duplicate keys) — practically never because
+  /// this is only called when the `properties` table is empty.
   static Future<void> _seed(Database db) async {
     final batch = db.batch();
 
