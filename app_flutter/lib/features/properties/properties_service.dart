@@ -5,16 +5,14 @@ import 'package:app_flutter/domain/repository.dart';
 class PropertiesService extends ChangeNotifier {
   final AbstractRepository _repository;
   Map<String, dynamic>? currentNodeData;
-  Map<String, dynamic>? _lastData;
   StreamSubscription<Map<String, dynamic>>? _subscription;
 
-  Map<String, dynamic> get lastData => currentNodeData ?? _lastData ?? const {};
+  Map<String, dynamic> get lastData => currentNodeData ?? const {};
 
   PropertiesService(this._repository);
 
   void subscribe(String nodeId) {
     _subscription?.cancel();
-    _lastData = currentNodeData;
     currentNodeData = null;
     _subscription = _repository.watchProperties(nodeId).listen(
       (data) {

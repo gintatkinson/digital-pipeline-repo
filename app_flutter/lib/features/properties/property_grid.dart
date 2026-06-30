@@ -124,9 +124,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       });
     } else {
       setState(() {
-        if (widget.initialValues.isNotEmpty) {
-          committedData = Map<String, dynamic>.from(widget.initialValues);
-        }
+        committedData = Map<String, dynamic>.from(widget.initialValues);
         _errors = const {};
         for (final field in _fields) {
           final focusNode = _focusNodes[field.key];
