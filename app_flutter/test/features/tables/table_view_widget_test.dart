@@ -164,4 +164,98 @@ void main() {
       expect(find.text('Gamma'), findsOneWidget);
     });
   });
+
+  group('TableViewWidget cell type rendering', () {
+    testWidgets('renders string cells as plain Text', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: ['Name'],
+        columnModels: [
+          const ColumnModel(key: 'name', label: 'Name', type: 'string'),
+        ],
+        rows: [
+          ['Alice'],
+        ],
+      ));
+
+      await tester.pump();
+
+      final textWidget = tester.widget<Text>(find.text('Alice'));
+      expect(textWidget.textAlign, isNull);
+    });
+
+    testWidgets('renders int cells right-aligned with monospace font', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: ['Name', 'Count'],
+        columnModels: [
+          const ColumnModel(key: 'name', label: 'Name', type: 'string'),
+          const ColumnModel(key: 'count', label: 'Count', type: 'int'),
+        ],
+        rows: [
+          ['Foo', '42'],
+        ],
+      ));
+
+      await tester.pump();
+
+      final countText = tester.widget<Text>(find.text('42'));
+      expect(countText.textAlign, TextAlign.right);
+      expect(countText.style?.fontFamily, 'monospace');
+    });
+
+    testWidgets('renders double cells right-aligned with monospace font', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: ['Value'],
+        columnModels: [
+          const ColumnModel(key: 'val', label: 'Value', type: 'double'),
+        ],
+        rows: [
+          ['3.14'],
+        ],
+      ));
+
+      await tester.pump();
+
+      final valText = tester.widget<Text>(find.text('3.14'));
+      expect(valText.textAlign, TextAlign.right);
+      expect(valText.style?.fontFamily, 'monospace');
+    });
+
+    testWidgets('renders enum-type cells as chips', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: ['Status'],
+        columnModels: [
+          const ColumnModel(key: 'status', label: 'Status', type: 'enum'),
+        ],
+        rows: [
+          ['Active'],
+        ],
+      ));
+
+      await tester.pump();
+
+      final textFinder = find.text('Active');
+      final ancestorContainer = find.ancestor(
+        of: textFinder,
+        matching: find.byType(Container),
+      );
+      final container = tester.widget<Container>(ancestorContainer.first);
+      expect(container.decoration, isNotNull);
+    });
+
+    testWidgets('renders date-type cells formatted', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: ['Date'],
+        columnModels: [
+          const ColumnModel(key: 'date', label: 'Date', type: 'date'),
+        ],
+        rows: [
+          ['2024-01-15T00:00:00'],
+        ],
+      ));
+
+      await tester.pump();
+
+      expect(find.text('2024-01-15'), findsOneWidget);
+    });
+  });
 }

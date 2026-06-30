@@ -94,6 +94,7 @@ class TableViewWidget extends StatelessWidget {
                     final row = rows[index];
                     return _DataRow(
                       cells: row,
+                      columnModels: columnModels,
                       colWidth: colWidth,
                       dataRowMinHeight: dataRowMinHeight,
                       dataRowMaxHeight: dataRowMaxHeight,
@@ -210,6 +211,7 @@ class _HeaderCell extends StatelessWidget {
 
 class _DataRow extends StatelessWidget {
   final List<String> cells;
+  final List<ColumnModel> columnModels;
   final double colWidth;
   final double dataRowMinHeight;
   final double dataRowMaxHeight;
@@ -219,6 +221,7 @@ class _DataRow extends StatelessWidget {
 
   const _DataRow({
     required this.cells,
+    required this.columnModels,
     required this.colWidth,
     required this.dataRowMinHeight,
     required this.dataRowMaxHeight,
@@ -241,6 +244,9 @@ class _DataRow extends StatelessWidget {
           for (int i = 0; i < cells.length; i++)
             _DataCell(
               value: cells[i],
+              columnModel: i < columnModels.length
+                  ? columnModels[i]
+                  : const ColumnModel(key: '', label: '', type: 'string'),
               colWidth: colWidth,
               horizontalMargin: horizontalMargin,
               columnSpacing: columnSpacing,
@@ -255,6 +261,7 @@ class _DataRow extends StatelessWidget {
 
 class _DataCell extends StatelessWidget {
   final String value;
+  final ColumnModel columnModel;
   final double colWidth;
   final double horizontalMargin;
   final double columnSpacing;
@@ -263,6 +270,7 @@ class _DataCell extends StatelessWidget {
 
   const _DataCell({
     required this.value,
+    required this.columnModel,
     required this.colWidth,
     required this.horizontalMargin,
     required this.columnSpacing,
@@ -272,6 +280,38 @@ class _DataCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isNumeric = columnModel.type == 'int' || columnModel.type == 'double';
+
+    Widget cellContent;
+    switch (columnModel.type) {
+      case 'int':
+      case 'double':
+        cellContent = Text(
+          value,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontFamily: 'monospace',
+          ),
+          textAlign: TextAlign.right,
+        );
+      case 'enum':
+        cellContent = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(value, style: theme.textTheme.bodySmall),
+        );
+      case 'date':
+        cellContent = Text(
+          _formatDate(value),
+          style: theme.textTheme.bodySmall,
+        );
+      default:
+        cellContent = Text(value, style: theme.textTheme.bodySmall);
+    }
+
     return SizedBox(
       width: colWidth,
       child: Padding(
@@ -280,10 +320,23 @@ class _DataCell extends StatelessWidget {
           right: isLast ? horizontalMargin : columnSpacing / 2,
         ),
         child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(value, style: Theme.of(context).textTheme.bodySmall),
+          alignment: isNumeric ? Alignment.centerRight : Alignment.centerLeft,
+          child: cellContent,
         ),
       ),
     );
+  }
+
+  String _formatDate(String value) {
+    if (value.isEmpty) return value;
+    try {
+      final dt = DateTime.parse(value);
+      final y = dt.year.toString();
+      final m = dt.month.toString().padLeft(2, '0');
+      final d = dt.day.toString().padLeft(2, '0');
+      return '$y-$m-$d';
+    } catch (_) {
+      return value;
+    }
   }
 }
