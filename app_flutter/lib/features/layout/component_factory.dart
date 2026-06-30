@@ -201,6 +201,7 @@ class _TabbedContainerHostState extends State<_TabbedContainerHost> {
 ///
 /// Same lifecycle pattern as [_TabbedContainerHost] — lazy initialisation,
 /// reload on view change, dispose on unmount.
+class _TableViewContainer extends StatefulWidget {
   final String tabId;
   final String currentView;
 
