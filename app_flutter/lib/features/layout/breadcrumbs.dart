@@ -136,7 +136,7 @@ String getFirstLeafId(TreeNode n) {
 }
 
 /// Builds a list of [BreadcrumbItem] from the current [view] and the tree
-/// hierarchy. The first item is always the root ("Platform Console").
+/// hierarchy. The first item is always the root (the app title from config).
 List<BreadcrumbItem> getBreadcrumbsItems(
   String view,
   List<TreeNode> treeData, {
