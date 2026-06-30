@@ -58,11 +58,9 @@ class RepositoryResolver {
       final dbPath = p.join(dir.path, 'properties_db.db');
       final dbFile = File(dbPath);
 
-      if (!await dbFile.exists()) {
-        final assetPath = dbAssetPath ?? _defaultDbAsset;
-        final bytes = await rootBundle.load(assetPath);
-        await dbFile.writeAsBytes(bytes.buffer.asUint8List());
-      }
+      final assetPath = dbAssetPath ?? _defaultDbAsset;
+      final bytes = await rootBundle.load(assetPath);
+      await dbFile.writeAsBytes(bytes.buffer.asUint8List());
 
       db = await databaseFactory.openDatabase(dbPath);
     }
