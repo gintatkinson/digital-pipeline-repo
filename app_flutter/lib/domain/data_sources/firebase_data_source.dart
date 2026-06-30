@@ -20,7 +20,6 @@ class FirebaseDataSource implements DataSource {
   @override
   String get name => 'firebase';
 
-  @override
   /// Fetches all type descriptors from the `schema/types` Firestore document.
   ///
   /// Returns an empty list if the document does not exist or has no `fields`
@@ -28,6 +27,7 @@ class FirebaseDataSource implements DataSource {
   /// display name, icon, fields, and relation descriptors.
   ///
   /// Throws a [FirebaseException] if the underlying Firestore read fails.
+  @override
   Future<List<TypeDescriptor>> discoverTypes() async {
     final snapshot = await _firestore.collection('schema').doc('types').get();
     final data = snapshot.data();
@@ -50,9 +50,9 @@ class FirebaseDataSource implements DataSource {
     return types;
   }
 
-  @override
   /// Returns the [TypeDescriptor] whose [TypeDescriptor.typeName] matches
   /// [typeName], or `null` if no such type exists in the data source.
+  @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
     final types = await discoverTypes();
     for (final t in types) {
@@ -61,11 +61,11 @@ class FirebaseDataSource implements DataSource {
     return null;
   }
 
-  @override
   /// Reads the `schema/hierarchy` Firestore document and returns parent-child
   /// type pairs `(parentTypeName, childTypeName)`.
   ///
   /// Returns an empty list if the document is missing or has no `pairs` field.
+  @override
   Future<List<(String, String)>> discoverHierarchy() async {
     final snapshot = await _firestore.collection('schema').doc('hierarchy').get();
     final data = snapshot.data();
@@ -77,11 +77,11 @@ class FirebaseDataSource implements DataSource {
     }).toList();
   }
 
-  @override
   /// Fetches the property map for the node identified by [nodeId] from the
   /// `data` Firestore collection.
   ///
   /// Returns an empty map if the document does not exist.
+  @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
     final doc = await _firestore.collection('data').doc(nodeId).get();
     final data = doc.data();
@@ -89,19 +89,19 @@ class FirebaseDataSource implements DataSource {
     return Map<String, dynamic>.from(data);
   }
 
-  @override
   /// Persists [data] as the properties for [nodeId] in the `data` Firestore
   /// collection using a deep merge. After saving, a change event is broadcast
   /// to all active [watchProperties] subscribers.
+  @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     await _firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
     _propertiesController.add({'nodeId': nodeId, 'data': data});
   }
 
-  @override
   /// Returns a broadcast stream that first emits the current properties for
   /// [nodeId], then yields subsequent updates whenever [saveProperties] is
   /// called for the same [nodeId].
+  @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield await fetchProperties(nodeId);
     await for (final event in _propertiesController.stream) {
@@ -111,9 +111,9 @@ class FirebaseDataSource implements DataSource {
     }
   }
 
-  @override
   /// Queries the `elements` Firestore collection for all documents whose
   /// `parent_node_id` equals [parentNodeId].
+  @override
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
     final snapshot = await _firestore
         .collection('elements')
@@ -122,6 +122,8 @@ class FirebaseDataSource implements DataSource {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
+  /// Queries the `alarms` Firestore collection for all documents whose
+  /// `parent_node_id` equals [parentNodeId].
   @override
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
     final snapshot = await _firestore
@@ -131,6 +133,8 @@ class FirebaseDataSource implements DataSource {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
+  /// Queries the `events` Firestore collection for all documents whose
+  /// `parent_node_id` equals [parentNodeId].
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
     final snapshot = await _firestore
