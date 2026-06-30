@@ -48,91 +48,18 @@
             "width": "spacing.layout-sidebar-width",
               "hierarchy": [
                 {
-                  "id": "Ingestion",
-                  "label": "Ingestion"
-                },
-                {
-                  "id": "Monitoring",
-                  "label": "Monitoring",
+                  "id": "CategoryA",
+                  "label": "Category A",
                   "children": [
-                    {
-                      "id": "Metrics",
-                      "label": "Metrics"
-                    },
-                    {
-                      "id": "Location",
-                      "label": "Location"
-                    },
-                    {
-                      "id": "Chassis",
-                      "label": "Chassis"
-                    },
-                    {
-                      "id": "Uptime",
-                      "label": "Uptime"
-                    }
+                    { "id": "ItemA1", "label": "Item A1" },
+                    { "id": "ItemA2", "label": "Item A2" }
                   ]
                 },
                 {
-                  "id": "Spec",
-                  "label": "Spec",
+                  "id": "CategoryB",
+                  "label": "Category B",
                   "children": [
-                    {
-                      "id": "Epics",
-                      "label": "Epics"
-                    },
-                    {
-                      "id": "Traceability",
-                      "label": "Traceability"
-                    },
-                    {
-                      "id": "Requirements",
-                      "label": "Requirements"
-                    },
-                    {
-                      "id": "Releases",
-                      "label": "Releases"
-                    }
-                  ]
-                },
-                {
-                  "id": "Security",
-                  "label": "Security",
-                  "children": [
-                    {
-                      "id": "Access",
-                      "label": "Access"
-                    },
-                    {
-                      "id": "Firewall",
-                      "label": "Firewall"
-                    },
-                    {
-                      "id": "Certificates",
-                      "label": "Certificates"
-                    },
-                    {
-                      "id": "Audit",
-                      "label": "Audit"
-                    }
-                  ]
-                },
-                {
-                  "id": "Infrastructure",
-                  "label": "Infrastructure",
-                  "children": [
-                    {
-                      "id": "Servers",
-                      "label": "Servers"
-                    },
-                    {
-                      "id": "Storage",
-                      "label": "Storage"
-                    },
-                    {
-                      "id": "Network",
-                      "label": "Network"
-                    }
+                    { "id": "ItemB1", "label": "Item B1" }
                   ]
                 }
               ]

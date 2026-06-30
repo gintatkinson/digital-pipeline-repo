@@ -8,57 +8,26 @@
   },
   "nodes": [
     {
-      "id": "Ingestion",
-      "label": "Ingestion",
-      "position": {
-        "dim_0": 100,
-        "dim_1": 140,
-        "dim_2": 0.0,
-        "time_index": 1.0,
-        "vector": [15, 3, 0.0]
-      },
+      "id": "Alpha",
+      "label": "Alpha Node",
+      "position": { "dim_0": 100, "dim_1": 140, "dim_2": 0.0, "time_index": 1.0, "vector": [15, 3, 0.0] },
       "status": "Active"
     },
     {
-      "id": "Metrics",
-      "label": "Metrics",
-      "position": {
-        "dim_0": 320,
-        "dim_1": 90,
-        "dim_2": 0.0,
-        "time_index": 1.0,
-        "vector": [8, -4, 0.0]
-      },
+      "id": "Beta",
+      "label": "Beta Node",
+      "position": { "dim_0": 320, "dim_1": 90, "dim_2": 0.0, "time_index": 1.0, "vector": [8, -4, 0.0] },
       "status": "Active"
     },
     {
-      "id": "Location",
-      "label": "Location",
-      "position": {
-        "dim_0": 240,
-        "dim_1": 220,
-        "dim_2": 0.0,
-        "time_index": 1.0,
-        "vector": [4, 10, 0.0]
-      },
-      "status": "Active"
-    },
-    {
-      "id": "Chassis",
-      "label": "Chassis",
-      "position": {
-        "dim_0": 480,
-        "dim_1": 180,
-        "dim_2": 0.0,
-        "time_index": 1.0,
-        "vector": [-6, 6, 0.0]
-      },
+      "id": "Gamma",
+      "label": "Gamma Node",
+      "position": { "dim_0": 240, "dim_1": 220, "dim_2": 0.0, "time_index": 1.0, "vector": [4, 10, 0.0] },
       "status": "Idle"
     }
   ],
   "links": [
-    { "source": "Ingestion", "target": "Metrics", "type": "data-flow" },
-    { "source": "Metrics", "target": "Chassis", "type": "data-flow" },
-    { "source": "Location", "target": "Chassis", "type": "data-flow" }
+    { "source": "Alpha", "target": "Beta", "type": "data-flow" },
+    { "source": "Beta", "target": "Gamma", "type": "data-flow" }
   ]
 }
