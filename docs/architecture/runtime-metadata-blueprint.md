@@ -1,4 +1,4 @@
-# Runtime Metadata Architecture Blueprint (v2)
+# Runtime Metadata Architecture Blueprint (v2.1)
 
 > Goal: Make the Flutter app fully metadata-driven — the client knows **nothing** at compile time. Every object type, field, icon, validation rule, section label, and relationship is discovered at runtime from the connected data source.
 
@@ -39,6 +39,7 @@ class FieldDescriptor {
   final List<String>? enumDisplayNames;
   final dynamic defaultValue;
   final List<InputFormatterDescriptor>? inputFormatters;
+  final String? refType;            // foreign-key: type name this field references
 }
 
 class TypeRelationDescriptor {
@@ -159,16 +160,202 @@ App starts
   │     │
   │     └── TreeNode.icon ← typeDescriptor.icon  (no switch)
   │
-  ├── 4. User selects node → typeDescriptor.fields → PropertyGrid
-  │     │
-  │     └── sectionLabel / sectionOrder / validation / formatters ← FieldDescriptor
-  │
-  └── 5. User navigates to child table → typeDescriptor.childTypes → table columns
+   ├── 4. User selects node → typeDescriptor.fields → PropertyGrid
+   │     │
+   │     └── sectionLabel / sectionOrder / validation / formatters ← FieldDescriptor
+   │     └── refType → fields render as hyperlinks → onViewSelected navigates to referenced type instance
+   │
+   ├── 5. User navigates to child table → typeDescriptor.childTypes → table columns
+   │
+   └── 6. User invokes an operation → actionDescriptor.name → dataSource.invokeAction()
+         │
+         └── actionDescriptor (label, icon, confirmation prompt, input params)
 ```
 
 ---
 
-## 4. Current Architecture Gaps
+## 7. Navigation and Drill-Down
+
+### 7.1 Reference Navigation (FieldDescriptor.refType)
+
+Fields that reference another managed object carry `refType` — the type name of the referenced entity. The UI renders these fields as clickable hyperlinks rather than plain text.
+
+```
+PropertyGrid / TableViewWidget
+  └─ field.descriptor.refType != null
+       └─ cell rendered as styled link (underlined, primary color)
+            └─ on tap → onViewSelected(refType, fieldValue)
+                 └─ Layout rebuilds detail pane for the referenced type
+```
+
+`refType` enables the master-detail drill-down pattern:
+- Device detail view shows a `parent_rack` reference → click navigates to rack
+- Service detail view shows a `parent_device` reference → click navigates to device
+- Alarm detail view shows an `affected_service` reference → click navigates to service
+
+### 7.2 Breadcrumb Trail
+
+The `NavigationBreadcrumbs` widget (`lib/features/layout/breadcrumbs.dart`) reads the current view ID and walks the type hierarchy via `TreeViewModel.treeData` to build a `List<BreadcrumbItem>`. Each item is clickable and calls `onSelectView(id)`, enabling arbitrary-depth drill-up.
+
+### 7.3 Cross-Type Navigation Flow
+
+```
+Device detail (viewing device-42)
+  ├─ clicks "parent_rack" reference (refType: rack, id: rack-07)
+  │    └─ Layout._selectView("rack-07")
+  │         └─ PropertyGrid reloads for rack-07
+  │         └─ Breadcrumbs updates: [Home > Device > Rack]
+  │
+  ├─ clicks "supported_services" child tab
+  │    └─ TableViewWidget shows child type "Service" rows
+  │         └─ clicks a service row → Layout._selectView("service-99")
+  │              └─ PropertyGrid reloads for service-99
+  │              └─ Breadcrumbs updates: [Home > Device > Service]
+  │
+  └─ clicks "Compute Path" action button
+       └─ dataSource.invokeAction("device-42", "compute_path", params)
+            └─ returns path result → displayed in result panel
+```
+
+---
+
+## 8. Action / Invocation Model
+
+The blueprint's `DataSource` interface describes CRUD + schema discovery. Real managed objects also expose **operations** — actions the user can invoke that go beyond property editing.
+
+### 8.1 ActionDescriptor
+
+```dart
+class ActionDescriptor {
+  final String name;              // "compute_path", "reboot", "deploy"
+  final String label;             // "Compute Path", "Reboot Device"
+  final IconData icon;            // icon shown on the button
+  final String? confirmation;     // confirmation dialog text; null = no confirmation
+  final List<ActionParameterDescriptor>? parameters; // input params
+  final bool destructive;         // if true, require extra confirmation
+}
+
+class ActionParameterDescriptor {
+  final String key;
+  final String label;
+  final FieldType type;
+  final bool required;
+  final dynamic defaultValue;
+  final List<String>? enumOptions;
+}
+```
+
+### 8.2 DataSource Extensions
+
+```dart
+abstract class DataSource {
+  // Existing CRUD methods...
+
+  /// Return the actions available for a given type.
+  Future<List<ActionDescriptor>> getActions(String typeName);
+
+  /// Invoke an action on an instance. Returns a result map.
+  Future<Map<String, dynamic>> invokeAction(
+    String typeName,
+    String instanceId,
+    String actionName,
+    Map<String, dynamic> parameters,
+  );
+}
+```
+
+### 8.3 UI Rendering
+
+Actions appear in a dedicated section of the detail view (below the property form, or as a toolbar):
+
+```
+PropertyGrid  (or dedicated ActionPanel)
+  └─ ActionBar
+       ├─ [Compute Path]     — non-destructive, no confirmation
+       ├─ [Reboot Device]    — destructive, confirmation dialog
+       └─ [Deploy Config]   — requires parameter input dialog
+```
+
+Action buttons are enabled/disabled based on the object's lifecycle state (§9). Destructive actions show a confirmation dialog before invocation.
+
+### 8.4 Invocation Result
+
+After invocation, the result is displayed (success/failure, output data, or error). On success, the relevant views refresh automatically.
+
+---
+
+## 9. Lifecycle State Model
+
+Managed objects pass through lifecycle states. The UI reflects the current state through badges, color coding, and action availability.
+
+```dart
+enum LifecycleState {
+  discovered,
+  provisioning,
+  active,
+  degraded,
+  decommissioned,
+  failed,
+}
+
+class TypeDescriptor {
+  // Existing fields...
+  final LifecycleState? currentState;  // current object state
+}
+```
+
+### 9.1 State-Indicator Rendering
+
+The detail view header shows the current state as a colored badge:
+
+| State | Color | Action Availability |
+|---|---|---|
+| discovered | grey | All actions available |
+| provisioning | amber | No actions (waiting for completion) |
+| active | green | All actions available |
+| degraded | orange | Read-only (Save disabled) |
+| decommissioned | grey | Read-only, no actions |
+| failed | red | Retry actions only |
+
+### 9.2 State Transitions
+
+Actions can transition the object between states. The `ActionDescriptor.destructive` flag determines whether the state transition requires confirmation.
+
+---
+
+## 10. Responsive Layout and Progressive Disclosure
+
+Each detail widget adapts its presentation to available width. The `SplitWorkspace` notifies child widgets of their pane size, enabling breakpoint-based layout switches.
+
+### 10.1 Breakpoint Constants
+
+```dart
+/// Per-widget layout modes derived from available width.
+enum WidgetLayoutMode {
+  compact,    // < 400px  — phone or narrow split pane
+  medium,     // 400–800px — typical half-split
+  expanded,   // > 800px   — full-width or nearly full
+}
+```
+
+Each widget derives its mode from the available width (via `LayoutBuilder` or a passed-in `WidgetLayoutMode`).
+
+### 10.2 Widget Adaptation Contracts
+
+| Widget | Compact | Medium | Expanded |
+|--------|---------|--------|----------|
+| **PropertyGrid** | Key-value list, collapsible sections | Single-column, section headers truncatable | Multi-column sections, side-by-side cards |
+| **TableViewWidget** | Card-list view | Reduced columns, auto-hide low-priority | Full columns, frozen columns |
+| **TopologyMap** | Minimap + play/pause only | Compact playback, no labels | Full canvas, labels, velocity vectors |
+| **TreeSidebar** | Icons only | Icons + truncated labels | Full labels + counts |
+
+### 10.3 Implementation
+
+Widgets do not need to know their parent's layout — they receive available width through the normal Flutter layout system (`LayoutBuilder`, `BoxConstraints`). The `SplitWorkspace` may optionally provide a `ValueNotifier<WidgetLayoutMode>` for widgets that need proactive adjustment.
+
+---
+
+## 4. Current Architecture Gaps (updated numbering)
 
 ### `app_flutter/lib/features/tree/tree_node_widget.dart`
 
