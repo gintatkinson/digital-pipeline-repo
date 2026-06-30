@@ -10,8 +10,18 @@ import 'package:app_flutter/features/tables/tabbed_container.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
-/// Factory that interprets a parsed layout tree and builds the corresponding
-/// Flutter widget hierarchy (sidebar, split workspace, topology, tabs, etc.).
+/// Interprets a parsed logical-layout JSON tree and builds the corresponding
+/// Flutter widget hierarchy: sidebar, split workspace, topology map,
+/// tabbed containers, table views, and property grids.
+///
+/// Each layout node with a known `type` string (e.g. `"SidebarLayout"`,
+/// `"HierarchyTreeSelector"`, `"SplitWorkspace"`, `"TopographicalView"`,
+/// `"TabbedContainer"`, `"TableView"`) dispatches to a dedicated builder
+/// method. Unknown types produce [SizedBox.shrink].
+///
+/// Dependencies (current view, topology data, tab labels, etc.) are provided
+/// as callbacks rather than hard-coded so the same factory can be reused
+/// across different layout configurations.
 class ComponentFactory {
   final String currentView;
   final int? workerResult;
@@ -24,6 +34,9 @@ class ComponentFactory {
   final TreeViewModel? treeViewModel;
 
   /// Creates a [ComponentFactory] with the required dependency resolvers.
+  ///
+  /// All parameters are required except [treeViewModel] which may be null when
+  /// the sidebar is not part of the current layout.
   ComponentFactory({
     required this.currentView,
     required this.workerResult,
@@ -36,8 +49,12 @@ class ComponentFactory {
     this.treeViewModel,
   });
 
-  /// Builds a widget subtree from a layout [node] using the given
-  /// [parentWidth], [parentHeight], and [context].
+  /// Builds a widget subtree from a layout [node] with the given constraints.
+  ///
+  /// Recursively processes child nodes for container types (`SidebarLayout`,
+  /// `SplitWorkspace`). Unknown node types render [SizedBox.shrink] instead
+  /// of throwing, allowing graceful handling of future or optional layout
+  /// entries.
   Widget build(
     Map<String, dynamic> node,
     double parentWidth,
@@ -125,8 +142,12 @@ class ComponentFactory {
   }
 }
 
-/// Host widget that creates a [TablesViewModel], discovers tabs from the
-/// [DataSource], and provides it to [TabbedContainer].
+/// Host widget that creates a [TablesViewModel] from the [DataSource] and
+/// provides it to [TabbedContainer].
+///
+/// Initialises the view model lazily in [didChangeDependencies] so that
+/// [Provider] is available. Reloads tabs when [currentView] changes.
+/// Disposes the view model on unmount to prevent memory leaks.
 class _TabbedContainerHost extends StatefulWidget {
   final String currentView;
 
@@ -175,7 +196,11 @@ class _TabbedContainerHostState extends State<_TabbedContainerHost> {
   }
 }
 
-class _TableViewContainer extends StatefulWidget {
+/// Host widget that creates a [TablesViewModel] for a single table tab and
+/// provides it to [TableViewWidget].
+///
+/// Same lifecycle pattern as [_TabbedContainerHost] — lazy initialisation,
+/// reload on view change, dispose on unmount.
   final String tabId;
   final String currentView;
 

@@ -1,7 +1,18 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-class SplitWorkspace extends StatefulWidget {
+/// A resizable split pane that lays out [leading] and [trailing] widgets
+/// along [direction] with a draggable divider.
+///
+/// The initial split ratio is set from [initialRatio] once the available size
+/// is known. The first pane is clamped between [minFirstPaneSize] and
+/// (`totalSize - minFirstPaneSize`). The divider shows a resize cursor and
+/// fires [onDrag] with the current first-pane size during drag.
+///
+/// Edge cases: when constraints are zero (e.g. not yet laid out), the splitter
+/// is not rendered. When total size is insufficient for both minimums, the
+/// first pane takes its minimum and the trailing pane fills the remainder
+/// (may be smaller than [minFirstPaneSize]).
   final Widget leading;
   final Widget trailing;
   final Axis direction;

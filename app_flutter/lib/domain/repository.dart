@@ -75,6 +75,10 @@ class SqliteRepositoryAdapter implements AbstractRepository {
   SqliteRepositoryAdapter(this.db);
 
   /// Queries the `properties` table for [nodeId] and decodes its JSON.
+  ///
+  /// Returns an empty map when the node does not exist, the JSON column
+  /// is null, or the stored JSON is malformed (caught silently). Never
+  /// throws. The caller should treat an empty map the same as "no data".
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
     final List<Map<String, dynamic>> maps = await db.query(
@@ -100,7 +104,13 @@ class SqliteRepositoryAdapter implements AbstractRepository {
     }
   }
 
-  /// Inserts or replaces properties JSON for [nodeId] and broadcasts update.
+  /// Inserts or replaces properties JSON for [nodeId] and broadcasts update
+  /// to [watchProperties] subscribers.
+  ///
+  /// Uses [ConflictAlgorithm.replace] — if [nodeId] already exists its
+  /// data is overwritten. After persistence, the update is pushed to
+  /// the in-memory broadcast stream. Does not notify subscribers of
+  /// other backends.
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     final String dataJson = jsonEncode(data);
@@ -116,6 +126,11 @@ class SqliteRepositoryAdapter implements AbstractRepository {
   }
 
   /// Yields current properties then streams live updates for [nodeId].
+  ///
+  /// Starts by emitting [fetchProperties], then continues listening to
+  /// the in-memory broadcast controller for future saves matching [nodeId].
+  /// The stream never closes unless the controller is closed externally.
+  /// If [nodeId] has never been saved, the first yield is an empty map.
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield await fetchProperties(nodeId);
@@ -127,6 +142,8 @@ class SqliteRepositoryAdapter implements AbstractRepository {
   }
 
   /// Queries the `elements` table by [parentNodeId].
+  ///
+  /// Returns an empty list when no elements exist. Never throws.
   @override
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
     return await db.query(
@@ -137,6 +154,8 @@ class SqliteRepositoryAdapter implements AbstractRepository {
   }
 
   /// Queries the `alarms` table by [parentNodeId].
+  ///
+  /// Returns an empty list when no alarms exist. Never throws.
   @override
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
     return await db.query(
@@ -147,6 +166,8 @@ class SqliteRepositoryAdapter implements AbstractRepository {
   }
 
   /// Queries the `events` table by [parentNodeId].
+  ///
+  /// Returns an empty list when no events exist. Never throws.
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
     return await db.query(
@@ -158,13 +179,32 @@ class SqliteRepositoryAdapter implements AbstractRepository {
 }
 
 /// Firestore-backed implementation of [AbstractRepository].
+///
+/// Reads and writes to a remote Cloud Firestore database. Data is
+/// organised in collections (`data`, `elements`, `alarms`, `events`)
+/// and documents are keyed by node ID.
+///
+/// Use this for cloud-deployed or multi-device scenarios where data
+/// must be synchronised across instances. Requires Firebase to be
+/// initialised before construction — see [RepositoryResolver] for
+/// setup. Network errors propagate as [FirebaseException]; callers
+/// should handle them at the UI layer with retry/error banners.
 class FirebaseRepositoryAdapter implements AbstractRepository {
   final FirebaseFirestore firestore;
   final StreamController<Map<String, dynamic>> _controller =
       StreamController<Map<String, dynamic>>.broadcast();
 
+  /// Creates an adapter backed by the given [firestore] instance.
+  ///
+  /// [firestore] must already be initialised and optionally configured
+  /// for emulator use. Passing an uninitialised instance causes
+  /// Firestore methods to throw.
   FirebaseRepositoryAdapter(this.firestore);
 
+  /// Fetches the Firestore document from the `data` collection for [nodeId].
+  ///
+  /// Returns an empty map when the document does not exist.
+  /// Firestore network/timeout errors propagate to the caller.
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
     final doc = await firestore.collection('data').doc(nodeId).get();
@@ -173,12 +213,25 @@ class FirebaseRepositoryAdapter implements AbstractRepository {
     return Map<String, dynamic>.from(data);
   }
 
+  /// Merges [data] into the Firestore document for [nodeId] and broadcasts
+  /// the update to local [watchProperties] subscribers.
+  ///
+  /// Uses [SetOptions.merge] so only the provided keys are updated —
+  /// existing fields not in [data] are preserved. Local subscribers are
+  /// notified immediately after the remote write completes. Remote
+  /// subscribers are not notified (no onSnapshot listener is opened).
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     await firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
     _controller.add({'nodeId': nodeId, 'data': data});
   }
 
+  /// Yields current properties then streams live updates for [nodeId].
+  ///
+  /// Starts by emitting [fetchProperties], then listens to the in-memory
+  /// broadcast controller for saves matching [nodeId]. The stream never
+  /// closes unless externally disposed. Note: this does not listen to
+  /// Firestore real-time snapshots — updates come from local saves only.
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield await fetchProperties(nodeId);
@@ -189,6 +242,10 @@ class FirebaseRepositoryAdapter implements AbstractRepository {
     }
   }
 
+  /// Queries the Firestore `elements` collection by [parentNodeId].
+  ///
+  /// Returns an empty list when no matching documents exist.
+  /// Network errors propagate to the caller.
   @override
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
     final snapshot = await firestore
@@ -198,6 +255,10 @@ class FirebaseRepositoryAdapter implements AbstractRepository {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
+  /// Queries the Firestore `alarms` collection by [parentNodeId].
+  ///
+  /// Returns an empty list when no matching documents exist.
+  /// Network errors propagate to the caller.
   @override
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
     final snapshot = await firestore
@@ -207,6 +268,10 @@ class FirebaseRepositoryAdapter implements AbstractRepository {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
+  /// Queries the Firestore `events` collection by [parentNodeId].
+  ///
+  /// Returns an empty list when no matching documents exist.
+  /// Network errors propagate to the caller.
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
     final snapshot = await firestore

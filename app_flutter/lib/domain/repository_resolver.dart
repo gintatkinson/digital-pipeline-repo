@@ -12,6 +12,17 @@ import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'repository.dart';
 
+/// Resolves the data-access backend at app startup.
+///
+/// Reads a JSON configuration file (or falls back to defaults) to decide
+/// whether to initialise a local SQLite database or connect to Cloud
+/// Firestore. Returns a pair of ([AbstractRepository], [DataSource]) that
+/// the app uses for all read/write operations and schema discovery.
+///
+/// Call this once at startup, before any data-dependent widget builds.
+/// The resolved pair is then injected via dependency injection or passed
+/// through the widget tree. Calling [resolve] multiple times creates
+/// separate connections — doing so is not recommended.
 class RepositoryResolver {
   static const _defaultConfig = 'assets/persistence-config.json';
   static const _defaultDbAsset = 'assets/properties_db.db';
@@ -19,6 +30,23 @@ class RepositoryResolver {
   static const _defaultEmulatorHost = 'localhost';
   static const _defaultEmulatorPort = 8080;
 
+  /// Resolves and initialises the appropriate backend.
+  ///
+  /// Determines the backend type from (in priority order):
+  /// 1. [dataSourceType] parameter (if non-null)
+  /// 2. JSON config file at [configPath] or the default asset path
+  /// 3. Falls back to SQLite if neither is available
+  ///
+  /// For SQLite: copies the bundled database from [dbAssetPath] to the
+  /// app support directory (unless [sqliteInMemory] is true). Creates
+  /// the tables if they do not exist via [DatabaseInitializer].
+  ///
+  /// For Firebase: initialises the Firebase app and optionally connects
+  /// to the Firestore emulator at [useEmulator].
+  ///
+  /// Returns a tuple of ([AbstractRepository], [DataSource]) ready for
+  /// injection. Throws on network errors (Firebase init) or file I/O
+  /// errors (asset copy failure). Always resolves to a non-null pair.
   static Future<(AbstractRepository, DataSource)> resolve({
     String? configPath,
     String? dbAssetPath,

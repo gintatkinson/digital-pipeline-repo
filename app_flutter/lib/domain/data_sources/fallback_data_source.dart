@@ -1,15 +1,28 @@
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// Fallback [DataSource] used when the pre-built database has no metadata tables.
+/// Fallback [DataSource] used when the pre-built database has no
+/// metadata tables or when Firestore is unavailable.
 ///
-/// Provides a minimal single-type ontology so the app is usable without
-/// any domain configuration. Replace with SqliteDataSource or a custom
-/// DataSource for production deployments.
+/// Provides a minimal single-type ontology (Item, SubElement, Alarm,
+/// Event) so the app is usable without any domain configuration.
+/// Replace with [SqliteDataSource] or a custom [DataSource] for
+/// production deployments. This data source is read-only — calls to
+/// [saveProperties] are no-ops, and [watchProperties] always yields
+/// an empty map. Generated data (elements, alarms, events) is
+/// deterministic and scoped to the "Item" parent node.
 class FallbackDataSource implements DataSource {
   @override
   String get name => 'fallback';
 
+  /// Returns a hardcoded list of four [TypeDescriptor]s: Item,
+  /// SubElement, Alarm, and Event.
+  ///
+  /// Always succeeds with the same result regardless of state — no
+  /// external dependencies. Use this to render the full UI tree when
+  /// no real data source is configured. The Item type defines a
+  /// "contains" relation to SubElement and "affects"/"records"
+  /// relations to Alarm/Event respectively.
   @override
   Future<List<TypeDescriptor>> discoverTypes() async => [
     TypeDescriptor(
@@ -73,6 +86,12 @@ class FallbackDataSource implements DataSource {
     ),
   ];
 
+  /// Searches the hardcoded type list for a [TypeDescriptor] whose
+  /// [TypeDescriptor.typeName] matches [typeName].
+  ///
+  /// Returns `null` when [typeName] is not one of the four hardcoded
+  /// types ("Item", "SubElement", "Alarm", "Event"). Uses
+  /// `firstWhere` internally and catches [StateError] gracefully.
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
     try {
@@ -82,15 +101,26 @@ class FallbackDataSource implements DataSource {
     }
   }
 
+  /// Returns an empty list — no hierarchy is defined in the fallback.
   @override
   Future<List<(String, String)>> discoverHierarchy() async => [];
 
+  /// Always returns an empty map — no persistent storage is available.
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
 
+  /// No-op — the fallback data source does not persist data.
+  ///
+  /// STATE CHANGE: None. [data] is silently discarded. Callers should
+  /// be aware that saves are not durable and will be lost on refresh.
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
 
+  /// Returns a broadcast stream that immediately yields an empty map
+  /// and never emits further values.
+  ///
+  /// The stream never closes — subscribers that do not cancel will
+  /// remain alive indefinitely. Cancel the subscription to avoid leaks.
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield {};
@@ -120,14 +150,30 @@ class FallbackDataSource implements DataSource {
     'timestamp': '2026-06-${(i % 28) + 1}',
   });
 
+  /// Filters the hardcoded `_elements` list for rows whose
+  /// `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no elements match (e.g. for any
+  /// parent other than "Item"). Only 15 deterministic elements are
+  /// available, all scoped to "Item".
   @override
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async =>
       _elements.where((e) => e['parent_node_id'] == parentNodeId).toList();
 
+  /// Filters the hardcoded `_alarms` list for rows whose
+  /// `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no alarms match. Only 15
+  /// deterministic alarms are available, all scoped to "Item".
   @override
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async =>
       _alarms.where((e) => e['parent_node_id'] == parentNodeId).toList();
 
+  /// Filters the hardcoded `_events` list for rows whose
+  /// `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no events match. Only 15
+  /// deterministic events are available, all scoped to "Item".
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async =>
       _events.where((e) => e['parent_node_id'] == parentNodeId).toList();
