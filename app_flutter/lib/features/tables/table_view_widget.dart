@@ -294,6 +294,7 @@ class _DataCell extends StatelessWidget {
           ),
           textAlign: TextAlign.right,
         );
+        break;
       case 'enum':
         cellContent = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -303,11 +304,13 @@ class _DataCell extends StatelessWidget {
           ),
           child: Text(value, style: theme.textTheme.bodySmall),
         );
+        break;
       case 'date':
         cellContent = Text(
           _formatDate(value),
           style: theme.textTheme.bodySmall,
         );
+        break;
       default:
         cellContent = Text(value, style: theme.textTheme.bodySmall);
     }
