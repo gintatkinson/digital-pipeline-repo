@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
+import 'package:app_flutter/features/tables/cell_renderer.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 
@@ -36,19 +37,32 @@ class _TestTablesViewModel extends TablesViewModel {
   bool get loading => _overrideLoading;
   bool _overrideLoading = false;
 
+  Map<String, CellRenderer>? _overrideCellRenderers;
+
+  Map<String, CellRenderer>? get cellRenderers => _overrideCellRenderers;
+
   void setState({
     List<ColumnModel>? headers,
     List<ColumnModel>? columnModels,
     List<List<String>>? rows,
     bool? loading,
     Set<String>? hiddenKeys,
+    Map<String, CellRenderer>? cellRenderers,
   }) {
     if (headers != null) _overrideHeaders = headers;
     if (columnModels != null) _overrideColumnModels = columnModels;
     if (rows != null) _overrideRows = rows;
     if (loading != null) _overrideLoading = loading;
     if (hiddenKeys != null) _overrideHiddenKeys = hiddenKeys;
+    if (cellRenderers != null) _overrideCellRenderers = cellRenderers;
     notifyListeners();
+  }
+}
+
+class _PrefixTextRenderer extends CellRenderer {
+  @override
+  Widget build(BuildContext context, String value, ColumnModel column) {
+    return Text('PREFIX:$value');
   }
 }
 
@@ -113,7 +127,7 @@ Widget buildTableFromModel({required _TestTablesViewModel model}) {
   return MaterialApp(
     home: ChangeNotifierProvider<TablesViewModel>.value(
       value: model,
-      child: const TableViewWidget(),
+      child: TableViewWidget(cellRenderers: model.cellRenderers),
     ),
   );
 }
@@ -462,6 +476,22 @@ void main() {
       expect(find.text('Hidden B'), findsNothing);
       expect(find.text('Visible C'), findsOneWidget);
       expect(find.text('B'), findsNothing);
+    });
+  });
+
+  group('TableViewWidget cellRenderers', () {
+    testWidgets('cellRenderers override changes cell rendering', (tester) async {
+      final customRenderer = _PrefixTextRenderer();
+      final columns = [const ColumnModel(key: 'a', label: 'A', type: 'string')];
+      final model = _TestTablesViewModel(_MockDataSource(), 'Root');
+      model.setState(
+        headers: columns,
+        rows: [['custom-text']],
+        cellRenderers: {'string': customRenderer},
+      );
+      await tester.pumpWidget(buildTableFromModel(model: model));
+      await tester.pump();
+      expect(find.text('PREFIX:custom-text'), findsOneWidget);
     });
   });
 }

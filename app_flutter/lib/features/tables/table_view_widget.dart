@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/column_model.dart';
+import 'package:app_flutter/features/tables/cell_renderer.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
 /// Renders tabular data from a [TablesViewModel] as a horizontally
@@ -23,6 +24,7 @@ import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 /// `context.watch` and rebuilds on every notifyListeners call from the view
 /// model.
 class TableViewWidget extends StatefulWidget {
+  /// Creates a [TableViewWidget] with the given layout parameters.
   const TableViewWidget({
     super.key,
     this.headingRowHeight = 32.0,
@@ -30,13 +32,26 @@ class TableViewWidget extends StatefulWidget {
     this.dataRowMaxHeight = 28.0,
     this.horizontalMargin = 12.0,
     this.columnSpacing = 24.0,
+    this.cellRenderers,
   });
 
+  /// Height of the heading row.
   final double headingRowHeight;
+
+  /// Minimum height of a data row.
   final double dataRowMinHeight;
+
+  /// Maximum height of a data row.
   final double dataRowMaxHeight;
+
+  /// Horizontal margin on the left/right edges.
   final double horizontalMargin;
+
+  /// Spacing between adjacent columns.
   final double columnSpacing;
+
+  /// Optional map of column-type to custom cell renderers.
+  final Map<String, CellRenderer>? cellRenderers;
 
   @override
   State<TableViewWidget> createState() => _TableViewWidgetState();
@@ -131,6 +146,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                       horizontalMargin: widget.horizontalMargin,
                       columnSpacing: widget.columnSpacing,
                       index: index,
+                      cellRenderers: widget.cellRenderers,
                     );
                   },
                 ),
@@ -279,6 +295,7 @@ class _DataRow extends StatelessWidget {
   final double horizontalMargin;
   final double columnSpacing;
   final int index;
+  final Map<String, CellRenderer>? cellRenderers;
 
   const _DataRow({
     required this.cells,
@@ -290,6 +307,7 @@ class _DataRow extends StatelessWidget {
     required this.horizontalMargin,
     required this.columnSpacing,
     required this.index,
+    this.cellRenderers,
   });
 
   @override
@@ -299,7 +317,7 @@ class _DataRow extends StatelessWidget {
         minHeight: dataRowMinHeight,
         maxHeight: dataRowMaxHeight,
       ),
-      color: index.isEven ? null : Colors.black.withOpacity(0.03),
+      color: index.isEven ? null : Colors.black.withValues(alpha: 0.03),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -312,6 +330,7 @@ class _DataRow extends StatelessWidget {
               columnSpacing: columnSpacing,
               isFirst: i == 0,
               isLast: i == columnModels.length - 1,
+              cellRenderers: cellRenderers,
             ),
         ],
       ),
@@ -327,6 +346,15 @@ class _DataCell extends StatelessWidget {
   final double columnSpacing;
   final bool isFirst;
   final bool isLast;
+  final Map<String, CellRenderer>? cellRenderers;
+
+  static const Map<String, CellRenderer> _defaultRenderers = {
+    'string': TextRenderer(),
+    'int': NumericRenderer(),
+    'double': NumericRenderer(),
+    'enum': EnumRenderer(),
+    'date': DateRenderer(),
+  };
 
   const _DataCell({
     required this.value,
@@ -336,44 +364,17 @@ class _DataCell extends StatelessWidget {
     required this.columnSpacing,
     required this.isFirst,
     required this.isLast,
+    this.cellRenderers,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isNumeric = columnModel.type == 'int' || columnModel.type == 'double';
 
-    Widget cellContent;
-    switch (columnModel.type) {
-      case 'int':
-      case 'double':
-        cellContent = Text(
-          value,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontFamily: 'monospace',
-          ),
-          textAlign: TextAlign.right,
-        );
-        break;
-      case 'enum':
-        cellContent = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(value, style: theme.textTheme.bodySmall),
-        );
-        break;
-      case 'date':
-        cellContent = Text(
-          _formatDate(value),
-          style: theme.textTheme.bodySmall,
-        );
-        break;
-      default:
-        cellContent = Text(value, style: theme.textTheme.bodySmall);
-    }
+    final renderer = cellRenderers?[columnModel.type]
+        ?? _defaultRenderers[columnModel.type]
+        ?? TextRenderer();
+    final cellContent = renderer.build(context, value, columnModel);
 
     return SizedBox(
       width: colWidth,
@@ -388,18 +389,5 @@ class _DataCell extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDate(String value) {
-    if (value.isEmpty) return value;
-    try {
-      final dt = DateTime.parse(value);
-      final y = dt.year.toString();
-      final m = dt.month.toString().padLeft(2, '0');
-      final d = dt.day.toString().padLeft(2, '0');
-      return '$y-$m-$d';
-    } catch (_) {
-      return value;
-    }
   }
 }
