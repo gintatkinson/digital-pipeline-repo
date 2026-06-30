@@ -4,6 +4,8 @@ import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/features/tables/cell_renderer.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
+typedef ViewSelectedCallback = void Function(String refType, String id);
+
 /// Renders tabular data from a [TablesViewModel] as a horizontally
 /// scrollable, vertically virtualized table.
 ///
@@ -33,6 +35,7 @@ class TableViewWidget extends StatefulWidget {
     this.horizontalMargin = 12.0,
     this.columnSpacing = 24.0,
     this.cellRenderers,
+    this.onViewSelected,
   });
 
   /// Height of the heading row.
@@ -52,6 +55,9 @@ class TableViewWidget extends StatefulWidget {
 
   /// Optional map of column-type to custom cell renderers.
   final Map<String, CellRenderer>? cellRenderers;
+
+  /// Callback fired when a reference cell is tapped.
+  final ViewSelectedCallback? onViewSelected;
 
   @override
   State<TableViewWidget> createState() => _TableViewWidgetState();
@@ -147,6 +153,10 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                       columnSpacing: widget.columnSpacing,
                       index: index,
                       cellRenderers: widget.cellRenderers,
+                      onViewSelected: widget.onViewSelected,
+                      rawIds: viewModel.rawIds.isNotEmpty
+                          ? viewModel.rawIds[index]
+                          : null,
                     );
                   },
                 ),
@@ -296,6 +306,8 @@ class _DataRow extends StatelessWidget {
   final double columnSpacing;
   final int index;
   final Map<String, CellRenderer>? cellRenderers;
+  final ViewSelectedCallback? onViewSelected;
+  final List<String?>? rawIds;
 
   const _DataRow({
     required this.cells,
@@ -308,6 +320,8 @@ class _DataRow extends StatelessWidget {
     required this.columnSpacing,
     required this.index,
     this.cellRenderers,
+    this.onViewSelected,
+    this.rawIds,
   });
 
   @override
@@ -331,6 +345,8 @@ class _DataRow extends StatelessWidget {
               isFirst: i == 0,
               isLast: i == columnModels.length - 1,
               cellRenderers: cellRenderers,
+              onViewSelected: onViewSelected,
+              rawId: rawIds?[i],
             ),
         ],
       ),
@@ -347,6 +363,8 @@ class _DataCell extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final Map<String, CellRenderer>? cellRenderers;
+  final ViewSelectedCallback? onViewSelected;
+  final String? rawId;
 
   static const Map<String, CellRenderer> _defaultRenderers = {
     'string': TextRenderer(),
@@ -365,6 +383,8 @@ class _DataCell extends StatelessWidget {
     required this.isFirst,
     required this.isLast,
     this.cellRenderers,
+    this.onViewSelected,
+    this.rawId,
   });
 
   @override
@@ -376,6 +396,9 @@ class _DataCell extends StatelessWidget {
         ?? TextRenderer();
     final cellContent = renderer.build(context, value, columnModel);
 
+    final refType = columnModel.refType;
+    final isReference = refType != null && onViewSelected != null;
+
     return SizedBox(
       width: colWidth,
       child: Padding(
@@ -385,7 +408,15 @@ class _DataCell extends StatelessWidget {
         ),
         child: Align(
           alignment: isNumeric ? Alignment.centerRight : Alignment.centerLeft,
-          child: cellContent,
+          child: isReference
+              ? Tooltip(
+                  message: 'ID: ${rawId ?? value}',
+                  child: GestureDetector(
+                    onTap: () => onViewSelected!(refType, rawId ?? ''),
+                    child: cellContent,
+                  ),
+                )
+              : cellContent,
         ),
       ),
     );

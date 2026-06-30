@@ -161,6 +161,13 @@ class FieldDescriptor {
   /// Unknown formatter names are silently ignored.
   final List<String>? inputFormatters;
 
+  /// Optional reference type name, e.g. "device" for a foreign-key field.
+  ///
+  /// When non-null, the field references an instance of the named type.
+  /// Used by the UI to render hyperlinks, drill-down actions, or
+  /// cross-type navigation. Null means the field is a plain value.
+  final String? refType;
+
   const FieldDescriptor({
     required this.key,
     required this.label,
@@ -175,6 +182,7 @@ class FieldDescriptor {
     this.enumDisplayNames,
     this.defaultValue,
     this.inputFormatters,
+    this.refType,
   });
 }
 

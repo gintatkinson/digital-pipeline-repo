@@ -51,6 +51,8 @@ class _MockDataSource implements DataSource {
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
+  @override
+  Future<String> resolveLabel(String typeName, String id) async => 'Resolved: $id';
 }
 
 Widget _buildDataTableDirect(int rowCount) {

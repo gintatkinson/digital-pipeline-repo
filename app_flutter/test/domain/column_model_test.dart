@@ -122,6 +122,20 @@ void main() {
       });
     });
 
+    group('refType', () {
+      test('fromFieldDescriptor carries refType when non-null', () {
+        final fd = FieldDescriptor(key: 'parent', label: 'Parent', type: 'string', refType: 'device');
+        final cm = ColumnModel.fromFieldDescriptor(fd);
+        expect(cm.refType, equals('device'));
+      });
+
+      test('fromFieldDescriptor refType is null when FieldDescriptor refType is null', () {
+        final fd = FieldDescriptor(key: 'name', label: 'Name', type: 'string');
+        final cm = ColumnModel.fromFieldDescriptor(fd);
+        expect(cm.refType, isNull);
+      });
+    });
+
     group('edge cases', () {
       test('empty key', () {
         const column = ColumnModel(

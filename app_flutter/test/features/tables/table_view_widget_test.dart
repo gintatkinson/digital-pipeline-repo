@@ -34,6 +34,10 @@ class _TestTablesViewModel extends TablesViewModel {
   List<List<String>> _overrideRows = [];
 
   @override
+  List<List<String?>> get rawIds => _overrideRawIds;
+  List<List<String?>> _overrideRawIds = [];
+
+  @override
   bool get loading => _overrideLoading;
   bool _overrideLoading = false;
 
@@ -45,6 +49,7 @@ class _TestTablesViewModel extends TablesViewModel {
     List<ColumnModel>? headers,
     List<ColumnModel>? columnModels,
     List<List<String>>? rows,
+    List<List<String?>>? rawIds,
     bool? loading,
     Set<String>? hiddenKeys,
     Map<String, CellRenderer>? cellRenderers,
@@ -52,6 +57,7 @@ class _TestTablesViewModel extends TablesViewModel {
     if (headers != null) _overrideHeaders = headers;
     if (columnModels != null) _overrideColumnModels = columnModels;
     if (rows != null) _overrideRows = rows;
+    if (rawIds != null) _overrideRawIds = rawIds;
     if (loading != null) _overrideLoading = loading;
     if (hiddenKeys != null) _overrideHiddenKeys = hiddenKeys;
     if (cellRenderers != null) _overrideCellRenderers = cellRenderers;
@@ -100,12 +106,16 @@ class _MockDataSource implements DataSource {
 
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
+
+  @override
+  Future<String> resolveLabel(String typeName, String id) async => '';
 }
 
 Widget buildTableWithModel({
   required List<ColumnModel> headers,
   List<ColumnModel>? columnModels,
   List<List<String>> rows = const [],
+  ViewSelectedCallback? onViewSelected,
 }) {
   final viewModel = _TestTablesViewModel(_MockDataSource(), 'Root');
   viewModel.setState(
@@ -118,16 +128,22 @@ Widget buildTableWithModel({
   return MaterialApp(
     home: ChangeNotifierProvider<TablesViewModel>.value(
       value: viewModel,
-      child: const TableViewWidget(),
+      child: TableViewWidget(onViewSelected: onViewSelected),
     ),
   );
 }
 
-Widget buildTableFromModel({required _TestTablesViewModel model}) {
+Widget buildTableFromModel({
+  required _TestTablesViewModel model,
+  ViewSelectedCallback? onViewSelected,
+}) {
   return MaterialApp(
     home: ChangeNotifierProvider<TablesViewModel>.value(
       value: model,
-      child: TableViewWidget(cellRenderers: model.cellRenderers),
+      child: TableViewWidget(
+        cellRenderers: model.cellRenderers,
+        onViewSelected: onViewSelected,
+      ),
     ),
   );
 }
@@ -476,6 +492,51 @@ void main() {
       expect(find.text('Hidden B'), findsNothing);
       expect(find.text('Visible C'), findsOneWidget);
       expect(find.text('B'), findsNothing);
+    });
+  });
+
+  group('TableViewWidget onViewSelected callback', () {
+    testWidgets('tapping reference cell fires onViewSelected with refType and rawId', (tester) async {
+      String? capturedRefType;
+      String? capturedId;
+      final columns = [
+        const ColumnModel(key: 'ref', label: 'Ref', type: 'string', refType: 'device'),
+      ];
+      final model = _TestTablesViewModel(_MockDataSource(), 'Root');
+      model.setState(
+        headers: columns,
+        rows: [['Device Label']],
+        rawIds: [['dev-001']],
+      );
+      await tester.pumpWidget(buildTableFromModel(
+        model: model,
+        onViewSelected: (refType, id) { capturedRefType = refType; capturedId = id; },
+      ));
+
+      // Tap the reference cell
+      await tester.tap(find.text('Device Label'));
+
+      expect(capturedRefType, equals('device'));
+      expect(capturedId, equals('dev-001'));
+    });
+
+    testWidgets('reference cell shows tooltip with raw ID', (tester) async {
+      final columns = [
+        const ColumnModel(key: 'ref', label: 'Ref', type: 'string', refType: 'device'),
+      ];
+      final model = _TestTablesViewModel(_MockDataSource(), 'Root');
+      model.setState(
+        headers: columns,
+        rows: [['Device Label']],
+        rawIds: [['dev-001']],
+      );
+      await tester.pumpWidget(buildTableFromModel(
+        model: model,
+        onViewSelected: (_, _) {},
+      ));
+
+      final tooltip = tester.widget<Tooltip>(find.byType(Tooltip));
+      expect(tooltip.message, contains('dev-001'));
     });
   });
 

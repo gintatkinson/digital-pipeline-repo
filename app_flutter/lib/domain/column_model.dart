@@ -8,6 +8,7 @@ class ColumnModel {
   final bool sortable;
   final bool frozen;
   final bool visible;
+  final String? refType;
 
   const ColumnModel({
     required this.key,
@@ -17,6 +18,7 @@ class ColumnModel {
     this.sortable = true,
     this.frozen = false,
     this.visible = true,
+    this.refType,
   });
 
   factory ColumnModel.fromFieldDescriptor(FieldDescriptor fd) {
@@ -24,6 +26,7 @@ class ColumnModel {
       key: fd.key,
       label: fd.label,
       type: fd.type,
+      refType: fd.refType,
     );
   }
 }

@@ -95,6 +95,10 @@ class TablesViewModel extends ChangeNotifier {
   /// Loaded table rows for the currently selected tab.
   List<List<String>> get rows => _rows;
 
+  /// Raw IDs for each row, parallel to [rows].
+  List<List<String?>> get rawIds => _rawIds;
+  List<List<String?>> _rawIds = [];
+
   /// Whether data is currently being fetched.
   bool get loading => _loading;
 
@@ -152,6 +156,7 @@ class TablesViewModel extends ChangeNotifier {
       } else {
         _selectedTabId = null;
         _rows = [];
+        _rawIds = [];
         _headers = [];
         _columnModels = [];
         _loading = false;
@@ -161,6 +166,7 @@ class TablesViewModel extends ChangeNotifier {
       if (requestId != _requestId) return;
       _error = 'Failed to load table data';
       _rows = [];
+      _rawIds = [];
       _headers = [];
       _columnModels = [];
       _loading = false;
@@ -198,19 +204,43 @@ class TablesViewModel extends ChangeNotifier {
 
       if (requestId != _requestId) return;
 
-      final rows = data.map((row) {
-        return tab.columns.map((f) => row[f.key] as String? ?? '').toList();
-      }).toList();
+      final columnModels = _columnModels;
+      final rows = <List<String>>[];
+      final rawIds = <List<String?>>[];
+      for (final row in data) {
+        final cells = <String>[];
+        final ids = <String?>[];
+        for (int i = 0; i < tab.columns.length; i++) {
+          final f = tab.columns[i];
+          final raw = row[f.key];
+          final cellValue = raw as String? ?? '';
+          if (columnModels[i].refType != null) {
+            ids.add(cellValue);
+            final resolved = await _dataSource.resolveLabel(
+              columnModels[i].refType!,
+              cellValue,
+            );
+            cells.add(resolved);
+          } else {
+            ids.add(null);
+            cells.add(cellValue);
+          }
+        }
+        rows.add(cells);
+        rawIds.add(ids);
+      }
 
       if (requestId != _requestId) return;
 
       _rows = rows;
+      _rawIds = rawIds;
       _loading = false;
       notifyListeners();
     } catch (e, st) {
       if (requestId != _requestId) return;
       _error = 'Failed to load table data';
       _rows = [];
+      _rawIds = [];
       _headers = [];
       _columnModels = [];
       _loading = false;

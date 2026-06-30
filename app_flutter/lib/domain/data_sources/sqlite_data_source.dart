@@ -133,6 +133,26 @@ class SqliteDataSource implements DataSource {
     }
   }
 
+  /// Resolves a label by looking up the node in the `properties` table.
+  @override
+  Future<String> resolveLabel(String typeName, String id) async {
+    final maps = await _db.query(
+      'properties',
+      columns: ['data_json'],
+      where: 'node_id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) throw Exception('Entity not found: $typeName/$id');
+    final dataJson = maps.first['data_json'] as String?;
+    if (dataJson == null) throw Exception('Entity not found: $typeName/$id');
+    try {
+      final data = jsonDecode(dataJson) as Map<String, dynamic>;
+      return (data['name'] ?? data['label'] ?? data['title'] ?? id) as String;
+    } catch (_) {
+      throw Exception('Entity not found: $typeName/$id');
+    }
+  }
+
   /// Queries the `elements` table for all child rows whose
   /// `parent_node_id` equals [parentNodeId].
   ///

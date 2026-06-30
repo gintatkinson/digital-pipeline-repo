@@ -50,6 +50,10 @@ class _MockDataSource implements DataSource {
   Future<List<Map<String, dynamic>>> fetchEvents(
           String parentNodeId) async =>
       onFetchEvents?.call(parentNodeId) ?? [];
+
+  @override
+  Future<String> resolveLabel(String typeName, String id) async =>
+      'Resolved: $id';
 }
 
 void main() {
@@ -365,6 +369,40 @@ void main() {
       viewModel.setHiddenColumnKeys({hiddenKey});
       expect(viewModel.visibleColumnModels.length, equals(viewModel.headers.length - 1));
       expect(viewModel.visibleColumnModels.any((c) => c.key == hiddenKey), isFalse);
+    });
+
+    test('reference columns resolve labels via DataSource', () async {
+      dataSource.onTypeFor = (typeName) async {
+        if (typeName == 'test-node') {
+          return TypeDescriptor(
+            typeName: 'test-node', displayName: 'Test Node', iconName: 'node',
+            fields: [],
+            childTypes: [],
+            relatedTypes: [TypeRelationDescriptor(relationName: 'has', childTypeName: 'ChildType', childLabel: 'Child')],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType', displayName: 'Child', iconName: 'child',
+            fields: [
+              FieldDescriptor(key: 'ref_col', label: 'Reference', type: 'string', refType: 'SomeType'),
+              FieldDescriptor(key: 'plain_col', label: 'Plain', type: 'string'),
+            ],
+            childTypes: [], relatedTypes: [], parentTypes: [],
+          );
+        }
+        return null;
+      };
+      dataSource.onFetchElements = (parentNodeId) async => [
+        {'ref_col': 'dev-001', 'plain_col': 'hello'},
+      ];
+
+      await viewModel.loadForNode('test-node');
+      final refColIdx = viewModel.columnModels.indexWhere((c) => c.refType != null);
+      expect(refColIdx, greaterThanOrEqualTo(0));
+      expect(viewModel.rows[0][refColIdx], startsWith('Resolved:'));
+      expect(viewModel.rawIds[0][refColIdx], equals('dev-001'));
     });
   });
 }

@@ -101,6 +101,11 @@ class FallbackDataSource implements DataSource {
     }
   }
 
+  /// Returns a hardcoded label by combining the type name and the id.
+  @override
+  Future<String> resolveLabel(String typeName, String id) async =>
+      '$typeName / $id';
+
   /// Returns an empty list — no hierarchy is defined in the fallback.
   @override
   Future<List<(String, String)>> discoverHierarchy() async => [];

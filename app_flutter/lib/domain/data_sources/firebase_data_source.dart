@@ -146,6 +146,15 @@ class FirebaseDataSource implements DataSource {
     }
   }
 
+  /// Resolves a label by fetching the node from Firestore.
+  @override
+  Future<String> resolveLabel(String typeName, String id) async {
+    final doc = await _firestore.collection('data').doc(id).get();
+    final data = doc.data();
+    if (data == null) throw Exception('Entity not found: $typeName/$id');
+    return (data['name'] ?? data['label'] ?? data['title'] ?? id) as String;
+  }
+
   /// Queries the `elements` Firestore collection for all documents
   /// whose `parent_node_id` equals [parentNodeId].
   ///

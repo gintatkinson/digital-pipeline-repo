@@ -62,6 +62,14 @@ abstract class DataSource {
   /// stream emits an empty map and continues watching for future saves.
   Stream<Map<String, dynamic>> watchProperties(String nodeId);
 
+  /// Resolve a human-readable label for the entity identified by [typeName] and [id].
+  ///
+  /// Returns a display string suitable for UI list tiles, chips, or breadcrumbs.
+  /// The implementation should look up the entity in the data source and return
+  /// a meaningful label (e.g. the entity name, title, or a formatted identifier).
+  /// Throws if the entity is not found — callers must handle the exception.
+  Future<String> resolveLabel(String typeName, String id);
+
   /// Fetches child elements of [parentNodeId].
   ///
   /// Returns an empty list when [parentNodeId] has no children or when
