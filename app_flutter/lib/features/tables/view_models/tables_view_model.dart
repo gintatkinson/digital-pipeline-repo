@@ -117,7 +117,11 @@ class TablesViewModel extends ChangeNotifier {
   Future<void> _loadData(TabDescriptor tab, int requestId) async {
     try {
       _headers = tab.columns.map((f) => f.label).toList();
-      final data = await _repository.fetchElements(_activeView);
+      final data = switch (tab.id) {
+        'Alarm' => await _dataSource.fetchAlarms(_activeView),
+        'Event' => await _dataSource.fetchEvents(_activeView),
+        _ => await _dataSource.fetchElements(_activeView),
+      };
 
       if (requestId != _requestId) return;
 

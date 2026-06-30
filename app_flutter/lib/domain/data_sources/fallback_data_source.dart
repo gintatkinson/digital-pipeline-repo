@@ -78,11 +78,7 @@ class FallbackDataSource implements DataSource {
   }
 
   @override
-  Future<List<(String, String)>> discoverHierarchy() async => [
-    ('Item', 'SubElement'),
-    ('Item', 'Alarm'),
-    ('Item', 'Event'),
-  ];
+  Future<List<(String, String)>> discoverHierarchy() async => [];
 
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
@@ -94,4 +90,40 @@ class FallbackDataSource implements DataSource {
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield {};
   }
+
+  final List<Map<String, dynamic>> _elements = List.generate(15, (i) => {
+    'id': 'elem-${i + 1}',
+    'parent_node_id': 'Item',
+    'name': 'Element ${i + 1}',
+    'type': ['Worker', 'Collector', 'Sensor'][i % 3],
+    'status': ['Active', 'Standby', 'Error'][i % 3],
+  });
+
+  final List<Map<String, dynamic>> _alarms = List.generate(15, (i) => {
+    'id': 'alarm-${i + 1}',
+    'parent_node_id': 'Item',
+    'target': 'Target ${i + 1}',
+    'severity': ['Critical', 'Warning', 'Info'][i % 3],
+    'timestamp': '2026-06-${(i % 28) + 1}',
+  });
+
+  final List<Map<String, dynamic>> _events = List.generate(15, (i) => {
+    'id': 'event-${i + 1}',
+    'parent_node_id': 'Item',
+    'source': ['System', 'User', 'External'][i % 3],
+    'message': 'Event ${i + 1} occurred',
+    'timestamp': '2026-06-${(i % 28) + 1}',
+  });
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async =>
+      _elements.where((e) => e['parent_node_id'] == parentNodeId).toList();
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async =>
+      _alarms.where((e) => e['parent_node_id'] == parentNodeId).toList();
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async =>
+      _events.where((e) => e['parent_node_id'] == parentNodeId).toList();
 }

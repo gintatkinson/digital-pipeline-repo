@@ -35,4 +35,13 @@ abstract class DataSource {
   /// Returns a broadcast stream that yields the current properties and
   /// then emits updates whenever properties change for [nodeId].
   Stream<Map<String, dynamic>> watchProperties(String nodeId);
+
+  /// Fetches child elements of [parentNodeId].
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async => [];
+
+  /// Fetches alarms associated with [parentNodeId].
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
+
+  /// Fetches events associated with [parentNodeId].
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
 }

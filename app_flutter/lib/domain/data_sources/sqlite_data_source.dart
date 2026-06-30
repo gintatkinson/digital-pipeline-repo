@@ -83,6 +83,24 @@ class SqliteDataSource implements DataSource {
     }
   }
 
+  @override
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
+    return await _db.query('elements',
+        where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
+    return await _db.query('alarms',
+        where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
+    return await _db.query('events',
+        where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
+  }
+
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {
     final typeName = typeRow['type_name'] as String;
     final attrRows = await _db.query('type_attributes',
