@@ -25,4 +25,14 @@ abstract class DataSource {
   ///
   /// Returns a list of (parentTypeName, childTypeName) pairs.
   Future<List<(String, String)>> discoverHierarchy();
+
+  /// Fetches the property map for the node identified by [nodeId].
+  Future<Map<String, dynamic>> fetchProperties(String nodeId);
+
+  /// Persists [data] as the properties for [nodeId].
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data);
+
+  /// Returns a broadcast stream that yields the current properties and
+  /// then emits updates whenever properties change for [nodeId].
+  Stream<Map<String, dynamic>> watchProperties(String nodeId);
 }

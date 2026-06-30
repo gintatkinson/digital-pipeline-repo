@@ -6,13 +6,11 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/layout/layout_config_service.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData, loadTopologyData;
 import 'package:app_flutter/features/layout/component_factory.dart';
-import 'package:app_flutter/features/properties/properties_service.dart';
 import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 import 'package:app_flutter/core/background_worker.dart';
 
@@ -37,8 +35,10 @@ class _LayoutState extends State<Layout> {
   // Navigation & Tree Selection
   late String _currentView;
 
-  // Services
-  PropertiesService? _propertiesService;
+  // Data Source
+  DataSource? _dataSource;
+  StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
+  Map<String, dynamic> _nodeData = const {};
 
   // Tree ViewModel
   TreeViewModel? _treeViewModel;
@@ -48,14 +48,29 @@ class _LayoutState extends State<Layout> {
 
   static const double _minPaneSize = 150.0;
 
+  void _subscribeProperties(String nodeId) {
+    _propertiesSubscription?.cancel();
+    _nodeData = const {};
+    _propertiesSubscription = _dataSource!.watchProperties(nodeId).listen(
+      (data) {
+        if (mounted) {
+          setState(() {
+            _nodeData = data;
+          });
+        }
+      },
+      onError: (Object error, StackTrace stack) {
+        debugPrint('watchProperties error: $error');
+      },
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_propertiesService == null) {
-      final repo = context.read<AbstractRepository>();
-      _propertiesService = PropertiesService(repo)
-        ..addListener(_onPropertiesChanged)
-        ..subscribe(_currentView);
+    if (_dataSource == null) {
+      _dataSource = context.read<DataSource>();
+      _subscribeProperties(_currentView);
     }
     if (_treeViewModel == null) {
       final dataSource = context.read<DataSource>();
@@ -73,10 +88,6 @@ class _LayoutState extends State<Layout> {
         ..addListener(_onPropertiesViewModelChanged)
         ..loadType(_currentView);
     }
-  }
-
-  void _onPropertiesChanged() {
-    if (mounted) setState(() {});
   }
 
   void _onPropertiesViewModelChanged() {
@@ -118,7 +129,7 @@ class _LayoutState extends State<Layout> {
     return {};
   }
 
-  // Properties Reactive State - handled by PropertiesService
+  // Properties Reactive State
 
   // Preloaded topology data from external JSON asset.
   TopologyData? _topologyData;
@@ -164,7 +175,7 @@ class _LayoutState extends State<Layout> {
         setState(() {
           _currentView = widget.activeView!;
         });
-        _propertiesService?.subscribe(_currentView);
+        _subscribeProperties(_currentView);
         _propertiesViewModel?.loadType(_currentView);
       }
     }
@@ -172,7 +183,7 @@ class _LayoutState extends State<Layout> {
 
   @override
   void dispose() {
-    _propertiesService?.dispose();
+    _propertiesSubscription?.cancel();
     _workerSubscription?.cancel();
     _worker?.dispose();
     _treeViewModel?.removeListener(_onTreeViewModelChanged);
@@ -243,7 +254,7 @@ class _LayoutState extends State<Layout> {
     if (widget.activeView == null && _treeViewModel != null && _treeViewModel!.treeData.isNotEmpty) {
       _currentView = _treeViewModel!.treeData.first.id;
       debugPrint('[LAYOUT] _updateCurrentViewFromLayout: setting _currentView=$_currentView');
-      _propertiesService?.subscribe(_currentView);
+      _subscribeProperties(_currentView);
       _propertiesViewModel?.loadType(_currentView);
     }
   }
@@ -255,7 +266,7 @@ class _LayoutState extends State<Layout> {
       _currentView = viewId;
     });
     _treeViewModel?.updateCurrentView(viewId);
-    _propertiesService?.subscribe(viewId);
+    _subscribeProperties(viewId);
     _propertiesViewModel?.loadType(viewId);
     widget.onViewChange?.call(viewId);
   }
@@ -292,16 +303,14 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildChildWidget(BuildContext context) {
-    final nodeData = _propertiesService?.lastData ?? const {};
     final fields = _propertiesViewModel?.fields ?? [];
 
     return PropertyGrid(
       activeView: _currentView,
       fields: fields,
-      initialValues: nodeData,
+      initialValues: _nodeData,
       onSave: (Map<String, dynamic> data) async {
-        final resolvedRepo = context.read<AbstractRepository>();
-        await resolvedRepo.saveProperties(_currentView, data);
+        await _dataSource!.saveProperties(_currentView, data);
       },
     );
   }

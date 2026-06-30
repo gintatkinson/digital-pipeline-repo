@@ -36,4 +36,15 @@ class FallbackDataSource implements DataSource {
 
   @override
   Future<List<(String, String)>> discoverHierarchy() async => [];
+
+  @override
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
+
+  @override
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
+
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
+    yield {};
+  }
 }

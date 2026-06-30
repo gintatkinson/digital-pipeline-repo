@@ -1,5 +1,6 @@
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:async';
 import 'dart:convert';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 
@@ -10,6 +11,8 @@ import 'package:app_flutter/domain/data_source.dart';
 class SqliteDataSource implements DataSource {
   SqliteDataSource(this._db);
   final Database _db;
+  final StreamController<Map<String, dynamic>> _propertiesController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   @override
   String get name => 'sqlite';
@@ -39,6 +42,45 @@ class SqliteDataSource implements DataSource {
       r['parent_type_name'] as String,
       r['child_type_name'] as String,
     )).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
+    final maps = await _db.query(
+      'properties',
+      columns: ['data_json'],
+      where: 'node_id = ?',
+      whereArgs: [nodeId],
+    );
+    if (maps.isEmpty) return {};
+    final dataJson = maps.first['data_json'] as String?;
+    if (dataJson == null) return {};
+    try {
+      return jsonDecode(dataJson) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  @override
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
+    final dataJson = jsonEncode(data);
+    await _db.insert(
+      'properties',
+      {'node_id': nodeId, 'data_json': dataJson},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    _propertiesController.add({'nodeId': nodeId, 'data': data});
+  }
+
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
+    yield await fetchProperties(nodeId);
+    await for (final event in _propertiesController.stream) {
+      if (event['nodeId'] == nodeId) {
+        yield event['data'] as Map<String, dynamic>;
+      }
+    }
   }
 
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {
