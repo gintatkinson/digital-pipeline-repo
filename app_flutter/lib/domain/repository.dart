@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Abstract interface for data-access operations on nodes and their
@@ -113,5 +114,65 @@ class SqliteRepositoryAdapter implements AbstractRepository {
       where: 'parent_node_id = ?',
       whereArgs: [parentNodeId],
     );
+  }
+}
+
+/// Firestore-backed implementation of [AbstractRepository].
+class FirebaseRepositoryAdapter implements AbstractRepository {
+  final FirebaseFirestore firestore;
+  final StreamController<Map<String, dynamic>> _controller =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  FirebaseRepositoryAdapter(this.firestore);
+
+  @override
+  Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
+    final doc = await firestore.collection('data').doc(nodeId).get();
+    final data = doc.data();
+    if (data == null) return {};
+    return Map<String, dynamic>.from(data);
+  }
+
+  @override
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
+    await firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
+    _controller.add({'nodeId': nodeId, 'data': data});
+  }
+
+  @override
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
+    yield await fetchProperties(nodeId);
+    await for (final event in _controller.stream) {
+      if (event['nodeId'] == nodeId) {
+        yield event['data'] as Map<String, dynamic>;
+      }
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
+    final snapshot = await firestore
+        .collection('elements')
+        .where('parent_node_id', isEqualTo: parentNodeId)
+        .get();
+    return snapshot.docs.map((d) => d.data()).toList();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
+    final snapshot = await firestore
+        .collection('alarms')
+        .where('parent_node_id', isEqualTo: parentNodeId)
+        .get();
+    return snapshot.docs.map((d) => d.data()).toList();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
+    final snapshot = await firestore
+        .collection('events')
+        .where('parent_node_id', isEqualTo: parentNodeId)
+        .get();
+    return snapshot.docs.map((d) => d.data()).toList();
   }
 }

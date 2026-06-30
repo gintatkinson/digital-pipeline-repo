@@ -13,11 +13,15 @@ import 'package:app_flutter/app/app.dart';
 ThemeController? globalThemeController;
 TextScalerController? globalTextScalerController;
 
+const _dataSource = String.fromEnvironment('DATA_SOURCE', defaultValue: 'sqlite');
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    final (repository, dataSource) = await RepositoryResolver.resolve();
+    final (repository, dataSource) = await RepositoryResolver.resolve(
+      dataSourceType: _dataSource,
+    );
 
     // Theme
     final themeService = SharedPreferencesThemeService();
