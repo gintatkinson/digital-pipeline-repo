@@ -44,6 +44,11 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 - If a bug, edge case, or limitation is identified in the shared pipeline scripts (e.g., `verify_model_coverage.py`, `reconcile_backlog.py`), the executing agent is strictly required to file a corresponding defect report upstream on the `digital-pipeline-repo`.
 - Agents must not silently apply local-only patches to pipeline scripts without filing an upstream synchronization issue.
 
+## Documentation Integrity — No Wholesale Replacement Without Approval
+- You are strictly forbidden from replacing, truncating, or rewriting any documentation file (including but not limited to `README.md`, `install-guide.md`, `SKILL.md`, `AGENTS.md`, `constitution.md`) in a way that removes or replaces substantial content — unless every line of the replacement has been explicitly approved by the user in the current conversation turn.
+- This includes: replacing a multi-page document with a stub; deleting sections and pointing to "see other file" without verifying that other file contains the equivalent content; merging documentation in a way that loses information present in the original.
+- If you believe a documentation file needs restructuring, present the proposed changes as a diff for approval before making any edits. Do not assume that adding new docs elsewhere authorizes you to remove content from existing docs.
+
 ## Mandatory Subagent Termination & Cleanup
 - The coordinator MUST immediately terminate any spawned subagents using the `manage_subagents` tool (action `kill` or `kill_all`) once the subagent's task has been completed and the work is integrated.
 - Subagents are strictly forbidden from being left in an idle or dormant state upon completion of their atomic work package to prevent resource consumption and potential conflicts.
