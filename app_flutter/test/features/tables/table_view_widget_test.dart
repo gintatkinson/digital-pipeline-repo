@@ -540,6 +540,77 @@ void main() {
     });
   });
 
+  group('TableViewWidget frozen columns', () {
+    testWidgets('frozen and non-frozen columns render in separate ListViews', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: [
+          const ColumnModel(key: 'a', label: 'A', type: 'string', frozen: true),
+          const ColumnModel(key: 'b', label: 'B', type: 'string'),
+        ],
+        columnModels: [
+          const ColumnModel(key: 'a', label: 'A', type: 'string', frozen: true),
+          const ColumnModel(key: 'b', label: 'B', type: 'string'),
+        ],
+        rows: [
+          ['v1', 'v2'],
+        ],
+      ));
+
+      await tester.pump();
+
+      // With frozen columns there should be 2 ListViews: one frozen, one scrollable
+      expect(find.byType(ListView), findsNWidgets(2));
+    });
+
+    testWidgets('no frozen columns renders single ListView (unchanged layout)', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: [
+          const ColumnModel(key: 'a', label: 'A', type: 'string'),
+          const ColumnModel(key: 'b', label: 'B', type: 'string'),
+        ],
+        columnModels: [
+          const ColumnModel(key: 'a', label: 'A', type: 'string'),
+          const ColumnModel(key: 'b', label: 'B', type: 'string'),
+        ],
+        rows: [
+          ['v1', 'v2'],
+        ],
+      ));
+
+      await tester.pump();
+
+      // No frozen columns → unchanged single ListView
+      expect(find.byType(ListView), findsOneWidget);
+    });
+
+    testWidgets('renders all columns correctly when some are frozen', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string', frozen: true),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string', frozen: true),
+        ],
+        columnModels: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string', frozen: true),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string', frozen: true),
+        ],
+        rows: [
+          ['v1', 'v2', 'v3'],
+        ],
+      ));
+
+      await tester.pump();
+
+      expect(find.text('Alpha'), findsOneWidget);
+      expect(find.text('Beta'), findsOneWidget);
+      expect(find.text('Gamma'), findsOneWidget);
+      expect(find.text('v1'), findsOneWidget);
+      expect(find.text('v2'), findsOneWidget);
+      expect(find.text('v3'), findsOneWidget);
+    });
+  });
+
   group('TableViewWidget cellRenderers', () {
     testWidgets('cellRenderers override changes cell rendering', (tester) async {
       final customRenderer = _PrefixTextRenderer();

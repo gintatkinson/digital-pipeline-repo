@@ -66,6 +66,19 @@ class TableViewWidget extends StatefulWidget {
 class _TableViewWidgetState extends State<TableViewWidget> {
   int? _sortColumnIndex;
   bool _sortAscending = true;
+  ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +104,9 @@ class _TableViewWidgetState extends State<TableViewWidget> {
     }
 
     final headers = viewModel.visibleColumnModels;
+    final frozenHeaders = headers.where((h) => h.frozen).toList();
+    final scrollableHeaders = headers.where((h) => !h.frozen).toList();
+    final hasFrozenColumns = frozenHeaders.isNotEmpty;
     final allHeaders = viewModel.headers;
     var rows = viewModel.rows;
     final testId = '${viewModel.tabId}-table';
@@ -128,18 +144,107 @@ class _TableViewWidgetState extends State<TableViewWidget> {
           });
         }
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            key: Key(testId),
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            child: Stack(
-              children: [
-                ListView.builder(
+        Widget buildPane(List<ColumnModel> paneHeaders, String paneKey,
+            {required bool scrollable, double? paneAvailableWidth}) {
+          if (paneHeaders.isEmpty) return const SizedBox.shrink();
+          final avail = paneAvailableWidth ?? constraints.maxWidth;
+          final paneColWidth = (avail -
+                  2 * widget.horizontalMargin -
+                  (paneHeaders.length - 1) * widget.columnSpacing) /
+              paneHeaders.length;
+
+          final pane = Column(
+            children: [
+              _HeaderRow(
+                headers: paneHeaders,
+                colWidth: paneColWidth,
+                headingRowHeight: widget.headingRowHeight,
+                horizontalMargin: widget.horizontalMargin,
+                columnSpacing: widget.columnSpacing,
+                testId: '$testId-$paneKey-header',
+                sortColumnIndex: _sortColumnIndex,
+                sortAscending: _sortAscending,
+                onSort: onSort,
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  key: Key('$testId-$paneKey-body'),
+                  itemCount: rows.length,
+                  itemBuilder: (context, index) {
+                    final row = rows[index];
+                    return _DataRow(
+                      cells: row,
+                      columnModels: paneHeaders,
+                      allHeaders: allHeaders,
+                      colWidth: paneColWidth,
+                      dataRowMinHeight: widget.dataRowMinHeight,
+                      dataRowMaxHeight: widget.dataRowMaxHeight,
+                      horizontalMargin: widget.horizontalMargin,
+                      columnSpacing: widget.columnSpacing,
+                      index: index,
+                      cellRenderers: widget.cellRenderers,
+                      onViewSelected: widget.onViewSelected,
+                      rawIds: viewModel.rawIds.isNotEmpty
+                          ? viewModel.rawIds[index]
+                          : null,
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+
+          if (scrollable) {
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: constraints.maxWidth,
+                child: pane,
+              ),
+            );
+          }
+          return pane;
+        }
+
+        Widget body;
+        if (hasFrozenColumns) {
+          const double defaultColWidth = 150.0;
+          final frozenTotalWidth = frozenHeaders.fold<double>(
+            0,
+            (sum, h) => sum + (h.width ?? defaultColWidth) + widget.columnSpacing,
+          );
+
+          body = Row(
+            children: [
+              SizedBox(
+                width: frozenTotalWidth,
+                child: buildPane(frozenHeaders, 'frozen',
+                    scrollable: false, paneAvailableWidth: frozenTotalWidth),
+              ),
+              Expanded(
+                child: buildPane(scrollableHeaders, 'scrollable', scrollable: true),
+              ),
+            ],
+          );
+        } else {
+          body = Column(
+            children: [
+              _HeaderRow(
+                headers: headers,
+                colWidth: colWidth,
+                headingRowHeight: widget.headingRowHeight,
+                horizontalMargin: widget.horizontalMargin,
+                columnSpacing: widget.columnSpacing,
+                testId: '$testId-header',
+                sortColumnIndex: _sortColumnIndex,
+                sortAscending: _sortAscending,
+                onSort: onSort,
+              ),
+              Expanded(
+                child: ListView.builder(
                   key: Key('$testId-body'),
                   itemCount: rows.length,
-                  padding: EdgeInsets.only(top: widget.headingRowHeight),
                   itemBuilder: (context, index) {
                     final row = rows[index];
                     return _DataRow(
@@ -160,25 +265,16 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                     );
                   },
                 ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: _HeaderRow(
-                    headers: headers,
-                    colWidth: colWidth,
-                    headingRowHeight: widget.headingRowHeight,
-                    horizontalMargin: widget.horizontalMargin,
-                    columnSpacing: widget.columnSpacing,
-                    testId: testId,
-                    sortColumnIndex: _sortColumnIndex,
-                    sortAscending: _sortAscending,
-                    onSort: onSort,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            ],
+          );
+        }
+
+        return SizedBox(
+          key: Key(testId),
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: body,
         );
       },
     );
