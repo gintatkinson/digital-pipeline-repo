@@ -1,17 +1,30 @@
-# app_flutter
+# Platform Console (Flutter)
 
-A new Flutter project.
+Generic UI shell that renders object types discovered at runtime.
+No domain knowledge is compiled into the application.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```bash
+flutter run -d macos
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Test
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter test
+flutter test -d macos integration_test/
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Data Source
+
+Select backend at runtime:
+- `flutter run` — SQLite (default)
+- `flutter run --dart-define=DATA_SOURCE=firebase` — Firebase
+
+## Dependencies
+
+- `provider` — state management
+- `sqflite_common_ffi` — SQLite
+- `firebase_core` + `cloud_firestore` — Firebase
+- `flex_color_scheme` — theming
