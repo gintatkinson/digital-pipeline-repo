@@ -1,1 +1,2 @@
 #include "ephemeral/Flutter-Generated.xcconfig"
+SWIFT_PACKAGE_RESOLUTION = disabled
