@@ -12,8 +12,17 @@ class _TestTablesViewModel extends TablesViewModel {
   _TestTablesViewModel(super.dataSource, super.activeView);
 
   @override
-  List<String> get headers => _overrideHeaders;
-  List<String> _overrideHeaders = [];
+  List<ColumnModel> get headers => _overrideHeaders;
+  List<ColumnModel> _overrideHeaders = [];
+
+  Set<String> _overrideHiddenKeys = {};
+
+  @override
+  List<ColumnModel> get visibleColumnModels =>
+      _overrideHeaders
+          .where((cm) => cm.visible)
+          .where((cm) => _overrideHiddenKeys.isEmpty || !_overrideHiddenKeys.contains(cm.key))
+          .toList();
 
   @override
   List<ColumnModel> get columnModels => _overrideColumnModels;
@@ -28,15 +37,17 @@ class _TestTablesViewModel extends TablesViewModel {
   bool _overrideLoading = false;
 
   void setState({
-    List<String>? headers,
+    List<ColumnModel>? headers,
     List<ColumnModel>? columnModels,
     List<List<String>>? rows,
     bool? loading,
+    Set<String>? hiddenKeys,
   }) {
     if (headers != null) _overrideHeaders = headers;
     if (columnModels != null) _overrideColumnModels = columnModels;
     if (rows != null) _overrideRows = rows;
     if (loading != null) _overrideLoading = loading;
+    if (hiddenKeys != null) _overrideHiddenKeys = hiddenKeys;
     notifyListeners();
   }
 }
@@ -78,14 +89,14 @@ class _MockDataSource implements DataSource {
 }
 
 Widget buildTableWithModel({
-  required List<String> headers,
-  required List<ColumnModel> columnModels,
+  required List<ColumnModel> headers,
+  List<ColumnModel>? columnModels,
   List<List<String>> rows = const [],
 }) {
   final viewModel = _TestTablesViewModel(_MockDataSource(), 'Root');
   viewModel.setState(
     headers: headers,
-    columnModels: columnModels,
+    columnModels: columnModels ?? headers,
     rows: rows,
     loading: false,
   );
@@ -98,11 +109,24 @@ Widget buildTableWithModel({
   );
 }
 
+Widget buildTableFromModel({required _TestTablesViewModel model}) {
+  return MaterialApp(
+    home: ChangeNotifierProvider<TablesViewModel>.value(
+      value: model,
+      child: const TableViewWidget(),
+    ),
+  );
+}
+
 void main() {
   group('TableViewWidget header rendering', () {
     testWidgets('renders labels from ColumnModel when available', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Alpha', 'Beta', 'Gamma'],
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string'),
+        ],
         columnModels: [
           const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
           const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
@@ -119,7 +143,11 @@ void main() {
 
     testWidgets('falls back to raw headers when ColumnModel is empty', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Alpha', 'Beta', 'Gamma'],
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string'),
+        ],
         columnModels: [],
       ));
 
@@ -132,7 +160,11 @@ void main() {
 
     testWidgets('column count matches FieldDescriptor count', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Alpha', 'Beta', 'Gamma'],
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string'),
+        ],
         columnModels: [
           const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
           const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
@@ -149,17 +181,18 @@ void main() {
       expect(find.byType(Text), findsNWidgets(6));
     });
 
-    testWidgets('falls back per-column when columnModels has fewer entries than headers', (tester) async {
+    testWidgets('renders labels from headers directly when no separate columnModels', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Alpha', 'Beta', 'Gamma'],
-        columnModels: [
-          const ColumnModel(key: 'a', label: 'Custom A', type: 'string'),
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string'),
         ],
       ));
 
       await tester.pump();
 
-      expect(find.text('Custom A'), findsOneWidget);
+      expect(find.text('Alpha'), findsOneWidget);
       expect(find.text('Beta'), findsOneWidget);
       expect(find.text('Gamma'), findsOneWidget);
     });
@@ -168,7 +201,9 @@ void main() {
   group('TableViewWidget cell type rendering', () {
     testWidgets('renders string cells as plain Text', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Name'],
+        headers: [
+          const ColumnModel(key: 'name', label: 'Name', type: 'string'),
+        ],
         columnModels: [
           const ColumnModel(key: 'name', label: 'Name', type: 'string'),
         ],
@@ -185,7 +220,10 @@ void main() {
 
     testWidgets('renders int cells right-aligned with monospace font', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Name', 'Count'],
+        headers: [
+          const ColumnModel(key: 'name', label: 'Name', type: 'string'),
+          const ColumnModel(key: 'count', label: 'Count', type: 'int'),
+        ],
         columnModels: [
           const ColumnModel(key: 'name', label: 'Name', type: 'string'),
           const ColumnModel(key: 'count', label: 'Count', type: 'int'),
@@ -204,7 +242,9 @@ void main() {
 
     testWidgets('renders double cells right-aligned with monospace font', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Value'],
+        headers: [
+          const ColumnModel(key: 'val', label: 'Value', type: 'double'),
+        ],
         columnModels: [
           const ColumnModel(key: 'val', label: 'Value', type: 'double'),
         ],
@@ -222,7 +262,9 @@ void main() {
 
     testWidgets('renders enum-type cells as chips', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Status'],
+        headers: [
+          const ColumnModel(key: 'status', label: 'Status', type: 'enum'),
+        ],
         columnModels: [
           const ColumnModel(key: 'status', label: 'Status', type: 'enum'),
         ],
@@ -244,7 +286,9 @@ void main() {
 
     testWidgets('renders date-type cells formatted', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
-        headers: ['Date'],
+        headers: [
+          const ColumnModel(key: 'date', label: 'Date', type: 'date'),
+        ],
         columnModels: [
           const ColumnModel(key: 'date', label: 'Date', type: 'date'),
         ],
@@ -256,6 +300,168 @@ void main() {
       await tester.pump();
 
       expect(find.text('2024-01-15'), findsOneWidget);
+    });
+  });
+
+  group('TableViewWidget visibleColumnModels', () {
+    test('visibleColumnModels returns all columns when no hidden keys set', () {
+      final viewModel = _TestTablesViewModel(_MockDataSource(), 'Root');
+      viewModel.setState(
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+        ],
+        loading: false,
+      );
+
+      expect(viewModel.visibleColumnModels.length, equals(2));
+      expect(viewModel.visibleColumnModels.map((c) => c.key).toList(), equals(['a', 'b']));
+    });
+
+    test('visibleColumnModels filters out hidden columns by key', () {
+      final viewModel = _TestTablesViewModel(_MockDataSource(), 'Root');
+      viewModel.setState(
+        headers: [
+          const ColumnModel(key: 'a', label: 'Alpha', type: 'string'),
+          const ColumnModel(key: 'b', label: 'Beta', type: 'string'),
+          const ColumnModel(key: 'c', label: 'Gamma', type: 'string'),
+        ],
+        loading: false,
+        hiddenKeys: {'b'},
+      );
+
+      expect(viewModel.visibleColumnModels.length, equals(2));
+      expect(viewModel.visibleColumnModels.any((c) => c.key == 'b'), isFalse);
+      expect(viewModel.visibleColumnModels.map((c) => c.key).toList(), equals(['a', 'c']));
+    });
+  });
+
+  group('TableViewWidget sorting', () {
+    testWidgets('tapping sortable column header sorts rows ascending', (tester) async {
+      final columns = [
+        const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true),
+      ];
+      await tester.pumpWidget(buildTableWithModel(
+        headers: columns,
+        columnModels: columns,
+        rows: [
+          ['Charlie'],
+          ['Alice'],
+          ['Bob'],
+        ],
+      ));
+
+      await tester.pump();
+
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      final texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && !t.data!.startsWith('Name'))
+          .map((t) => t.data!)
+          .toList();
+      expect(texts, equals(['Alice', 'Bob', 'Charlie']));
+    });
+
+    testWidgets('tapping same column again reverses sort direction', (tester) async {
+      final columns = [
+        const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true),
+      ];
+      await tester.pumpWidget(buildTableWithModel(
+        headers: columns,
+        columnModels: columns,
+        rows: [
+          ['Bob'],
+          ['Alice'],
+          ['Charlie'],
+        ],
+      ));
+
+      await tester.pump();
+
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('Name'));
+      await tester.pumpAndSettle();
+
+      final texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && !t.data!.startsWith('Name'))
+          .map((t) => t.data!)
+          .toList();
+      expect(texts, equals(['Charlie', 'Bob', 'Alice']));
+    });
+
+    testWidgets('non-sortable column header does not trigger sort', (tester) async {
+      final columns = [
+        const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: false),
+      ];
+      await tester.pumpWidget(buildTableWithModel(
+        headers: columns,
+        columnModels: columns,
+        rows: [
+          ['Charlie'],
+          ['Alice'],
+          ['Bob'],
+        ],
+      ));
+
+      await tester.pump();
+
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      final texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && t.data != 'Name')
+          .map((t) => t.data!)
+          .toList();
+      expect(texts, equals(['Charlie', 'Alice', 'Bob']));
+    });
+
+    testWidgets('sort indicator renders on active sort column', (tester) async {
+      final columns = [
+        const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true),
+      ];
+      await tester.pumpWidget(buildTableWithModel(
+        headers: columns,
+        columnModels: columns,
+        rows: [
+          ['Charlie'],
+          ['Alice'],
+          ['Bob'],
+        ],
+      ));
+
+      await tester.pump();
+
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('↑'), findsOneWidget);
+    });
+  });
+
+  group('TableViewWidget visibility filtering', () {
+    testWidgets('visible:false columns are excluded from render', (tester) async {
+      final columns = [
+        const ColumnModel(key: 'a', label: 'Visible A', type: 'string', visible: true),
+        const ColumnModel(key: 'b', label: 'Hidden B', type: 'string', visible: false),
+        const ColumnModel(key: 'c', label: 'Visible C', type: 'string', visible: true),
+      ];
+      final model = _TestTablesViewModel(_MockDataSource(), 'Root');
+      model.setState(headers: columns, rows: [
+        ['A', 'B', 'C']
+      ]);
+      model.setHiddenColumnKeys(null);
+      await tester.pumpWidget(buildTableFromModel(model: model));
+
+      expect(find.text('Visible A'), findsOneWidget);
+      expect(find.text('Hidden B'), findsNothing);
+      expect(find.text('Visible C'), findsOneWidget);
+      expect(find.text('B'), findsNothing);
     });
   });
 }

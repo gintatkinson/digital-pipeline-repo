@@ -49,7 +49,8 @@ class TablesViewModel extends ChangeNotifier {
   String _activeView;
   List<TabDescriptor> _tabs = [];
   String? _selectedTabId;
-  List<String> _headers = [];
+  List<ColumnModel> _headers = [];
+  Set<String>? _hiddenColumnKeys;
   List<List<String>> _rows = [];
   List<ColumnModel> _columnModels = [];
   bool _loading = true;
@@ -72,10 +73,24 @@ class TablesViewModel extends ChangeNotifier {
   String? get selectedTabId => _selectedTabId;
 
   /// Column headers for the currently selected tab.
-  List<String> get headers => _headers;
+  List<ColumnModel> get headers => _headers;
+
+  Set<String>? get hiddenColumnKeys => _hiddenColumnKeys;
+
+  List<ColumnModel> get visibleColumnModels =>
+      (_hiddenColumnKeys == null || _hiddenColumnKeys!.isEmpty
+          ? _headers
+          : _headers.where((cm) => !_hiddenColumnKeys!.contains(cm.key)))
+          .where((cm) => cm.visible)
+          .toList();
 
   /// Column models for the currently selected tab.
   List<ColumnModel> get columnModels => _columnModels;
+
+  void setHiddenColumnKeys(Set<String>? keys) {
+    _hiddenColumnKeys = keys;
+    notifyListeners();
+  }
 
   /// Loaded table rows for the currently selected tab.
   List<List<String>> get rows => _rows;
@@ -173,7 +188,7 @@ class TablesViewModel extends ChangeNotifier {
 
   Future<void> _loadData(TabDescriptor tab, int requestId) async {
     try {
-      _headers = tab.columns.map((f) => f.label).toList();
+      _headers = tab.columns.map(ColumnModel.fromFieldDescriptor).toList();
       _columnModels = tab.columns.map(ColumnModel.fromFieldDescriptor).toList();
       final data = switch (tab.id) {
         'Alarm' => await _dataSource.fetchAlarms(_activeView),

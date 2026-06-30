@@ -208,4 +208,163 @@ void main() {
       expect(viewModel.columnModels, isEmpty);
     });
   });
+
+  group('TablesViewModel headers', () {
+    late _MockDataSource dataSource;
+    late TablesViewModel viewModel;
+
+    setUp(() {
+      dataSource = _MockDataSource();
+      viewModel = TablesViewModel(dataSource, 'test');
+    });
+
+    test('headers returns List<ColumnModel> after load', () async {
+      dataSource.onTypeFor = (typeName) async {
+        if (typeName == 'test-node') {
+          return TypeDescriptor(
+            typeName: 'test-node',
+            displayName: 'Test Node',
+            iconName: 'node',
+            fields: [],
+            childTypes: [],
+            relatedTypes: [
+              TypeRelationDescriptor(
+                relationName: 'has',
+                childTypeName: 'ChildType',
+                childLabel: 'Child Label',
+              ),
+            ],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType',
+            displayName: 'Child',
+            iconName: 'child',
+            fields: [
+              FieldDescriptor(key: 'k1', label: 'Col 1', type: 'string'),
+              FieldDescriptor(key: 'k2', label: 'Col 2', type: 'int'),
+            ],
+            childTypes: [],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        return null;
+      };
+
+      dataSource.onFetchElements = (parentNodeId) async => [
+        {'k1': 'a', 'k2': '1'},
+      ];
+
+      await viewModel.loadForNode('test-node');
+      expect(viewModel.headers, isA<List<ColumnModel>>());
+      expect(viewModel.headers.length, greaterThan(0));
+      expect(viewModel.headers.first.key, isNotEmpty);
+      expect(viewModel.headers.first.type, equals('string'));
+    });
+  });
+
+  group('TablesViewModel visibleColumnModels', () {
+    late _MockDataSource dataSource;
+    late TablesViewModel viewModel;
+
+    setUp(() {
+      dataSource = _MockDataSource();
+      viewModel = TablesViewModel(dataSource, 'test');
+    });
+
+    test('visibleColumnModels returns all columns when no hidden keys set',
+        () async {
+      dataSource.onTypeFor = (typeName) async {
+        if (typeName == 'test-node') {
+          return TypeDescriptor(
+            typeName: 'test-node',
+            displayName: 'Test Node',
+            iconName: 'node',
+            fields: [],
+            childTypes: [],
+            relatedTypes: [
+              TypeRelationDescriptor(
+                relationName: 'has',
+                childTypeName: 'ChildType',
+                childLabel: 'Child Label',
+              ),
+            ],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType',
+            displayName: 'Child',
+            iconName: 'child',
+            fields: [
+              FieldDescriptor(key: 'k1', label: 'Col 1', type: 'string'),
+              FieldDescriptor(key: 'k2', label: 'Col 2', type: 'int'),
+            ],
+            childTypes: [],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        return null;
+      };
+
+      dataSource.onFetchElements = (parentNodeId) async => [
+        {'k1': 'a', 'k2': '1'},
+      ];
+
+      await viewModel.loadForNode('test-node');
+      expect(viewModel.visibleColumnModels.length, equals(viewModel.headers.length));
+    });
+
+    test('visibleColumnModels filters out hidden columns by key', () async {
+      dataSource.onTypeFor = (typeName) async {
+        if (typeName == 'test-node') {
+          return TypeDescriptor(
+            typeName: 'test-node',
+            displayName: 'Test Node',
+            iconName: 'node',
+            fields: [],
+            childTypes: [],
+            relatedTypes: [
+              TypeRelationDescriptor(
+                relationName: 'has',
+                childTypeName: 'ChildType',
+                childLabel: 'Child Label',
+              ),
+            ],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType',
+            displayName: 'Child',
+            iconName: 'child',
+            fields: [
+              FieldDescriptor(key: 'k1', label: 'Col 1', type: 'string'),
+              FieldDescriptor(key: 'k2', label: 'Col 2', type: 'int'),
+            ],
+            childTypes: [],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        return null;
+      };
+
+      dataSource.onFetchElements = (parentNodeId) async => [
+        {'k1': 'a', 'k2': '1'},
+      ];
+
+      await viewModel.loadForNode('test-node');
+      final hiddenKey = viewModel.headers.first.key;
+      viewModel.setHiddenColumnKeys({hiddenKey});
+      expect(viewModel.visibleColumnModels.length, equals(viewModel.headers.length - 1));
+      expect(viewModel.visibleColumnModels.any((c) => c.key == hiddenKey), isFalse);
+    });
+  });
 }

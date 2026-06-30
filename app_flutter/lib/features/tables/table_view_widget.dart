@@ -22,7 +22,7 @@ import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 /// State changes: this widget is read-only; it watches [TablesViewModel] via
 /// `context.watch` and rebuilds on every notifyListeners call from the view
 /// model.
-class TableViewWidget extends StatelessWidget {
+class TableViewWidget extends StatefulWidget {
   const TableViewWidget({
     super.key,
     this.headingRowHeight = 32.0,
@@ -37,6 +37,14 @@ class TableViewWidget extends StatelessWidget {
   final double dataRowMaxHeight;
   final double horizontalMargin;
   final double columnSpacing;
+
+  @override
+  State<TableViewWidget> createState() => _TableViewWidgetState();
+}
+
+class _TableViewWidgetState extends State<TableViewWidget> {
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +69,20 @@ class TableViewWidget extends StatelessWidget {
       );
     }
 
-    final headers = viewModel.headers;
-    final columnModels = viewModel.columnModels;
-    final rows = viewModel.rows;
+    final headers = viewModel.visibleColumnModels;
+    final allHeaders = viewModel.headers;
+    var rows = viewModel.rows;
     final testId = '${viewModel.tabId}-table';
+
+    if (_sortColumnIndex != null && _sortColumnIndex! < headers.length) {
+      final sortedRows = List<List<String>>.from(rows);
+      sortedRows.sort((a, b) {
+        final aVal = a[_sortColumnIndex!];
+        final bVal = b[_sortColumnIndex!];
+        return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
+      });
+      rows = sortedRows;
+    }
 
     if (headers.isEmpty) {
       return const SizedBox.shrink();
@@ -74,9 +92,20 @@ class TableViewWidget extends StatelessWidget {
       builder: (context, constraints) {
         final colCount = headers.length;
         final spacingWidth = colCount > 1
-            ? (colCount - 1) * columnSpacing
+            ? (colCount - 1) * widget.columnSpacing
             : 0.0;
-        final colWidth = (constraints.maxWidth - 2 * horizontalMargin - spacingWidth) / colCount;
+        final colWidth = (constraints.maxWidth - 2 * widget.horizontalMargin - spacingWidth) / colCount;
+
+        void onSort(int columnIndex) {
+          setState(() {
+            if (_sortColumnIndex == columnIndex) {
+              _sortAscending = !_sortAscending;
+            } else {
+              _sortColumnIndex = columnIndex;
+              _sortAscending = true;
+            }
+          });
+        }
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -89,17 +118,18 @@ class TableViewWidget extends StatelessWidget {
                 ListView.builder(
                   key: Key('$testId-body'),
                   itemCount: rows.length,
-                  padding: EdgeInsets.only(top: headingRowHeight),
+                  padding: EdgeInsets.only(top: widget.headingRowHeight),
                   itemBuilder: (context, index) {
                     final row = rows[index];
                     return _DataRow(
                       cells: row,
-                      columnModels: columnModels,
+                      columnModels: headers,
+                      allHeaders: allHeaders,
                       colWidth: colWidth,
-                      dataRowMinHeight: dataRowMinHeight,
-                      dataRowMaxHeight: dataRowMaxHeight,
-                      horizontalMargin: horizontalMargin,
-                      columnSpacing: columnSpacing,
+                      dataRowMinHeight: widget.dataRowMinHeight,
+                      dataRowMaxHeight: widget.dataRowMaxHeight,
+                      horizontalMargin: widget.horizontalMargin,
+                      columnSpacing: widget.columnSpacing,
                       index: index,
                     );
                   },
@@ -110,12 +140,14 @@ class TableViewWidget extends StatelessWidget {
                   right: 0,
                   child: _HeaderRow(
                     headers: headers,
-                    columnModels: columnModels,
                     colWidth: colWidth,
-                    headingRowHeight: headingRowHeight,
-                    horizontalMargin: horizontalMargin,
-                    columnSpacing: columnSpacing,
+                    headingRowHeight: widget.headingRowHeight,
+                    horizontalMargin: widget.horizontalMargin,
+                    columnSpacing: widget.columnSpacing,
                     testId: testId,
+                    sortColumnIndex: _sortColumnIndex,
+                    sortAscending: _sortAscending,
+                    onSort: onSort,
                   ),
                 ),
               ],
@@ -128,22 +160,26 @@ class TableViewWidget extends StatelessWidget {
 }
 
 class _HeaderRow extends StatelessWidget {
-  final List<String> headers;
-  final List<ColumnModel> columnModels;
+  final List<ColumnModel> headers;
   final double colWidth;
   final double headingRowHeight;
   final double horizontalMargin;
   final double columnSpacing;
   final String testId;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final void Function(int columnIndex) onSort;
 
   const _HeaderRow({
     required this.headers,
-    required this.columnModels,
     required this.colWidth,
     required this.headingRowHeight,
     required this.horizontalMargin,
     required this.columnSpacing,
     required this.testId,
+    required this.sortColumnIndex,
+    required this.sortAscending,
+    required this.onSort,
   });
 
   @override
@@ -161,12 +197,17 @@ class _HeaderRow extends StatelessWidget {
         children: [
           for (int i = 0; i < headers.length; i++)
             _HeaderCell(
-              label: i < columnModels.length ? columnModels[i].label : headers[i],
+              label: headers[i].label,
+              columnWidth: headers[i].width,
               colWidth: colWidth,
               horizontalMargin: horizontalMargin,
               columnSpacing: columnSpacing,
               isFirst: i == 0,
               isLast: i == headers.length - 1,
+              sortable: headers[i].sortable,
+              isActiveSort: sortColumnIndex == i,
+              sortAscending: sortAscending,
+              onTap: headers[i].sortable ? () => onSort(i) : null,
             ),
         ],
       ),
@@ -176,25 +217,39 @@ class _HeaderRow extends StatelessWidget {
 
 class _HeaderCell extends StatelessWidget {
   final String label;
+  final double? columnWidth;
   final double colWidth;
   final double horizontalMargin;
   final double columnSpacing;
   final bool isFirst;
   final bool isLast;
+  final bool sortable;
+  final bool isActiveSort;
+  final bool sortAscending;
+  final VoidCallback? onTap;
 
   const _HeaderCell({
     required this.label,
+    this.columnWidth,
     required this.colWidth,
     required this.horizontalMargin,
     required this.columnSpacing,
     required this.isFirst,
     required this.isLast,
+    required this.sortable,
+    required this.isActiveSort,
+    required this.sortAscending,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final displayLabel = isActiveSort
+        ? '$label ${sortAscending ? '↑' : '↓'}'
+        : label;
+
     return SizedBox(
-      width: colWidth,
+      width: columnWidth ?? colWidth,
       child: Padding(
         padding: EdgeInsets.only(
           left: isFirst ? horizontalMargin : columnSpacing / 2,
@@ -202,7 +257,12 @@ class _HeaderCell extends StatelessWidget {
         ),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+          child: sortable
+              ? GestureDetector(
+                  onTap: onTap,
+                  child: Text(displayLabel, style: Theme.of(context).textTheme.labelSmall),
+                )
+              : Text(label, style: Theme.of(context).textTheme.labelSmall),
         ),
       ),
     );
@@ -212,6 +272,7 @@ class _HeaderCell extends StatelessWidget {
 class _DataRow extends StatelessWidget {
   final List<String> cells;
   final List<ColumnModel> columnModels;
+  final List<ColumnModel> allHeaders;
   final double colWidth;
   final double dataRowMinHeight;
   final double dataRowMaxHeight;
@@ -222,6 +283,7 @@ class _DataRow extends StatelessWidget {
   const _DataRow({
     required this.cells,
     required this.columnModels,
+    required this.allHeaders,
     required this.colWidth,
     required this.dataRowMinHeight,
     required this.dataRowMaxHeight,
@@ -241,17 +303,15 @@ class _DataRow extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (int i = 0; i < cells.length; i++)
+          for (int i = 0; i < columnModels.length; i++)
             _DataCell(
-              value: cells[i],
-              columnModel: i < columnModels.length
-                  ? columnModels[i]
-                  : const ColumnModel(key: '', label: '', type: 'string'),
+              value: cells[allHeaders.indexWhere((h) => h.key == columnModels[i].key)],
+              columnModel: columnModels[i],
               colWidth: colWidth,
               horizontalMargin: horizontalMargin,
               columnSpacing: columnSpacing,
               isFirst: i == 0,
-              isLast: i == cells.length - 1,
+              isLast: i == columnModels.length - 1,
             ),
         ],
       ),
