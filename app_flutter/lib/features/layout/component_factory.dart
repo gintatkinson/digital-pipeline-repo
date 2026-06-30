@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/tree/sidebar_tree.dart';
@@ -112,29 +113,12 @@ class ComponentFactory {
           treeData: treeData,
         );
       case 'TabbedContainer':
-        final childrenList = node['children'] as List<dynamic>? ?? [];
-        final tabs = childrenList.map((c) {
-          final id = c['id'] as String? ?? '';
-          final label = resolveTabLabel(id);
-          return TabConfig(
-            id: id,
-            label: label,
-            contentBuilder: (_) => c is Map<String, dynamic>
-                ? build(c, parentWidth, parentHeight, context)
-                : const SizedBox.shrink(),
-          );
-        }).toList();
-        return TabbedContainer(
-          tabs: tabs,
-          initialTabId: tabs.isNotEmpty ? tabs.first.id : '',
-        );
+        return _TabbedContainerHost(currentView: currentView);
       case 'TableView':
         final id = node['id'] as String? ?? '';
-        final repository = context.read<AbstractRepository>();
         return _TableViewContainer(
           tabId: id,
           currentView: currentView,
-          repository: repository,
         );
       default:
         return const SizedBox.shrink();
@@ -142,15 +126,64 @@ class ComponentFactory {
   }
 }
 
+/// Host widget that creates a [TablesViewModel], discovers tabs from the
+/// [DataSource], and provides it to [TabbedContainer].
+class _TabbedContainerHost extends StatefulWidget {
+  final String currentView;
+
+  const _TabbedContainerHost({required this.currentView, super.key});
+
+  @override
+  State<_TabbedContainerHost> createState() => _TabbedContainerHostState();
+}
+
+class _TabbedContainerHostState extends State<_TabbedContainerHost> {
+  TablesViewModel? _viewModel;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final repo = context.read<AbstractRepository>();
+      final ds = context.read<DataSource>();
+      _viewModel = TablesViewModel(repo, ds, widget.currentView)
+        ..loadForNode(widget.currentView);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_TabbedContainerHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentView != oldWidget.currentView) {
+      _viewModel?.loadForNode(widget.currentView);
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewModel?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_viewModel == null) return const SizedBox.shrink();
+    return ChangeNotifierProvider<TablesViewModel>.value(
+      value: _viewModel!,
+      child: const TabbedContainer(),
+    );
+  }
+}
+
 class _TableViewContainer extends StatefulWidget {
   final String tabId;
   final String currentView;
-  final AbstractRepository repository;
 
   const _TableViewContainer({
     required this.tabId,
     required this.currentView,
-    required this.repository,
   });
 
   @override
@@ -158,32 +191,41 @@ class _TableViewContainer extends StatefulWidget {
 }
 
 class _TableViewContainerState extends State<_TableViewContainer> {
-  late final TablesViewModel _viewModel;
+  TablesViewModel? _viewModel;
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _viewModel = TablesViewModel(widget.repository, widget.tabId, widget.currentView);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final repo = context.read<AbstractRepository>();
+      final ds = context.read<DataSource>();
+      _viewModel = TablesViewModel(repo, ds, widget.currentView)
+        ..loadForNode(widget.currentView);
+    }
   }
 
   @override
   void didUpdateWidget(_TableViewContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.tabId != oldWidget.tabId || widget.currentView != oldWidget.currentView) {
-      _viewModel.reload(widget.tabId, widget.currentView);
+    if (widget.tabId != oldWidget.tabId ||
+        widget.currentView != oldWidget.currentView) {
+      _viewModel?.loadForNode(widget.currentView);
     }
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    _viewModel?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_viewModel == null) return const SizedBox.shrink();
     return ChangeNotifierProvider<TablesViewModel>.value(
-      value: _viewModel,
+      value: _viewModel!,
       child: const TableViewWidget(),
     );
   }

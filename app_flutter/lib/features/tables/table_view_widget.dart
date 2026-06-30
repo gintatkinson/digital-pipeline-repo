@@ -28,11 +28,7 @@ class TableViewWidget extends StatelessWidget {
       );
     }
 
-    final testId = viewModel.tabId == 'sub_elements_table'
-        ? 'items-table'
-        : viewModel.tabId == 'active_alarms_table'
-            ? 'status-table'
-            : 'activity-table';
+    final testId = '${viewModel.tabId}-table';
 
     return LayoutBuilder(
       builder: (context, constraints) {

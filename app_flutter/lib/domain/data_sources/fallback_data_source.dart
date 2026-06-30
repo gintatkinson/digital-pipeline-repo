@@ -20,6 +20,49 @@ class FallbackDataSource implements DataSource {
         FieldDescriptor(key: 'name', label: 'Name', type: 'string', required: true, sectionOrder: 0),
         FieldDescriptor(key: 'description', label: 'Description', type: 'string', sectionOrder: 1),
       ],
+      childTypes: [
+        TypeRelationDescriptor(relationName: 'contains', childTypeName: 'SubElement', childLabel: 'Items'),
+        TypeRelationDescriptor(relationName: 'affects', childTypeName: 'Alarm', childLabel: 'Status'),
+        TypeRelationDescriptor(relationName: 'records', childTypeName: 'Event', childLabel: 'Activity'),
+      ],
+      parentTypes: [],
+    ),
+    TypeDescriptor(
+      typeName: 'SubElement',
+      displayName: 'Sub Element',
+      iconName: 'widgets',
+      fields: [
+        FieldDescriptor(key: 'id', label: 'ID', type: 'string'),
+        FieldDescriptor(key: 'name', label: 'Name', type: 'string'),
+        FieldDescriptor(key: 'type', label: 'Type', type: 'string'),
+        FieldDescriptor(key: 'status', label: 'Status', type: 'string'),
+      ],
+      childTypes: [],
+      parentTypes: [],
+    ),
+    TypeDescriptor(
+      typeName: 'Alarm',
+      displayName: 'Alarm',
+      iconName: 'warning',
+      fields: [
+        FieldDescriptor(key: 'id', label: 'Alarm ID', type: 'string'),
+        FieldDescriptor(key: 'target', label: 'Target', type: 'string'),
+        FieldDescriptor(key: 'severity', label: 'Severity', type: 'string'),
+        FieldDescriptor(key: 'timestamp', label: 'Timestamp', type: 'string'),
+      ],
+      childTypes: [],
+      parentTypes: [],
+    ),
+    TypeDescriptor(
+      typeName: 'Event',
+      displayName: 'Event',
+      iconName: 'event',
+      fields: [
+        FieldDescriptor(key: 'id', label: 'Event ID', type: 'string'),
+        FieldDescriptor(key: 'source', label: 'Source', type: 'string'),
+        FieldDescriptor(key: 'message', label: 'Message', type: 'string'),
+        FieldDescriptor(key: 'timestamp', label: 'Timestamp', type: 'string'),
+      ],
       childTypes: [],
       parentTypes: [],
     ),
@@ -35,7 +78,11 @@ class FallbackDataSource implements DataSource {
   }
 
   @override
-  Future<List<(String, String)>> discoverHierarchy() async => [];
+  Future<List<(String, String)>> discoverHierarchy() async => [
+    ('Item', 'SubElement'),
+    ('Item', 'Alarm'),
+    ('Item', 'Event'),
+  ];
 
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};

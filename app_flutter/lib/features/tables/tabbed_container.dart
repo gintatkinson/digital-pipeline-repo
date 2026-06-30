@@ -1,99 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
+import 'package:app_flutter/features/tables/table_view_widget.dart';
 
-class TabConfig {
-  final String id;
-  final String label;
-  final WidgetBuilder contentBuilder;
-
-  const TabConfig({
-    required this.id,
-    required this.label,
-    required this.contentBuilder,
-  });
-}
-
+/// A tabbed container that reads its tab labels from [TablesViewModel]
+/// instead of hardcoded values. Each tab displays a [TableViewWidget].
 class TabbedContainer extends StatefulWidget {
-  final List<TabConfig> tabs;
-  final String initialTabId;
-  final ValueChanged<String>? onTabChanged;
-
-  const TabbedContainer({
-    super.key,
-    required this.tabs,
-    required this.initialTabId,
-    this.onTabChanged,
-  });
+  const TabbedContainer({super.key});
 
   @override
   State<TabbedContainer> createState() => _TabbedContainerState();
 }
 
-class _TabbedContainerState extends State<TabbedContainer> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _activeTabIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    final int foundIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
-    _activeTabIndex = foundIndex >= 0 ? foundIndex : 0;
-    _tabController = TabController(length: widget.tabs.length, vsync: this, initialIndex: _activeTabIndex);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() => _activeTabIndex = _tabController.index);
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(TabbedContainer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.tabs.length != oldWidget.tabs.length) {
-      _tabController.dispose();
-      final int newIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
-      _activeTabIndex = newIndex >= 0 ? newIndex : 0;
-      _tabController = TabController(
-        length: widget.tabs.length,
-        vsync: this,
-        initialIndex: _activeTabIndex,
-      );
-      _tabController.addListener(() {
-        if (!_tabController.indexIsChanging) {
-          setState(() => _activeTabIndex = _tabController.index);
-        }
-      });
-    } else if (widget.initialTabId != oldWidget.initialTabId) {
-      final newIndex = widget.tabs.indexWhere((t) => t.id == widget.initialTabId);
-      if (newIndex >= 0 && newIndex != _tabController.index) {
-        _tabController.animateTo(newIndex);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _TabbedContainerState extends State<TabbedContainer>
+    with SingleTickerProviderStateMixin {
+  TabController? _tabController;
+  int _lastTabCount = 0;
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<TablesViewModel>();
+    final tabs = viewModel.tabs;
+
+    if (tabs.isEmpty) {
+      if (viewModel.loading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return const SizedBox.shrink();
+    }
+
+    if (_tabController == null || tabs.length != _lastTabCount) {
+      _tabController?.dispose();
+      _lastTabCount = tabs.length;
+      _tabController = TabController(length: tabs.length, vsync: this);
+      final initialIndex =
+          tabs.indexWhere((t) => t.id == viewModel.selectedTabId);
+      if (initialIndex > 0) _tabController!.index = initialIndex;
+      _tabController!.addListener(() {
+        if (!_tabController!.indexIsChanging) {
+          final tab = tabs[_tabController!.index];
+          viewModel.selectTab(tab.id);
+        }
+      });
+    }
+
     return Column(
       children: [
         Material(
           color: Theme.of(context).cardColor,
           child: TabBar(
-            controller: _tabController,
-            tabs: widget.tabs.map((t) => Tab(text: t.label)).toList(),
+            controller: _tabController!,
+            tabs: tabs.map((t) => Tab(text: t.label)).toList(),
           ),
         ),
         Expanded(
           child: TabBarView(
-            controller: _tabController,
-            children: widget.tabs.map((t) => t.contentBuilder(context)).toList(),
+            controller: _tabController!,
+            children: tabs.map((_) => const TableViewWidget()).toList(),
           ),
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
   }
 }

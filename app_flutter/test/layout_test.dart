@@ -96,7 +96,7 @@ void main() {
 
     expect(find.text('Antigravity Console'), findsNWidgets(2));
     expect(find.text('Active View: Item'), findsOneWidget);
-    expect(find.byKey(const Key('items-table')), findsOneWidget);
+    expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
   });
 
   testWidgets('Layout switches tabs in TabbedContainer', (WidgetTester tester) async {
@@ -110,22 +110,22 @@ void main() {
     await tester.pumpAndSettle();
 
     // Items table is displayed initially
-    expect(find.byKey(const Key('items-table')), findsOneWidget);
-    expect(find.byKey(const Key('status-table')), findsNothing);
+    expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
+    expect(find.byKey(const Key('Alarm-table')), findsNothing);
 
     // Tap Status tab
     await tester.tap(find.widgetWithText(Tab, 'Status'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('items-table')), findsNothing);
-    expect(find.byKey(const Key('status-table')), findsOneWidget);
+    expect(find.byKey(const Key('SubElement-table')), findsNothing);
+    expect(find.byKey(const Key('Alarm-table')), findsOneWidget);
 
     // Tap Activity tab
     await tester.tap(find.widgetWithText(Tab, 'Activity'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('status-table')), findsNothing);
-    expect(find.byKey(const Key('activity-table')), findsOneWidget);
+    expect(find.byKey(const Key('Alarm-table')), findsNothing);
+    expect(find.byKey(const Key('Event-table')), findsOneWidget);
   });
 
   testWidgets('Layout splitter drags update sizes', (WidgetTester tester) async {
@@ -196,10 +196,10 @@ void main() {
     await tester.tap(find.byKey(const Key('node_Item')));
     await tester.pumpAndSettle();
 
-    // Send ArrowDown key event — single node, no change
+    // Send ArrowDown key event — navigates to SubElement child
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
-    expect(selectedView, null);
+    expect(selectedView, 'SubElement');
   });
 
   testWidgets('Layout handles tree node tap selection without crashing', (WidgetTester tester) async {
