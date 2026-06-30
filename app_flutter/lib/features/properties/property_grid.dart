@@ -596,7 +596,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Committed Pipeline Scope Data (onBlur verified)',
+            'Committed Data (verified on blur)',
             style: Theme.of(context).textTheme.labelSmall,
           ),
           const SizedBox(height: 8),
