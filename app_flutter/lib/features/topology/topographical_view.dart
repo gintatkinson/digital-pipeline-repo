@@ -4,27 +4,40 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/layout/split_workspace.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
-class TopographicalView extends StatelessWidget {
+/// The top-level topology view: breadcrumb header + split workspace
+/// (topology map + detail child) or standalone topology map.
+///
+/// If [child] is non-null, the view uses [SplitWorkspace] to show the
+/// topology map alongside a detail pane (e.g. property grid). When [child]
+/// is null, the topology map takes the full area below the header.
+///
+/// Edge cases: empty [treeData] produces no breadcrumbs; unknown
+/// [currentView] IDs still render the header label as-is.
   final String currentView;
-  final Map<String, dynamic> parsedLayout;
   final ValueChanged<String> onViewSelected;
   final Widget? child;
   final TopologyData topologyData;
   final List<TreeNode> treeData;
+  final Axis splitDirection;
+  final double splitMinFirstPaneSize;
+  final double splitInitialRatio;
+  final Key splitterKey;
 
   const TopographicalView({
     super.key,
     required this.currentView,
-    required this.parsedLayout,
     required this.onViewSelected,
     this.child,
     required this.topologyData,
     this.treeData = const [],
+    this.splitDirection = Axis.vertical,
+    this.splitMinFirstPaneSize = 100.0,
+    this.splitInitialRatio = 0.4,
+    this.splitterKey = const Key('topo_splitter'),
   });
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[TOPOGRAPHICAL_VIEW] build: currentView=$currentView');
     final body = child != null
         ? SplitWorkspace(
             leading: TopologyMap(
@@ -33,10 +46,10 @@ class TopographicalView extends StatelessWidget {
               data: topologyData,
             ),
             trailing: child!,
-            direction: Axis.vertical,
-            minFirstPaneSize: 100.0,
-            initialRatio: 0.4,
-            splitterKey: const Key('topo_splitter'),
+            direction: splitDirection,
+            minFirstPaneSize: splitMinFirstPaneSize,
+            initialRatio: splitInitialRatio,
+            splitterKey: splitterKey,
           )
         : TopologyMap(
             activeFocusedNode: currentView,

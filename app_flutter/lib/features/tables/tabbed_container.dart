@@ -3,8 +3,27 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 
-/// A tabbed container that reads its tab labels from [TablesViewModel]
-/// instead of hardcoded values. Each tab displays a [TableViewWidget].
+/// Renders a tabbed view whose labels, columns, and data are driven by a
+/// [TablesViewModel].
+///
+/// Exists to display child/related types of the currently selected tree node in
+/// separate tabs, removing the need for hardcoded tab definitions. Use this
+/// widget anywhere the UI needs data-source-driven tab navigation.
+///
+/// Edge cases:
+///   - If [TablesViewModel.tabs] is empty and [loading] is `true`, a centered
+///     [CircularProgressIndicator] is shown.
+///   - If [TablesViewModel.tabs] is empty and [loading] is `false`, nothing is
+///     rendered ([SizedBox.shrink]).
+///   - When tabs change (e.g. navigating to a different node), the
+///     [TabController] is disposed and re-created to match the new tab count.
+///   - The initial tab index is determined by [TablesViewModel.selectedTabId];
+///     if no match is found, index 0 is used.
+///
+/// State changes: this widget creates a [TabController] with
+/// [SingleTickerProviderStateMixin] and disposes it on teardown. Tab selection
+/// is forwarded to [TablesViewModel.selectTab] which triggers async data
+/// loading.
 class TabbedContainer extends StatefulWidget {
   const TabbedContainer({super.key});
 

@@ -3,7 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// A [TextInputFormatter] that converts all input characters to uppercase.
+/// Converts all input characters to uppercase in a text field.
+///
+/// Exists to enforce a consistent uppercase display format for fields whose
+/// [FieldDescriptor.inputFormatters] contains the `"uppercase"` literal. Use
+/// this when the data source expects uppercase identifiers (e.g., asset codes,
+/// serial numbers).
+///
+/// Edge cases: operates on every keystroke via [TextEditingValue]; an empty
+/// string remains empty. Non-letter characters are unaffected.
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -14,21 +22,44 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
-/// A stateful widget that renders an editable property grid for [FieldDescriptor]s.
+/// Editable property grid that displays [FieldDescriptor] fields grouped by
+/// section and emits validated data on blur.
 ///
-/// Displays fields grouped by section, supports text input, dropdown (enum),
-/// validation, and blur-based saving. Emits committed data via [onSave].
+/// Exists to provide a generic, schema-driven form for editing typed objects
+/// whose structure is not known at compile time (e.g., nodes from an external
+/// data source). Use this widget whenever you need inline editing of structured
+/// properties with validation, enum dropdowns, and blur-based commit.
+///
+/// Edge cases:
+///   - An empty [fields] list renders a no-op grid with nothing to edit.
+///   - [initialValues] may omit keys present in [fields]; those fields start
+///     with an empty string.
+///   - Validation errors for each field are displayed inline below the input;
+///     they are cleared when the field passes validation on blur.
+///
+/// State changes: committed data is accumulated in `committedData` and emitted
+/// via [onSave] on each successful blur. This widget does NOT start any
+/// long-lived streams or timers. All controllers and focus nodes are disposed
+/// in [dispose].
 class PropertyGrid extends StatefulWidget {
-  /// The list of field descriptors to display.
+  /// The list of field descriptors to display. When empty the grid renders
+  /// nothing editable.
   final List<FieldDescriptor> fields;
 
-  /// Initial values keyed by field key.
+  /// Initial values keyed by [FieldDescriptor.key]. Keys present in
+  /// [initialValues] but absent from [fields] are silently ignored. Missing
+  /// keys render as empty strings.
   final Map<String, dynamic> initialValues;
 
-  /// Called with the current committed data on each successful blur save.
+  /// Called with the current committed data after a field passes validation on
+  /// blur. Not called if validation fails. The callback receives a fresh
+  /// `Map<String, dynamic>` of the entire committed state, not just the edited
+  /// field. Can be null to opt out of save notifications.
   final void Function(Map<String, dynamic>)? onSave;
 
   /// The currently active view name used to highlight the matching section.
+  /// When set to `'root'`, the first section (alphabetically) is highlighted.
+  /// Sections whose [FieldDescriptor.sectionLabel] does not match are dimmed.
   final String activeView;
 
   const PropertyGrid({

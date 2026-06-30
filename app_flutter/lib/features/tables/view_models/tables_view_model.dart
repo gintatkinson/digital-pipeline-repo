@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// Describes one tab discovered from [TypeDescriptor.childTypes] or [TypeDescriptor.relatedTypes].
+/// Metadata for a single tab in the table view, derived from either a child
+/// type or a related type of the current [TypeDescriptor].
+///
+/// Exists to pair a display label with the column schema ([columns]) needed to
+/// render a tab's table. Created by [TablesViewModel] during discovery.
 class TabDescriptor {
   final String id;
   final String label;
@@ -15,9 +19,30 @@ class TabDescriptor {
   });
 }
 
-/// View-model for the tables tabbed container. Discovers tab labels and
-/// column headers from the [DataSource]’s [TypeDescriptor.childTypes]
-/// instead of hardcoding them.
+/// Drives the tabbed table view by discovering tabs from the data source and
+/// fetching tabular data asynchronously.
+///
+/// Exists to centralise data-source interaction for the tables feature and to
+/// keep the widget layer free of async orchestration. Use this view model
+/// wherever a [TabbedContainer] (or similar) needs reactive tab/table state.
+///
+/// Edge cases:
+///   - If the data source returns `null` for a type descriptor (unknown node),
+///     [loadForNode] exits early leaving [tabs] empty.
+///   - Stale requests are abandoned using a monotonically increasing request
+///     counter ([_requestId]) — responses for superseded requests are ignored.
+///   - If all types resolve but no child/related types exist, [tabs] is empty,
+///     [selectedTabId] is `null`, [loading] is `false`, and no data is fetched.
+///   - [selectTab] receives a [tabId] that does not match any tab — this throws
+///     because [firstWhere] without `orElse` is used; callers must ensure the
+///     id is valid (typically via [tabs] state).
+///
+/// State changes: each public method ([loadForNode], [selectTab]) sets
+/// [_loading] to `true`, clears errors, calls [notifyListeners], then fetches
+/// data asynchronously. On completion, [_loading] is `false`, [headers],
+/// [rows] are updated, and [notifyListeners] is called again. On failure,
+/// [_error] is set, [rows] and [headers] are cleared, and a stack trace is
+/// logged via [debugPrint].
 class TablesViewModel extends ChangeNotifier {
   final DataSource _dataSource;
   String _activeView;
@@ -31,14 +56,17 @@ class TablesViewModel extends ChangeNotifier {
 
   TablesViewModel(this._dataSource, this._activeView);
 
-  /// All discovered tabs for the current node.
+  /// All discovered tabs for the current node. Empty until [loadForNode]
+  /// completes successfully and the node has child/related types.
   List<TabDescriptor> get tabs => _tabs;
 
-  /// The currently active tab identifier.
+  /// The currently active tab identifier. Returns the first tab's id if none
+  /// is explicitly selected, or an empty string when [tabs] is empty.
   String get tabId =>
       _selectedTabId ?? (_tabs.isNotEmpty ? _tabs.first.id : '');
 
-  /// The currently active tab identifier.
+  /// The currently active tab identifier. `null` before [loadForNode] or when
+  /// no tabs exist.
   String? get selectedTabId => _selectedTabId;
 
   /// Column headers for the currently selected tab.
@@ -53,8 +81,13 @@ class TablesViewModel extends ChangeNotifier {
   /// Error message if the last fetch failed, or null.
   String? get error => _error;
 
-  /// Discover tabs and column metadata from [DataSource] for [nodeId]
-  /// and load the first tab’s data.
+  /// Discovers tabs and loads the first tab's data for the given [nodeId].
+  ///
+  /// Fetches the [TypeDescriptor] for [nodeId], then iterates
+  /// [childTypes] and [relatedTypes] to build [tabs]. Once built, loads data
+  /// for the first tab. If the data source returns `null`, this is a no-op
+  /// (tabs remain empty). Stale responses (superseded by a newer call) are
+  /// silently dropped via the [_requestId] counter.
   Future<void> loadForNode(String nodeId) async {
     final requestId = ++_requestId;
     _activeView = nodeId;
@@ -114,7 +147,13 @@ class TablesViewModel extends ChangeNotifier {
     }
   }
 
-  /// Switch to a different tab and load its data.
+  /// Switches to the tab identified by [tabId] and loads its data.
+  ///
+  /// [tabId] must match one of the [tabs] identifiers (uses [firstWhere]
+  /// without `orElse` — an unknown id throws [StateError]). Sets [_loading]
+  /// to `true`, clears the error state, then calls [_loadData] to fetch rows.
+  /// When the node no longer has the tab referenced by [tabId], callers should
+  /// guard usage or call [loadForNode] first to refresh the tab list.
   Future<void> selectTab(String tabId) async {
     final tab = _tabs.firstWhere((t) => t.id == tabId);
     _selectedTabId = tabId;

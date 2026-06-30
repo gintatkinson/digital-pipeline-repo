@@ -3,6 +3,19 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
+/// Renders a single [TreeNode] row in the sidebar tree with expand/collapse
+/// and selection highlighting.
+///
+/// Recursively renders child nodes indented under their parent when expanded.
+/// Selection state is read from [TreeViewModel.currentView]; expansion state
+/// from [TreeViewModel.expanded]. Tapping a leaf node calls
+/// [TreeViewModel.selectView], while parent nodes show a toggle handle to
+/// expand/collapse children.
+///
+/// Edge cases: root-level nodes with no parent; nodes whose parent is
+/// collapsed are not rendered on screen (filtered by [TreeViewModel]'s
+/// visible-node walk). Does not trigger [notifyListeners] directly — all
+/// state changes are delegated to the view model.
 class TreeNodeWidget extends StatelessWidget {
   final TreeNode node;
 

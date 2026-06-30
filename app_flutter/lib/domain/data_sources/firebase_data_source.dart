@@ -3,15 +3,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// A [DataSource] implementation backed by Cloud Firestore.
+/// [DataSource] implementation backed by Cloud Firestore.
 ///
-/// Type schemas are stored in the `schema` collection (`types` and `hierarchy`
-/// documents). Instance data lives in the `data` collection, while elements,
-/// alarms, and events are stored in their own collections indexed by
-/// `parent_node_id`. Property changes are broadcast via an in-memory
-/// [StreamController] so that all watchers see live updates.
+/// Type schemas are stored in `schema/types` and `schema/hierarchy`
+/// documents. Instance data lives in the `data` collection, while
+/// elements, alarms, and events reside in separate collections indexed
+/// by `parent_node_id`. Property writes are broadcast via an in-memory
+/// [StreamController] so all active [watchProperties] subscribers
+/// receive live updates. Use this data source for multi-user,
+/// server-backed deployments. Requires valid Firebase configuration;
+/// reads and writes are subject to Firestore security rules. All reads
+/// hit the network — results are NOT cached locally.
 class FirebaseDataSource implements DataSource {
   /// Creates a [FirebaseDataSource] connected to the given [Firestore] instance.
+  /// Callers must ensure [_firestore] is initialized and pointing to the
+  /// correct project before calling any data methods.
   FirebaseDataSource(this._firestore);
   final FirebaseFirestore _firestore;
   final StreamController<Map<String, dynamic>> _propertiesController =
@@ -20,13 +26,19 @@ class FirebaseDataSource implements DataSource {
   @override
   String get name => 'firebase';
 
-  /// Fetches all type descriptors from the `schema/types` Firestore document.
+  /// Reads all type descriptors from the `schema/types` Firestore document.
   ///
-  /// Returns an empty list if the document does not exist or has no `fields`
-  /// entry. Each field entry is parsed into a [TypeDescriptor] including its
-  /// display name, icon, fields, and relation descriptors.
+  /// Each key in the `fields` map is treated as a type name; its value
+  /// is parsed into a [TypeDescriptor] including display name, icon,
+  /// attributes, and relation descriptors.
   ///
-  /// Throws a [FirebaseException] if the underlying Firestore read fails.
+  /// Returns an empty list when the document does not exist or has no
+  /// `fields` map (e.g. first launch before schema is seeded). Does NOT
+  /// throw on missing documents — returns `[]` gracefully so the UI
+  /// shows a fallback instead of crashing. Throws a [FirebaseException]
+  /// if the underlying Firestore read fails (e.g. network outage,
+  /// insufficient permissions). Results are NOT cached; each call
+  /// triggers a Firestore read.
   @override
   Future<List<TypeDescriptor>> discoverTypes() async {
     final snapshot = await _firestore.collection('schema').doc('types').get();
@@ -51,7 +63,12 @@ class FirebaseDataSource implements DataSource {
   }
 
   /// Returns the [TypeDescriptor] whose [TypeDescriptor.typeName] matches
-  /// [typeName], or `null` if no such type exists in the data source.
+  /// [typeName], or `null` if no such type exists.
+  ///
+  /// Delegates to [discoverTypes] and performs a linear scan (O(N)).
+  /// Does NOT cache results; each call reads the full schema from
+  /// Firestore. Prefer [discoverTypes] when loading multiple types at
+  /// once to avoid N+1 reads.
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
     final types = await discoverTypes();
@@ -61,10 +78,13 @@ class FirebaseDataSource implements DataSource {
     return null;
   }
 
-  /// Reads the `schema/hierarchy` Firestore document and returns parent-child
-  /// type pairs `(parentTypeName, childTypeName)`.
+  /// Reads the `schema/hierarchy` Firestore document and returns
+  /// parent-child type pairs `(parentTypeName, childTypeName)`.
   ///
-  /// Returns an empty list if the document is missing or has no `pairs` field.
+  /// Returns an empty list when the document is missing or has no
+  /// `pairs` field (e.g. a flat ontology with no parent-child
+  /// relationships). Throws a [FirebaseException] on network or
+  /// permission failures. Each call triggers a single Firestore read.
   @override
   Future<List<(String, String)>> discoverHierarchy() async {
     final snapshot = await _firestore.collection('schema').doc('hierarchy').get();
@@ -77,10 +97,13 @@ class FirebaseDataSource implements DataSource {
     }).toList();
   }
 
-  /// Fetches the property map for the node identified by [nodeId] from the
-  /// `data` Firestore collection.
+  /// Fetches the property map for the node identified by [nodeId] from
+  /// the `data` Firestore collection.
   ///
-  /// Returns an empty map if the document does not exist.
+  /// Returns an empty map when the document does not exist (e.g. a
+  /// newly referenced node that has never been saved). Throws a
+  /// [FirebaseException] on network or permission failures. Each call
+  /// triggers a single Firestore read.
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
     final doc = await _firestore.collection('data').doc(nodeId).get();
@@ -89,18 +112,30 @@ class FirebaseDataSource implements DataSource {
     return Map<String, dynamic>.from(data);
   }
 
-  /// Persists [data] as the properties for [nodeId] in the `data` Firestore
-  /// collection using a deep merge. After saving, a change event is broadcast
-  /// to all active [watchProperties] subscribers.
+  /// Persists [data] as the properties for [nodeId] in the `data`
+  /// Firestore collection using a deep merge.
+  ///
+  /// STATE CHANGE: Writes to Firestore and emits a change event on the
+  /// broadcast stream so all active [watchProperties] subscribers
+  /// receive the update. Only top-level fields in [data] are
+  /// merged — nested maps are replaced entirely. Throws a
+  /// [FirebaseException] on network or permission failures.
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     await _firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
     _propertiesController.add({'nodeId': nodeId, 'data': data});
   }
 
-  /// Returns a broadcast stream that first emits the current properties for
-  /// [nodeId], then yields subsequent updates whenever [saveProperties] is
-  /// called for the same [nodeId].
+  /// Returns a broadcast stream that first emits the current properties
+  /// for [nodeId] (via [fetchProperties]) and then yields subsequent
+  /// updates whenever [saveProperties] is called for the same [nodeId].
+  ///
+  /// The initial yield is produced eagerly so callers receive the
+  /// current state immediately upon subscription. Subscriptions that
+  /// outlive the data source will receive events indefinitely — cancel
+  /// the subscription to avoid leaks. Does NOT react to external
+  /// Firestore writes from other clients; only in-process calls to
+  /// [saveProperties] trigger stream events.
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield await fetchProperties(nodeId);
@@ -111,8 +146,13 @@ class FirebaseDataSource implements DataSource {
     }
   }
 
-  /// Queries the `elements` Firestore collection for all documents whose
-  /// `parent_node_id` equals [parentNodeId].
+  /// Queries the `elements` Firestore collection for all documents
+  /// whose `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no matching elements exist (e.g. a
+  /// leaf node with no children). Throws a [FirebaseException] on
+  /// network or permission failures. Each call triggers a Firestore
+  /// query against the `parent_node_id` index.
   @override
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
     final snapshot = await _firestore
@@ -122,8 +162,12 @@ class FirebaseDataSource implements DataSource {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
-  /// Queries the `alarms` Firestore collection for all documents whose
-  /// `parent_node_id` equals [parentNodeId].
+  /// Queries the `alarms` Firestore collection for all documents
+  /// whose `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no matching alarms exist. Throws a
+  /// [FirebaseException] on network or permission failures. Each call
+  /// triggers a Firestore query against the `parent_node_id` index.
   @override
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
     final snapshot = await _firestore
@@ -133,8 +177,12 @@ class FirebaseDataSource implements DataSource {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
-  /// Queries the `events` Firestore collection for all documents whose
-  /// `parent_node_id` equals [parentNodeId].
+  /// Queries the `events` Firestore collection for all documents
+  /// whose `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no matching events exist. Throws a
+  /// [FirebaseException] on network or permission failures. Each call
+  /// triggers a Firestore query against the `parent_node_id` index.
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
     final snapshot = await _firestore

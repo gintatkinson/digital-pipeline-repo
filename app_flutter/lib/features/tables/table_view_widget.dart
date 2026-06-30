@@ -2,8 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
-/// Displays tabular data from a [TablesViewModel] as a scrollable
-/// [DataTable], showing a loading indicator or error message as appropriate.
+/// Renders tabular data from a [TablesViewModel] as a horizontally and
+/// vertically scrollable [DataTable].
+///
+/// Exists to decouple the table presentation from the data-fetching logic in
+/// [TablesViewModel]. Use this widget inside [TabbedContainer] or any context
+/// where a [TablesViewModel] is provided via [Provider].
+///
+/// Edge cases:
+///   - When [TablesViewModel.loading] is `true`, a centered
+///     [CircularProgressIndicator] is displayed instead of the table.
+///   - When [TablesViewModel.error] is non-null, the error text is shown in
+///     the theme's error color; the table is not rendered.
+///   - An empty [headers] or [rows] list renders a [DataTable] with zero
+///     columns or rows respectively — no crash or visual glitch.
+///   - Long content is scrollable in both axes via nested [SingleChildScrollView]s.
+///
+/// State changes: this widget is read-only; it watches [TablesViewModel] via
+/// `context.watch` and rebuilds on every notifyListeners call from the view
+/// model.
 class TableViewWidget extends StatelessWidget {
   /// Creates a [TableViewWidget].
   const TableViewWidget({super.key});

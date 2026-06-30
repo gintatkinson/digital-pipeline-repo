@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 ///
 /// Allows the data source to specify icons by name (e.g. "dns", "bar_chart")
 /// without the Flutter code knowing about specific icon choices at compile time.
-/// New icon names can be added to this map as needed.
+/// New icon names can be added to this map as needed. Unknown names resolve
+/// to a safe fallback icon — the UI never shows a blank or throws.
+///
+/// Use this whenever you need to display a type icon based on a string name
+/// from the data source. For compile-time-known icons, prefer [Icons] directly.
 class IconMapper {
   IconMapper._();
 
@@ -30,6 +34,8 @@ class IconMapper {
   /// Resolve an icon name string to [IconData].
   ///
   /// Returns [Icons.insert_drive_file] as fallback if the name is unknown.
+  /// An empty or null [name] also returns the fallback — it does not throw.
+  /// The lookup is case-sensitive; "DNS" does not match "dns".
   static IconData resolve(String name) =>
       _icons[name] ?? Icons.insert_drive_file;
 }

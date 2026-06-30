@@ -14,7 +14,22 @@ import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 import 'package:app_flutter/core/background_worker.dart';
 
-/// The Layout Widget realizes UML::Layout.
+/// Root layout widget that parses a logical-layout JSON and builds the full
+/// Flutter widget hierarchy (sidebar, split panes, topology, tabs, property
+/// grid).
+///
+/// Realises UML::Layout. Initialises [TreeViewModel], [PropertiesViewModel],
+/// a [BackgroundWorker], and topology data on first build. Coordinates view
+/// selection across all child components: when a view is selected,
+/// [_selectView] updates the current view, subscribes to properties, and
+/// notifies the tree view model.
+///
+/// Edge cases: if [layoutConfig] is null, loads from the bundled
+/// `assets/logical-layout.json` asset. If the active view changes via widget
+/// properties, properties subscription and view model are re-synced. Missing
+/// JSON files in [_loadJsonOnce] return empty maps (no crash). Layout config
+/// loading failures are logged and the UI shows a [CircularProgressIndicator]
+/// until [parsedLayout] is ready.
 class Layout extends StatefulWidget {
   final String? activeView;
   final ValueChanged<String>? onViewChange;
@@ -131,7 +146,7 @@ class _LayoutState extends State<Layout> {
 
   // Properties Reactive State
 
-  // Preloaded topology data from external JSON asset.
+  /// Preloaded topology data from external JSON asset; null until loaded.
   TopologyData? _topologyData;
 
   @override
@@ -275,7 +290,6 @@ class _LayoutState extends State<Layout> {
     final factory = ComponentFactory(
       currentView: _currentView,
       workerResult: _worker?.lastResult,
-      parsedLayout: _parsedLayout!,
       onViewSelected: _selectView,
       minPaneSize: _minPaneSize,
       defaultRatio: _getDefaultRatio,

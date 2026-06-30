@@ -15,7 +15,6 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 class ComponentFactory {
   final String currentView;
   final int? workerResult;
-  final Map<String, dynamic> parsedLayout;
   final void Function(String) onViewSelected;
   final double minPaneSize;
   final double Function() defaultRatio;
@@ -28,7 +27,6 @@ class ComponentFactory {
   ComponentFactory({
     required this.currentView,
     required this.workerResult,
-    required this.parsedLayout,
     required this.onViewSelected,
     required this.minPaneSize,
     required this.defaultRatio,
@@ -108,7 +106,6 @@ class ComponentFactory {
         final treeData = treeViewModel?.treeData ?? [];
         return TopographicalView(
           currentView: currentView,
-          parsedLayout: parsedLayout,
           onViewSelected: onViewSelected,
           child: buildChildWidget(context),
           topologyData: resolveTopologyData(),

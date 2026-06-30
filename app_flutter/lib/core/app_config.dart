@@ -1,6 +1,9 @@
-/// Application configuration.
+/// Central holder for application-wide constants.
 ///
-/// All display strings should be defined here or in assets/strings.json.
+/// Every UI layer reads the app and window title from here so that a single
+/// change propagates everywhere. Alternative: [StringResources] for
+/// user-facing strings that need runtime override.
+///
 /// No file should hardcode its own copy of the application title.
 class AppConfig {
   AppConfig._();

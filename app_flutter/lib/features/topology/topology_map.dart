@@ -31,7 +31,15 @@ dynamic _resolvePath(Map<String, dynamic> map, String path) {
   return current;
 }
 
-/// Position details for a node in the network topology.
+/// 3-D position + time-index + trajectory vector for a topology node.
+///
+/// Parsed from JSON via [TopologyNodePosition.fromJson]. Coordinates are
+/// resolved lazily through [resolveCoordinate] which checks an optional
+/// [coordinateMapping] before falling back to the baked-in dim fields.
+/// Raw properties are preserved for arbitrary downstream lookups.
+///
+/// Edge cases: missing dimensions default to 0.0; empty vector yields zero
+/// velocity in [TopologyNode.computePosition].
 class TopologyNodePosition {
   final double dim0;
   final double dim1;
@@ -107,7 +115,17 @@ class TopologyNodePosition {
   }
 }
 
-/// Represents a single node in the topology map.
+/// A node in the topology visualisation with position, status, and arbitrary
+/// raw properties.
+///
+/// Created from JSON via [TopologyNode.fromJson]. The [computePosition] method
+/// projects the node's position at a given [timeIndex] by applying its
+/// trajectory vector. Status is used solely for colour selection in
+/// [TopologyPainter] ("Active" gets the active colour; everything else gets
+/// the warning colour).
+///
+/// Edge cases: missing id/label default to empty string; an empty trajectory
+/// vector is treated as zero velocity (static position).
 class TopologyNode {
   final String id;
   final String label;
@@ -170,7 +188,12 @@ class TopologyNode {
   }
 }
 
-/// Represents a link (connection) between two nodes.
+/// A directed connection between two topology nodes identified by [source]
+/// and [target] IDs with a semantic [type] label.
+///
+/// Links are purely structural — they are rendered as lines in
+/// [TopologyPainter.paint] and carry no runtime state. Invalid source/target
+/// references result in a silent no-op during rendering (no line drawn).
 class TopologyLink {
   final String source;
   final String target;
@@ -191,7 +214,14 @@ class TopologyLink {
   }
 }
 
-/// Consolidated topology data configuration.
+/// The full topology descriptor: coordinate mapping, node list, and link list.
+///
+/// Deserialised from JSON via [TopologyData.fromJson]. The [coordinateMapping]
+/// maps logical axes ("x", "y", "z", "t", "trajectory") to paths in the node's
+/// raw properties, allowing flexible schema evolution without code changes.
+///
+/// Edge cases: empty nodes/links lists are valid and produce a blank canvas;
+/// a missing mapping key falls back to the baked-in position fields.
 class TopologyData {
   final Map<String, String> coordinateMapping;
   final List<TopologyNode> nodes;
@@ -218,9 +248,19 @@ class TopologyData {
   }
 }
 
-/// TopologyMap Widget
+/// Interactive topology map with animated playback, node selection, and
+/// scrollable canvas.
 ///
-/// Realizes UML::TopologyMap and UML::PlaybackController.
+/// Realises UML::TopologyMap and UML::PlaybackController. Renders nodes at
+/// their (x, y) positions with trajectory velocity vectors, links with
+/// animated data-packet dots, a pulsing halo on the focused node, and labels.
+/// A playback panel at the bottom provides play/pause, time slider, and speed
+/// control.
+///
+/// Tap detection uses [_kTapProximity] (20 px). If no node is close enough
+/// the tap is silently ignored. When [data] is null, falls back to
+/// [emptyTopologyData] (empty nodes/links). On data change, the playhead
+/// is clamped to the new [minTime]–[maxTime] range.
 class TopologyMap extends StatefulWidget {
   final String? activeFocusedNode;
   final ValueChanged<String>? onNodeSelect;
@@ -513,7 +553,10 @@ class _TopologyMapState extends State<TopologyMap>
   }
 }
 
-/// Color palette for the topology map painter.
+/// Colour palette consumed by [TopologyPainter] for all rendered elements.
+///
+/// Immutable; should be constructed once per paint cycle from the current
+/// [ColorScheme] to stay in sync with theme changes.
 class TopologyPainterColors {
   final Color bgColor;
   final Color gridColor;
@@ -542,7 +585,12 @@ class TopologyPainterColors {
   });
 }
 
-/// CanvasRenderer implementing node projection and line rendering.
+/// Custom canvas painter for the topology map: grid, nodes, links, velocity
+/// vectors, animated packets, halos, and labels.
+///
+/// Paint order: background → grid → node positions → links → packets →
+/// nodes (fill + stroke) → halo (focused only) → labels. Redraws when
+/// [currentTimeIndex], [activeFocusedNode], [activeData], or [colors] change.
 class TopologyPainter extends CustomPainter {
   final String? activeFocusedNode;
   final TopologyData activeData;

@@ -6,6 +6,16 @@ import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node_widget.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
+/// The sidebar panel displaying a hierarchical tree of discoverable views.
+///
+/// Uses [TreeViewModel] (provided via [Provider]) for data and focus management.
+/// Supports keyboard navigation (arrow keys) via a [Focus] wrapper. The tree
+/// is scrollable vertically. A footer shows the current worker state and a
+/// settings button that opens [SettingsPanel] in a modal bottom sheet.
+///
+/// Edge cases: when [workerResult] is null, displays "Idle"; when the tree
+/// data is empty the panel renders an empty column. The settings icon is
+/// always visible regardless of worker state.
 class SidebarTree extends StatelessWidget {
   final int? workerResult;
   final ValueChanged<String> onViewSelected;

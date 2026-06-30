@@ -8,6 +8,12 @@ import 'package:app_flutter/domain/data_source.dart';
 ///
 /// Reads type definitions, attributes, and relations from the
 /// `type_definitions`, `type_attributes`, and `type_relations` tables.
+/// Instance data resides in `properties`, `elements`, `alarms`, and
+/// `events` tables. Use this data source for offline-first or
+/// single-user deployments where no remote backend is available.
+/// The database is assumed to be already opened and migrated; no
+/// schema creation is performed here. All reads hit the database
+/// directly — results are NOT cached.
 class SqliteDataSource implements DataSource {
   SqliteDataSource(this._db);
   final Database _db;
@@ -17,6 +23,15 @@ class SqliteDataSource implements DataSource {
   @override
   String get name => 'sqlite';
 
+  /// Reads all type definitions from the `type_definitions` table and
+  /// hydrates each row into a [TypeDescriptor] by joining into
+  /// `type_attributes` and `type_relations`.
+  ///
+  /// Returns an empty list when the table is empty (e.g. first launch
+  /// before schema is seeded). Each call triggers at least
+  /// (1 + N) SQL queries where N is the row count — use sparingly in
+  /// hot paths. Does NOT throw on missing data; missing foreign rows
+  /// simply produce empty fields/childTypes.
   @override
   Future<List<TypeDescriptor>> discoverTypes() async {
     final typeRows = await _db.query('type_definitions');
@@ -27,6 +42,12 @@ class SqliteDataSource implements DataSource {
     return types;
   }
 
+  /// Queries `type_definitions` for a single row matching [typeName]
+  /// and builds a [TypeDescriptor] from its attributes and relations.
+  ///
+  /// Returns `null` when [typeName] does not exist (e.g. a legacy
+  /// node references a removed type). Throws if the row exists but
+  /// `type_name` is null.
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
     final rows = await _db.query('type_definitions',
@@ -35,6 +56,11 @@ class SqliteDataSource implements DataSource {
     return _buildType(rows.first);
   }
 
+  /// Reads all parent-child type pairs from the `type_relations` table.
+  ///
+  /// Returns an empty list when no relations are defined (e.g. a flat
+  /// ontology with no hierarchy). Each call triggers a full table
+  /// scan — consider caching if the hierarchy is static.
   @override
   Future<List<(String, String)>> discoverHierarchy() async {
     final rows = await _db.query('type_relations');
@@ -44,6 +70,14 @@ class SqliteDataSource implements DataSource {
     )).toList();
   }
 
+  /// Fetches the property map for the node identified by [nodeId]
+  /// from the `properties` table.
+  ///
+  /// Returns an empty map when the node has no row (e.g. a newly
+  /// created node that has never been saved) or when the stored
+  /// `data_json` is null or malformed. Malformed JSON is silently
+  /// caught and returns `{}` so the caller can present a blank form
+  /// instead of crashing. Each call executes a single SELECT.
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
     final maps = await _db.query(
@@ -62,6 +96,13 @@ class SqliteDataSource implements DataSource {
     }
   }
 
+  /// Persists [data] as the properties for [nodeId] in the
+  /// `properties` table using an upsert (replace on conflict).
+  ///
+  /// STATE CHANGE: Writes to the `properties` table and emits a
+  /// change event on the broadcast stream so all active
+  /// [watchProperties] subscribers receive the update. Use this for
+  /// both creates and updates — the upsert handles both transparently.
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     final dataJson = jsonEncode(data);
@@ -73,6 +114,15 @@ class SqliteDataSource implements DataSource {
     _propertiesController.add({'nodeId': nodeId, 'data': data});
   }
 
+  /// Returns a broadcast stream that first emits the current
+  /// properties for [nodeId] (via [fetchProperties]) and then yields
+  /// subsequent updates whenever [saveProperties] is called for the
+  /// same [nodeId].
+  ///
+  /// The initial yield is synchronous — callers receive the current
+  /// state immediately upon subscription. Subscriptions that outlive
+  /// the data source will receive events indefinitely; cancel the
+  /// subscription to avoid leaks.
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
     yield await fetchProperties(nodeId);
@@ -83,18 +133,34 @@ class SqliteDataSource implements DataSource {
     }
   }
 
+  /// Queries the `elements` table for all child rows whose
+  /// `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no elements exist for that parent
+  /// (e.g. a leaf node with no children). Each call performs a
+  /// filtered scan on the table.
   @override
   Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
     return await _db.query('elements',
         where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
   }
 
+  /// Queries the `alarms` table for all child rows whose
+  /// `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no alarms exist for that parent.
+  /// Each call performs a filtered scan on the table.
   @override
   Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
     return await _db.query('alarms',
         where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
   }
 
+  /// Queries the `events` table for all child rows whose
+  /// `parent_node_id` equals [parentNodeId].
+  ///
+  /// Returns an empty list when no events exist for that parent.
+  /// Each call performs a filtered scan on the table.
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
     return await _db.query('events',

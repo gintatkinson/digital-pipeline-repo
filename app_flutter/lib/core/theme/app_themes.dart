@@ -2,11 +2,24 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 
-/// Defines the available color schemes and builds light/dark [ThemeData].
+/// Central registry of colour schemes and [ThemeData] factories.
+///
+/// Keeps all Material/Cupertino theming in one place so that light/dark
+/// variants stay consistent. Use [light] / [dark] to build themes; use
+/// [customSchemes] to offer scheme selection in a settings UI. There is no
+/// mutable state — the class is a static namespace.
+///
+/// **Edge cases**: passing `null` for [custom] falls back to the first
+/// entry in [customSchemes] (Greys).
 class AppThemes {
   AppThemes._();
 
-  /// The list of custom [FlexSchemeData] schemes (Greys, Blue Whale, etc.).
+  /// Built-in colour schemes exposed for user selection.
+  ///
+  /// Each entry defines light + dark palettes. The list is fixed at
+  /// compile time. Index 0 (Greys) is the fallback when the persisted
+  /// index is out of range. An empty list would cause a runtime bounds
+  /// error — but it is defined as a non-empty literal.
   static const List<FlexSchemeData> customSchemes = [
     FlexSchemeData(
       name: 'Greys',
@@ -119,6 +132,9 @@ class AppThemes {
   ];
 
   /// Builds a light [ThemeData] from an optional custom scheme.
+  ///
+  /// When [custom] is null the first scheme (Greys) is used. Does not
+  /// cache — every call constructs a new [ThemeData].
   static ThemeData light({FlexSchemeData? custom}) {
     final data = custom ?? customSchemes[0];
     return FlexThemeData.light(
@@ -137,6 +153,9 @@ class AppThemes {
   }
 
   /// Builds a dark [ThemeData] from an optional custom scheme.
+  ///
+  /// When [custom] is null the first scheme (Greys) is used. Does not
+  /// cache — every call constructs a new [ThemeData].
   static ThemeData dark({FlexSchemeData? custom}) {
     final data = custom ?? customSchemes[0];
     return FlexThemeData.dark(
@@ -154,6 +173,11 @@ class AppThemes {
     );
   }
 
+  /// Shared sub-theme configuration used by both [light] and [dark].
+  ///
+  /// [inputAlpha] controls the background alpha of input decorators.
+  /// Intended values: 13 for light, 20 for dark. Extreme values (e.g. 0
+  /// or 255) may reduce readability but will not throw.
   static FlexSubThemesData _subThemes({required int inputAlpha}) => FlexSubThemesData(
     useM2StyleDividerInM3: true,
     adaptiveElevationShadowsBack: FlexAdaptive.all(),

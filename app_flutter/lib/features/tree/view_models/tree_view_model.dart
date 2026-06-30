@@ -3,6 +3,23 @@ import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
+/// View model driving the sidebar tree: data loading, navigation, focus,
+/// and keyboard-driven expansion/selection.
+///
+/// Owns the tree data ([_treeData]), the currently-selected view
+/// ([_currentView]), per-node expand/collapse state ([_expanded]), and a
+/// [FocusNode] for keyboard event handling. Calls [notifyListeners] after
+/// every mutation to trigger UI rebuilds via [Provider].
+///
+/// State changes: [loadTree] resets the entire tree; [selectView] /
+/// [updateCurrentView] change the current view and expand ancestors;
+/// [toggleExpand] flips a single node's collapsed state; arrow handlers
+/// traverse the visible (depth-first) node list. On dispose, the focus node
+/// is released.
+///
+/// Edge cases: empty tree data, missing node IDs in arrow navigation (index
+/// -1 is handled), root nodes with no parents to expand, and views whose
+/// parent chain is already visible (no-op expand).
 class TreeViewModel extends ChangeNotifier {
   TreeViewModel(this._dataSource, {
     String initialView = '',
@@ -23,6 +40,14 @@ class TreeViewModel extends ChangeNotifier {
   FocusNode get focusNode => _treeFocusNode;
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
 
+  /// Loads the type hierarchy from the data source and initialises tree data,
+  /// current view, expanded nodes, and node keys.
+  ///
+  /// Called once during startup. Sets [_currentView] to the first root node if
+  /// no initial view was provided. Ensures the path to the current view is
+  /// expanded. Fires [notifyListeners] when complete.
+  ///
+  /// Safe to call multiple times; resets all state before rebuilding.
   Future<void> loadTree() async {
     final types = await _dataSource.discoverTypes();
     final hierarchy = await _dataSource.discoverHierarchy();
@@ -38,6 +63,14 @@ class TreeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Builds a forest of [TreeNode]s from [types] and [hierarchy] edges.
+  ///
+  /// Root nodes are types that appear in [types] but have no parent in either
+  /// the hierarchy list or the `parentTypes` field. Nodes with children link
+  /// to their sub-tree via [TreeNode.children].
+  ///
+  /// Mutations: writes [_treeData] on the parent object. No [notifyListeners]
+  /// call — the caller ([loadTree]) is responsible.
   List<TreeNode> _buildTree(List<TypeDescriptor> types, List<(String, String)> hierarchy) {
     final typeMap = {for (final t in types) t.typeName: t};
     final children = <String, List<TreeNode>>{};
@@ -80,6 +113,12 @@ class TreeViewModel extends ChangeNotifier {
         .toList();
   }
 
+  /// Selects [viewId] as the current view, expands its ancestors, scrolls it
+  /// into view, and notifies listeners.
+  ///
+  /// Called when the user taps a tree node or navigates via arrow keys. No-op
+  /// if [viewId] is already the current view. Triggers [onViewSelected]
+  /// callback after state is updated.
   void selectView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -89,6 +128,12 @@ class TreeViewModel extends ChangeNotifier {
     onViewSelected?.call(viewId);
   }
 
+  /// Updates the current view (without firing [selectView]'s external callback).
+  ///
+  /// Used by [Layout._updateCurrentViewFromLayout] when the active view is
+  /// driven externally (e.g. via widget properties). Expands ancestors and
+  /// scrolls to the node, then fires [notifyListeners]. No-op if [viewId]
+  /// matches the current view.
   void updateCurrentView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -97,11 +142,21 @@ class TreeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Toggles expansion state of the node with [id].
+  ///
+  /// Flips the boolean in [_expanded] (defaults to expanded if not set).
+  /// Fires [notifyListeners] unconditionally. Safe to call on leaf nodes
+  /// (stores a value that is never read by [_getVisibleNodes] since leaves
+  /// have no children).
   void toggleExpand(String id) {
     _expanded[id] = !(_expanded[id] ?? false);
     notifyListeners();
   }
 
+  /// Moves selection to the next visible node (depth-first order).
+  ///
+  /// Called on ArrowDown key event. No-op if the current node is the last
+  /// visible node.
   void handleArrowDown() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -111,6 +166,10 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Moves selection to the previous visible node (depth-first order).
+  ///
+  /// Called on ArrowUp key event. No-op if the current node is the first
+  /// visible node.
   void handleArrowUp() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -120,6 +179,11 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Expands the current node or, if already expanded, selects its first child.
+  ///
+  /// Called on ArrowRight key event. If the current node has no children this
+  /// is a no-op. Expands the node if collapsed; moves selection to the first
+  /// child if already expanded.
   void handleArrowRight() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -136,6 +200,12 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Collapses the current node or, if already collapsed or a leaf, selects
+  /// its parent.
+  ///
+  /// Called on ArrowLeft key event. If the current node has children and is
+  /// expanded, collapses it. Otherwise navigates upward to the nearest parent
+  /// in the tree. No-op if the current node is a root-level node (no parent).
   void handleArrowLeft() {
     final visible = _getVisibleNodes();
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
@@ -171,6 +241,11 @@ class TreeViewModel extends ChangeNotifier {
     super.dispose();
   }
 
+  /// Recursively creates [GlobalKey] entries for every node in [nodes].
+  ///
+  /// Used by [_scrollToNode] to obtain [BuildContext] for scroll-into-view.
+  /// Keys are rebuilt on every [loadTree] call, so references are not
+  /// preserved across full data reloads.
   void _buildNodeKeys(List<TreeNode> nodes) {
     for (final node in nodes) {
       _nodeKeys[node.id] = GlobalKey();
@@ -180,6 +255,11 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Initialises all parent nodes (nodes with children) as expanded.
+  ///
+  /// Called once by [loadTree] so the full tree is visible by default.
+  /// Does not fire [notifyListeners]; subsequent user interaction (toggle,
+  /// navigation) may collapse individual nodes.
   void _initExpandedFromTree() {
     for (final node in _treeData) {
       if (node.children != null && node.children!.isNotEmpty) {
@@ -188,6 +268,12 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Expands all ancestor nodes of [targetView] in the tree.
+  ///
+  /// Called when a view is selected (via tap or keyboard) to ensure the
+  /// path to the selected node is visible. If [targetView] is a root node
+  /// or already visible, this is a no-op. Fires [notifyListeners] only if a
+  /// change was actually made.
   void _expandParents(String targetView) {
     bool changed = false;
     bool findAndExpandParents(List<TreeNode> nodes, String targetId, List<String> path) {
@@ -216,6 +302,12 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Returns the flat, depth-first ordered list of nodes that are currently
+  /// visible (expanded parents' children are included; collapsed parents'
+  /// descendants are excluded).
+  ///
+  /// Used by arrow-key navigation handlers to determine the next/previous
+  /// selectable node. Returns an empty list when the tree is empty.
   List<TreeNode> _getVisibleNodes() {
     final List<TreeNode> result = [];
     void traverse(TreeNode node) {
@@ -228,6 +320,13 @@ class TreeViewModel extends ChangeNotifier {
     return result;
   }
 
+  /// Scrolls the node with [viewId] into the visible viewport using its
+  /// [GlobalKey].
+  ///
+  /// Schedules a post-frame callback to ensure layout is complete before
+  /// scrolling. Animated with a 200 ms ease-in-out curve. If the node's
+  /// key has no current context (e.g. node is not in the tree or not visible),
+  /// the scroll is silently skipped.
   void _scrollToNode(String viewId) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final context = _nodeKeys[viewId]?.currentContext;

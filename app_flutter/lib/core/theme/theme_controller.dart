@@ -3,24 +3,45 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'app_themes.dart';
 import 'theme_service.dart';
 
-/// Manages theme mode, color scheme selection, and persistence
-/// via [ThemeService]. Notifies listeners on changes.
+/// View-model that owns the current theme mode, colour-scheme index, and
+/// persists every change through [ThemeService].
+///
+/// Exposes a [ChangeNotifier] interface so that UI widgets can react to
+/// theme changes via `context.watch<ThemeController>()`. Alternatives:
+/// using [ThemeService] directly for read-only access; using
+/// [TextScalerController] for font-size changes.
+///
+/// **State**: updates internal fields and calls `notifyListeners()` on
+/// every mutation. Persistence is fire-and-forget (awaited but not exposed).
+///
+/// **Edge cases**: null inputs are silently ignored; out-of-bounds scheme
+/// indices are clamped silently to the first scheme.
 class ThemeController extends ChangeNotifier {
   ThemeController(this._themeService);
   final ThemeService _themeService;
   ThemeMode _themeMode = ThemeMode.system;
   int _currentThemeIndex = 0;
 
-  /// The current [ThemeMode] (light / dark / system).
+  /// Current [ThemeMode] (light / dark / system).
   ThemeMode get themeMode => _themeMode;
 
-  /// Index into [AppThemes.customSchemes] for the active color scheme.
+  /// Index into [AppThemes.customSchemes] for the active colour scheme.
+  ///
+  /// Guaranteed to be a valid index after [loadSettings] completes.
   int get currentThemeIndex => _currentThemeIndex;
 
-  /// The currently selected [FlexSchemeData] scheme.
+  /// Convenience getter for the currently selected [FlexSchemeData].
+  ///
+  /// Reads from [AppThemes.customSchemes] at [currentThemeIndex]. Safe to
+  /// call after [loadSettings] because the index is clamped on load.
   FlexSchemeData get currentTheme => AppThemes.customSchemes[_currentThemeIndex];
 
   /// Loads persisted theme mode and scheme index from [ThemeService].
+  ///
+  /// Must be called once during app initialisation before the UI reads any
+  /// theme state. Calling again resets state. An out-of-bounds persisted
+  /// index is silently clamped to 0. Fires `notifyListeners()` on
+  /// completion even if values are unchanged.
   Future<void> loadSettings() async {
     _themeMode = await _themeService.loadThemeMode();
     _currentThemeIndex = await _themeService.loadThemeScheme();
@@ -31,6 +52,10 @@ class ThemeController extends ChangeNotifier {
   }
 
   /// Updates the theme mode and persists it via [ThemeService].
+  ///
+  /// No-op when [newThemeMode] is null or matches the current value.
+  /// Fires `notifyListeners()` before persisting so the UI updates
+  /// immediately. Persistence failure is silently swallowed.
   Future<void> updateThemeMode(ThemeMode? newThemeMode) async {
     if (newThemeMode == null || newThemeMode == _themeMode) return;
     _themeMode = newThemeMode;
@@ -38,7 +63,11 @@ class ThemeController extends ChangeNotifier {
     await _themeService.saveThemeMode(newThemeMode);
   }
 
-  /// Updates the color scheme index and persists it via [ThemeService].
+  /// Updates the colour-scheme index and persists it via [ThemeService].
+  ///
+  /// No-op when [newIndex] is null, matches the current value, or is
+  /// outside valid bounds. Fires `notifyListeners()` before persisting.
+  /// Persistence failure is silently swallowed.
   Future<void> updateThemeScheme(int? newIndex) async {
     if (newIndex == null || newIndex == _currentThemeIndex) return;
     if (newIndex < 0 || newIndex >= AppThemes.customSchemes.length) return;

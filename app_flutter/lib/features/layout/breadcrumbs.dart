@@ -2,10 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
-/// A single item in the breadcrumbs navigation.
+/// A single segment in the breadcrumbs navigation bar.
+///
+/// Exists to represent a node in the tree path. Use this in the
+/// [NavigationBreadcrumbs.items] list to build the navigation trail.
+///
+/// Edge cases: [onClick] is optional — a `null` callback renders the item as
+/// plain text (typically the last item); a non-null callback renders it as an
+/// [ActionChip].
 class BreadcrumbItem {
+  /// Unique identifier for this breadcrumb segment, matched against tree node
+  /// ids.
   final String id;
+
+  /// Display label shown in the breadcrumb bar.
   final String label;
+
+  /// Callback invoked when the breadcrumb is tapped. `null` disables
+  /// interactivity (rendered as plain text).
   final VoidCallback? onClick;
 
   const BreadcrumbItem({
