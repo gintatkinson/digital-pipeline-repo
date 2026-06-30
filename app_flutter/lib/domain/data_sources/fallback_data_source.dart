@@ -1,3 +1,4 @@
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
@@ -41,6 +42,7 @@ class FallbackDataSource implements DataSource {
         TypeRelationDescriptor(relationName: 'records', childTypeName: 'Event', childLabel: 'Events'),
       ],
       parentTypes: [],
+      currentState: null,
     ),
     TypeDescriptor(
       typeName: 'SubElement',
@@ -55,6 +57,7 @@ class FallbackDataSource implements DataSource {
       childTypes: [],
       relatedTypes: [],
       parentTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Item')],
+      currentState: null,
     ),
     TypeDescriptor(
       typeName: 'Alarm',
@@ -69,6 +72,7 @@ class FallbackDataSource implements DataSource {
       childTypes: [],
       relatedTypes: [],
       parentTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Item')],
+      currentState: null,
     ),
     TypeDescriptor(
       typeName: 'Event',
@@ -83,6 +87,7 @@ class FallbackDataSource implements DataSource {
       childTypes: [],
       relatedTypes: [],
       parentTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Item')],
+      currentState: null,
     ),
   ];
 
@@ -182,4 +187,15 @@ class FallbackDataSource implements DataSource {
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async =>
       _events.where((e) => e['parent_node_id'] == parentNodeId).toList();
+
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+
+  @override
+  Future<Map<String, dynamic>> invokeAction(
+    String typeName,
+    String instanceId,
+    String actionName,
+    Map<String, dynamic> parameters,
+  ) async => {};
 }

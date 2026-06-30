@@ -1,3 +1,4 @@
+import 'action_descriptor.dart';
 import 'type_descriptor.dart';
 
 /// Abstract interface for a swappable data backend.
@@ -88,4 +89,25 @@ abstract class DataSource {
   /// Returns an empty list when no events exist. Never throws.
   /// The default implementation returns [] — override to provide real data.
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
+
+  /// Returns the actions available for objects of [typeName].
+  ///
+  /// Actions represent domain operations beyond CRUD (e.g., "reboot",
+  /// "compute path", "deploy configuration"). The UI renders each action
+  /// as a button. Returns an empty list when no actions are defined for
+  /// the type.
+  Future<List<ActionDescriptor>> getActions(String typeName);
+
+  /// Invokes [actionName] on the instance identified by [instanceId] of
+  /// [typeName] with the given [parameters].
+  ///
+  /// Returns a result map. Convention: a `success` key (bool) and `message`
+  /// key (String) are expected. Additional keys carry structured result data
+  /// for display in a detail dialog.
+  Future<Map<String, dynamic>> invokeAction(
+    String typeName,
+    String instanceId,
+    String actionName,
+    Map<String, dynamic> parameters,
+  );
 }

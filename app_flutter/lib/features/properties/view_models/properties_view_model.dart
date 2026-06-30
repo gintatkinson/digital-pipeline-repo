@@ -29,6 +29,10 @@ class PropertiesViewModel extends ChangeNotifier {
   /// non-null [TypeDescriptor]).
   bool get hasType => _currentType != null;
 
+  /// The lifecycle state of the currently loaded type, if known.
+  /// Null when no type is loaded or the data source has no state info.
+  LifecycleState? get currentState => _currentType?.currentState;
+
   /// Fetches the [TypeDescriptor] for [typeName] from the data source and
   /// notifies listeners.
   ///

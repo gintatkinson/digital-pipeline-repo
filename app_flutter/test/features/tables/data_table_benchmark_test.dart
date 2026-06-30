@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
@@ -20,12 +21,12 @@ class _MockDataSource implements DataSource {
       typeName: 'Root', displayName: 'Root', iconName: 'folder',
       fields: [for (int i = 0; i < 5; i++) FieldDescriptor(key: 'c$i', label: 'Col $i', type: 'string', sectionOrder: i)],
       childTypes: [TypeRelationDescriptor(relationName: 'contains', childTypeName: 'Item', childLabel: 'Items')],
-      relatedTypes: [], parentTypes: [],
+      relatedTypes: [], parentTypes: [], currentState: null,
     ),
     TypeDescriptor(
       typeName: 'Item', displayName: 'Item', iconName: 'widgets',
       fields: [for (int i = 0; i < 5; i++) FieldDescriptor(key: 'c$i', label: 'Col $i', type: 'string', sectionOrder: i)],
-      childTypes: [], relatedTypes: [], parentTypes: [],
+      childTypes: [], relatedTypes: [], parentTypes: [], currentState: null,
     ),
   ];
 
@@ -53,6 +54,10 @@ class _MockDataSource implements DataSource {
   Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
   @override
   Future<String> resolveLabel(String typeName, String id) async => 'Resolved: $id';
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+  @override
+  Future<Map<String, dynamic>> invokeAction(String t, String i, String a, Map<String, dynamic> p) async => {};
 }
 
 Widget _buildDataTableDirect(int rowCount) {

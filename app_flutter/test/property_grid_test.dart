@@ -602,6 +602,27 @@ void main() {
     expect(find.text('Open Grid'), findsOneWidget);
   });
 
+  testWidgets('readOnly mode disables all fields and hides Save/Cancel', (tester) async {
+    final fields = [
+      FieldDescriptor(key: 'name', label: 'Name', type: 'string'),
+      FieldDescriptor(key: 'type', label: 'Type', type: 'enum', enumOptions: ['a', 'b']),
+    ];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: PropertyGrid(
+        activeView: 'test',
+        fields: fields,
+        initialValues: {'name': 'hello', 'type': 'a'},
+        readOnly: true,
+      )),
+    ));
+
+    final textField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(textField.enabled, isFalse);
+
+    expect(find.text('Save'), findsNothing);
+    expect(find.text('Cancel'), findsNothing);
+  });
+
   testWidgets('Dirty indicator appears next to edited fields',
       (tester) async {
     await tester.pumpWidget(

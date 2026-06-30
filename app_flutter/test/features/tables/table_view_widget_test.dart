@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
@@ -109,6 +110,10 @@ class _MockDataSource implements DataSource {
 
   @override
   Future<String> resolveLabel(String typeName, String id) async => '';
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+  @override
+  Future<Map<String, dynamic>> invokeAction(String t, String i, String a, Map<String, dynamic> p) async => {};
 }
 
 Widget buildTableWithModel({

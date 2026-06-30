@@ -13,6 +13,10 @@ import 'package:app_flutter/features/topology/topology_defaults.dart' show empty
 import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 import 'package:app_flutter/core/background_worker.dart';
+import 'package:app_flutter/features/properties/action_panel.dart';
+import 'package:app_flutter/features/properties/state_indicator.dart';
+import 'package:app_flutter/domain/action_descriptor.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 
 /// Root layout widget that parses a logical-layout JSON and builds the full
 /// Flutter widget hierarchy (sidebar, split panes, topology, tabs, property
@@ -66,6 +70,8 @@ class _LayoutState extends State<Layout> {
 
   // Properties ViewModel
   PropertiesViewModel? _propertiesViewModel;
+
+  final _propertyGridKey = GlobalKey();
 
   static const double _minPaneSize = 150.0;
 
@@ -407,20 +413,63 @@ class _LayoutState extends State<Layout> {
 
   /// Builds the child widget displayed in the properties panel.
   ///
-  /// Creates a [PropertyGrid] with the current fields, values, and a save
-  /// callback. Used as a builder callback by [ComponentFactory].
+  /// Wraps [PropertyGrid] with a [StateIndicator] showing the current lifecycle
+  /// state, and an [ActionPanel] below the grid for domain-specific actions.
+  /// When the current state is degraded, decommissioned, or failed, the
+  /// [PropertyGrid] is rendered read-only.
+  ///
+  /// Used as a builder callback by [ComponentFactory].
   Widget _buildChildWidget(BuildContext context) {
     final fields = _propertiesViewModel?.fields ?? [];
+    final currentState = _propertiesViewModel?.currentState;
+    final isReadOnly = currentState != null && [
+      LifecycleState.degraded,
+      LifecycleState.decommissioned,
+      LifecycleState.failed,
+    ].contains(currentState);
 
-    return PropertyGrid(
-      activeView: _currentView,
-      fields: fields,
-      initialValues: _nodeData,
-      onSave: (Map<String, dynamic> data) async {
-        await _dataSource!.saveProperties(_currentView, data);
-      },
-      onDirtyChanged: (dirty) {
-        if (mounted) setState(() => _gridIsDirty = dirty);
+    return FutureBuilder<List<ActionDescriptor>>(
+      future: _dataSource?.getActions(_currentView) ?? Future.value([]),
+      builder: (context, snapshot) {
+        final actions = snapshot.data ?? [];
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              if (currentState != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      StateIndicator(state: currentState),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              PropertyGrid(
+                key: _propertyGridKey,
+                activeView: _currentView,
+                fields: fields,
+                initialValues: _nodeData,
+                readOnly: isReadOnly,
+                onSave: (data) async {
+                  await _dataSource!.saveProperties(_currentView, data);
+                },
+                onDirtyChanged: (dirty) {
+                  if (mounted) setState(() => _gridIsDirty = dirty);
+                },
+              ),
+              ActionPanel(
+                actions: actions,
+                lifecycleState: currentState,
+                typeName: _currentView,
+                nodeId: _currentView,
+                onInvoke: (typeName, nodeId, actionName, params) async {
+                  return _dataSource!.invokeAction(typeName, nodeId, actionName, params) ?? {};
+                },
+              ),
+            ],
+          ),
+        );
       },
     );
   }

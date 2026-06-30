@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
@@ -37,6 +38,10 @@ class MockDataSource extends DataSource {
 
   @override
   Future<List<Map<String, dynamic>>> fetchEvents(String nodeId) async => [];
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+  @override
+  Future<Map<String, dynamic>> invokeAction(String t, String i, String a, Map<String, dynamic> p) async => {};
 }
 
 void main() {

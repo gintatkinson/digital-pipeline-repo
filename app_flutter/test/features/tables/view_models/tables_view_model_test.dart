@@ -1,3 +1,4 @@
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
@@ -54,6 +55,10 @@ class _MockDataSource implements DataSource {
   @override
   Future<String> resolveLabel(String typeName, String id) async =>
       'Resolved: $id';
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+  @override
+  Future<Map<String, dynamic>> invokeAction(String t, String i, String a, Map<String, dynamic> p) async => {};
 }
 
 void main() {
@@ -93,6 +98,7 @@ void main() {
               ),
             ],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -104,6 +110,7 @@ void main() {
             childTypes: [],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         return null;
@@ -139,6 +146,7 @@ void main() {
               ),
             ],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -150,6 +158,7 @@ void main() {
             childTypes: [],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         return null;
@@ -187,6 +196,7 @@ void main() {
             ],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -200,6 +210,7 @@ void main() {
             childTypes: [],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         return null;
@@ -239,6 +250,7 @@ void main() {
               ),
             ],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -253,6 +265,7 @@ void main() {
             childTypes: [],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         return null;
@@ -297,6 +310,7 @@ void main() {
               ),
             ],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -311,6 +325,7 @@ void main() {
             childTypes: [],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         return null;
@@ -341,6 +356,7 @@ void main() {
               ),
             ],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -355,6 +371,7 @@ void main() {
             childTypes: [],
             relatedTypes: [],
             parentTypes: [],
+            currentState: null,
           );
         }
         return null;
@@ -380,6 +397,7 @@ void main() {
             childTypes: [],
             relatedTypes: [TypeRelationDescriptor(relationName: 'has', childTypeName: 'ChildType', childLabel: 'Child')],
             parentTypes: [],
+            currentState: null,
           );
         }
         if (typeName == 'ChildType') {
@@ -389,7 +407,7 @@ void main() {
               FieldDescriptor(key: 'ref_col', label: 'Reference', type: 'string', refType: 'SomeType'),
               FieldDescriptor(key: 'plain_col', label: 'Plain', type: 'string'),
             ],
-            childTypes: [], relatedTypes: [], parentTypes: [],
+            childTypes: [], relatedTypes: [], parentTypes: [], currentState: null,
           );
         }
         return null;

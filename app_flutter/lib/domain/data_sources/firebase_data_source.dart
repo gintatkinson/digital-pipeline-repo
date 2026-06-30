@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
@@ -57,6 +58,7 @@ class FirebaseDataSource implements DataSource {
         childTypes: _parseRelations(def['childTypes'] as List<dynamic>?),
         relatedTypes: _parseRelations(def['relatedTypes'] as List<dynamic>?),
         parentTypes: _parseRelations(def['parentTypes'] as List<dynamic>?),
+        currentState: null,
       ));
     }
     return types;
@@ -199,6 +201,19 @@ class FirebaseDataSource implements DataSource {
         .where('parent_node_id', isEqualTo: parentNodeId)
         .get();
     return snapshot.docs.map((d) => d.data()).toList();
+  }
+
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+
+  @override
+  Future<Map<String, dynamic>> invokeAction(
+    String typeName,
+    String instanceId,
+    String actionName,
+    Map<String, dynamic> parameters,
+  ) async {
+    throw UnimplementedError('Action invocation not yet supported for Firebase');
   }
 
   List<FieldDescriptor> _parseFields(List<dynamic>? fields) {

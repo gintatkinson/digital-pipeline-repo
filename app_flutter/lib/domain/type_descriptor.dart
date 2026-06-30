@@ -60,6 +60,12 @@ class TypeDescriptor {
   /// An empty list means this type is a root node with no parent.
   final List<TypeRelationDescriptor> parentTypes;
 
+  /// Current lifecycle state of this type instance, if known.
+  ///
+  /// When null, the UI treats the object as [LifecycleState.active] for
+  /// display purposes. Data sources populate this from instance data.
+  final LifecycleState? currentState;
+
   const TypeDescriptor({
     required this.typeName,
     required this.displayName,
@@ -68,6 +74,7 @@ class TypeDescriptor {
     required this.childTypes,
     required this.relatedTypes,
     required this.parentTypes,
+    required this.currentState,
   });
 }
 
@@ -217,4 +224,35 @@ class TypeRelationDescriptor {
     required this.childTypeName,
     required this.childLabel,
   });
+}
+
+/// Operational lifecycle state of a managed object.
+///
+/// Reflects the object's current position in its lifecycle — from initial
+/// discovery through active operation to eventual decommissioning. The UI
+/// uses this value to determine:
+/// - State badge color (see docs/architecture/runtime-metadata-blueprint.md §9)
+/// - Whether property editing is permitted (degraded/failed/decommissioned = read-only)
+/// - Which actions are available (provisioning = no actions)
+///
+/// Values are ordered from initial to terminal state. Data sources populate
+/// this from instance data; the client never transitions the state itself.
+enum LifecycleState {
+  /// Object is discovered but not yet provisioned. All actions available.
+  discovered,
+
+  /// Object is being provisioned. Mutating actions are blocked.
+  provisioning,
+
+  /// Object is fully operational. All actions available.
+  active,
+
+  /// Object is operational but degraded. Read-only; retry actions allowed.
+  degraded,
+
+  /// Object has been decommissioned. Read-only; no actions.
+  decommissioned,
+
+  /// Object is in a failed state. Read-only; non-destructive retry allowed.
+  failed,
 }

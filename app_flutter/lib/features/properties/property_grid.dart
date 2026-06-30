@@ -112,6 +112,11 @@ class PropertyGrid extends StatefulWidget {
   /// `BorderRadius.circular(6.0)`.
   final BorderRadius inputBorderRadius;
 
+  /// When true, all fields are displayed as read-only (disabled text fields,
+  /// disabled dropdowns, no Save/Cancel bar). Useful for degraded, failed,
+  /// or decommissioned objects where editing is not permitted.
+  final bool readOnly;
+
   /// Creates a [PropertyGrid] with the given field descriptors, initial values,
   /// and visual configuration.
   ///
@@ -137,6 +142,7 @@ class PropertyGrid extends StatefulWidget {
     this.gapSize = 8.0,
     this.cardBorderRadius = const BorderRadius.all(Radius.circular(12.0)),
     this.inputBorderRadius = const BorderRadius.all(Radius.circular(6.0)),
+    this.readOnly = false,
   });
 
   @override
@@ -618,7 +624,7 @@ class _PropertyGridState extends State<PropertyGrid> {
           // uncommitted edits (isDirty). The Save button is the sole path that
           // fires [widget.onSave]; the Cancel button resets all fields to their
           // last committed values with no RPC call.
-          if (isDirty)
+          if (!widget.readOnly && isDirty)
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -794,7 +800,9 @@ class _PropertyGridState extends State<PropertyGrid> {
             child: Text(displayName),
           );
         }).toList(),
-        onChanged: (String? val) {
+        onChanged: widget.readOnly
+            ? null
+            : (String? val) {
           if (val != null) {
             setState(() {
               _editingEnumValues[field.key] = val;
@@ -882,6 +890,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         _buildFieldLabel(field),
         SizedBox(height: widget.gapSize),
         TextField(
+          enabled: !widget.readOnly,
           controller: controller,
           focusNode: focusNode,
           keyboardType: keyboardType,
@@ -938,7 +947,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     required FocusNode focusNode,
     required String value,
     required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
+    ValueChanged<String?>? onChanged,
     String? errorText,
     required bool isDark,
     required Color brandPrimary,

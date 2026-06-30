@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:app_flutter/domain/action_descriptor.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 
@@ -187,6 +188,19 @@ class SqliteDataSource implements DataSource {
         where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
   }
 
+  @override
+  Future<List<ActionDescriptor>> getActions(String typeName) async => [];
+
+  @override
+  Future<Map<String, dynamic>> invokeAction(
+    String typeName,
+    String instanceId,
+    String actionName,
+    Map<String, dynamic> parameters,
+  ) async {
+    throw UnimplementedError('Action invocation not yet supported for SQLite');
+  }
+
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {
     final typeName = typeRow['type_name'] as String;
     final attrRows = await _db.query('type_attributes',
@@ -208,6 +222,7 @@ class SqliteDataSource implements DataSource {
       )).toList(),
       relatedTypes: [],
       parentTypes: [], // populated by caller if needed
+      currentState: null,
     );
   }
 
