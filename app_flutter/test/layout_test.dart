@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:app_flutter/core/app_config.dart';
+import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 import 'package:app_flutter/domain/data_source.dart';
@@ -84,6 +86,8 @@ Widget wrapWithRepo(Widget child) {
 }
 
 void main() {
+  StringResources.loadFromJson('{"sidebar.header": "Platform Console", "breadcrumbs.home": "Platform Console"}');
+
   testWidgets('Layout parses JSON config and renders components', (WidgetTester tester) async {
     await tester.pumpWidget(
       wrapWithRepo(
@@ -94,7 +98,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Console'), findsNWidgets(2));
+    expect(find.text(AppConfig.title), findsNWidgets(2));
     expect(find.text('Active View: Item'), findsOneWidget);
     expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
   });

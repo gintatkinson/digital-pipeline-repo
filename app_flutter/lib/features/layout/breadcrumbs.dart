@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
 /// A single item in the breadcrumbs navigation.
@@ -135,7 +136,7 @@ String getFirstLeafId(TreeNode n) {
 }
 
 /// Builds a list of [BreadcrumbItem] from the current [view] and the tree
-/// hierarchy. The first item is always the root ("Console").
+/// hierarchy. The first item is always the root ("Platform Console").
 List<BreadcrumbItem> getBreadcrumbsItems(
   String view,
   List<TreeNode> treeData, {
@@ -146,7 +147,7 @@ List<BreadcrumbItem> getBreadcrumbsItems(
   final List<BreadcrumbItem> base = [
     BreadcrumbItem(
       id: 'home',
-      label: 'Console',
+      label: StringResources.get('breadcrumbs.home'),
       onClick: () {
         if (treeData.isNotEmpty) {
           onSelectView?.call(getFirstLeafId(treeData.first));

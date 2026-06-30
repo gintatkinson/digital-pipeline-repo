@@ -6,6 +6,7 @@ import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/repository_resolver.dart';
+import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/app/app.dart';
 
 // Benchmark access hooks — set after initialization
@@ -28,6 +29,8 @@ Future<void> main() async {
 
     globalThemeController = themeController;
     globalTextScalerController = textScalerController;
+
+    await StringResources.load();
 
     runApp(
       MultiProvider(

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/app/app.dart';
+import 'package:app_flutter/core/app_config.dart';
+import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 import 'package:app_flutter/core/theme/text_scaler.dart';
@@ -13,6 +15,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 void main() {
   testWidgets('Dashboard console boots and renders main widgets successfully',
       (WidgetTester tester) async {
+    StringResources.loadFromJson('{"sidebar.header": "Platform Console"}');
     await tester.runAsync(() async {
       final db = await DatabaseInitializer.create(
         dbPath: inMemoryDatabasePath,
@@ -41,7 +44,7 @@ void main() {
 
         expect(find.byType(MyApp), findsOneWidget);
         expect(find.byType(DashboardPage), findsOneWidget);
-        expect(find.text('Console'), findsAtLeast(1));
+        expect(find.text(AppConfig.title), findsAtLeast(1));
       } finally {
         await db.close();
       }
