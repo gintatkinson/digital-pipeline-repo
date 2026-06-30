@@ -135,7 +135,7 @@ String getFirstLeafId(TreeNode n) {
 }
 
 /// Builds a list of [BreadcrumbItem] from the current [view] and the tree
-/// hierarchy. The first item is always the root ("Antigravity Console").
+/// hierarchy. The first item is always the root ("Console").
 List<BreadcrumbItem> getBreadcrumbsItems(
   String view,
   List<TreeNode> treeData, {
