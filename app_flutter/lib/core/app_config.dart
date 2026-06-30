@@ -8,5 +8,11 @@
 class AppConfig {
   AppConfig._();
   static const String title = 'Platform Console';
-  static const String windowTitle = 'Platform Console';
+  /// Single source of truth for the application display name.
+  ///
+  /// All UI code MUST read from this constant rather than hardcoding
+  /// the display name. Update this one value to rebrand the application.
+  /// Keep `assets/strings.json` sidebar.header value in sync.
+  static const String appDisplayName = title;
+  static const String windowTitle = 'Pipeline Console';
 }

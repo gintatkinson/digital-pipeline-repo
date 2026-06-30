@@ -86,7 +86,7 @@ Widget wrapWithRepo(Widget child) {
 }
 
 void main() {
-  StringResources.loadFromJson('{"sidebar.header": "Platform Console", "breadcrumbs.home": "Platform Console"}');
+  StringResources.loadFromJson('{"sidebar.header": "${AppConfig.appDisplayName}", "breadcrumbs.home": "${AppConfig.appDisplayName}"}');
 
   testWidgets('Layout parses JSON config and renders components', (WidgetTester tester) async {
     await tester.pumpWidget(

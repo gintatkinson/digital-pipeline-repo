@@ -15,7 +15,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 void main() {
   testWidgets('Dashboard console boots and renders main widgets successfully',
       (WidgetTester tester) async {
-    StringResources.loadFromJson('{"sidebar.header": "Platform Console"}');
+    StringResources.loadFromJson('{"sidebar.header": "${AppConfig.appDisplayName}"}');
     await tester.runAsync(() async {
       final db = await DatabaseInitializer.create(
         dbPath: inMemoryDatabasePath,

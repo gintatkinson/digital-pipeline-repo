@@ -30,6 +30,7 @@ import logicalLayout from '../../../.pipeline/logical-ui/logical-layout.json';
 import { NavigationBreadcrumbs, BreadcrumbItem } from './breadcrumbs';
 import { TopologyMap } from './topology-map';
 import './layout.css';
+import { APP_DISPLAY_NAME } from '../config/app_config';
 
 export interface LayoutProps {
   activeView?: string;
@@ -438,7 +439,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const base: BreadcrumbItem[] = [
       {
         id: 'home',
-        label: 'Antigravity Console',
+        label: `${APP_DISPLAY_NAME}`,
         onClick: () => onViewChange?.('Ingestion'),
       },
     ];
@@ -622,7 +623,7 @@ export const Layout: React.FC<LayoutProps> = ({
               <svg className="outline-svg brand-icon" viewBox="0 0 24 24">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
-              <h2>Antigravity Console</h2>
+              <h2>{`${APP_DISPLAY_NAME}`}</h2>
             </div>
             <nav
               className="nav-menu"

@@ -1,4 +1,5 @@
 import React from 'react';
+import { APP_DISPLAY_NAME } from '../config/app_config';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Layout } from './layout';
 import { PropertyGrid } from './property-grid';
@@ -119,7 +120,7 @@ describe('UI Layout & PropertyGrid Components', () => {
         <div>Child Content</div>
       </Layout>
     );
-    expect(screen.getByText('Antigravity Console')).toBeInTheDocument();
+    expect(screen.getByText(APP_DISPLAY_NAME)).toBeInTheDocument();
     expect(screen.getByText('Active View: Ingestion')).toBeInTheDocument();
     expect(screen.getByText('Child Content')).toBeInTheDocument();
   });
