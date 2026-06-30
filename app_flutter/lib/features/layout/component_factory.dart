@@ -139,6 +139,7 @@ class ComponentFactory {
       default:
         return const SizedBox.shrink();
     }
+    return const SizedBox.shrink();
   }
 }
 

@@ -13,6 +13,7 @@ import 'package:app_flutter/features/tree/tree_node.dart';
 ///
 /// Edge cases: empty [treeData] produces no breadcrumbs; unknown
 /// [currentView] IDs still render the header label as-is.
+class TopographicalView extends StatelessWidget {
   final String currentView;
   final ValueChanged<String> onViewSelected;
   final Widget? child;

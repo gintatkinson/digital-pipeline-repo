@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 /// is not rendered. When total size is insufficient for both minimums, the
 /// first pane takes its minimum and the trailing pane fills the remainder
 /// (may be smaller than [minFirstPaneSize]).
+class SplitWorkspace extends StatefulWidget {
   final Widget leading;
   final Widget trailing;
   final Axis direction;
