@@ -23,12 +23,27 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 /// Editable property grid that displays [FieldDescriptor] fields grouped by
-/// section and emits validated data on blur.
+/// section with explicit Save/Cancel semantics and per-field dirty tracking.
 ///
 /// Exists to provide a generic, schema-driven form for editing typed objects
 /// whose structure is not known at compile time (e.g., nodes from an external
 /// data source). Use this widget whenever you need inline editing of structured
-/// properties with validation, enum dropdowns, and blur-based commit.
+/// properties with validation, enum dropdowns, and explicit save semantics.
+///
+/// ## Dirty-state model
+///   - Every edit is tracked locally per field. A small circular indicator
+///     (the "dirty dot") appears next to each field label whose current value
+///     differs from the last committed state.
+///   - The Save button commits only dirty fields in a single [onSave] call.
+///     The Cancel button discards all uncommitted edits and resets every field
+///     to its last committed value.
+///   - [onDirtyChanged] fires on each dirty-state transition so parent widgets
+///     (e.g., page-level navigation guards) can react to unsaved edits.
+///
+/// ## Navigation guard
+///   - [PopScope] intercepts back navigation when [isDirty] is true and shows
+///     a confirmation dialog. Discarding confirms the pop after resetting
+///     fields via [_executeCancel].
 ///
 /// Configuration options:
 ///   - [wideLayoutBreakpoint] controls the responsive breakpoint at which the
@@ -42,12 +57,13 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 ///   - [initialValues] may omit keys present in [fields]; those fields start
 ///     with an empty string.
 ///   - Validation errors for each field are displayed inline below the input;
-///     they are cleared when the field passes validation on blur.
+///     they are cleared when the field passes validation.
 ///
-/// State changes: committed data is accumulated in `committedData` and emitted
-/// via [onSave] on each successful blur. This widget does NOT start any
-/// long-lived streams or timers. All controllers and focus nodes are disposed
-/// in [dispose].
+/// State changes: each field is validated on blur, but [onSave] is fired
+/// **only** when the user taps the Save button. The payload contains only the
+/// subset of fields whose current value differs from [committedData]. This
+/// widget does NOT start any long-lived streams or timers. All controllers and
+/// focus nodes are disposed in [dispose].
 class PropertyGrid extends StatefulWidget {
   /// The list of field descriptors to display. When empty the grid renders
   /// nothing editable.
@@ -58,11 +74,19 @@ class PropertyGrid extends StatefulWidget {
   /// keys render as empty strings.
   final Map<String, dynamic> initialValues;
 
-  /// Called with the current committed data after a field passes validation on
-  /// blur. Not called if validation fails. The callback receives a fresh
-  /// `Map<String, dynamic>` of the entire committed state, not just the edited
-  /// field. Can be null to opt out of save notifications.
+  /// Called with a map of only the dirty fields when the user taps the Save
+  /// button. Not called during validation or on blur. The payload is a
+  /// `Map<String, dynamic>` containing only those [FieldDescriptor.key] entries
+  /// whose current value differs from [committedData]. Can be null to opt out
+  /// of save notifications.
   final Future<void> Function(Map<String, dynamic> data)? onSave;
+
+  /// Called whenever the dirty state transitions.
+  ///
+  /// Fires with `true` when the first field becomes dirty, `false` when
+  /// all fields are saved or cancelled. Allows parent widgets (e.g., Layout)
+  /// to track dirty state for navigation guards.
+  final ValueChanged<bool>? onDirtyChanged;
 
   /// The currently active view name used to highlight the matching section.
   /// When set to `'root'`, the first section (alphabetically) is highlighted.
@@ -106,6 +130,7 @@ class PropertyGrid extends StatefulWidget {
     this.fields = const [],
     this.initialValues = const {},
     this.onSave,
+    this.onDirtyChanged,
     this.activeView = 'root',
     this.wideLayoutBreakpoint = 700.0,
     this.sectionPadding = const EdgeInsets.all(20.0),
@@ -132,14 +157,88 @@ class _PropertyGridState extends State<PropertyGrid> {
   final Map<String, bool> _hadFocus = {};
 
   late Map<String, dynamic> committedData;
-  Future<void>? _pendingSave;
+  late Map<String, String> _editingEnumValues;
+
+  /// Tracks the last notified dirty state to detect transitions for
+  /// [widget.onDirtyChanged].
+  bool _previousDirty = false;
+
+  /// When `true`, the [PopScope] guard is bypassed so the route can pop
+  /// after the user has confirmed discarding unsaved edits.
+  bool _popWhenReady = false;
+
+  /// Whether any field has been edited but not yet saved.
+  ///
+  /// Compares the current controller text against the last committed value
+  /// for text fields, and [_editingEnumValues] against [committedData] for
+  /// enum fields. Returns `false` when all fields match their committed
+  /// state, or when the widget has no fields.
+  bool get isDirty {
+    for (final f in widget.fields) {
+      if (_isFieldDirty(f)) return true;
+    }
+    return false;
+  }
+
+  /// Fires [widget.onDirtyChanged] when [isDirty] transitions since the last
+  /// call. No-op when the value is unchanged or no callback is registered.
+  ///
+  /// Calls [setState] so that any widget in the build tree that depends on
+  /// [isDirty] (e.g., [PopScope.canPop]) is rebuilt with the new value.
+  void _notifyDirtyIfChanged() {
+    final dirty = isDirty;
+    if (dirty != _previousDirty) {
+      _previousDirty = dirty;
+      setState(() {});
+      widget.onDirtyChanged?.call(dirty);
+    }
+  }
+
+  /// Returns `true` if [field]'s current editing value differs from its
+  /// last committed value.
+  ///
+  /// For text-based fields (string, int, double, etc.), the comparison uses
+  /// [TextEditingController.text]. For enum fields, the comparison uses
+  /// [_editingEnumValues]. An uninitialized controller or missing enum entry
+  /// is treated as an empty string, so this getter is safe to call even
+  /// before the field has been rendered.
+  bool _isFieldDirty(FieldDescriptor field) {
+    final committed = committedData[field.key]?.toString() ?? '';
+    if (field.type == 'enum') {
+      return (_editingEnumValues[field.key]?.toString() ?? '') != committed;
+    }
+    return (_controllers[field.key]?.text ?? '') != committed;
+  }
+
+  /// Initializes [_editingEnumValues] from [committedData] for all enum
+  /// fields declared on the widget. Safe to call multiple times — any
+  /// previous entries are replaced.
+  ///
+  /// When [committedData] has no value for an enum field (null), the first
+  /// option from [FieldDescriptor.enumOptions] is used as the default so
+  /// that the dropdown is never in an invalid empty state.
+  void _initEditingEnumValues() {
+    _editingEnumValues = Map.fromEntries(
+      widget.fields.where((f) => f.type == 'enum').map((f) {
+        final options = f.enumOptions ?? <String>[];
+        final committed = committedData[f.key]?.toString() ?? '';
+        return MapEntry(
+          f.key,
+          committed.isNotEmpty ? committed : (options.isNotEmpty ? options.first : ''),
+        );
+      }),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _fields = widget.fields;
     committedData = Map<String, dynamic>.from(widget.initialValues);
+    _initEditingEnumValues();
     _initializeFields(_fields, committedData);
+    _previousDirty = false;
+    _popWhenReady = false;
   }
 
   /// Creates a [TextEditingController] and [FocusNode] for every field in
@@ -153,6 +252,8 @@ class _PropertyGridState extends State<PropertyGrid> {
       final text = val != null ? val.toString() : '';
       final controller = TextEditingController(text: text);
       final focusNode = FocusNode();
+
+      controller.addListener(_notifyDirtyIfChanged);
 
       _controllers[field.key] = controller;
       _focusNodes[field.key] = focusNode;
@@ -215,11 +316,13 @@ class _PropertyGridState extends State<PropertyGrid> {
         _disposeAllFields();
         _fields = newFields;
         committedData = Map<String, dynamic>.from(widget.initialValues);
+        _initEditingEnumValues();
         _initializeFields(_fields, committedData);
       });
     } else {
       setState(() {
         committedData = Map<String, dynamic>.from(widget.initialValues);
+        _initEditingEnumValues();
         _errors = const {};
         for (final field in _fields) {
           final focusNode = _focusNodes[field.key];
@@ -298,18 +401,19 @@ class _PropertyGridState extends State<PropertyGrid> {
   }
 
   /// Validates the current value of [field] on blur and, if valid, commits it
-  /// to [committedData] and fires [widget.onSave].
+  /// to [committedData].
   ///
-  /// For enum fields the value is read from [committedData] (already updated
-  /// by the dropdown's onChanged); for all other types it is read from the
-  /// associated [TextEditingController].
+  /// For enum fields the value is read from [_editingEnumValues] (updated by
+  /// the dropdown's onChanged before this method is called); for all other
+  /// types it is read from the associated [TextEditingController].
   ///
   /// On validation failure the error message is stored in [_errors] and
-  /// displayed inline below the input. The callback is NOT fired on failure so
-  /// that callers only see consistent, valid state snapshots.
+  /// displayed inline below the input. This method does NOT fire
+  /// [widget.onSave] — saves are exclusively triggered via the Save button
+  /// through [_executeSave].
   void _triggerBlurSave(String key, FieldDescriptor field) {
     final valueString = field.type == 'enum'
-        ? (committedData[key]?.toString() ?? '')
+        ? (_editingEnumValues[key]?.toString() ?? '')
         : (_controllers[key]?.text ?? '');
     final Map<String, String> newErrors = Map<String, String>.from(_errors);
 
@@ -325,15 +429,71 @@ class _PropertyGridState extends State<PropertyGrid> {
     });
 
     if (isValid) {
-      setState(() {
-        committedData[key] = parsedValue;
-      });
-
-      final data = Map<String, dynamic>.from(committedData);
-      _pendingSave = (_pendingSave ?? Future.value()).then((_) {
-        return widget.onSave?.call(data);
-      });
+      // Validation passed — error is cleared but committedData is NOT updated
+      // here. The committed data (and thus dirty tracking) is only advanced on
+      // explicit Save via [_executeSave] or Cancel via [_executeCancel].
     }
+  }
+
+  /// Commits all dirty fields to the DataSource in a single atomic call.
+  ///
+  /// Collects only fields whose current value differs from the last committed
+  /// state, passes them to [widget.onSave], then updates [committedData] on
+  /// success. Displays validation errors and aborts if any field is invalid.
+  ///
+  /// This is the ONLY path that fires [widget.onSave] — blur events no longer
+  /// trigger saves.
+  Future<void> _executeSave() async {
+    final validated = <String, dynamic>{};
+
+    for (final f in widget.fields) {
+      final valueString = f.type == 'enum'
+          ? (_editingEnumValues[f.key]?.toString() ?? '')
+          : (_controllers[f.key]?.text ?? '');
+      final (isValid, parsedValue, error) = _validateField(f.key, f, valueString);
+      if (!isValid) {
+        setState(() => _errors = {f.key: error ?? 'Invalid value'});
+        return;
+      }
+      validated[f.key] = parsedValue;
+    }
+
+    setState(() => _errors = const {});
+
+    final dirty = <String, dynamic>{};
+    for (final f in widget.fields) {
+      if (_isFieldDirty(f)) {
+        dirty[f.key] = validated[f.key];
+      }
+    }
+
+    if (dirty.isEmpty) return;
+
+    await widget.onSave?.call(dirty);
+
+    setState(() {
+      for (final key in dirty.keys) {
+        committedData[key] = dirty[key];
+      }
+    });
+    _notifyDirtyIfChanged();
+  }
+
+  /// Discards all uncommitted edits and resets every field to its last
+  /// committed value. Does NOT fire [widget.onSave] — no data is written.
+  void _executeCancel() {
+    setState(() {
+      _errors = const {};
+      for (final f in widget.fields) {
+        final committed = committedData[f.key]?.toString() ?? '';
+        if (f.type == 'enum') {
+          _editingEnumValues[f.key] = committed;
+        } else {
+          _controllers[f.key]?.text = committed;
+        }
+      }
+    });
+    _notifyDirtyIfChanged();
   }
 
   /// Resolves the list of [TextInputFormatter]s declared on [field].
@@ -376,13 +536,44 @@ class _PropertyGridState extends State<PropertyGrid> {
     final List<String> sortedGroups = groups.toList();
     sortedGroups.sort();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
+    return PopScope(
+      canPop: !isDirty || _popWhenReady,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (isDirty) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Unsaved changes'),
+              content: const Text('Discard unsaved changes?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Discard'),
+                ),
+              ],
+            ),
+          );
+          if (confirm == true) {
+            _executeCancel();
+            _popWhenReady = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) Navigator.of(context).pop();
+            });
+          }
+        }
+      },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
               final double cardWidth = constraints.maxWidth > widget.wideLayoutBreakpoint
                   ? (constraints.maxWidth - 16.0) / 2.0
                   : constraints.maxWidth;
@@ -423,8 +614,31 @@ class _PropertyGridState extends State<PropertyGrid> {
           ),
           SizedBox(height: widget.gapSize),
           _buildCommittedStatePanel(isDark),
+          // Save/Cancel buttons — visible only when at least one field has
+          // uncommitted edits (isDirty). The Save button is the sole path that
+          // fires [widget.onSave]; the Cancel button resets all fields to their
+          // last committed values with no RPC call.
+          if (isDirty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: _executeCancel,
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _executeSave,
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
+    ),
     );
   }
 
@@ -559,12 +773,12 @@ class _PropertyGridState extends State<PropertyGrid> {
 
     if (field.type == 'enum') {
       final options = field.enumOptions ?? const [];
-      final currentValue = committedData[field.key] ?? (options.isNotEmpty ? options.first : '');
+      final currentValue = _editingEnumValues[field.key] ?? (options.isNotEmpty ? options.first : '');
 
       return _buildDropdownField(
-        label: field.label,
+        field: field,
         focusNode: _focusNodes[field.key]!,
-        value: currentValue as String,
+        value: currentValue,
         errorText: _errors[field.key],
         isDark: isDark,
         brandPrimary: brandPrimary,
@@ -583,8 +797,9 @@ class _PropertyGridState extends State<PropertyGrid> {
         onChanged: (String? val) {
           if (val != null) {
             setState(() {
-              committedData[field.key] = val;
+              _editingEnumValues[field.key] = val;
             });
+            _notifyDirtyIfChanged();
             _triggerBlurSave(field.key, field);
           }
         },
@@ -602,7 +817,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       inputFormatters = _resolveInputFormatters(field);
 
       return _buildTextField(
-        label: field.label,
+        field: field,
         controller: _controllers[field.key]!,
         focusNode: _focusNodes[field.key]!,
         keyboardType: keyboardType,
@@ -613,6 +828,32 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
+  /// Builds the label row for [field], showing a small circular dirty indicator
+  /// dot beside the field name when the field's current value differs from its
+  /// last committed state.
+  ///
+  /// The indicator uses the theme's primary color so it is visible in both
+  /// light and dark modes. Always returns a [Row] so the widget subtree
+  /// structure is stable across dirty-state transitions.
+  Widget _buildFieldLabel(FieldDescriptor field) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_isFieldDirty(field))
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
+        Text(field.label, style: Theme.of(context).textTheme.labelSmall),
+      ],
+    );
+  }
+
   /// Builds a labelled [TextField] bound to [controller] and [focusNode].
   ///
   /// The text field uses [widget.inputBorderRadius] for its [OutlineInputBorder]
@@ -621,11 +862,12 @@ class _PropertyGridState extends State<PropertyGrid> {
   /// and to [brandPrimary] when focused.
   ///
   /// The label is rendered above the field using the theme's `labelSmall` text
-  /// style. Keyboard type and input formatters are forwarded to the
+  /// style, with an optional dirty indicator dot via [_buildFieldLabel].
+  /// Keyboard type and input formatters are forwarded to the
   /// [TextField] unchanged; pass null for [inputFormatters] when no
   /// formatting is required.
   Widget _buildTextField({
-    required String label,
+    required FieldDescriptor field,
     required TextEditingController controller,
     required FocusNode focusNode,
     TextInputType keyboardType = TextInputType.text,
@@ -637,10 +879,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+        _buildFieldLabel(field),
         SizedBox(height: widget.gapSize),
         TextField(
           controller: controller,
@@ -690,10 +929,12 @@ class _PropertyGridState extends State<PropertyGrid> {
   /// legible in both light and dark themes.
   ///
   /// The label is rendered above the dropdown using the theme's `labelSmall`
-  /// text style. The [onChanged] callback is typically wired to
-  /// [_triggerBlurSave] so that enum value changes are committed immediately.
+  /// text style, with an optional dirty indicator dot via [_buildFieldLabel].
+  /// The [onChanged] callback updates [_editingEnumValues] and then calls
+  /// [_triggerBlurSave] so that enum value changes are validated and
+  /// committed immediately.
   Widget _buildDropdownField({
-    required String label,
+    required FieldDescriptor field,
     required FocusNode focusNode,
     required String value,
     required List<DropdownMenuItem<String>> items,
@@ -706,10 +947,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+        _buildFieldLabel(field),
         SizedBox(height: widget.gapSize),
           Focus(
             focusNode: focusNode,
@@ -777,7 +1015,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Committed Data (verified on blur)',
+            'Saved State',
             style: Theme.of(context).textTheme.labelSmall,
           ),
           SizedBox(height: widget.gapSize),

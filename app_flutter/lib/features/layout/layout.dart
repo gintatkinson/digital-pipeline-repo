@@ -50,6 +50,12 @@ class _LayoutState extends State<Layout> {
   // Navigation & Tree Selection
   late String _currentView;
 
+  /// Tracks whether the [PropertyGrid] has unsaved edits.
+  ///
+  /// Used by [_selectView] to show a confirmation dialog before discarding
+  /// dirty state when switching views.
+  bool _gridIsDirty = false;
+
   // Data Source
   DataSource? _dataSource;
   StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
@@ -319,8 +325,44 @@ class _LayoutState extends State<Layout> {
   ///
   /// No-op if [viewId] equals [_currentView]. Resubscribes to properties for
   /// the new view and reloads the properties view model type.
+  ///
+  /// When [PropertyGrid] has unsaved edits ([_gridIsDirty]), a confirmation
+  /// dialog is shown before discarding the dirty state and switching views.
   void _selectView(String viewId) {
     if (_currentView == viewId) return;
+    if (_gridIsDirty) {
+      showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Unsaved changes'),
+          content: const Text('Discard unsaved changes and switch view?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Discard'),
+            ),
+          ],
+        ),
+      ).then((confirmed) {
+        if (confirmed == true) {
+          _gridIsDirty = false;
+          _doSelectView(viewId);
+        }
+      });
+      return;
+    }
+    _doSelectView(viewId);
+  }
+
+  /// Performs the actual view switch after the dirty guard has cleared.
+  ///
+  /// Extracted from [_selectView] so the dirty-checking logic can be shared
+  /// without duplicating the switch body.
+  void _doSelectView(String viewId) {
     setState(() {
       _currentView = viewId;
     });
@@ -376,6 +418,9 @@ class _LayoutState extends State<Layout> {
       initialValues: _nodeData,
       onSave: (Map<String, dynamic> data) async {
         await _dataSource!.saveProperties(_currentView, data);
+      },
+      onDirtyChanged: (dirty) {
+        if (mounted) setState(() => _gridIsDirty = dirty);
       },
     );
   }
