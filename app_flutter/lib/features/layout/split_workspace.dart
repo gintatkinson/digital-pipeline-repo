@@ -19,6 +19,9 @@ class SplitWorkspace extends StatefulWidget {
   final Axis direction;
   final double minFirstPaneSize;
   final double initialRatio;
+  final double dividerSize;
+  final double gripWidth;
+  final double gripHeight;
   final Key? splitterKey;
   final ValueChanged<double>? onDrag;
 
@@ -29,6 +32,9 @@ class SplitWorkspace extends StatefulWidget {
     required this.direction,
     required this.minFirstPaneSize,
     required this.initialRatio,
+    this.dividerSize = 8.0,
+    this.gripWidth = 2.0,
+    this.gripHeight = 40.0,
     this.splitterKey,
     this.onDrag,
   });
@@ -86,8 +92,8 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
                 ? SystemMouseCursors.resizeLeftRight
                 : SystemMouseCursors.resizeUpDown,
             child: Container(
-              width: isHorizontal ? 8 : double.infinity,
-              height: isHorizontal ? double.infinity : 8,
+              width: isHorizontal ? widget.dividerSize : double.infinity,
+              height: isHorizontal ? double.infinity : widget.dividerSize,
               decoration: BoxDecoration(
                 color: Theme.of(context).dividerColor,
                 border: isHorizontal
@@ -114,8 +120,8 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
               ),
               child: Center(
                 child: Container(
-                  width: isHorizontal ? 2 : 40,
-                  height: isHorizontal ? 40 : 2,
+                  width: isHorizontal ? widget.gripWidth : widget.gripHeight,
+                  height: isHorizontal ? widget.gripHeight : widget.gripWidth,
                   color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3) ??
                       Theme.of(context).dividerColor,
                 ),

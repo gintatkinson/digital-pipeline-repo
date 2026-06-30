@@ -18,10 +18,12 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 /// state changes are delegated to the view model.
 class TreeNodeWidget extends StatelessWidget {
   final TreeNode node;
+  final double childIndent;
 
   const TreeNodeWidget({
     super.key,
     required this.node,
+    this.childIndent = 16.0,
   });
 
   @override
@@ -85,7 +87,7 @@ class TreeNodeWidget extends StatelessWidget {
           ),
         if (isParent && isExpanded)
           Padding(
-            padding: const EdgeInsets.only(left: 16.0),
+            padding: EdgeInsets.only(left: childIndent),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: node.children!.map((child) => TreeNodeWidget(

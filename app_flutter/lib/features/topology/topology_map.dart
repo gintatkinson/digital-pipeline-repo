@@ -3,21 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData;
 
-const double _kTapProximity = 20.0;
-const double _kGridSpacing = 40.0;
-const double _kPacketRadius = 4.0;
-const double _kPacketAnimationPeriod = 2.0;
-const double _kNodeRadiusDefault = 9.0;
-const double _kNodeRadiusFocused = 12.0;
-const double _kVelocityScale = 2.0;
-const double _kDefaultMinTime = 1.0;
-const double _kDefaultMaxTime = 10.0;
-const double _kMinViewportWidth = 800.0;
-const double _kMinViewportHeight = 500.0;
-const double _kTimeDisplayWidth = 32.0;
-const double _kHaloRadius = 20.0;
-const int _kSliderDivisions = 90;
-
 dynamic _resolvePath(Map<String, dynamic> map, String path) {
   final List<String> parts = path.split('/');
   dynamic current = map;
@@ -257,7 +242,7 @@ class TopologyData {
 /// A playback panel at the bottom provides play/pause, time slider, and speed
 /// control.
 ///
-/// Tap detection uses [_kTapProximity] (20 px). If no node is close enough
+/// Tap detection uses [tapProximity] (20 px). If no node is close enough
 /// the tap is silently ignored. When [data] is null, falls back to
 /// [emptyTopologyData] (empty nodes/links). On data change, the playhead
 /// is clamped to the new [minTime]–[maxTime] range.
@@ -266,11 +251,42 @@ class TopologyMap extends StatefulWidget {
   final ValueChanged<String>? onNodeSelect;
   final TopologyData? data;
 
+  final double tapProximity;
+  final double gridSpacing;
+  final double packetRadius;
+  final double packetAnimationPeriod;
+  final double nodeRadiusDefault;
+  final double nodeRadiusFocused;
+  final double velocityScale;
+  final double defaultMinTime;
+  final double defaultMaxTime;
+  final double minViewportWidth;
+  final double minViewportHeight;
+  final double timeDisplayWidth;
+  final double haloRadius;
+  final int sliderDivisions;
+  final double labelFontSize;
+
   const TopologyMap({
     super.key,
     this.activeFocusedNode,
     this.onNodeSelect,
     this.data,
+    this.tapProximity = 20.0,
+    this.gridSpacing = 40.0,
+    this.packetRadius = 4.0,
+    this.packetAnimationPeriod = 2.0,
+    this.nodeRadiusDefault = 9.0,
+    this.nodeRadiusFocused = 12.0,
+    this.velocityScale = 2.0,
+    this.defaultMinTime = 1.0,
+    this.defaultMaxTime = 10.0,
+    this.minViewportWidth = 800.0,
+    this.minViewportHeight = 500.0,
+    this.timeDisplayWidth = 32.0,
+    this.haloRadius = 20.0,
+    this.sliderDivisions = 90,
+    this.labelFontSize = 12.0,
   });
 
   @override
@@ -287,27 +303,27 @@ class _TopologyMapState extends State<TopologyMap>
 
   double get minTime {
     final TopologyData activeData = widget.data ?? emptyTopologyData;
-    if (activeData.nodes.isEmpty) return _kDefaultMinTime;
+    if (activeData.nodes.isEmpty) return widget.defaultMinTime;
     double minT = double.infinity;
     for (final TopologyNode node in activeData.nodes) {
       final double t = node.resolveCoordinate('t', activeData.coordinateMapping);
       if (t < minT) minT = t;
     }
-    return minT == double.infinity ? _kDefaultMinTime : minT;
+    return minT == double.infinity ? widget.defaultMinTime : minT;
   }
 
   double get maxTime {
     final TopologyData activeData = widget.data ?? emptyTopologyData;
-    if (activeData.nodes.isEmpty) return _kDefaultMaxTime;
+    if (activeData.nodes.isEmpty) return widget.defaultMaxTime;
     double maxT = -double.infinity;
     for (final TopologyNode node in activeData.nodes) {
       final double t = node.resolveCoordinate('t', activeData.coordinateMapping);
       if (t > maxT) maxT = t;
     }
-    if (maxT == -double.infinity) return _kDefaultMaxTime;
+    if (maxT == -double.infinity) return widget.defaultMaxTime;
     final double minT = minTime;
     if (maxT == minT) {
-      return minT + _kDefaultMaxTime - _kDefaultMinTime;
+      return minT + widget.defaultMaxTime - widget.defaultMinTime;
     }
     return maxT;
   }
@@ -383,7 +399,7 @@ class _TopologyMapState extends State<TopologyMap>
           (clickX - pos.dx) * (clickX - pos.dx) +
               (clickY - pos.dy) * (clickY - pos.dy));
 
-      if (dist <= _kTapProximity) {
+      if (dist <= widget.tapProximity) {
         widget.onNodeSelect?.call(node.id);
         break;
       }
@@ -426,7 +442,7 @@ class _TopologyMapState extends State<TopologyMap>
               Text('t:', style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(width: 8),
               SizedBox(
-                width: _kTimeDisplayWidth,
+                width: widget.timeDisplayWidth,
                 child: Text(
                   currentTimeIndex.toStringAsFixed(1),
                   style: Theme.of(context).textTheme.bodyMedium,
@@ -440,7 +456,7 @@ class _TopologyMapState extends State<TopologyMap>
               key: const ValueKey<String>('timeSlider'),
               min: minTime,
               max: maxTime,
-              divisions: _kSliderDivisions,
+              divisions: widget.sliderDivisions,
               value: currentTimeIndex.clamp(minTime, maxTime),
               onChanged: (double value) {
                 setPlayhead(value);
@@ -495,11 +511,11 @@ class _TopologyMapState extends State<TopologyMap>
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double viewportWidth =
-            constraints.maxWidth.isFinite ? constraints.maxWidth : _kMinViewportWidth;
+            constraints.maxWidth.isFinite ? constraints.maxWidth : widget.minViewportWidth;
         final double viewportHeight =
-            constraints.maxHeight.isFinite ? constraints.maxHeight : _kMinViewportHeight;
-        final double width = viewportWidth > _kMinViewportWidth ? viewportWidth : _kMinViewportWidth;
-        final double height = viewportHeight > _kMinViewportHeight ? viewportHeight : _kMinViewportHeight;
+            constraints.maxHeight.isFinite ? constraints.maxHeight : widget.minViewportHeight;
+        final double width = viewportWidth > widget.minViewportWidth ? viewportWidth : widget.minViewportWidth;
+        final double height = viewportHeight > widget.minViewportHeight ? viewportHeight : widget.minViewportHeight;
 
         return Container(
           color: colors.surfaceContainerHighest,
@@ -524,6 +540,14 @@ class _TopologyMapState extends State<TopologyMap>
                             activeFocusedNode: widget.activeFocusedNode,
                             activeData: activeData,
                             currentTimeIndex: currentTimeIndex,
+                            gridSpacing: widget.gridSpacing,
+                            packetRadius: widget.packetRadius,
+                            packetAnimationPeriod: widget.packetAnimationPeriod,
+                            nodeRadiusDefault: widget.nodeRadiusDefault,
+                            nodeRadiusFocused: widget.nodeRadiusFocused,
+                            velocityScale: widget.velocityScale,
+                            haloRadius: widget.haloRadius,
+                            labelFontSize: widget.labelFontSize,
                             colors: TopologyPainterColors(
                               bgColor: colors.surfaceContainerHighest,
                               gridColor: colors.outlineVariant,
@@ -597,11 +621,28 @@ class TopologyPainter extends CustomPainter {
   final double currentTimeIndex;
   final TopologyPainterColors colors;
 
+  final double gridSpacing;
+  final double packetRadius;
+  final double packetAnimationPeriod;
+  final double nodeRadiusDefault;
+  final double nodeRadiusFocused;
+  final double velocityScale;
+  final double haloRadius;
+  final double labelFontSize;
+
   TopologyPainter({
     required this.activeFocusedNode,
     required this.activeData,
     required this.currentTimeIndex,
     required this.colors,
+    this.gridSpacing = 40.0,
+    this.packetRadius = 4.0,
+    this.packetAnimationPeriod = 2.0,
+    this.nodeRadiusDefault = 9.0,
+    this.nodeRadiusFocused = 12.0,
+    this.velocityScale = 2.0,
+    this.haloRadius = 20.0,
+    this.labelFontSize = 12.0,
   });
 
   @override
@@ -616,10 +657,10 @@ class TopologyPainter extends CustomPainter {
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    for (double x = 0; x < size.width; x += _kGridSpacing) {
+    for (double x = 0; x < size.width; x += gridSpacing) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
-    for (double y = 0; y < size.height; y += _kGridSpacing) {
+    for (double y = 0; y < size.height; y += gridSpacing) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
@@ -643,7 +684,7 @@ class TopologyPainter extends CustomPainter {
         canvas.drawLine(sourceOffset, targetOffset, linkPaint);
 
         // Animated data packet along link path
-        final double packetRatio = (currentTimeIndex % _kPacketAnimationPeriod) / _kPacketAnimationPeriod;
+        final double packetRatio = (currentTimeIndex % packetAnimationPeriod) / packetAnimationPeriod;
         final double px =
             sourceOffset.dx + (targetOffset.dx - sourceOffset.dx) * packetRatio;
         final double py =
@@ -652,7 +693,7 @@ class TopologyPainter extends CustomPainter {
         final Paint packetPaint = Paint()
           ..color = colors.packetColor
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(px, py), _kPacketRadius, packetPaint);
+        canvas.drawCircle(Offset(px, py), packetRadius, packetPaint);
       }
     }
 
@@ -672,12 +713,12 @@ class TopologyPainter extends CustomPainter {
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       canvas.drawLine(
-          pos, Offset(pos.dx + vx * _kVelocityScale, pos.dy + vy * _kVelocityScale), vectorPaint);
+          pos, Offset(pos.dx + vx * velocityScale, pos.dy + vy * velocityScale), vectorPaint);
 
       // Node base circle representation
       final Paint fillPaint = Paint()..style = PaintingStyle.fill;
       final Paint strokePaint = Paint()..style = PaintingStyle.stroke;
-      final double radius = isFocused ? _kNodeRadiusFocused : _kNodeRadiusDefault;
+      final double radius = isFocused ? nodeRadiusFocused : nodeRadiusDefault;
 
       if (isFocused) {
         fillPaint.color = colors.nodeFillColor;
@@ -702,7 +743,7 @@ class TopologyPainter extends CustomPainter {
           ..color = colors.haloColor
           ..strokeWidth = 1.5
           ..style = PaintingStyle.stroke;
-        canvas.drawCircle(pos, _kHaloRadius, haloPaint);
+        canvas.drawCircle(pos, haloRadius, haloPaint);
       }
 
       // Draw node label below
@@ -711,7 +752,7 @@ class TopologyPainter extends CustomPainter {
           text: node.label,
           style: TextStyle(
             color: colors.labelColor,
-            fontSize: 12.0,
+            fontSize: labelFontSize,
           ),
         ),
         textDirection: TextDirection.ltr,

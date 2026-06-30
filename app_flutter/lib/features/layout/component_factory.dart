@@ -114,7 +114,7 @@ class ComponentFactory {
           trailing: tabbedChild != null
               ? build(tabbedChild as Map<String, dynamic>, parentWidth, parentHeight, context)
               : const SizedBox.shrink(),
-          direction: Axis.vertical,
+          direction: _parseAxis(node),
           minFirstPaneSize: minPaneSize,
           initialRatio: defaultRatio(),
           splitterKey: const Key('horizontal_splitter'),
@@ -127,6 +127,9 @@ class ComponentFactory {
           child: buildChildWidget(context),
           topologyData: resolveTopologyData(),
           treeData: treeData,
+          splitMinFirstPaneSize: minPaneSize,
+          splitInitialRatio: defaultRatio(),
+          splitDirection: _parseAxis(node),
         );
       case 'TabbedContainer':
         return _TabbedContainerHost(currentView: currentView);
@@ -140,6 +143,14 @@ class ComponentFactory {
         return const SizedBox.shrink();
     }
     return const SizedBox.shrink();
+  }
+
+  /// Reads the `axis` prop from a layout [node] and returns the corresponding
+  /// [Axis] value. Defaults to [Axis.vertical] when the prop is absent.
+  Axis _parseAxis(Map<String, dynamic> node) {
+    final axis = node['props']?['axis'] as String?;
+    if (axis == 'horizontal') return Axis.horizontal;
+    return Axis.vertical;
   }
 }
 

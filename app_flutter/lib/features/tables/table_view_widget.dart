@@ -23,7 +23,20 @@ import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 /// model.
 class TableViewWidget extends StatelessWidget {
   /// Creates a [TableViewWidget].
-  const TableViewWidget({super.key});
+  const TableViewWidget({
+    super.key,
+    this.headingRowHeight = 32.0,
+    this.dataRowMinHeight = 28.0,
+    this.dataRowMaxHeight = 28.0,
+    this.horizontalMargin = 12.0,
+    this.columnSpacing = 24.0,
+  });
+
+  final double headingRowHeight;
+  final double dataRowMinHeight;
+  final double dataRowMaxHeight;
+  final double horizontalMargin;
+  final double columnSpacing;
 
   @override
   Widget build(BuildContext context) {
@@ -62,11 +75,11 @@ class TableViewWidget extends StatelessWidget {
               scrollDirection: Axis.vertical,
               child: DataTable(
                 key: Key(testId),
-                headingRowHeight: 32.0,
-                dataRowMinHeight: 28.0,
-                dataRowMaxHeight: 28.0,
-                horizontalMargin: 12.0,
-                columnSpacing: 24.0,
+                headingRowHeight: headingRowHeight,
+                dataRowMinHeight: dataRowMinHeight,
+                dataRowMaxHeight: dataRowMaxHeight,
+                horizontalMargin: horizontalMargin,
+                columnSpacing: columnSpacing,
                 columns: viewModel.headers
                     .map((h) => DataColumn(
                           label: Text(

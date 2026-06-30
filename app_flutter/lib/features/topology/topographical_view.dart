@@ -32,7 +32,7 @@ class TopographicalView extends StatelessWidget {
     required this.topologyData,
     this.treeData = const [],
     this.splitDirection = Axis.vertical,
-    this.splitMinFirstPaneSize = 100.0,
+    this.splitMinFirstPaneSize = 150.0,
     this.splitInitialRatio = 0.4,
     this.splitterKey = const Key('topo_splitter'),
   });

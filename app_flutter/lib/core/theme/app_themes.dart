@@ -209,7 +209,7 @@ class AppThemes {
     tabBarIndicatorTopRadius: 0,
     tabBarDividerColor: const Color(0x00000000),
     drawerElevation: 16.0,
-    drawerWidth: 304.0,
+    drawerWidth: 280.0,
     bottomSheetElevation: 10.0,
     bottomSheetModalElevation: 20.0,
     bottomNavigationBarSelectedLabelSchemeColor: SchemeColor.primary,

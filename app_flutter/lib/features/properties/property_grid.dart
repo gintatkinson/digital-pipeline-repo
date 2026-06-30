@@ -62,19 +62,42 @@ class PropertyGrid extends StatefulWidget {
   /// Sections whose [FieldDescriptor.sectionLabel] does not match are dimmed.
   final String activeView;
 
+  /// Responsive breakpoint at which the layout switches from single-column to
+  /// two-column grid. Defaults to 700.0.
+  final double wideLayoutBreakpoint;
+
+  /// Padding applied inside each section card. Defaults to
+  /// `EdgeInsets.all(20.0)`.
+  final EdgeInsetsGeometry sectionPadding;
+
+  /// Uniform gap used between fields and sections. Defaults to 8.0.
+  final double gapSize;
+
+  /// Border radius used for section cards. Defaults to
+  /// `BorderRadius.circular(12.0)`.
+  final BorderRadiusGeometry cardBorderRadius;
+
+  /// Border radius used for text field and dropdown input borders. Defaults to
+  /// `BorderRadius.circular(6.0)`.
+  final BorderRadius inputBorderRadius;
+
   const PropertyGrid({
     super.key,
     this.fields = const [],
     this.initialValues = const {},
     this.onSave,
     this.activeView = 'root',
+    this.wideLayoutBreakpoint = 700.0,
+    this.sectionPadding = const EdgeInsets.all(20.0),
+    this.gapSize = 8.0,
+    this.cardBorderRadius = const BorderRadius.all(Radius.circular(12.0)),
+    this.inputBorderRadius = const BorderRadius.all(Radius.circular(6.0)),
   });
 
   @override
   State<PropertyGrid> createState() => _PropertyGridState();
 }
 
-const _wideLayoutBreakpoint = 700.0;
 const _inactiveSectionOpacity = 0.65;
 const _activeShadowOpacity = 0.1;
 const _inactiveShadowOpacity = 0.05;
@@ -292,7 +315,7 @@ class _PropertyGridState extends State<PropertyGrid> {
         children: [
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final double cardWidth = constraints.maxWidth > _wideLayoutBreakpoint
+              final double cardWidth = constraints.maxWidth > widget.wideLayoutBreakpoint
                   ? (constraints.maxWidth - 16.0) / 2.0
                   : constraints.maxWidth;
 
@@ -309,12 +332,12 @@ class _PropertyGridState extends State<PropertyGrid> {
                 );
               }).toList();
 
-              if (constraints.maxWidth > _wideLayoutBreakpoint && sections.length >= 2) {
+              if (constraints.maxWidth > widget.wideLayoutBreakpoint && sections.length >= 2) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     sections[0],
-                    const SizedBox(width: 8),
+                    SizedBox(width: widget.gapSize),
                     sections[1],
                   ],
                 );
@@ -323,14 +346,14 @@ class _PropertyGridState extends State<PropertyGrid> {
                 for (int i = 0; i < sections.length; i++) {
                   columnChildren.add(sections[i]);
                   if (i < sections.length - 1) {
-                    columnChildren.add(const SizedBox(height: 8));
+                    columnChildren.add(SizedBox(height: widget.gapSize));
                   }
                 }
                 return Column(children: columnChildren);
               }
             },
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: widget.gapSize),
           _buildCommittedStatePanel(isDark),
         ],
       ),
@@ -354,10 +377,10 @@ class _PropertyGridState extends State<PropertyGrid> {
       opacity: isActive ? 1.0 : _inactiveSectionOpacity,
       child: Container(
         width: width,
-        padding: const EdgeInsets.all(20.0),
+        padding: widget.sectionPadding,
         decoration: BoxDecoration(
           color: surfaceFill,
-          borderRadius: BorderRadius.circular(12.0),
+          borderRadius: widget.cardBorderRadius,
           border: Border.all(
             color: isActive ? borderActive : borderColor,
             width: isActive ? 2.0 : 1.0,
@@ -407,7 +430,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                     ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: widget.gapSize),
             child,
           ],
         ),
@@ -424,7 +447,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     final List<Widget> fields = [];
     for (final field in groupFields) {
       fields.add(_buildAttrField(field, isDark));
-      fields.add(const SizedBox(height: 8));
+      fields.add(SizedBox(height: widget.gapSize));
     }
 
     if (fields.isNotEmpty) {
@@ -505,7 +528,6 @@ class _PropertyGridState extends State<PropertyGrid> {
     List<TextInputFormatter>? inputFormatters,
     String? errorText,
     required Color brandPrimary,
-    ValueChanged<String>? onChanged,
   }) {
     final cs = Theme.of(context).colorScheme;
     return Column(
@@ -515,7 +537,7 @@ class _PropertyGridState extends State<PropertyGrid> {
           label,
           style: Theme.of(context).textTheme.labelSmall,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: widget.gapSize),
         TextField(
           controller: controller,
           focusNode: focusNode,
@@ -528,7 +550,7 @@ class _PropertyGridState extends State<PropertyGrid> {
             filled: true,
             fillColor: cs.surface,
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6.0),
+              borderRadius: widget.inputBorderRadius,
               borderSide: BorderSide(
                 color: errorText != null
                     ? Theme.of(context).colorScheme.error
@@ -536,14 +558,13 @@ class _PropertyGridState extends State<PropertyGrid> {
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6.0),
+              borderRadius: widget.inputBorderRadius,
               borderSide: BorderSide(
                 color: errorText != null ? Theme.of(context).colorScheme.error : brandPrimary,
                 width: 1.5,
               ),
             ),
           ),
-          onChanged: onChanged,
         ),
         if (errorText != null)
           Padding(
@@ -575,7 +596,7 @@ class _PropertyGridState extends State<PropertyGrid> {
           label,
           style: Theme.of(context).textTheme.labelSmall,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: widget.gapSize),
           Focus(
             focusNode: focusNode,
             child: DropdownButtonFormField<String>(
@@ -589,7 +610,7 @@ class _PropertyGridState extends State<PropertyGrid> {
               filled: true,
               fillColor: cs.surface,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.0),
+                borderRadius: widget.inputBorderRadius,
                 borderSide: BorderSide(
                   color: errorText != null
                       ? Theme.of(context).colorScheme.error
@@ -597,7 +618,7 @@ class _PropertyGridState extends State<PropertyGrid> {
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.0),
+                borderRadius: widget.inputBorderRadius,
                 borderSide: BorderSide(
                   color: errorText != null ? Theme.of(context).colorScheme.error : brandPrimary,
                   width: 1.5,
@@ -639,7 +660,7 @@ class _PropertyGridState extends State<PropertyGrid> {
             'Committed Data (verified on blur)',
             style: Theme.of(context).textTheme.labelSmall,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: widget.gapSize),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12.0),

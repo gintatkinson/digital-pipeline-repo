@@ -265,17 +265,14 @@ class _LayoutState extends State<Layout> {
   }
 
   void _updateCurrentViewFromLayout() {
-    debugPrint('[LAYOUT] _updateCurrentViewFromLayout: activeView=${widget.activeView}');
     if (widget.activeView == null && _treeViewModel != null && _treeViewModel!.treeData.isNotEmpty) {
       _currentView = _treeViewModel!.treeData.first.id;
-      debugPrint('[LAYOUT] _updateCurrentViewFromLayout: setting _currentView=$_currentView');
       _subscribeProperties(_currentView);
       _propertiesViewModel?.loadType(_currentView);
     }
   }
 
   void _selectView(String viewId) {
-    debugPrint('[LAYOUT] _selectView: viewId=$viewId, _currentView=$_currentView');
     if (_currentView == viewId) return;
     setState(() {
       _currentView = viewId;

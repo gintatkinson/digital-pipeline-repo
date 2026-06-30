@@ -199,8 +199,6 @@ List<BreadcrumbItem> getBreadcrumbsItems(
   List<TreeNode> treeData, {
   ValueChanged<String>? onSelectView,
 }) {
-  debugPrint('[BREADCRUMBS] getBreadcrumbsItems: view=$view');
-
   final List<BreadcrumbItem> base = [
     BreadcrumbItem(
       id: 'home',
@@ -229,9 +227,7 @@ List<BreadcrumbItem> getBreadcrumbsItems(
   }
 
   final path = findPath(treeData, view, []);
-  debugPrint('[BREADCRUMBS] getBreadcrumbsItems: path found=${path?.map((n) => n.id).toList()}');
   if (path == null || path.isEmpty) {
-    debugPrint('[BREADCRUMBS] getBreadcrumbsItems: path NOT found, returning fallback');
     return [...base, BreadcrumbItem(id: view, label: view)];
   }
 

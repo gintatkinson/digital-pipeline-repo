@@ -19,11 +19,13 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 class SidebarTree extends StatelessWidget {
   final int? workerResult;
   final ValueChanged<String> onViewSelected;
+  final EdgeInsetsGeometry contentPadding;
 
   const SidebarTree({
     super.key,
     this.workerResult,
     required this.onViewSelected,
+    this.contentPadding = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
   });
 
   @override
@@ -94,7 +96,7 @@ class SidebarTree extends StatelessWidget {
                 return KeyEventResult.ignored;
               },
                 child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                padding: contentPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: treeData.map((node) => TreeNodeWidget(
