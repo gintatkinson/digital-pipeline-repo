@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -68,7 +69,15 @@ class RepositoryResolver {
 
     switch (type) {
       case 'firebase':
-        return _createFirebaseAdapter(useEmulator: useEmulator);
+        try {
+          return await _createFirebaseAdapter(useEmulator: useEmulator);
+        } catch (e) {
+          debugPrint('Firebase unavailable, falling back to SQLite: $e');
+          return _createSqliteAdapter(
+            dbAssetPath: dbAssetPath,
+            inMemory: sqliteInMemory,
+          );
+        }
       case 'sqlite':
         return _createSqliteAdapter(
           dbAssetPath: dbAssetPath,
@@ -91,15 +100,7 @@ class RepositoryResolver {
   static Future<(AbstractRepository, DataSource)> _createFirebaseAdapter({
     bool useEmulator = true,
   }) async {
-    try {
-      await Firebase.initializeApp();
-    } catch (e) {
-      debugPrint('Firebase init failed (expected on non-iOS): $e');
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-      final db = await databaseFactory.openDatabase(inMemoryDatabasePath);
-      return (SqliteRepositoryAdapter(db), FallbackDataSource());
-    }
+    await Firebase.initializeApp();
     final firestore = FirebaseFirestore.instance;
     if (useEmulator) {
       firestore.useFirestoreEmulator(_defaultEmulatorHost, _defaultEmulatorPort);

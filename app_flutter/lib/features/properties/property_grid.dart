@@ -340,6 +340,9 @@ class _PropertyGridState extends State<PropertyGrid> {
         _initializeFields(_fields, committedData);
       });
     } else {
+      for (final c in _controllers.values) {
+        c.removeListener(_notifyDirtyIfChanged);
+      }
       setState(() {
         committedData = Map<String, dynamic>.from(widget.initialValues);
         _initEditingEnumValues();
@@ -353,6 +356,10 @@ class _PropertyGridState extends State<PropertyGrid> {
           }
         }
       });
+      for (final c in _controllers.values) {
+        c.addListener(_notifyDirtyIfChanged);
+      }
+      _notifyDirtyIfChanged();
     }
   }
 
