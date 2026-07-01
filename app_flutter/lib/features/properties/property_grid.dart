@@ -173,6 +173,7 @@ class _PropertyGridState extends State<PropertyGrid> {
 
   late Map<String, dynamic> committedData;
   late Map<String, String> _editingEnumValues;
+  final ValueNotifier<bool> _dirtyNotifier = ValueNotifier(false);
 
   /// Tracks the last notified dirty state to detect transitions for
   /// [widget.onDirtyChanged].
@@ -198,13 +199,14 @@ class _PropertyGridState extends State<PropertyGrid> {
   /// Fires [widget.onDirtyChanged] when [isDirty] transitions since the last
   /// call. No-op when the value is unchanged or no callback is registered.
   ///
-  /// Calls [setState] so that any widget in the build tree that depends on
-  /// [isDirty] (e.g., [PopScope.canPop]) is rebuilt with the new value.
+  /// Updates [_dirtyNotifier] instead of calling [setState], so the full
+  /// widget tree is not rebuilt — only [ValueListenableBuilder] subtrees
+  /// that depend on dirty state are updated.
   void _notifyDirtyIfChanged() {
     final dirty = isDirty;
     if (dirty != _previousDirty) {
       _previousDirty = dirty;
-      setState(() {});
+      _dirtyNotifier.value = dirty;
       widget.onDirtyChanged?.call(dirty);
     }
   }
@@ -354,6 +356,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   @override
   void dispose() {
     _disposeAllFields();
+    _dirtyNotifier.dispose();
     super.dispose();
   }
 
@@ -552,7 +555,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     sortedGroups.sort();
 
     return PopScope(
-      canPop: !isDirty || _popWhenReady,
+      canPop: _popWhenReady,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         if (isDirty) {
@@ -580,6 +583,11 @@ class _PropertyGridState extends State<PropertyGrid> {
               if (mounted) Navigator.of(context).pop();
             });
           }
+        } else {
+          setState(() { _popWhenReady = true; });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) Navigator.of(context).pop();
+          });
         }
       },
       child: SingleChildScrollView(
@@ -630,26 +638,31 @@ class _PropertyGridState extends State<PropertyGrid> {
           SizedBox(height: widget.gapSize),
           _buildCommittedStatePanel(isDark),
           // Save/Cancel buttons — visible only when at least one field has
-          // uncommitted edits (isDirty). The Save button is the sole path that
-          // fires [widget.onSave]; the Cancel button resets all fields to their
-          // last committed values with no RPC call.
-          if (!widget.readOnly && isDirty)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    onPressed: _executeCancel,
-                    child: const Text('Cancel'),
+          // uncommitted edits. Rebuilds are scoped to this ValueListenableBuilder
+          // instead of triggering a full StatefulWidget rebuild via setState.
+          if (!widget.readOnly)
+            ValueListenableBuilder<bool>(
+              valueListenable: _dirtyNotifier,
+              builder: (context, isDirty, _) {
+                if (!isDirty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _executeCancel,
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: _executeSave,
+                        child: const Text('Save'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _executeSave,
-                    child: const Text('Save'),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
         ],
       ),
@@ -845,27 +858,47 @@ class _PropertyGridState extends State<PropertyGrid> {
     }
   }
 
-  /// Builds the label row for [field], showing a small circular dirty indicator
-  /// dot beside the field name when the field's current value differs from its
-  /// last committed state.
+  /// Builds a small circular dot in the theme primary color used as a dirty
+  /// indicator beside each field label.
   ///
-  /// The indicator uses the theme's primary color so it is visible in both
-  /// light and dark modes. Always returns a [Row] so the widget subtree
-  /// structure is stable across dirty-state transitions.
+  /// Returns a [Container] shaped as a circle with 8px diameter, colored with
+  /// the theme's primary color, with 4px right margin for spacing.
+  Widget _dirtyDot() {
+    return Container(
+      width: 8,
+      height: 8,
+      margin: const EdgeInsets.only(right: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
   Widget _buildFieldLabel(FieldDescriptor field) {
+    Widget dirtyWidget;
+    if (field.type == 'enum') {
+      // Enum fields use _editingEnumValues which only changes via setState
+      // in the dropdown onChanged callback — no listenable available.
+      dirtyWidget = _isFieldDirty(field) ? _dirtyDot() : const SizedBox.shrink();
+    } else {
+      // Text fields use a reactive ValueListenableBuilder on the controller.
+      dirtyWidget = ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _controllers[field.key]!,
+        builder: (context, value, _) {
+          final committed = committedData[field.key]?.toString() ?? '';
+          if (value.text != committed) {
+            return _dirtyDot();
+          }
+          return const SizedBox.shrink();
+        },
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (_isFieldDirty(field))
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              shape: BoxShape.circle,
-            ),
-          ),
+        dirtyWidget,
         Text(field.label, style: Theme.of(context).textTheme.labelSmall),
       ],
     );
