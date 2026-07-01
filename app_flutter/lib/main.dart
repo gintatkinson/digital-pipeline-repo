@@ -44,7 +44,7 @@ Future<void> main() async {
           ChangeNotifierProvider<ThemeController>.value(value: themeController),
           ChangeNotifierProvider<TextScalerController>.value(value: textScalerController),
         ],
-        child: const MyApp(),
+        child: const SelectionArea(child: MyApp()),
       ),
     );
   } catch (e, st) {
