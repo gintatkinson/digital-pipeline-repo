@@ -86,7 +86,7 @@
           "type": "SplitWorkspace",
           "id": "workspace_split",
           "props": {
-            "axis": "horizontal",
+            "axis": "vertical",
             "resizable": true,
             "default_ratio": "token:layout_properties.default_ratio",
             "reconfigurable": true,
