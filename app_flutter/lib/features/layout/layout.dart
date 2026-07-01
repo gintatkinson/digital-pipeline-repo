@@ -96,6 +96,9 @@ class _LayoutState extends State<Layout> {
       },
       onError: (Object error, StackTrace stack) {
         debugPrint('watchProperties error: $error');
+        if (mounted) setState(() {
+          _nodeData = const {'__error': 'Failed to load properties'};
+        });
       },
     );
   }
@@ -116,6 +119,9 @@ class _LayoutState extends State<Layout> {
       )
         ..loadTree().then((_) {
           if (mounted) _updateCurrentViewFromLayout();
+        }).catchError((Object error) {
+          debugPrint('Tree load error: $error');
+          if (mounted) setState(() {});
         });
     }
     if (_propertiesViewModel == null) {
@@ -132,6 +138,8 @@ class _LayoutState extends State<Layout> {
 
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
+
+  String? _layoutError;
 
   // Cached JSON files
   Map<String, dynamic>? _cachedRules;
@@ -309,6 +317,9 @@ class _LayoutState extends State<Layout> {
       }
     } catch (e) {
       debugPrint('Error loading layout configuration: $e');
+      if (mounted) setState(() {
+        _layoutError = e.toString();
+      });
     }
   }
 
@@ -404,7 +415,18 @@ class _LayoutState extends State<Layout> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _parsedLayout == null
-          ? const Center(child: CircularProgressIndicator())
+          ? (_layoutError != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Layout configuration error', style: Theme.of(context).textTheme.titleLarge),
+                      Text(_layoutError!),
+                      ElevatedButton(onPressed: _loadLayoutConfig, child: const Text('Retry')),
+                    ],
+                  ),
+                )
+              : const Center(child: CircularProgressIndicator()))
           : ChangeNotifierProvider<PropertiesViewModel>.value(
               value: _propertiesViewModel!,
               child: LayoutBuilder(

@@ -5,15 +5,15 @@
 	<key>API_KEY</key>
 	<string>AIzaSyBzsqHn3P6BzsVVeL6hLHuK6JqI9iZ6B0Q</string>
 	<key>GCM_SENDER_ID</key>
-	<string>000000000000</string>
+	<string>123456789012</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.example.appFlutter</string>
 	<key>PROJECT_ID</key>
-	<string>demo-no-project</string>
+	<string>demo-project</string>
 	<key>STORAGE_BUCKET</key>
-	<string>demo-no-project.appspot.com</string>
+	<string>demo-project.appspot.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<false></false>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:000000000000:macos:0000000000000000</string>
+	<string>1:123456789012:ios:abcdefabcdef0123</string>
 </dict>
 </plist>

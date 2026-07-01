@@ -202,6 +202,144 @@ class DatabaseInitializer {
   static Future<void> _seed(Database db) async {
     final batch = db.batch();
 
+    // Seed metadata types matching FallbackDataSource
+    batch.insert('type_definitions', {
+      'type_name': 'Item',
+      'display_name': 'Item',
+      'icon_name': 'insert_drive_file',
+    });
+    batch.insert('type_definitions', {
+      'type_name': 'SubElement',
+      'display_name': 'Sub Element',
+      'icon_name': 'widgets',
+    });
+    batch.insert('type_definitions', {
+      'type_name': 'Alarm',
+      'display_name': 'Alarm',
+      'icon_name': 'warning',
+    });
+    batch.insert('type_definitions', {
+      'type_name': 'Event',
+      'display_name': 'Event',
+      'icon_name': 'event',
+    });
+
+    // Item fields
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'name',
+      'label': 'Name',
+      'attr_type': 'string',
+      'section_order': 0,
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'description',
+      'label': 'Description',
+      'attr_type': 'string',
+      'section_order': 1,
+      'is_required': 0,
+    });
+
+    // SubElement fields
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'id',
+      'label': 'ID',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'name',
+      'label': 'Name',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'type',
+      'label': 'Type',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'status',
+      'label': 'Status',
+      'attr_type': 'string',
+    });
+
+    // Alarm fields
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'id',
+      'label': 'Alarm ID',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'target',
+      'label': 'Target',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'severity',
+      'label': 'Severity',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'timestamp',
+      'label': 'Timestamp',
+      'attr_type': 'string',
+    });
+
+    // Event fields
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'id',
+      'label': 'Event ID',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'source',
+      'label': 'Source',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'message',
+      'label': 'Message',
+      'attr_type': 'string',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'timestamp',
+      'label': 'Timestamp',
+      'attr_type': 'string',
+    });
+
+    // Relations matching FallbackDataSource
+    batch.insert('type_relations', {
+      'parent_type_name': 'Item',
+      'relation_name': 'contains',
+      'child_type_name': 'SubElement',
+      'child_label': 'Items',
+    });
+    batch.insert('type_relations', {
+      'parent_type_name': 'Item',
+      'relation_name': 'affects',
+      'child_type_name': 'Alarm',
+      'child_label': 'Alarms',
+    });
+    batch.insert('type_relations', {
+      'parent_type_name': 'Item',
+      'relation_name': 'records',
+      'child_type_name': 'Event',
+      'child_label': 'Events',
+    });
+
     for (var i = 0; i < _nodeIds.length; i++) {
       final nodeId = _nodeIds[i];
 

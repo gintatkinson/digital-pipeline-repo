@@ -11,6 +11,7 @@ import 'data_source.dart';
 import 'data_sources/fallback_data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
+import 'database_initializer.dart';
 import 'repository.dart';
 
 /// Resolves the data-access backend at app startup.
@@ -133,10 +134,12 @@ class RepositoryResolver {
       final dbFile = File(dbPath);
 
       final assetPath = dbAssetPath ?? _defaultDbAsset;
-      final bytes = await rootBundle.load(assetPath);
-      await dbFile.writeAsBytes(bytes.buffer.asUint8List());
+      if (!await dbFile.exists()) {
+        final bytes = await rootBundle.load(assetPath);
+        await dbFile.writeAsBytes(bytes.buffer.asUint8List());
+      }
 
-      db = await databaseFactory.openDatabase(dbPath);
+      db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
     }
 
     int typeCount = 0;

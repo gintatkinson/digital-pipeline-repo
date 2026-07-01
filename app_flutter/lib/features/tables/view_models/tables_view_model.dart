@@ -121,7 +121,14 @@ class TablesViewModel extends ChangeNotifier {
 
     try {
       final typeDescriptor = await _dataSource.typeFor(nodeId);
-      if (typeDescriptor == null || requestId != _requestId) return;
+      if (typeDescriptor == null || requestId != _requestId) {
+        _loading = false;
+        if (typeDescriptor == null) {
+          _error = 'Type "$nodeId" not found';
+        }
+        notifyListeners();
+        return;
+      }
 
       final List<TabDescriptor> tabs = [];
 
@@ -183,6 +190,7 @@ class TablesViewModel extends ChangeNotifier {
   /// When the node no longer has the tab referenced by [tabId], callers should
   /// guard usage or call [loadForNode] first to refresh the tab list.
   Future<void> selectTab(String tabId) async {
+    if (!_tabs.any((t) => t.id == tabId)) return;
     final tab = _tabs.firstWhere((t) => t.id == tabId);
     _selectedTabId = tabId;
     final requestId = ++_requestId;

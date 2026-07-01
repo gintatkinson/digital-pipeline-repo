@@ -64,7 +64,8 @@ for i in $(seq 1 30); do
 done
 
 echo "==> Seeding test data..."
-python3 scripts/seed-firebase-data.py
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$SCRIPT_DIR/seed-firebase-data.py"
 
 echo "==> Done! Emulator running on port 8080 (PID: $EMULATOR_PID)"
 echo "==> Run 'kill $EMULATOR_PID' to stop the emulator"
