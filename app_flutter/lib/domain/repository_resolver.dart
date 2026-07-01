@@ -91,14 +91,7 @@ class RepositoryResolver {
   static Future<(FirebaseRepositoryAdapter, FirebaseDataSource)> _createFirebaseAdapter({
     bool useEmulator = true,
   }) async {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: 'demo-key',
-        appId: 'demo-app-id',
-        projectId: 'demo-no-project',
-        messagingSenderId: 'demo-sender',
-      ),
-    );
+    await Firebase.initializeApp();
     final firestore = FirebaseFirestore.instance;
     if (useEmulator) {
       firestore.useFirestoreEmulator(_defaultEmulatorHost, _defaultEmulatorPort);
