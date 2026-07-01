@@ -88,8 +88,6 @@ class DateRenderer extends CellRenderer {
 
 /// Renders boolean cells as check/close icons.
 class BooleanRenderer extends CellRenderer {
-  const BooleanRenderer();
-
   @override
   Widget build(BuildContext context, String value, ColumnModel column) {
     final isTrue = value.toLowerCase() == 'true';
@@ -103,8 +101,6 @@ class BooleanRenderer extends CellRenderer {
 
 /// Renders reference cells underlined with primary color.
 class ReferenceRenderer extends CellRenderer {
-  const ReferenceRenderer();
-
   @override
   Widget build(BuildContext context, String value, ColumnModel column) {
     return Text(

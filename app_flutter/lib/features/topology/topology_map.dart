@@ -711,7 +711,7 @@ class _TopologyMapState extends State<TopologyMap>
                   ),
                 ),
               ),
-              RepaintBoundary(child: _buildPlaybackPanel(colors)),
+              _buildPlaybackPanel(colors),
             ],
           ),
         );
