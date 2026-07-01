@@ -82,8 +82,7 @@ class _LayoutState extends State<Layout> {
   /// Subscribes to property changes for the given [nodeId].
   ///
   /// Cancels any previous subscription before creating a new one. Updates
-  /// [_nodeData] on each data event and triggers a rebuild. Errors are logged
-  /// via [debugPrint].
+  /// [_nodeData] on each data event. Errors are logged via [debugPrint].
   void _subscribeProperties(String nodeId) {
     _propertiesSubscription?.cancel();
     _nodeData = const {};
@@ -115,34 +114,21 @@ class _LayoutState extends State<Layout> {
         initialView: _currentView,
         onViewSelected: _selectView,
       )
-        ..addListener(_onTreeViewModelChanged)
-        ..loadTree();
+        ..loadTree().then((_) {
+          if (mounted) _updateCurrentViewFromLayout();
+        });
     }
     if (_propertiesViewModel == null) {
       final dataSource = context.read<DataSource>();
       _propertiesViewModel = PropertiesViewModel(dataSource)
-        ..addListener(_onPropertiesViewModelChanged)
         ..loadType(_currentView);
-    }
-  }
-
-  /// Triggers a rebuild when the properties view model notifies listeners.
-  void _onPropertiesViewModelChanged() {
-    if (mounted) setState(() {});
-  }
-
-  /// Rebuilds the UI and syncs the current view from the tree when the tree
-  /// view model notifies listeners.
-  void _onTreeViewModelChanged() {
-    if (mounted) {
-      _updateCurrentViewFromLayout();
-      setState(() {});
     }
   }
 
   // Background Worker
   BackgroundWorker? _worker;
   StreamSubscription<int>? _workerSubscription;
+  final ValueNotifier<int?> _workerResultNotifier = ValueNotifier<int?>(null);
 
   // Parsed configuration map
   Map<String, dynamic>? _parsedLayout;
@@ -192,8 +178,8 @@ class _LayoutState extends State<Layout> {
     _loadActions();
 
     _worker = BackgroundWorker()..start();
-    _workerSubscription = _worker!.results.listen((_) {
-      if (mounted) setState(() {});
+    _workerSubscription = _worker!.results.listen((result) {
+      if (mounted) _workerResultNotifier.value = result;
     });
 
     _preloadTopologyData();
@@ -248,9 +234,8 @@ class _LayoutState extends State<Layout> {
     _propertiesSubscription?.cancel();
     _workerSubscription?.cancel();
     _worker?.dispose();
-    _treeViewModel?.removeListener(_onTreeViewModelChanged);
+    _workerResultNotifier.dispose();
     _treeViewModel?.dispose();
-    _propertiesViewModel?.removeListener(_onPropertiesViewModelChanged);
     _propertiesViewModel?.dispose();
     super.dispose();
   }
@@ -401,7 +386,7 @@ class _LayoutState extends State<Layout> {
   Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
     final factory = ComponentFactory(
       currentView: _currentView,
-      workerResult: _worker?.lastResult,
+      workerResult: _workerResultNotifier,
       onViewSelected: _selectView,
       minPaneSize: _minPaneSize,
       defaultRatio: _getDefaultRatio,
@@ -420,9 +405,12 @@ class _LayoutState extends State<Layout> {
     return Scaffold(
       body: _parsedLayout == null
           ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) =>
-                  _buildFromLayout(context, constraints),
+          : ChangeNotifierProvider<PropertiesViewModel>.value(
+              value: _propertiesViewModel!,
+              child: LayoutBuilder(
+                builder: (context, constraints) =>
+                    _buildFromLayout(context, constraints),
+              ),
             ),
     );
   }
@@ -445,16 +433,18 @@ class _LayoutState extends State<Layout> {
   }
 
   Widget _buildChildWidget(BuildContext context) {
-    final fields = _propertiesViewModel?.fields ?? [];
-    final currentState = _propertiesViewModel?.currentState;
-    final isReadOnly = currentState != null && [
-      LifecycleState.degraded,
-      LifecycleState.decommissioned,
-      LifecycleState.failed,
-    ].contains(currentState);
-
     final actions = _actions;
-    return SingleChildScrollView(
+    return Consumer<PropertiesViewModel>(
+      builder: (context, vm, _) {
+        final fields = vm.fields;
+        final currentState = vm.currentState;
+        final isReadOnly = currentState != null && [
+          LifecycleState.degraded,
+          LifecycleState.decommissioned,
+          LifecycleState.failed,
+        ].contains(currentState);
+
+        return SingleChildScrollView(
           child: Column(
             children: [
               if (currentState != null)
@@ -493,5 +483,7 @@ class _LayoutState extends State<Layout> {
             ],
           ),
         );
+      },
+    );
   }
 }

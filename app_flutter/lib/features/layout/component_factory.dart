@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
@@ -27,10 +28,10 @@ class ComponentFactory {
   /// reload topology data, and highlight the active node in the sidebar.
   final String currentView;
 
-  /// The last result emitted by the worker isolate, passed through so that
-  /// [SidebarTree] can display progress or error states without re-linking
-  /// the worker itself. `null` when no result has been produced yet.
-  final int? workerResult;
+  /// A listenable holding the last result emitted by the worker isolate, passed
+  /// through so that [SidebarTree] can display progress or error states without
+  /// re-linking the worker itself. `null` when no result has been produced yet.
+  final ValueNotifier<int?> workerResult;
 
   /// Callback invoked when the user selects a different view from the sidebar
   /// or the topology map. The receiver is expected to update [currentView].
@@ -119,17 +120,22 @@ class ComponentFactory {
           splitterKey: const Key('vertical_splitter'),
         );
       case 'HierarchyTreeSelector':
-        final tree = SidebarTree(
-          workerResult: workerResult,
-          onViewSelected: onViewSelected,
+        return ValueListenableBuilder<int?>(
+          valueListenable: workerResult,
+          builder: (context, result, _) {
+            final tree = SidebarTree(
+              workerResult: result,
+              onViewSelected: onViewSelected,
+            );
+            if (treeViewModel != null) {
+              return ChangeNotifierProvider<TreeViewModel>.value(
+                value: treeViewModel!,
+                child: tree,
+              );
+            }
+            return tree;
+          },
         );
-        if (treeViewModel != null) {
-          return ChangeNotifierProvider<TreeViewModel>.value(
-            value: treeViewModel!,
-            child: tree,
-          );
-        }
-        return tree;
       case 'SplitWorkspace':
         final childrenList = node['children'] as List<dynamic>? ?? [];
         final topoChild = childrenList.firstWhere(
