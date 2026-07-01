@@ -66,7 +66,7 @@ class TableViewWidget extends StatefulWidget {
 class _TableViewWidgetState extends State<TableViewWidget> {
   int? _sortColumnIndex;
   bool _sortAscending = true;
-  ScrollController _scrollController = ScrollController();
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
