@@ -88,10 +88,18 @@ class RepositoryResolver {
   /// When [useEmulator] is true, redirects Firestore to the local emulator
   /// at localhost:8080 — useful for development without a real Firebase
   /// project. Throws if Firebase initialisation fails (missing config, etc.).
-  static Future<(FirebaseRepositoryAdapter, FirebaseDataSource)> _createFirebaseAdapter({
+  static Future<(AbstractRepository, DataSource)> _createFirebaseAdapter({
     bool useEmulator = true,
   }) async {
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint('Firebase init failed (expected on non-iOS): $e');
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      final db = await databaseFactory.openDatabase(inMemoryDatabasePath);
+      return (SqliteRepositoryAdapter(db), FallbackDataSource());
+    }
     final firestore = FirebaseFirestore.instance;
     if (useEmulator) {
       firestore.useFirestoreEmulator(_defaultEmulatorHost, _defaultEmulatorPort);

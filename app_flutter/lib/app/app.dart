@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: const DashboardPage(),
+      home: const SelectionArea(child: DashboardPage()),
     );
   }
 }
