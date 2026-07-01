@@ -206,6 +206,27 @@ void main() {
     expect(selectedView, 'SubElement');
   });
 
+  testWidgets('Layout first pumpWidget does not block on sync file I/O', (WidgetTester tester) async {
+    final stopwatch = Stopwatch()..start();
+    await tester.pumpWidget(
+      wrapWithRepo(
+        Layout(
+          layoutConfig: testLayoutConfig,
+        ),
+      ),
+    );
+    stopwatch.stop();
+    // First pump must complete quickly — no sync file I/O on the UI thread.
+    // 500ms is generous; sync I/O would cause multi-second hangs.
+    expect(stopwatch.elapsedMilliseconds, lessThan(500));
+
+    // After settling, all async pre-loads finish and full UI renders.
+    await tester.pumpAndSettle();
+    expect(find.text(AppConfig.title), findsNWidgets(2));
+    expect(find.text('Active View: Item'), findsOneWidget);
+    expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
+  });
+
   testWidgets('Layout handles tree node tap selection without crashing', (WidgetTester tester) async {
     await tester.pumpWidget(
       wrapWithRepo(

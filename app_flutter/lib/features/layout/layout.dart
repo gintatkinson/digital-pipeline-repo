@@ -151,19 +151,19 @@ class _LayoutState extends State<Layout> {
   Map<String, dynamic>? _cachedRules;
   Map<String, dynamic>? _cachedLabels;
 
-  /// Loads a JSON file from disk, caching results by type.
+  /// Loads a JSON file from disk asynchronously, caching results by type.
   ///
   /// Checks [path] and `../$path` for the file; returns an empty map if
   /// neither exists or parsing fails. Caches `codebase_rules` and `labels`
   /// files separately so repeated calls avoid I/O.
-  Map<String, dynamic> _loadJsonOnce(String path) {
+  Future<Map<String, dynamic>> _loadJsonOnce(String path) async {
     if (_cachedRules != null && path.contains('codebase_rules')) return _cachedRules!;
     if (_cachedLabels != null && path.contains('labels')) return _cachedLabels!;
     try {
       for (final candidate in [path, '../$path']) {
         final file = File(candidate);
-        if (file.existsSync()) {
-          final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+        if (await file.exists()) {
+          final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
           if (path.contains('codebase_rules')) _cachedRules = data;
           if (path.contains('labels')) _cachedLabels = data;
           return data;
@@ -197,6 +197,7 @@ class _LayoutState extends State<Layout> {
     });
 
     _preloadTopologyData();
+    _preloadCodebaseRules();
   }
 
   /// Preloads topology data from an external JSON asset for later use.
@@ -214,6 +215,17 @@ class _LayoutState extends State<Layout> {
     } catch (e) {
       debugPrint('Error loading topology data: $e');
     }
+  }
+
+  /// Preloads codebase rules JSON from disk for later use.
+  ///
+  /// Called once during init. Populates [_cachedRules] so that
+  /// [_getDefaultRatio], [_resolveCoordinateMapping], and
+  /// [_resolveLabelsMapping] can read synchronously without blocking the UI
+  /// thread. Triggers a rebuild when loading completes.
+  Future<void> _preloadCodebaseRules() async {
+    await _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
+    if (mounted) setState(() {});
   }
 
   @override
@@ -245,23 +257,20 @@ class _LayoutState extends State<Layout> {
 
   /// Returns the default split ratio for the properties panel.
   ///
-  /// Reads from the codebase rules JSON; falls back to 0.5 if the rule is
-  /// missing.
+  /// Reads from the cached codebase rules; falls back to 0.5 if the rule is
+  /// missing or not yet loaded.
   double _getDefaultRatio() {
-    final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
-    return getDefaultRatio(rules, 'layout_properties.default_ratio', 0.5);
+    return getDefaultRatio(_cachedRules ?? {}, 'layout_properties.default_ratio', 0.5);
   }
 
-  /// Resolves the coordinate-to-location mapping from codebase rules.
+  /// Resolves the coordinate-to-location mapping from cached codebase rules.
   Map<String, String> _resolveCoordinateMapping() {
-    final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
-    return resolveCoordinateMapping(rules);
+    return resolveCoordinateMapping(_cachedRules ?? {});
   }
 
-  /// Resolves the label mapping from codebase rules.
+  /// Resolves the label mapping from cached codebase rules.
   Map<String, String> _resolveLabelsMapping() {
-    final rules = _loadJsonOnce('.pipeline/logical-ui/codebase_rules.json');
-    return resolveLabelsMapping(rules);
+    return resolveLabelsMapping(_cachedRules ?? {});
   }
 
   /// Returns a human-readable label for the given [tabId].
