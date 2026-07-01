@@ -218,5 +218,98 @@ void main() {
 
       expect(find.text('Timeout error'), findsOneWidget);
     });
+
+    testWidgets('Parameter dialog creates and disposes controllers on cancel',
+        (WidgetTester tester) async {
+      final invoked = <String, dynamic>{};
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActionPanel(
+              actions: const [
+                ActionDescriptor(
+                  name: 'compute',
+                  label: 'Compute',
+                  iconName: 'calculate',
+                  parameters: [
+                    ActionParameterDescriptor(
+                      key: 'input',
+                      label: 'Input',
+                      type: 'string',
+                      required: true,
+                    ),
+                  ],
+                ),
+              ],
+              typeName: 'device',
+              nodeId: 'node-1',
+              onInvoke: (_, _, name, params) async {
+                invoked[name] = params;
+                return const {'success': true, 'message': ''};
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Compute'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Compute Parameters'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Compute Parameters'), findsNothing);
+      expect(invoked, isEmpty);
+    });
+
+    testWidgets('Parameter dialog invokes action with entered values',
+        (WidgetTester tester) async {
+      final invoked = <String, dynamic>{};
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActionPanel(
+              actions: const [
+                ActionDescriptor(
+                  name: 'compute',
+                  label: 'Compute',
+                  iconName: 'calculate',
+                  parameters: [
+                    ActionParameterDescriptor(
+                      key: 'input',
+                      label: 'Input',
+                      type: 'string',
+                      required: true,
+                    ),
+                  ],
+                ),
+              ],
+              typeName: 'device',
+              nodeId: 'node-1',
+              onInvoke: (_, _, name, params) async {
+                invoked[name] = params;
+                return const {'success': true, 'message': 'Computed'};
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Compute'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'test-input');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Invoke'));
+      await tester.pumpAndSettle();
+
+      expect(invoked, containsPair('compute', {'input': 'test-input'}));
+    });
   });
 }
