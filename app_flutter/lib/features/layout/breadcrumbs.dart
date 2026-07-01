@@ -203,15 +203,11 @@ List<BreadcrumbItem> getBreadcrumbsItems(
     BreadcrumbItem(
       id: 'home',
       label: StringResources.get('breadcrumbs.home'),
-      onClick: () {
-        if (treeData.isNotEmpty) {
-          onSelectView?.call(getFirstLeafId(treeData.first));
-        } else {
-          onSelectView?.call(getFirstLeafId(treeData.first));
-        }
-      },
+      onClick: () => onSelectView?.call(getFirstLeafId(treeData.first)),
     ),
   ];
+
+  if (treeData.isEmpty) return base;
 
   List<TreeNode>? findPath(List<TreeNode> nodes, String targetId, List<TreeNode> currentPath) {
     for (final node in nodes) {

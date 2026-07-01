@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/layout/breadcrumbs.dart';
 
 void main() {
+  setUp(() {
+    StringResources.loadFromJson('{"breadcrumbs.home": "Home"}');
+  });
+
+  test('getBreadcrumbsItems returns only home item when treeData is empty', () {
+    final items = getBreadcrumbsItems('some-view', []);
+    expect(items.length, 1);
+    expect(items[0].id, 'home');
+    expect(items[0].label, 'Home');
+  });
   testWidgets('Renders all items when total count <= maxItems', (WidgetTester tester) async {
     final List<String> clickedIds = <String>[];
 
