@@ -623,6 +623,43 @@ void main() {
     expect(find.text('Cancel'), findsNothing);
   });
 
+  testWidgets('refType field renders as clickable link', (tester) async {
+    String? capturedRefType;
+    String? capturedId;
+    final fields = [
+      FieldDescriptor(key: 'parent', label: 'Parent', type: 'string', refType: 'rack'),
+    ];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: PropertyGrid(
+        activeView: 'test',
+        fields: fields,
+        initialValues: {'parent': 'rack-07'},
+        readOnly: true,
+        onViewSelected: (refType, id) { capturedRefType = refType; capturedId = id; },
+      )),
+    ));
+
+    await tester.tap(find.text('rack-07'));
+    expect(capturedRefType, equals('rack'));
+    expect(capturedId, equals('rack-07'));
+  });
+
+  testWidgets('non-refType field renders normal text field', (tester) async {
+    final fields = [
+      FieldDescriptor(key: 'name', label: 'Name', type: 'string'),
+    ];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: PropertyGrid(
+        activeView: 'test',
+        fields: fields,
+        initialValues: {'name': 'hello'},
+      )),
+    ));
+
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('hello'), findsOneWidget);
+  });
+
   testWidgets('Dirty indicator appears next to edited fields',
       (tester) async {
     await tester.pumpWidget(

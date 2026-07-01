@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
+/// Callback invoked when a reference field (refType != null) is tapped.
+/// Receives the refType and the field value (the referenced instance ID).
+typedef ViewSelectedCallback = void Function(String refType, String id);
+
 /// Converts all input characters to uppercase in a text field.
 ///
 /// Exists to enforce a consistent uppercase display format for fields whose
@@ -117,6 +121,10 @@ class PropertyGrid extends StatefulWidget {
   /// or decommissioned objects where editing is not permitted.
   final bool readOnly;
 
+  /// Callback invoked when a reference field (refType != null) is tapped.
+  /// Receives the refType and the field value (the referenced instance ID).
+  final ViewSelectedCallback? onViewSelected;
+
   /// Creates a [PropertyGrid] with the given field descriptors, initial values,
   /// and visual configuration.
   ///
@@ -143,6 +151,7 @@ class PropertyGrid extends StatefulWidget {
     this.cardBorderRadius = const BorderRadius.all(Radius.circular(12.0)),
     this.inputBorderRadius = const BorderRadius.all(Radius.circular(6.0)),
     this.readOnly = false,
+    this.onViewSelected,
   });
 
   @override
@@ -884,6 +893,28 @@ class _PropertyGridState extends State<PropertyGrid> {
     required Color brandPrimary,
   }) {
     final cs = Theme.of(context).colorScheme;
+
+    if (field.refType != null && widget.onViewSelected != null) {
+      final value = controller.text;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFieldLabel(field),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () => widget.onViewSelected!(field.refType!, value),
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -953,6 +984,27 @@ class _PropertyGridState extends State<PropertyGrid> {
     required Color brandPrimary,
   }) {
     final cs = Theme.of(context).colorScheme;
+
+    if (field.refType != null && widget.onViewSelected != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFieldLabel(field),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () => widget.onViewSelected!(field.refType!, value),
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

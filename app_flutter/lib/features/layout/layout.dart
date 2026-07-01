@@ -451,6 +451,7 @@ class _LayoutState extends State<Layout> {
                 fields: fields,
                 initialValues: _nodeData,
                 readOnly: isReadOnly,
+                onViewSelected: _selectView,
                 onSave: (data) async {
                   await _dataSource!.saveProperties(_currentView, data);
                 },
