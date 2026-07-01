@@ -17,6 +17,10 @@ typedef ViewSelectedCallback = void Function(String refType, String id);
 /// Edge cases: operates on every keystroke via [TextEditingValue]; an empty
 /// string remains empty. Non-letter characters are unaffected.
 class UpperCaseTextFormatter extends TextInputFormatter {
+  const UpperCaseTextFormatter();
+
+  static const UpperCaseTextFormatter _uppercaseFormatter = UpperCaseTextFormatter();
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -531,7 +535,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     final List<TextInputFormatter> formatters = [];
     for (final fmt in field.inputFormatters!) {
       if (fmt == 'uppercase') {
-        formatters.add(UpperCaseTextFormatter());
+        formatters.add(UpperCaseTextFormatter._uppercaseFormatter);
       } else if (fmt.startsWith('maxLength:')) {
         final parts = fmt.split(':');
         if (parts.length == 2) {

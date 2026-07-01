@@ -159,63 +159,85 @@ class ActionPanel extends StatelessWidget {
     BuildContext context,
     ActionDescriptor action,
   ) async {
-    final controllers = <String, TextEditingController>{};
-    final params = action.parameters!;
-
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text('${action.label} Parameters'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: params.map((param) {
-                final controller = TextEditingController(
-                  text: param.defaultValue?.toString() ?? '',
-                );
-                controllers[param.key] = controller;
+      builder: (ctx) => _ParameterDialog(action: action),
+    );
+    return result ?? <String, dynamic>{};
+  }
+}
+
+class _ParameterDialog extends StatefulWidget {
+  final ActionDescriptor action;
+
+  const _ParameterDialog({required this.action});
+
+  @override
+  State<_ParameterDialog> createState() => _ParameterDialogState();
+}
+
+class _ParameterDialogState extends State<_ParameterDialog> {
+  final controllers = <String, TextEditingController>{};
+
+  @override
+  void initState() {
+    super.initState();
+    for (final param in widget.action.parameters ?? []) {
+      controllers[param.key] = TextEditingController(
+        text: param.defaultValue?.toString() ?? '',
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('${widget.action.label} Parameters'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: widget.action.parameters?.map((param) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: TextField(
-                    controller: controller,
+                    controller: controllers[param.key],
                     decoration: InputDecoration(
                       labelText: param.label,
                       helperText: param.required ? 'Required' : null,
                     ),
                   ),
                 );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                final map = <String, dynamic>{};
-                for (final param in params) {
-                  final value = controllers[param.key]?.text ?? '';
-                  if (value.isNotEmpty) {
-                    map[param.key] = value;
-                  }
-                }
-                Navigator.of(ctx).pop(map);
-              },
-              child: const Text('Invoke'),
-            ),
-          ],
-        );
-      },
+              }).toList() ?? [],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            final map = <String, dynamic>{};
+            for (final param in widget.action.parameters ?? []) {
+              final value = controllers[param.key]?.text ?? '';
+              if (value.isNotEmpty) {
+                map[param.key] = value;
+              }
+            }
+            Navigator.of(context).pop(map);
+          },
+          child: const Text('Invoke'),
+        ),
+      ],
     );
-
-    for (final c in controllers.values) {
-      c.dispose();
-    }
-
-    return result ?? <String, dynamic>{};
   }
 }
 

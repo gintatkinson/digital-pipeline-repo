@@ -435,6 +435,9 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final headerIndexMap = Map.fromEntries(
+      allHeaders.asMap().entries.map((e) => MapEntry(e.value.key, e.key)),
+    );
     return Container(
       constraints: BoxConstraints(
         minHeight: dataRowMinHeight,
@@ -446,7 +449,7 @@ class _DataRow extends StatelessWidget {
         children: [
           for (int i = 0; i < columnModels.length; i++)
             _DataCell(
-              value: cells[allHeaders.indexWhere((h) => h.key == columnModels[i].key)],
+              value: cells[headerIndexMap[columnModels[i].key]!],
               columnModel: columnModels[i],
               colWidth: colWidth,
               horizontalMargin: horizontalMargin,

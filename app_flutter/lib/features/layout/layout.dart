@@ -39,7 +39,7 @@ class Layout extends StatefulWidget {
   final ValueChanged<String>? onViewChange;
   final String? layoutConfig;
 
-  Layout({
+  const Layout({
     super.key,
     this.activeView,
     this.onViewChange,
@@ -74,8 +74,6 @@ class _LayoutState extends State<Layout> {
   // Actions
   List<ActionDescriptor> _actions = [];
   bool _actionsLoaded = false;
-
-  final _propertyGridKey = GlobalKey();
 
   static const double _minPaneSize = 150.0;
 
@@ -458,7 +456,7 @@ class _LayoutState extends State<Layout> {
                   ),
                 ),
               PropertyGrid(
-                key: _propertyGridKey,
+                key: const ValueKey('property_grid'),
                 activeView: _currentView,
                 fields: fields,
                 initialValues: _nodeData,
