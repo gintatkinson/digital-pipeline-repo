@@ -179,6 +179,9 @@ class _PropertyGridState extends State<PropertyGrid> {
   /// [widget.onDirtyChanged].
   bool _previousDirty = false;
 
+  String _cachedCommittedJson = '';
+  Map<String, dynamic>? _lastCommittedData;
+
   /// When `true`, the [PopScope] guard is bypassed so the route can pop
   /// after the user has confirmed discarding unsaved edits.
   bool _popWhenReady = false;
@@ -544,6 +547,10 @@ class _PropertyGridState extends State<PropertyGrid> {
 
   @override
   Widget build(BuildContext context) {
+    if (committedData != _lastCommittedData) {
+      _cachedCommittedJson = const JsonEncoder.withIndent('  ').convert(committedData);
+      _lastCommittedData = Map<String, dynamic>.from(committedData);
+    }
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     final groups = <String>{};
@@ -1126,7 +1133,7 @@ class _PropertyGridState extends State<PropertyGrid> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Text(
-                const JsonEncoder.withIndent('  ').convert(committedData),
+                _cachedCommittedJson,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
