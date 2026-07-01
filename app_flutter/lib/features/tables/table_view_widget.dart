@@ -68,6 +68,11 @@ class _TableViewWidgetState extends State<TableViewWidget> {
   bool _sortAscending = true;
   late final ScrollController _scrollController;
 
+  List<List<String>>? _cachedSortedRows;
+  int? _lastSortColumnIndex;
+  bool _lastSortAscending = true;
+  List<List<String>>? _lastRows;
+
   @override
   void initState() {
     super.initState();
@@ -108,18 +113,26 @@ class _TableViewWidgetState extends State<TableViewWidget> {
     final scrollableHeaders = headers.where((h) => !h.frozen).toList();
     final hasFrozenColumns = frozenHeaders.isNotEmpty;
     final allHeaders = viewModel.headers;
-    var rows = viewModel.rows;
+    final rows = viewModel.rows;
     final testId = '${viewModel.tabId}-table';
 
-    if (_sortColumnIndex != null && _sortColumnIndex! < headers.length) {
-      final sortedRows = List<List<String>>.from(rows);
-      sortedRows.sort((a, b) {
-        final aVal = a[_sortColumnIndex!];
-        final bVal = b[_sortColumnIndex!];
-        return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
-      });
-      rows = sortedRows;
+    if (_sortColumnIndex != _lastSortColumnIndex ||
+        _sortAscending != _lastSortAscending ||
+        _lastRows != rows ||
+        _cachedSortedRows == null) {
+      _cachedSortedRows = List<List<String>>.from(rows);
+      if (_sortColumnIndex != null && _sortColumnIndex! < headers.length) {
+        _cachedSortedRows!.sort((a, b) {
+          final aVal = a[_sortColumnIndex!];
+          final bVal = b[_sortColumnIndex!];
+          return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
+        });
+      }
+      _lastSortColumnIndex = _sortColumnIndex;
+      _lastSortAscending = _sortAscending;
+      _lastRows = rows;
     }
+    final sortedRows = _cachedSortedRows!;
 
     if (headers.isEmpty) {
       return const SizedBox.shrink();
@@ -170,9 +183,9 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                 child: ListView.builder(
                   controller: _scrollController,
                   key: Key('$testId-$paneKey-body'),
-                  itemCount: rows.length,
+                  itemCount: sortedRows.length,
                   itemBuilder: (context, index) {
-                    final row = rows[index];
+                    final row = sortedRows[index];
                     return _DataRow(
                       cells: row,
                       columnModels: paneHeaders,
@@ -244,9 +257,9 @@ class _TableViewWidgetState extends State<TableViewWidget> {
               Expanded(
                 child: ListView.builder(
                   key: Key('$testId-body'),
-                  itemCount: rows.length,
+                  itemCount: sortedRows.length,
                   itemBuilder: (context, index) {
-                    final row = rows[index];
+                    final row = sortedRows[index];
                     return _DataRow(
                       cells: row,
                       columnModels: headers,
