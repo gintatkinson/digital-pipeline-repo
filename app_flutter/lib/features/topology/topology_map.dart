@@ -651,7 +651,7 @@ class _TopologyMapState extends State<TopologyMap>
 
     final colors = Theme.of(context).colorScheme;
 
-    return LayoutBuilder(
+    final Widget canvas = LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double viewportWidth =
             constraints.maxWidth.isFinite ? constraints.maxWidth : widget.minViewportWidth;
@@ -717,6 +717,24 @@ class _TopologyMapState extends State<TopologyMap>
         );
       },
     );
+
+    if (activeData.nodes.isEmpty) {
+      return Stack(
+        children: [
+          canvas,
+          Center(
+            child: Text(
+              'No topology data',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return canvas;
   }
 }
 
