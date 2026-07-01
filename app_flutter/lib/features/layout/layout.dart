@@ -71,6 +71,10 @@ class _LayoutState extends State<Layout> {
   // Properties ViewModel
   PropertiesViewModel? _propertiesViewModel;
 
+  // Actions
+  List<ActionDescriptor> _actions = [];
+  bool _actionsLoaded = false;
+
   final _propertyGridKey = GlobalKey();
 
   static const double _minPaneSize = 150.0;
@@ -185,6 +189,7 @@ class _LayoutState extends State<Layout> {
     }
 
     _currentView = widget.activeView ?? 'root';
+    _loadActions();
 
     _worker = BackgroundWorker()..start();
     _workerSubscription = _worker!.results.listen((_) {
@@ -219,6 +224,7 @@ class _LayoutState extends State<Layout> {
         setState(() {
           _currentView = widget.activeView!;
         });
+        _loadActions();
         _subscribeProperties(_currentView);
         _propertiesViewModel?.loadType(_currentView);
       }
@@ -372,6 +378,7 @@ class _LayoutState extends State<Layout> {
     setState(() {
       _currentView = viewId;
     });
+    _loadActions();
     _treeViewModel?.updateCurrentView(viewId);
     _subscribeProperties(viewId);
     _propertiesViewModel?.loadType(viewId);
@@ -419,6 +426,15 @@ class _LayoutState extends State<Layout> {
   /// [PropertyGrid] is rendered read-only.
   ///
   /// Used as a builder callback by [ComponentFactory].
+  void _loadActions() {
+    _dataSource?.getActions(_currentView).then((actions) {
+      if (mounted) setState(() {
+        _actions = actions;
+        _actionsLoaded = true;
+      });
+    });
+  }
+
   Widget _buildChildWidget(BuildContext context) {
     final fields = _propertiesViewModel?.fields ?? [];
     final currentState = _propertiesViewModel?.currentState;
@@ -428,11 +444,8 @@ class _LayoutState extends State<Layout> {
       LifecycleState.failed,
     ].contains(currentState);
 
-    return FutureBuilder<List<ActionDescriptor>>(
-      future: _dataSource?.getActions(_currentView) ?? Future.value([]),
-      builder: (context, snapshot) {
-        final actions = snapshot.data ?? [];
-        return SingleChildScrollView(
+    final actions = _actions;
+    return SingleChildScrollView(
           child: Column(
             children: [
               if (currentState != null)
@@ -451,7 +464,7 @@ class _LayoutState extends State<Layout> {
                 fields: fields,
                 initialValues: _nodeData,
                 readOnly: isReadOnly,
-                onViewSelected: _selectView,
+                onViewSelected: (_, id) => _selectView(id),
                 onSave: (data) async {
                   await _dataSource!.saveProperties(_currentView, data);
                 },
@@ -465,13 +478,11 @@ class _LayoutState extends State<Layout> {
                 typeName: _currentView,
                 nodeId: _currentView,
                 onInvoke: (typeName, nodeId, actionName, params) async {
-                  return _dataSource!.invokeAction(typeName, nodeId, actionName, params) ?? {};
+                  return _dataSource!.invokeAction(typeName, nodeId, actionName, params);
                 },
               ),
             ],
           ),
         );
-      },
-    );
   }
 }

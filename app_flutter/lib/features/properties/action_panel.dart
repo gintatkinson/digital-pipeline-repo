@@ -70,6 +70,10 @@ class ActionPanel extends StatelessWidget {
     }
   }
 
+  /// Builds a column with a divider, "Actions" title, and a [Wrap] of action
+  /// buttons. Returns [SizedBox.shrink] when [actions] is empty so that the
+  /// panel contributes no visual space. Each button's enabled state follows
+  /// [_isActionEnabled] per the state-action availability matrix.
   @override
   Widget build(BuildContext context) {
     if (actions.isEmpty) return const SizedBox.shrink();
