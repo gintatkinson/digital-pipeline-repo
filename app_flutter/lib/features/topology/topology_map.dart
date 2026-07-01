@@ -438,37 +438,40 @@ class _TopologyMapState extends State<TopologyMap>
   bool isPlaying = false;
   Duration _lastElapsed = Duration.zero;
 
-  double get minTime {
-    final TopologyData activeData = widget.data ?? emptyTopologyData;
-    if (activeData.nodes.isEmpty) return widget.defaultMinTime;
-    double minT = double.infinity;
-    for (final TopologyNode node in activeData.nodes) {
-      final double t = node.resolveCoordinate('t', activeData.coordinateMapping);
-      if (t < minT) minT = t;
-    }
-    return minT == double.infinity ? widget.defaultMinTime : minT;
-  }
+  double _cachedMinTime = 0;
+  double _cachedMaxTime = 0;
+  bool _timeCacheValid = false;
 
-  double get maxTime {
-    final TopologyData activeData = widget.data ?? emptyTopologyData;
-    if (activeData.nodes.isEmpty) return widget.defaultMaxTime;
+  void _recomputeTimeCache() {
+    final activeData = widget.data ?? emptyTopologyData;
+    if (activeData.nodes.isEmpty) {
+      _cachedMinTime = 1.0;
+      _cachedMaxTime = 10.0;
+      _timeCacheValid = true;
+      return;
+    }
+    double minT = double.infinity;
     double maxT = -double.infinity;
-    for (final TopologyNode node in activeData.nodes) {
-      final double t = node.resolveCoordinate('t', activeData.coordinateMapping);
+    for (final node in activeData.nodes) {
+      final t = node.resolveCoordinate('t', activeData.coordinateMapping);
+      if (t < minT) minT = t;
       if (t > maxT) maxT = t;
     }
-    if (maxT == -double.infinity) return widget.defaultMaxTime;
-    final double minT = minTime;
-    if (maxT == minT) {
-      return minT + widget.defaultMaxTime - widget.defaultMinTime;
-    }
-    return maxT;
+    if (maxT == minT) maxT = minT + 9.0;
+    _cachedMinTime = minT == double.infinity ? 1.0 : minT;
+    _cachedMaxTime = maxT == -double.infinity ? 10.0 : maxT;
+    _timeCacheValid = true;
   }
+
+  double get minTime => _timeCacheValid ? _cachedMinTime : 1.0;
+
+  double get maxTime => _timeCacheValid ? _cachedMaxTime : 10.0;
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
+    _recomputeTimeCache();
     currentTimeIndex = minTime;
   }
 
@@ -476,10 +479,9 @@ class _TopologyMapState extends State<TopologyMap>
   void didUpdateWidget(covariant TopologyMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.data != oldWidget.data) {
-      final double minT = minTime;
-      final double maxT = maxTime;
-      if (currentTimeIndex < minT || currentTimeIndex > maxT) {
-        currentTimeIndex = minT;
+      _recomputeTimeCache();
+      if (currentTimeIndex < _cachedMinTime || currentTimeIndex > _cachedMaxTime) {
+        currentTimeIndex = _cachedMinTime;
       }
     }
   }
