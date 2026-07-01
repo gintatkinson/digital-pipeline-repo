@@ -2,7 +2,7 @@
 
 ---
 name: debug-protocol
-description: "8-step Recursive Debugging Protocol for systematic bug hunting. BUG ISSUES ONLY — do NOT use for features, enhancements, epics, chores, or refactors. Use when fixing defects to follow a rigorous hypothesis-driven loop with dedicated subagents per step."
+description: "8-step Recursive Debugging Protocol for systematic bug hunting. Handles correctness bugs and performance bugs. For performance bugs, uses benchmark tests as reproduction, investigation, and verification tools. BUG ISSUES ONLY — do NOT use for features, enhancements, epics, chores, or refactors. Use when fixing defects to follow a rigorous hypothesis-driven loop with dedicated subagents per step."
 compatibility: "Works with any agent runtime. Requires GitHub CLI (`gh`) for issue management."
 metadata:
   title: "Recursive Debugging Protocol (8-Step Bug Loop)"
@@ -36,6 +36,26 @@ To prevent the user from being interrupted by endless permission prompts, the ex
    - `/Users/perkunas/digital-pipeline-repo` (or local equivalent)
 
 Once these permissions are requested and approved by the user, proceed to Step 1.
+
+### Performance Bug Variant
+
+When the bug is a **performance defect** (frame drops, O(n) scaling, memory leaks, excessive rebuilds), the following sub-steps augment the standard protocol:
+
+**Step 1 — Reproduction (performance variant):**
+- If a benchmark test exists for the affected widget, run it to establish the baseline metric (build time, widget count, frame time).
+- If no benchmark exists, write one: a `testWidgets` test that measures the metric using `Stopwatch` and asserts a reasonable threshold. Use the existing `data_table_benchmark_test.dart` as a template (it measures TableViewWidget build time for 500 rows).
+- The benchmark IS the reproduction — if it fails (exceeds threshold), the bug is reproduced.
+
+**Step 3 — Investigation (performance variant):**
+- Run the benchmark test at different scales (10, 100, 500, 1000 rows/items) to identify the O(n) curve.
+- The benchmark output becomes investigation evidence.
+
+**Step 7 — Verification (performance variant):**
+- Re-run the benchmark test. Confirm metric is below threshold.
+- Assert the improvement ratio is meaningful (>2x improvement, or within acceptable absolute time).
+
+**No benchmark exists for this area:**
+If the performance bug has no existing benchmark and writing one is impractical, rely on the standard protocol steps. The benchmark is a tool, not a gate — its absence does not block the protocol.
 
 ## Step 1 — Reproduction Subagent
 Dispatch a subagent to: Gather complete symptom info, reproduce the bug consistently, determine scope (isolated or systemic), and check environment (version, platform). Return reproduction steps and scope report.
