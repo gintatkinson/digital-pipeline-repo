@@ -774,6 +774,30 @@ class TopologyPainterColors {
     required this.haloColor,
     required this.labelColor,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TopologyPainterColors &&
+          runtimeType == other.runtimeType &&
+          bgColor == other.bgColor &&
+          gridColor == other.gridColor &&
+          linkColor == other.linkColor &&
+          packetColor == other.packetColor &&
+          velocityColor == other.velocityColor &&
+          nodeFillColor == other.nodeFillColor &&
+          nodeStrokeColor == other.nodeStrokeColor &&
+          activeStatusColor == other.activeStatusColor &&
+          warningStatusColor == other.warningStatusColor &&
+          haloColor == other.haloColor &&
+          labelColor == other.labelColor;
+
+  @override
+  int get hashCode => Object.hash(
+    bgColor, gridColor, linkColor, packetColor, velocityColor,
+    nodeFillColor, nodeStrokeColor, activeStatusColor, warningStatusColor,
+    haloColor, labelColor,
+  );
 }
 
 /// Custom canvas painter for the topology map: grid, nodes, links, velocity
