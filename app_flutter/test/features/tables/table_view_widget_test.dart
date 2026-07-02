@@ -7,6 +7,7 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
+import 'package:app_flutter/features/tree/tree_node.dart';
 
 /// A test subclass that exposes setter methods for overriding internal state.
 class _TestTablesViewModel extends TablesViewModel {
@@ -84,6 +85,11 @@ class _MockDataSource implements DataSource {
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async => [];
+
+  @override
+  Future<List<TreeNode>> fetchRootNodes() async => [];
+  @override
+  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async => [];
 }
 
 Widget buildTableWithModel({

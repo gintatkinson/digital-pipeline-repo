@@ -67,8 +67,14 @@ class DatabaseInitializer {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS properties (
         node_id TEXT PRIMARY KEY,
+        parent_node_id TEXT REFERENCES properties(node_id),
         data_json TEXT NOT NULL
       )
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_properties_parent_node_id
+      ON properties(parent_node_id);
     ''');
 
     await db.execute('''
@@ -134,46 +140,18 @@ class DatabaseInitializer {
 
   /// Inserts sample data.
   static Future<void> _seed(Database db) async {
-    final batch = db.batch();
-
-    // 1000 root master type definitions (Master_1 to Master_1000)
-    final masters = List.generate(1000, (i) => 'Master_${i + 1}');
-    for (final m in masters) {
-      batch.insert('type_definitions', {
-        'type_name': m,
-        'display_name': m.replaceAll('_', ' '),
-        'icon_name': 'insert_drive_file',
-      });
-    }
-
-    // 3 detail type definitions
     final details = ['Detail_A', 'Detail_B', 'Detail_C'];
     for (final d in details) {
-      batch.insert('type_definitions', {
+      await db.insert('type_definitions', {
         'type_name': d,
         'display_name': d.replaceAll('_', ' '),
         'icon_name': 'widgets',
       });
-    }
 
-    // Child type relations connecting each Master Type to all 3 Detail Types
-    for (final m in masters) {
-      for (final d in details) {
-        batch.insert('type_relations', {
-          'parent_type_name': m,
-          'relation_name': 'contains',
-          'child_type_name': d,
-          'child_label': d.replaceAll('_', ' '),
-        });
-      }
-    }
-
-    // Seed 50 fields in type_attributes for each of these types: field_1 to field_50
-    final allTypes = [...masters, ...details];
-    for (final t in allTypes) {
+      final attrBatch = db.batch();
       for (int i = 1; i <= 50; i++) {
-        batch.insert('type_attributes', {
-          'type_name': t,
+        attrBatch.insert('type_attributes', {
+          'type_name': d,
           'attr_key': 'field_$i',
           'label': 'Field $i',
           'attr_type': 'string',
@@ -182,37 +160,84 @@ class DatabaseInitializer {
           'is_required': 0,
         });
       }
+      await attrBatch.commit(noResult: true);
     }
 
-    // Seed properties for each of the 1000 Master Nodes (with 50 fields)
-    for (final m in masters) {
-      final propertiesMap = {
-        for (int j = 1; j <= 50; j++) 'field_$j': 'val_${m}_field_$j'
-      };
-      batch.insert('properties', {
-        'node_id': m,
-        'data_json': jsonEncode(propertiesMap),
+    for (int chunkStart = 0; chunkStart < 1000; chunkStart += 50) {
+      final chunkEnd = chunkStart + 50;
+      final batch = db.batch();
+
+      for (int i = chunkStart; i < chunkEnd; i++) {
+        final m = 'Master_${i + 1}';
+        _addNodeToBatch(batch, m, null, details, isRoot: true);
+
+        for (int c = 1; c <= 5; c++) {
+          final child = '${m}_Child_$c';
+          _addNodeToBatch(batch, child, m, details, isRoot: false);
+
+          for (int g = 1; g <= 2; g++) {
+            final gc = '${child}_Grandchild_$g';
+            _addNodeToBatch(batch, gc, child, details, isRoot: false);
+          }
+        }
+      }
+
+      await batch.commit(noResult: true);
+    }
+  }
+
+  static void _addNodeToBatch(Batch batch, String node, String? parent, List<String> details, {required bool isRoot}) {
+    batch.insert('type_definitions', {
+      'type_name': node,
+      'display_name': node.replaceAll('_', ' '),
+      'icon_name': 'insert_drive_file',
+    });
+
+    for (final d in details) {
+      batch.insert('type_relations', {
+        'parent_type_name': node,
+        'relation_name': 'contains',
+        'child_type_name': d,
+        'child_label': d.replaceAll('_', ' '),
       });
     }
 
-    // Seed 50 instances for each Detail Type belonging to each parent Master Node
-    for (final m in masters) {
+    for (int i = 1; i <= 50; i++) {
+      batch.insert('type_attributes', {
+        'type_name': node,
+        'attr_key': 'field_$i',
+        'label': 'Field $i',
+        'attr_type': 'string',
+        'section_label': 'General',
+        'section_order': 0,
+        'is_required': 0,
+      });
+    }
+
+    final propertiesMap = {
+      for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j'
+    };
+    batch.insert('properties', {
+      'node_id': node,
+      'parent_node_id': parent,
+      'data_json': jsonEncode(propertiesMap),
+    });
+
+    if (isRoot) {
       for (final d in details) {
         for (int k = 1; k <= 50; k++) {
-          final instId = 'inst_${m}_${d}_$k';
+          final instId = 'inst_${node}_${d}_$k';
           final instanceMap = {
-            for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${m}_${d}_${k}_field_$j'
+            for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${node}_${d}_${k}_field_$j'
           };
           batch.insert('instances', {
             'id': instId,
-            'parent_node_id': m,
+            'parent_node_id': node,
             'type_name': d,
             'data_json': jsonEncode(instanceMap),
           });
         }
       }
     }
-
-    await batch.commit(noResult: true);
   }
 }

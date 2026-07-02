@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/features/tree/tree_node.dart';
 
 /// [DataSource] implementation backed by the local SQLite database.
 ///
@@ -177,6 +178,72 @@ class SqliteDataSource implements DataSource {
       );
     } catch (e, stackTrace) {
       debugPrint('Error in fetchRelatedInstances: $e\n$stackTrace');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<TreeNode>> fetchRootNodes() async {
+    try {
+      final rows = await _db.rawQuery('''
+        SELECT p.node_id, td.display_name,
+          (SELECT COUNT(*) FROM properties c WHERE c.parent_node_id = p.node_id) > 0 as has_children
+        FROM properties p
+        LEFT JOIN type_definitions td ON p.node_id = td.type_name
+        WHERE p.parent_node_id IS NULL
+        ORDER BY p.node_id
+      ''');
+      return rows.map((r) {
+        final id = r['node_id'] as String;
+        final label = (r['display_name'] as String?) ?? id.replaceAll('_', ' ');
+        final hasChildren = (r['has_children'] as int? ?? 0) > 0;
+        return TreeNode(
+          id: id,
+          label: label,
+          children: hasChildren ? const [] : null,
+        );
+      }).toList();
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchRootNodes: $e\n$stackTrace');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async {
+    try {
+      final rows = await _db.rawQuery('''
+        SELECT node_id, display_name, has_children FROM (
+          SELECT p.node_id as node_id, td.display_name as display_name,
+            (SELECT COUNT(*) FROM properties c WHERE c.parent_node_id = p.node_id) > 0 as has_children
+          FROM properties p
+          LEFT JOIN type_definitions td ON p.node_id = td.type_name
+          WHERE p.parent_node_id = ?
+
+          UNION ALL
+
+          SELECT r.child_type_name as node_id, td.display_name as display_name,
+            0 as has_children
+          FROM type_relations r
+          LEFT JOIN type_definitions td ON r.child_type_name = td.type_name
+          WHERE r.parent_type_name = ? AND r.relation_name = 'contains'
+            AND r.child_type_name NOT IN ('Detail_A', 'Detail_B', 'Detail_C')
+            AND r.child_type_name NOT IN (SELECT node_id FROM properties WHERE parent_node_id = ?)
+        )
+        ORDER BY (CASE WHEN node_id LIKE '%_Child_%' OR node_id LIKE '%_Grandchild_%' THEN 1 ELSE 0 END), node_id
+      ''', [parentId, parentId, parentId]);
+      return rows.map((r) {
+        final id = r['node_id'] as String;
+        final label = (r['display_name'] as String?) ?? id.replaceAll('_', ' ');
+        final hasChildren = (r['has_children'] as int? ?? 0) > 0;
+        return TreeNode(
+          id: id,
+          label: label,
+          children: hasChildren ? const [] : null,
+        );
+      }).toList();
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchChildrenForNode: $e\n$stackTrace');
       return [];
     }
   }

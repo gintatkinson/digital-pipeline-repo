@@ -36,8 +36,9 @@ class TreeNodeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<TreeViewModel>();
     final isSelected = viewModel.currentView == node.id;
-    final isParent = node.children != null && node.children!.isNotEmpty;
+    final isParent = node.children != null;
     final isExpanded = viewModel.expanded[node.id] == true;
+    final isLoading = viewModel.loadingNodes[node.id] == true;
 
     IconData icon;
     if (isParent) {
@@ -55,43 +56,51 @@ class TreeNodeWidget extends StatelessWidget {
           key: viewModel.nodeKey(node.id),
           type: MaterialType.transparency,
           child: ListTile(
-          key: Key('node_${node.id}'),
-          dense: true,
-          selected: isSelected,
-          selectedTileColor: brandPrimary.withValues(alpha: 0.12),
-          leading: Icon(
-            icon,
-            size: 16,
-            color: isSelected
-                ? brandPrimary
-                : Theme.of(context).iconTheme.color?.withValues(alpha: 0.7),
+            key: Key('node_${node.id}'),
+            dense: true,
+            selected: isSelected,
+            selectedTileColor: brandPrimary.withValues(alpha: 0.12),
+            leading: Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? brandPrimary
+                  : Theme.of(context).iconTheme.color?.withValues(alpha: 0.7),
+            ),
+            title: Text(
+              node.label,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            trailing: isParent
+                ? isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : InkWell(
+                        key: Key('toggle_${node.id}'),
+                        onTap: () {
+                          viewModel.toggleExpand(node.id);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Text(
+                            isExpanded ? '−' : '+',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      )
+                : null,
+            onTap: () {
+              viewModel.selectView(node.id);
+              viewModel.focusNode.requestFocus();
+            },
           ),
-          title: Text(
-            node.label,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          trailing: isParent
-              ? InkWell(
-                  key: Key('toggle_${node.id}'),
-                  onTap: () {
-                    viewModel.toggleExpand(node.id);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: Text(
-                      isExpanded ? '−' : '+',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                  ),
-                )
-              : null,
-          onTap: () {
-            viewModel.selectView(node.id);
-            viewModel.focusNode.requestFocus();
-          },
         ),
-          ),
-        if (isParent && isExpanded)
+        if (isParent && isExpanded && !isLoading)
           Padding(
             padding: EdgeInsets.only(left: childIndent),
             child: Column(

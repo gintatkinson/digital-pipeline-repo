@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
+import 'package:app_flutter/features/tree/tree_node.dart';
 
 /// [DataSource] implementation backed by Cloud Firestore.
 ///
@@ -247,5 +248,15 @@ class FirebaseDataSource implements DataSource {
         childLabel: map['childLabel'] as String,
       );
     }).toList();
+  }
+
+  @override
+  Future<List<TreeNode>> fetchRootNodes() async {
+    return [];
+  }
+
+  @override
+  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async {
+    return [];
   }
 }

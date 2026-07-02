@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
+import 'package:app_flutter/features/tree/tree_defaults.dart';
 
 /// View model driving the sidebar tree: data loading, navigation, focus,
 /// and keyboard-driven expansion/selection.
@@ -21,8 +22,6 @@ import 'package:app_flutter/features/tree/tree_node.dart';
 /// -1 is handled), root nodes with no parents to expand, and views whose
 /// parent chain is already visible (no-op expand).
 class TreeViewModel extends ChangeNotifier {
-  static const _excludedTypes = {'Detail_A', 'Detail_B', 'Detail_C'};
-
   TreeViewModel(this._dataSource, {
     String initialView = '',
     this.onViewSelected,
@@ -33,6 +32,7 @@ class TreeViewModel extends ChangeNotifier {
   List<TreeNode> _treeData = [];
   String _currentView;
   final Map<String, bool> _expanded = {};
+  final Map<String, bool> _loadingNodes = {};
   final FocusNode _treeFocusNode = FocusNode();
   final Map<String, GlobalKey> _nodeKeys = {};
   bool _disposed = false;
@@ -40,6 +40,7 @@ class TreeViewModel extends ChangeNotifier {
   List<TreeNode> get treeData => _treeData;
   String get currentView => _currentView;
   Map<String, bool> get expanded => _expanded;
+  Map<String, bool> get loadingNodes => _loadingNodes;
   FocusNode get focusNode => _treeFocusNode;
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
 
@@ -52,85 +53,27 @@ class TreeViewModel extends ChangeNotifier {
   ///
   /// Safe to call multiple times; resets all state before rebuilding.
   Future<void> loadTree() async {
-    final types = await _dataSource.discoverTypes();
-    final hierarchy = await _dataSource.discoverHierarchy();
+    final roots = await _dataSource.fetchRootNodes();
     if (_disposed) return;
-    _treeData = _buildTree(types, hierarchy);
+    _treeData = roots.isNotEmpty ? roots : defaultTreeData;
+
+    _expanded.clear();
+    _loadingNodes.clear();
+    _nodeKeys.clear();
 
     if (_currentView.isEmpty && _treeData.isNotEmpty) {
       _currentView = _treeData.first.id;
     }
 
-    _initExpandedFromTree();
     _expandParents(_currentView);
+
+    final currentNode = _findNodeById(_treeData, _currentView);
+    if (currentNode != null && currentNode.children != null) {
+      await expandNode(currentNode);
+    }
+
     _buildNodeKeys(_treeData);
     notifyListeners();
-  }
-
-  /// Builds a forest of [TreeNode]s from [types] and [hierarchy] edges.
-  ///
-  /// Root nodes are types that appear in [types] but have no parent in either
-  /// the hierarchy list or the `parentTypes` field. Nodes with children link
-  /// to their sub-tree via [TreeNode.children].
-  ///
-  /// Mutations: writes [_treeData] on the parent object. No [notifyListeners]
-  /// call — the caller ([loadTree]) is responsible.
-  List<TreeNode> _buildTree(List<TypeDescriptor> types, List<(String, String)> hierarchy) {
-    final typeMap = {
-      for (final t in types)
-        if (!_excludedTypes.contains(t.typeName)) t.typeName: t
-    };
-    final children = <String, List<TreeNode>>{};
-    final hasParent = <String>{};
-
-    for (final (parent, child) in hierarchy) {
-      if (_excludedTypes.contains(parent) || _excludedTypes.contains(child)) {
-        continue;
-      }
-      children.putIfAbsent(parent, () => []);
-      if (typeMap.containsKey(child)) {
-        final exists = children[parent]!.any((n) => n.id == child);
-        if (!exists) {
-          children[parent]!.add(TreeNode(id: child, label: typeMap[child]!.displayName));
-          hasParent.add(child);
-        }
-      }
-    }
-
-    // Build children from childTypes (used for tree hierarchy)
-    for (final type in types) {
-      if (_excludedTypes.contains(type.typeName)) continue;
-      for (final ct in type.childTypes) {
-        final childName = ct.childTypeName;
-        if (_excludedTypes.contains(childName)) continue;
-        if (typeMap.containsKey(childName)) {
-          children.putIfAbsent(type.typeName, () => []);
-          final exists = children[type.typeName]!.any((n) => n.id == childName);
-          if (!exists) {
-            children[type.typeName]!.add(TreeNode(id: childName, label: typeMap[childName]!.displayName));
-            hasParent.add(childName);
-          }
-        }
-      }
-    }
-
-    // Types referenced in parentTypes also have parents
-    for (final type in types) {
-      if (_excludedTypes.contains(type.typeName)) continue;
-      for (final pt in type.parentTypes) {
-        if (_excludedTypes.contains(pt.childTypeName)) continue;
-        hasParent.add(type.typeName);
-      }
-    }
-
-    return types
-        .where((t) => !_excludedTypes.contains(t.typeName) && !hasParent.contains(t.typeName))
-        .map((t) => TreeNode(
-              id: t.typeName,
-              label: t.displayName,
-              children: children[t.typeName],
-            ))
-        .toList();
   }
 
   /// Selects [viewId] as the current view, expands its ancestors, scrolls it
@@ -143,6 +86,10 @@ class TreeViewModel extends ChangeNotifier {
     if (_currentView == viewId) return;
     _currentView = viewId;
     _expandParents(viewId);
+    final node = _findNodeById(_treeData, viewId);
+    if (node != null && node.children != null && _expanded[viewId] != true) {
+      expandNode(node);
+    }
     _scrollToNode(viewId);
     notifyListeners();
     onViewSelected?.call(viewId);
@@ -158,19 +105,61 @@ class TreeViewModel extends ChangeNotifier {
     if (_currentView == viewId) return;
     _currentView = viewId;
     _expandParents(viewId);
+    final node = _findNodeById(_treeData, viewId);
+    if (node != null && node.children != null && _expanded[viewId] != true) {
+      expandNode(node);
+    }
     _scrollToNode(viewId);
     notifyListeners();
   }
 
-  /// Toggles expansion state of the node with [id].
-  ///
-  /// Flips the boolean in [_expanded] (defaults to expanded if not set).
-  /// Fires [notifyListeners] unconditionally. Safe to call on leaf nodes
-  /// (stores a value that is never read by [_getVisibleNodes] since leaves
-  /// have no children).
+  /// Toggles expansion state of the node with [id] and lazily loads children.
   void toggleExpand(String id) {
-    _expanded[id] = !(_expanded[id] ?? false);
+    final node = _findNodeById(_treeData, id);
+    if (node != null) {
+      expandNode(node);
+    } else {
+      _expanded[id] = !(_expanded[id] ?? false);
+      notifyListeners();
+    }
+  }
+
+  /// Recursively expands a node, loading its children if necessary.
+  Future<void> expandNode(TreeNode node) async {
+    if (_expanded[node.id] == true) {
+      _expanded[node.id] = false;
+      notifyListeners();
+      return;
+    }
+
+    if (node.children != null && node.children!.isEmpty) {
+      _loadingNodes[node.id] = true;
+      notifyListeners();
+
+      try {
+        final children = await _dataSource.fetchChildrenForNode(node.id);
+        node.children = children;
+        _buildNodeKeys(children);
+      } catch (e) {
+        debugPrint('Error loading children: $e');
+      } finally {
+        _loadingNodes[node.id] = false;
+      }
+    }
+
+    _expanded[node.id] = true;
     notifyListeners();
+  }
+
+  TreeNode? _findNodeById(List<TreeNode> nodes, String id) {
+    for (final node in nodes) {
+      if (node.id == id) return node;
+      if (node.children != null) {
+        final found = _findNodeById(node.children!, id);
+        if (found != null) return found;
+      }
+    }
+    return null;
   }
 
   /// Moves selection to the next visible node (depth-first order).
@@ -209,11 +198,10 @@ class TreeViewModel extends ChangeNotifier {
     final currentIndex = visible.indexWhere((n) => n.id == _currentView);
     if (currentIndex == -1) return;
     final currentNode = visible[currentIndex];
-    if (currentNode.children != null && currentNode.children!.isNotEmpty) {
+    if (currentNode.children != null) {
       if (_expanded[currentNode.id] != true) {
-        _expanded[currentNode.id] = true;
-        notifyListeners();
-      } else {
+        expandNode(currentNode);
+      } else if (currentNode.children!.isNotEmpty) {
         final firstChild = currentNode.children![0];
         selectView(firstChild.id);
       }
@@ -232,7 +220,6 @@ class TreeViewModel extends ChangeNotifier {
     if (currentIndex == -1) return;
     final currentNode = visible[currentIndex];
     if (currentNode.children != null &&
-        currentNode.children!.isNotEmpty &&
         _expanded[currentNode.id] == true) {
       _expanded[currentNode.id] = false;
       notifyListeners();
@@ -278,19 +265,6 @@ class TreeViewModel extends ChangeNotifier {
       _nodeKeys[node.id] = GlobalKey();
       if (node.children != null) {
         _buildNodeKeys(node.children!);
-      }
-    }
-  }
-
-  /// Initialises all parent nodes (nodes with children) as expanded.
-  ///
-  /// Called once by [loadTree] so the full tree is visible by default.
-  /// Does not fire [notifyListeners]; subsequent user interaction (toggle,
-  /// navigation) may collapse individual nodes.
-  void _initExpandedFromTree() {
-    for (final node in _treeData) {
-      if (node.children != null && node.children!.isNotEmpty) {
-        _expanded[node.id] = true;
       }
     }
   }

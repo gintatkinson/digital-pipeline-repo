@@ -1,3 +1,4 @@
+import 'package:app_flutter/features/tree/tree_node.dart';
 import 'instance_record.dart';
 import 'type_descriptor.dart';
 
@@ -70,4 +71,10 @@ abstract class DataSource {
     required String parentNodeId,
     required TypeDescriptor targetType,
   });
+
+  /// Fetches root nodes from SQLite properties table.
+  Future<List<TreeNode>> fetchRootNodes();
+
+  /// Fetches child nodes for a parent from SQLite properties table.
+  Future<List<TreeNode>> fetchChildrenForNode(String parentId);
 }

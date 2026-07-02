@@ -8,9 +8,9 @@
 class TreeNode {
   final String id;
   final String label;
-  final List<TreeNode>? children;
+  List<TreeNode>? children;
 
-  const TreeNode({
+  TreeNode({
     required this.id,
     required this.label,
     this.children,

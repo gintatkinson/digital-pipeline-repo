@@ -7,6 +7,7 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
+import 'package:app_flutter/features/tree/tree_node.dart';
 
 class _MockDataSource implements DataSource {
   final int rowCount;
@@ -57,6 +58,11 @@ class _MockDataSource implements DataSource {
       attributes: {for (int j = 0; j < 5; j++) 'c$j': 'V${i}_$j'},
     ));
   }
+
+  @override
+  Future<List<TreeNode>> fetchRootNodes() async => [];
+  @override
+  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async => [];
 }
 
 Widget _buildDataTableDirect(int rowCount) {

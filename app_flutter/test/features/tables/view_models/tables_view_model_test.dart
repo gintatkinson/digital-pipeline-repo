@@ -4,6 +4,7 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:app_flutter/features/tree/tree_node.dart';
 
 class _MockDataSource implements DataSource {
   @override
@@ -44,6 +45,11 @@ class _MockDataSource implements DataSource {
         parentNodeId: parentNodeId,
         targetType: targetType,
       ) ?? [];
+
+  @override
+  Future<List<TreeNode>> fetchRootNodes() async => [];
+  @override
+  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async => [];
 }
 
 void main() {
