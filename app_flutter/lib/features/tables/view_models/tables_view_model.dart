@@ -185,6 +185,7 @@ class TablesViewModel extends ChangeNotifier {
   /// When the node no longer has the tab referenced by [tabId], callers should
   /// guard usage or call [loadForNode] first to refresh the tab list.
   Future<void> selectTab(String tabId) async {
+    if (!_tabs.any((t) => t.id == tabId)) return;
     final tab = _tabs.firstWhere((t) => t.id == tabId);
     _selectedTabId = tabId;
     final requestId = ++_requestId;

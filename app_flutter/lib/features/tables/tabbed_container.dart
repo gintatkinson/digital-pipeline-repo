@@ -32,35 +32,74 @@ class TabbedContainer extends StatefulWidget {
 }
 
 class _TabbedContainerState extends State<TabbedContainer>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabController;
-  int _lastTabCount = 0;
+  TablesViewModel? _viewModel;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newViewModel = Provider.of<TablesViewModel>(context);
+    if (newViewModel != _viewModel) {
+      _viewModel?.removeListener(_onViewModelChanged);
+      _viewModel = newViewModel;
+      _viewModel?.addListener(_onViewModelChanged);
+      _updateController();
+    }
+  }
+
+  void _onViewModelChanged() {
+    if (mounted) {
+      setState(() {
+        _updateController();
+      });
+    }
+  }
+
+  void _updateController() {
+    final tabs = _viewModel?.tabs ?? [];
+    if (tabs.isEmpty) {
+      return;
+    }
+    if (_tabController == null || _tabController!.length != tabs.length) {
+      final oldController = _tabController;
+      if (oldController != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          oldController.dispose();
+        });
+      }
+      _tabController = TabController(length: tabs.length, vsync: this);
+      final initialIndex =
+          tabs.indexWhere((t) => t.id == _viewModel?.selectedTabId);
+      if (initialIndex > 0) _tabController!.index = initialIndex;
+      _tabController!.addListener(_onTabTick);
+    }
+  }
+
+  void _onTabTick() {
+    if (_tabController != null && !_tabController!.indexIsChanging) {
+      final tabs = _viewModel?.tabs ?? [];
+      if (_tabController!.index < tabs.length) {
+        final tab = tabs[_tabController!.index];
+        _viewModel?.selectTab(tab.id);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<TablesViewModel>();
-    final tabs = viewModel.tabs;
+    if (_viewModel == null) return const SizedBox.shrink();
+    final tabs = _viewModel!.tabs;
 
     if (tabs.isEmpty) {
-      if (viewModel.loading) {
+      if (_viewModel!.loading) {
         return const Center(child: CircularProgressIndicator());
       }
       return const SizedBox.shrink();
     }
 
-    if (_tabController == null || tabs.length != _lastTabCount) {
-      _tabController?.dispose();
-      _lastTabCount = tabs.length;
-      _tabController = TabController(length: tabs.length, vsync: this);
-      final initialIndex =
-          tabs.indexWhere((t) => t.id == viewModel.selectedTabId);
-      if (initialIndex > 0) _tabController!.index = initialIndex;
-      _tabController!.addListener(() {
-        if (!_tabController!.indexIsChanging) {
-          final tab = tabs[_tabController!.index];
-          viewModel.selectTab(tab.id);
-        }
-      });
+    if (_tabController == null) {
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -84,6 +123,8 @@ class _TabbedContainerState extends State<TabbedContainer>
 
   @override
   void dispose() {
+    _viewModel?.removeListener(_onViewModelChanged);
+    _tabController?.removeListener(_onTabTick);
     _tabController?.dispose();
     super.dispose();
   }

@@ -65,7 +65,10 @@ class SqliteDataSource implements DataSource {
   /// scan — consider caching if the hierarchy is static.
   @override
   Future<List<(String, String)>> discoverHierarchy() async {
-    final rows = await _db.query('type_relations');
+    final rows = await _db.query(
+      'type_relations',
+      where: "relation_name = 'contains'",
+    );
     return rows.map((r) => (
       r['parent_type_name'] as String,
       r['child_type_name'] as String,
@@ -108,11 +111,15 @@ class SqliteDataSource implements DataSource {
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     final dataJson = jsonEncode(data);
-    await _db.insert(
-      'properties',
-      {'node_id': nodeId, 'data_json': dataJson},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    try {
+      await _db.insert(
+        'properties',
+        {'node_id': nodeId, 'data_json': dataJson},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {
+      // swallow exceptions if the database is closed during teardown
+    }
     _propertiesController.add({'nodeId': nodeId, 'data': data});
   }
 

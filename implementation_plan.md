@@ -271,3 +271,52 @@ This plan details offloading CPU-intensive row mapping and document serializatio
 ### 2. Unit & Widget Tests
 - Run `flutter test` inside the `app_flutter/` directory to verify that all existing tests compile and pass successfully.
 
+
+# Implementation Plan - Automated E2E Integration Test Suite
+
+This plan details implementing the automated visible E2E integration test suite in `app_flutter/integration_test/app_e2e_test.dart` and adding a "Save" button to the property grid to facilitate explicit saving.
+
+## Proposed Changes
+
+### 1. In `app_flutter/lib/features/properties/property_grid.dart`
+- Add an `ElevatedButton` with text "Save" and key `Key('save_properties_button')` below the fields.
+- Bind the button press to unfocusing the current focus, which triggers the blur listener and commits/saves properties.
+
+### 2. Create `app_flutter/integration_test/app_e2e_test.dart`
+- Initialize integration testing via `IntegrationTestWidgetsFlutterBinding.ensureInitialized()`.
+- Set up standard desktop window sizing for macOS (physical size 1280x800 with pixel ratio 2.0).
+- Write a main test scenario that:
+  - Boots the application and initializes the SQLite database using the generic metadata types (`Component`, `RelationA`, `RelationB`) and custom nodes (`root`, `Overview`, `Item-1`, `Item-2`, `Item-3`).
+  - Iterates recursively through all tree nodes in the navigation tree.
+  - For each node, loops through every text field in the property grid, enters a new mock value, and clicks the "Save" button.
+  - After saving, queries the SQLite database directly to verify the properties table maps correctly.
+  - Asserts that the new value is rendered correctly in the UI grid.
+  - Toggles relation tabs (Components, Relation A, Relation B) to ensure data is displayed.
+  - Once the last node is reached, changes the theme (light, dark, system modes) and layout density (text scale).
+  - Repeats the entire traversal loop 3 times.
+
+## Verification Plan
+
+### 1. Analysis
+- Run `flutter analyze` inside `app_flutter/` (to be performed outside or in subsequent verification steps if allowed) to verify zero compilation or analysis warnings.
+
+
+# Implementation Plan - Safe TabController Lifecycle Management
+
+This plan details implementing safe TabController lifecycle management in `app_flutter/lib/features/tables/tabbed_container.dart`.
+
+## Proposed Changes
+
+### 1. In `app_flutter/lib/features/tables/tabbed_container.dart`
+- Refactor `_TabbedContainerState` to mixin `TickerProviderStateMixin` instead of `SingleTickerProviderStateMixin`.
+- Keep track of the active `TablesViewModel? _viewModel` and register/remove listeners.
+- Update `_updateController` to safely dispose of the old `TabController` using `WidgetsBinding.instance.addPostFrameCallback`.
+- Add listener callbacks to the new `TabController` and select tabs in the view model when the active tab index changes.
+- Clean up listeners and dispose of controllers in `dispose()`.
+
+## Verification Plan
+
+### 1. Static Analysis & Compilation
+- Verify the file compiles correctly without errors.
+
+

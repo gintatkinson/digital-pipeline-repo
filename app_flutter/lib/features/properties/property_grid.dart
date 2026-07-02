@@ -418,6 +418,14 @@ class _PropertyGridState extends State<PropertyGrid> {
             },
           ),
           SizedBox(height: widget.gapSize),
+          ElevatedButton(
+            key: const Key('save_properties_button'),
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            child: const Text('Save'),
+          ),
+          SizedBox(height: widget.gapSize),
           _buildCommittedStatePanel(isDark),
         ],
       ),
