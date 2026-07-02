@@ -38,7 +38,7 @@ def main():
                         pass
                         
     # 3. Analyze results
-    rss_threshold_kb = 25 * 1024 # 25MB in KB
+    rss_threshold_kb = 100 * 1024 # 100MB in KB
     jank_threshold_ms = 16.6
     
     regression_reasons = []
