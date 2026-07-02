@@ -2,6 +2,11 @@ import 'dart:convert';
 
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// Configuration for deterministic, formula-derived test data generation.
+///
+/// All names (types, attributes, sections, relations, node IDs) are
+/// derived from indices — zero hardcoded domain knowledge. Tune the
+/// counts to scale the integration test dataset.
 class SeedConfig {
   final int typeCount;
   final int masterCount;
@@ -20,11 +25,20 @@ class SeedConfig {
   });
 }
 
+/// Populates [db] with synthetic types, attributes, relations,
+/// instances, and child entries using formula-derived identifiers.
+///
+/// Clears all five tables before inserting. Child entries use batch
+/// operations chunked at 500 rows to avoid memory pressure with large
+/// [SeedConfig.rowsPerRelation] values.
+///
+/// Expected counts for the default config (8, 100, 50, 5, 3, 90):
+/// type_definition=8, type_attribute=400, type_relation=24,
+/// instance=100, child_entry=27,000.
 Future<void> seedSystemData(Database db, SeedConfig config) async {
   final tc = config.typeCount;
   final mc = config.masterCount;
   final apc = config.attributesPerType;
-  final spc = config.sectionsPerType;
   final rc = config.relationCountPerType;
   final rr = config.rowsPerRelation;
 
@@ -40,12 +54,7 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
   ];
 
   const fieldTypeCycle = [
-    'string',
-    'int_',
-    'double_',
-    'enum_',
-    'date',
-    'bool_',
+    'string', 'int_', 'double_', 'enum_', 'date', 'bool_',
   ];
 
   const labelPrefix = {
@@ -57,8 +66,7 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
     'bool_': 'B',
   };
 
-  final enumOptionsJson = jsonEncode(['op_0', 'op_1', 'op_2']);
-  final attrsPerSection = apc ~/ spc;
+  final enumJson = jsonEncode(['op_0', 'op_1', 'op_2']);
 
   await db.delete('child_entry');
   await db.delete('instance');
@@ -66,8 +74,7 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
   await db.delete('type_attribute');
   await db.delete('type_definition');
 
-  // --- type_definition ---
-  for (int ti = 0; ti < tc; ti++) {
+  for (var ti = 0; ti < tc; ti++) {
     await db.insert('type_definition', {
       'type_name': 'Type$ti',
       'display_name': 'Type $ti',
@@ -75,26 +82,24 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
     });
   }
 
-  // --- type_attribute ---
-  for (int ti = 0; ti < tc; ti++) {
-    for (int ai = 0; ai < apc; ai++) {
+  for (var ti = 0; ti < tc; ti++) {
+    for (var ai = 0; ai < apc; ai++) {
       final num = (ai + 1).toString().padLeft(2, '0');
       final ft = fieldTypeCycle[ai % fieldTypeCycle.length];
-      final sectionLabel =
-          'G_${((ai ~/ attrsPerSection) + 1).toString().padLeft(2, '0')}';
-
+      final sectionIndex = ai * 5 ~/ apc;
+      final sectionLabel = 'G_${(sectionIndex + 1).toString().padLeft(2, '0')}';
       await db.insert('type_attribute', {
         'type_name': 'Type$ti',
         'attr_key': 'attr_$num',
         'label': '${labelPrefix[ft]}_$num',
         'attr_type': ft,
         'section_label': sectionLabel,
-        'section_order': ai ~/ attrsPerSection,
+        'section_order': sectionIndex,
         'is_required': 1,
-        'min_value': null,
-        'max_value': null,
+        'min_value': ft == 'int_' ? 0 : null,
+        'max_value': ft == 'int_' ? 999999 : null,
         'pattern': null,
-        'enum_options': ft == 'enum_' ? enumOptionsJson : null,
+        'enum_options': ft == 'enum_' ? enumJson : null,
         'enum_display_names': null,
         'default_value': null,
         'input_formatters': null,
@@ -102,11 +107,10 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
     }
   }
 
-  // --- type_relation ---
   final typeRelations = <int, List<Map<String, String>>>{};
-  for (int ti = 0; ti < tc; ti++) {
+  for (var ti = 0; ti < tc; ti++) {
     final rels = <Map<String, String>>[];
-    for (int ri = 0; ri < rc; ri++) {
+    for (var ri = 0; ri < rc; ri++) {
       final target = (ti + ri + 1) % tc;
       rels.add({
         'relation_name': 'relates_to_Type$target',
@@ -123,40 +127,38 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
     typeRelations[ti] = rels;
   }
 
-  // --- instance ---
   final floorCount = mc ~/ tc;
   final remainder = mc % tc;
-
-  final typeStartIndices = <int, int>{};
-  int running = 0;
-  for (int ti = 0; ti < tc; ti++) {
-    typeStartIndices[ti] = running;
-    running += ti < remainder ? floorCount + 1 : floorCount;
+  final typeCounts = <int, int>{};
+  final typeStartIndex = <int, int>{};
+  var runningIdx = 0;
+  for (var ti = 0; ti < tc; ti++) {
+    final cnt = ti < remainder ? floorCount + 1 : floorCount;
+    typeCounts[ti] = cnt;
+    typeStartIndex[ti] = runningIdx;
+    runningIdx += cnt;
   }
 
   final attrMeta = <int, Map<String, dynamic>>{};
-  for (int ai = 0; ai < apc; ai++) {
-    final num = (ai + 1).toString().padLeft(2, '0');
+  for (var ai = 0; ai < apc; ai++) {
     attrMeta[ai] = {
-      'key': 'attr_$num',
+      'key': 'attr_${(ai + 1).toString().padLeft(2, '0')}',
       'type': fieldTypeCycle[ai % fieldTypeCycle.length],
     };
   }
 
-  for (int ti = 0; ti < tc; ti++) {
-    final cnt = ti < remainder ? floorCount + 1 : floorCount;
-    final startIdx = typeStartIndices[ti]!;
-
-    for (int c = 0; c < cnt; c++) {
+  for (var ti = 0; ti < tc; ti++) {
+    final cnt = typeCounts[ti]!;
+    final startIdx = typeStartIndex[ti]!;
+    for (var c = 0; c < cnt; c++) {
       final globalIndex = startIdx + c;
       final nodeId = 'Type$ti-${c.toString().padLeft(3, '0')}';
       final data = <String, dynamic>{};
 
-      for (int ai = 0; ai < apc; ai++) {
+      for (var ai = 0; ai < apc; ai++) {
         final meta = attrMeta[ai]!;
         final key = meta['key'] as String;
         final ft = meta['type'] as String;
-
         switch (ft) {
           case 'string':
             data[key] = 'v_${nodeId}_$key';
@@ -180,51 +182,42 @@ Future<void> seedSystemData(Database db, SeedConfig config) async {
     }
   }
 
-  // --- child_entry ---
-  await db.transaction((txn) async {
-    var batch = db.batch();
-    int batchCount = 0;
-    const chunkSize = 500;
+  var batch = db.batch();
+  var batchCount = 0;
 
-    for (int ti = 0; ti < tc; ti++) {
-      final cnt = ti < remainder ? floorCount + 1 : floorCount;
-      final rels = typeRelations[ti]!;
-
-      for (int c = 0; c < cnt; c++) {
-        final nodeId = 'Type$ti-${c.toString().padLeft(3, '0')}';
-
-        for (final rel in rels) {
-          final rn = rel['relation_name']!;
-
-          for (int ei = 0; ei < rr; ei++) {
-            final eNum = (ei + 1).toString().padLeft(2, '0');
-            final childId = 'ce_${nodeId}_${rn}_$eNum';
-            final payloadJson = jsonEncode({
-              'col_0': 'r_${nodeId}_${rn}_${ei + 1}',
-              'col_1': ei,
-              'col_2': ei * 10.0,
-            });
-
-            batch.insert('child_entry', {
-              'id': childId,
-              'parent_node_id': nodeId,
-              'relation_name': rn,
-              'payload_json': payloadJson,
-            });
-            batchCount++;
-
-            if (batchCount >= chunkSize) {
-              await batch.commit(noResult: true);
-              batch = db.batch();
-              batchCount = 0;
-            }
+  for (var ti = 0; ti < tc; ti++) {
+    final cnt = typeCounts[ti]!;
+    final rels = typeRelations[ti]!;
+    for (var c = 0; c < cnt; c++) {
+      final nodeId = 'Type$ti-${c.toString().padLeft(3, '0')}';
+      for (final rel in rels) {
+        final rn = rel['relation_name']!;
+        for (var ei = 0; ei < rr; ei++) {
+          final eNum = (ei + 1).toString().padLeft(2, '0');
+          final childId = 'ce_${nodeId}_${rn}_$eNum';
+          final payload = jsonEncode({
+            'col_0': 'r_${nodeId}_${rn}_${ei + 1}',
+            'col_1': ei,
+            'col_2': ei * 10.0,
+          });
+          batch.insert('child_entry', {
+            'id': childId,
+            'parent_node_id': nodeId,
+            'relation_name': rn,
+            'payload_json': payload,
+          });
+          batchCount++;
+          if (batchCount >= 500) {
+            await batch.commit(noResult: true);
+            batch = db.batch();
+            batchCount = 0;
           }
         }
       }
     }
+  }
 
-    if (batchCount > 0) {
-      await batch.commit(noResult: true);
-    }
-  });
+  if (batchCount > 0) {
+    await batch.commit(noResult: true);
+  }
 }

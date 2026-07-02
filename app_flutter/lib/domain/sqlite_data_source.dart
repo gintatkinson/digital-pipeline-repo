@@ -5,13 +5,30 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data_source.dart';
 import 'type_descriptor.dart';
 
+/// SQLite-backed [DataSource] using five normalized tables.
+///
+/// Schema: [type_definition], [type_attribute], [type_relation],
+/// [instance], [child_entry]. JSON fields (enum options, property data,
+/// child payloads) are serialized as TEXT and decoded on read.
+///
+/// [db] is injected via constructor so callers control lifecycle and
+/// testing can use in-memory databases.
 class SqliteDataSource implements DataSource {
-  final Database db;
+  final Database _db;
 
-  SqliteDataSource(this.db);
+  SqliteDataSource(this._db);
+
+  /// The underlying database handle, exposed for direct queries
+  /// (e.g. seeding and test verification).
+  Database get db => _db;
 
   @override
   String get name => 'sqlite';
+
+  @override
+  void close() {
+    _db.close();
+  }
 
   FieldType _parseFieldType(String raw) {
     switch (raw) {
@@ -34,16 +51,24 @@ class SqliteDataSource implements DataSource {
 
   List<String>? _parseJsonList(String? raw) {
     if (raw == null) return null;
-    final decoded = jsonDecode(raw);
-    if (decoded is List) return decoded.cast<String>();
-    return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) return decoded.cast<String>();
+      return null;
+    } on FormatException {
+      return null;
+    }
   }
 
   Map<String, dynamic>? _parseJsonMap(String? raw) {
     if (raw == null) return null;
-    final decoded = jsonDecode(raw);
-    if (decoded is Map<String, dynamic>) return decoded;
-    return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return null;
+    } on FormatException {
+      return null;
+    }
   }
 
   dynamic _parseDefaultValue(String? raw, FieldType type) {
@@ -60,18 +85,18 @@ class SqliteDataSource implements DataSource {
     }
   }
 
-  Future<List<FieldDescriptor>> _fetchFieldDescriptors(String typeName) async {
-    final rows = await db.query(
+  Future<List<FieldDescriptor>> _fetchFields(String typeName) async {
+    final rows = await _db.query(
       'type_attribute',
       where: 'type_name = ?',
       whereArgs: [typeName],
     );
     return rows.map((row) {
-      final fieldType = _parseFieldType(row['attr_type'] as String);
+      final ft = _parseFieldType(row['attr_type'] as String);
       return FieldDescriptor(
         key: row['attr_key'] as String,
         label: row['label'] as String,
-        type: fieldType,
+        type: ft,
         sectionLabel: row['section_label'] as String?,
         sectionOrder: row['section_order'] as int? ?? 0,
         required: (row['is_required'] as int?) == 1,
@@ -80,19 +105,14 @@ class SqliteDataSource implements DataSource {
         pattern: row['pattern'] as String?,
         enumOptions: _parseJsonList(row['enum_options'] as String?),
         enumDisplayNames: _parseJsonList(row['enum_display_names'] as String?),
-        defaultValue: _parseDefaultValue(
-          row['default_value'] as String?,
-          fieldType,
-        ),
+        defaultValue: _parseDefaultValue(row['default_value'] as String?, ft),
         inputFormatters: _parseJsonList(row['input_formatters'] as String?),
       );
     }).toList();
   }
 
-  Future<List<TypeRelationDescriptor>> _fetchChildTypes(
-    String typeName,
-  ) async {
-    final rows = await db.query(
+  Future<List<TypeRelationDescriptor>> _fetchChildTypes(String typeName) async {
+    final rows = await _db.query(
       'type_relation',
       where: 'parent_type_name = ?',
       whereArgs: [typeName],
@@ -106,10 +126,8 @@ class SqliteDataSource implements DataSource {
     }).toList();
   }
 
-  Future<List<TypeRelationDescriptor>> _fetchParentTypes(
-    String typeName,
-  ) async {
-    final rows = await db.query(
+  Future<List<TypeRelationDescriptor>> _fetchParentTypes(String typeName) async {
+    final rows = await _db.query(
       'type_relation',
       where: 'child_type_name = ?',
       whereArgs: [typeName],
@@ -123,11 +141,9 @@ class SqliteDataSource implements DataSource {
     }).toList();
   }
 
-  Future<TypeDescriptor> _buildTypeDescriptor(
-    Map<String, dynamic> row,
-  ) async {
+  Future<TypeDescriptor> _buildType(Map<String, dynamic> row) async {
     final typeName = row['type_name'] as String;
-    final fields = await _fetchFieldDescriptors(typeName);
+    final fields = await _fetchFields(typeName);
     final childTypes = await _fetchChildTypes(typeName);
     final parentTypes = await _fetchParentTypes(typeName);
     return TypeDescriptor(
@@ -142,40 +158,39 @@ class SqliteDataSource implements DataSource {
 
   @override
   Future<List<TypeDescriptor>> discoverTypes() async {
-    final rows = await db.query('type_definition');
-    final descriptors = <TypeDescriptor>[];
+    final rows = await _db.query('type_definition');
+    final result = <TypeDescriptor>[];
     for (final row in rows) {
-      descriptors.add(await _buildTypeDescriptor(row));
+      result.add(await _buildType(row));
     }
-    return descriptors;
+    return result;
   }
 
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
-    final rows = await db.query(
+    final rows = await _db.query(
       'type_definition',
       where: 'type_name = ?',
       whereArgs: [typeName],
       limit: 1,
     );
     if (rows.isEmpty) return null;
-    return _buildTypeDescriptor(rows.first);
+    return _buildType(rows.first);
   }
 
   @override
   Future<List<InstanceDescriptor>> discoverInstances() async {
-    final instanceRows = await db.query('instance');
-    final typeDefRows = await db.query('type_definition');
-    final typeDisplayNames = <String, String>{};
-    for (final row in typeDefRows) {
-      typeDisplayNames[row['type_name'] as String] =
-          row['display_name'] as String;
-    }
+    final instanceRows = await _db.query('instance');
+    final typeRows = await _db.query('type_definition');
+    final displayNames = <String, String>{
+      for (final row in typeRows)
+        row['type_name'] as String: row['display_name'] as String,
+    };
     return instanceRows.map((row) {
       final nodeId = row['node_id'] as String;
       final lastDash = nodeId.lastIndexOf('-');
       final typeName = lastDash > 0 ? nodeId.substring(0, lastDash) : nodeId;
-      final displayName = typeDisplayNames[typeName] ?? typeName;
+      final displayName = displayNames[typeName] ?? typeName;
       return InstanceDescriptor(
         nodeId: nodeId,
         typeName: typeName,
@@ -186,7 +201,7 @@ class SqliteDataSource implements DataSource {
 
   @override
   Future<Map<String, dynamic>?> fetchProperties(String nodeId) async {
-    final rows = await db.query(
+    final rows = await _db.query(
       'instance',
       where: 'node_id = ?',
       whereArgs: [nodeId],
@@ -197,12 +212,9 @@ class SqliteDataSource implements DataSource {
   }
 
   @override
-  Future<void> saveProperties(
-    String nodeId,
-    Map<String, dynamic> data,
-  ) async {
+  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     final encoded = jsonEncode(data);
-    await db.insert(
+    await _db.insert(
       'instance',
       {'node_id': nodeId, 'data_json': encoded},
       conflictAlgorithm: ConflictAlgorithm.replace,
@@ -214,14 +226,13 @@ class SqliteDataSource implements DataSource {
     String nodeId,
     String relationName,
   ) async {
-    final rows = await db.query(
+    final rows = await _db.query(
       'child_entry',
       where: 'parent_node_id = ? AND relation_name = ?',
       whereArgs: [nodeId, relationName],
     );
     return rows.map((row) {
-      final payload =
-          _parseJsonMap(row['payload_json'] as String?) ?? {};
+      final payload = _parseJsonMap(row['payload_json'] as String?) ?? {};
       return {
         'id': row['id'],
         'parent_node_id': row['parent_node_id'],

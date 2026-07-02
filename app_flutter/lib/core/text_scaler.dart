@@ -1,33 +1,36 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class TextScaler extends ChangeNotifier {
-  static const double _minScale = 0.7;
-  static const double _maxScale = 1.5;
-  static const double _defaultScale = 1.0;
-  static const String _storageKey = 'text_scale_factor';
+/// Manages a user-adjustable text scale factor, persisted via
+/// [SharedPreferences].
+///
+/// The scale is clamped to `[0.7, 1.5]`. [load] must be called once
+/// after construction to restore the persisted value (defaults to
+/// `1.0`). [setScale] fires [notifyListeners] before persisting so the
+/// UI responds immediately.
+class TextScaleController extends ChangeNotifier {
+  static const _min = 0.7;
+  static const _max = 1.5;
+  static const _default = 1.0;
+  static const _key = 'text_scale_factor';
 
-  double _scale = _defaultScale;
+  double _scale = _default;
 
   double get scale => _scale;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getDouble(_storageKey);
-    if (stored != null) {
-      _scale = stored.clamp(_minScale, _maxScale);
-    } else {
-      _scale = _defaultScale;
-    }
+    final stored = prefs.getDouble(_key);
+    _scale = stored?.clamp(_min, _max) ?? _default;
     notifyListeners();
   }
 
   Future<void> setScale(double value) async {
-    final clamped = value.clamp(_minScale, _maxScale);
+    final clamped = value.clamp(_min, _max);
     if (clamped == _scale) return;
     _scale = clamped;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_storageKey, clamped);
+    await prefs.setDouble(_key, clamped);
     notifyListeners();
   }
 }
