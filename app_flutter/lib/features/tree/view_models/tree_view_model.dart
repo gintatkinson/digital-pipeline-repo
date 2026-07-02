@@ -21,7 +21,7 @@ import 'package:app_flutter/features/tree/tree_node.dart';
 /// -1 is handled), root nodes with no parents to expand, and views whose
 /// parent chain is already visible (no-op expand).
 class TreeViewModel extends ChangeNotifier {
-  static const _excludedTypes = {'Component', 'RelationA', 'RelationB'};
+  static const _excludedTypes = {'Detail_A', 'Detail_B', 'Detail_C'};
 
   TreeViewModel(this._dataSource, {
     String initialView = '',

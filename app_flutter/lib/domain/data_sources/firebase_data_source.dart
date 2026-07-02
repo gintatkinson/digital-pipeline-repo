@@ -43,25 +43,30 @@ class FirebaseDataSource implements DataSource {
   /// triggers a Firestore read.
   @override
   Future<List<TypeDescriptor>> discoverTypes() async {
-    final snapshot = await _firestore.collection('schema').doc('types').get();
-    final data = snapshot.data();
-    if (data == null) return [];
-    final fields = data['fields'] as Map<String, dynamic>? ?? {};
-    final types = <TypeDescriptor>[];
-    for (final entry in fields.entries) {
-      final typeName = entry.key;
-      final def = entry.value as Map<String, dynamic>;
-      types.add(TypeDescriptor(
-        typeName: typeName,
-        displayName: def['displayName'] as String? ?? typeName,
-        iconName: def['iconName'] as String? ?? 'insert_drive_file',
-        fields: _parseFields(def['fields'] as List<dynamic>?),
-        childTypes: _parseRelations(def['childTypes'] as List<dynamic>?),
-        relatedTypes: _parseRelations(def['relatedTypes'] as List<dynamic>?),
-        parentTypes: _parseRelations(def['parentTypes'] as List<dynamic>?),
-      ));
+    try {
+      final snapshot = await _firestore.collection('schema').doc('types').get();
+      final data = snapshot.data();
+      if (data == null) return [];
+      final fields = data['fields'] as Map<String, dynamic>? ?? {};
+      final types = <TypeDescriptor>[];
+      for (final entry in fields.entries) {
+        final typeName = entry.key;
+        final def = entry.value as Map<String, dynamic>;
+        types.add(TypeDescriptor(
+          typeName: typeName,
+          displayName: def['displayName'] as String? ?? typeName,
+          iconName: def['iconName'] as String? ?? 'insert_drive_file',
+          fields: _parseFields(def['fields'] as List<dynamic>?),
+          childTypes: _parseRelations(def['childTypes'] as List<dynamic>?),
+          relatedTypes: _parseRelations(def['relatedTypes'] as List<dynamic>?),
+          parentTypes: _parseRelations(def['parentTypes'] as List<dynamic>?),
+        ));
+      }
+      return types;
+    } catch (e, stackTrace) {
+      debugPrint('Error in discoverTypes: $e\n$stackTrace');
+      return [];
     }
-    return types;
   }
 
   /// Returns the [TypeDescriptor] whose [TypeDescriptor.typeName] matches
@@ -73,11 +78,16 @@ class FirebaseDataSource implements DataSource {
   /// once to avoid N+1 reads.
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
-    final types = await discoverTypes();
-    for (final t in types) {
-      if (t.typeName == typeName) return t;
+    try {
+      final types = await discoverTypes();
+      for (final t in types) {
+        if (t.typeName == typeName) return t;
+      }
+      return null;
+    } catch (e, stackTrace) {
+      debugPrint('Error in typeFor($typeName): $e\n$stackTrace');
+      return null;
     }
-    return null;
   }
 
   /// Reads the `schema/hierarchy` Firestore document and returns
@@ -89,14 +99,19 @@ class FirebaseDataSource implements DataSource {
   /// permission failures. Each call triggers a single Firestore read.
   @override
   Future<List<(String, String)>> discoverHierarchy() async {
-    final snapshot = await _firestore.collection('schema').doc('hierarchy').get();
-    final data = snapshot.data();
-    if (data == null) return [];
-    final pairs = data['pairs'] as List<dynamic>? ?? [];
-    return pairs.map((p) {
-      final pair = p as List<dynamic>;
-      return (pair[0] as String, pair[1] as String);
-    }).toList();
+    try {
+      final snapshot = await _firestore.collection('schema').doc('hierarchy').get();
+      final data = snapshot.data();
+      if (data == null) return [];
+      final pairs = data['pairs'] as List<dynamic>? ?? [];
+      return pairs.map((p) {
+        final pair = p as List<dynamic>;
+        return (pair[0] as String, pair[1] as String);
+      }).toList();
+    } catch (e, stackTrace) {
+      debugPrint('Error in discoverHierarchy: $e\n$stackTrace');
+      return [];
+    }
   }
 
   /// Fetches the property map for the node identified by [nodeId] from
@@ -108,10 +123,15 @@ class FirebaseDataSource implements DataSource {
   /// triggers a single Firestore read.
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
-    final doc = await _firestore.collection('data').doc(nodeId).get();
-    final data = doc.data();
-    if (data == null) return {};
-    return Map<String, dynamic>.from(data);
+    try {
+      final doc = await _firestore.collection('data').doc(nodeId).get();
+      final data = doc.data();
+      if (data == null) return {};
+      return Map<String, dynamic>.from(data);
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchProperties($nodeId): $e\n$stackTrace');
+      return {};
+    }
   }
 
   /// Persists [data] as the properties for [nodeId] in the `data`
@@ -124,8 +144,12 @@ class FirebaseDataSource implements DataSource {
   /// [FirebaseException] on network or permission failures.
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
-    await _firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
-    _propertiesController.add({'nodeId': nodeId, 'data': data});
+    try {
+      await _firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
+      _propertiesController.add({'nodeId': nodeId, 'data': data});
+    } catch (e, stackTrace) {
+      debugPrint('Error in saveProperties($nodeId): $e\n$stackTrace');
+    }
   }
 
   /// Returns a broadcast stream that first emits the current properties
@@ -153,31 +177,36 @@ class FirebaseDataSource implements DataSource {
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async {
-    final snapshot = await _firestore
-        .collection('instances')
-        .where('parent_node_id', isEqualTo: parentNodeId)
-        .where('type_name', isEqualTo: targetType.typeName)
-        .get();
-    final rawDocs = snapshot.docs.map((d) => {
-      'id': d.id,
-      'data': d.data(),
-    }).toList();
-    return compute(
-      (args) {
-        final docs = args[0] as List<Map<String, dynamic>>;
-        final pId = args[1] as String;
-        final tName = args[2] as String;
-        return docs.map((doc) {
-          return InstanceRecord(
-            id: doc['id'] as String,
-            parentNodeId: pId,
-            typeName: tName,
-            attributes: doc['data'] as Map<String, dynamic>,
-          );
-        }).toList();
-      },
-      [rawDocs, parentNodeId, targetType.typeName],
-    );
+    try {
+      final snapshot = await _firestore
+          .collection('instances')
+          .where('parent_node_id', isEqualTo: parentNodeId)
+          .where('type_name', isEqualTo: targetType.typeName)
+          .get();
+      final rawDocs = snapshot.docs.map((d) => {
+        'id': d.id,
+        'data': d.data(),
+      }).toList();
+      return compute(
+        (args) {
+          final docs = args[0] as List<Map<String, dynamic>>;
+          final pId = args[1] as String;
+          final tName = args[2] as String;
+          return docs.map((doc) {
+            return InstanceRecord(
+              id: doc['id'] as String,
+              parentNodeId: pId,
+              typeName: tName,
+              attributes: doc['data'] as Map<String, dynamic>,
+            );
+          }).toList();
+        },
+        [rawDocs, parentNodeId, targetType.typeName],
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchRelatedInstances: $e\n$stackTrace');
+      return [];
+    }
   }
 
   List<FieldDescriptor> _parseFields(List<dynamic>? fields) {

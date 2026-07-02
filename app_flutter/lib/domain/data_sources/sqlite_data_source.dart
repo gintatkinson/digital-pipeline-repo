@@ -36,12 +36,17 @@ class SqliteDataSource implements DataSource {
   /// simply produce empty fields/childTypes.
   @override
   Future<List<TypeDescriptor>> discoverTypes() async {
-    final typeRows = await _db.query('type_definitions');
-    final types = <TypeDescriptor>[];
-    for (final typeRow in typeRows) {
-      types.add(await _buildType(typeRow));
+    try {
+      final typeRows = await _db.query('type_definitions');
+      final types = <TypeDescriptor>[];
+      for (final typeRow in typeRows) {
+        types.add(await _buildType(typeRow));
+      }
+      return types;
+    } catch (e, stackTrace) {
+      debugPrint('Error in discoverTypes: $e\n$stackTrace');
+      return [];
     }
-    return types;
   }
 
   /// Queries `type_definitions` for a single row matching [typeName]
@@ -52,10 +57,15 @@ class SqliteDataSource implements DataSource {
   /// `type_name` is null.
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
-    final rows = await _db.query('type_definitions',
-        where: 'type_name = ?', whereArgs: [typeName]);
-    if (rows.isEmpty) return null;
-    return _buildType(rows.first);
+    try {
+      final rows = await _db.query('type_definitions',
+          where: 'type_name = ?', whereArgs: [typeName]);
+      if (rows.isEmpty) return null;
+      return _buildType(rows.first);
+    } catch (e, stackTrace) {
+      debugPrint('Error in typeFor($typeName): $e\n$stackTrace');
+      return null;
+    }
   }
 
   /// Reads all parent-child type pairs from the `type_relations` table.
@@ -65,14 +75,19 @@ class SqliteDataSource implements DataSource {
   /// scan — consider caching if the hierarchy is static.
   @override
   Future<List<(String, String)>> discoverHierarchy() async {
-    final rows = await _db.query(
-      'type_relations',
-      where: "relation_name = 'contains'",
-    );
-    return rows.map((r) => (
-      r['parent_type_name'] as String,
-      r['child_type_name'] as String,
-    )).toList();
+    try {
+      final rows = await _db.query(
+        'type_relations',
+        where: "relation_name = 'contains'",
+      );
+      return rows.map((r) => (
+        r['parent_type_name'] as String,
+        r['child_type_name'] as String,
+      )).toList();
+    } catch (e, stackTrace) {
+      debugPrint('Error in discoverHierarchy: $e\n$stackTrace');
+      return [];
+    }
   }
 
   /// Fetches the property map for the node identified by [nodeId]
@@ -85,18 +100,19 @@ class SqliteDataSource implements DataSource {
   /// instead of crashing. Each call executes a single SELECT.
   @override
   Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
-    final maps = await _db.query(
-      'properties',
-      columns: ['data_json'],
-      where: 'node_id = ?',
-      whereArgs: [nodeId],
-    );
-    if (maps.isEmpty) return {};
-    final dataJson = maps.first['data_json'] as String?;
-    if (dataJson == null) return {};
     try {
+      final maps = await _db.query(
+        'properties',
+        columns: ['data_json'],
+        where: 'node_id = ?',
+        whereArgs: [nodeId],
+      );
+      if (maps.isEmpty) return {};
+      final dataJson = maps.first['data_json'] as String?;
+      if (dataJson == null) return {};
       return jsonDecode(dataJson) as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchProperties($nodeId): $e\n$stackTrace');
       return {};
     }
   }
@@ -110,17 +126,17 @@ class SqliteDataSource implements DataSource {
   /// both creates and updates — the upsert handles both transparently.
   @override
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
-    final dataJson = jsonEncode(data);
     try {
+      final dataJson = jsonEncode(data);
       await _db.insert(
         'properties',
         {'node_id': nodeId, 'data_json': dataJson},
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
-    } catch (_) {
-      // swallow exceptions if the database is closed during teardown
+      _propertiesController.add({'nodeId': nodeId, 'data': data});
+    } catch (e, stackTrace) {
+      debugPrint('Error in saveProperties($nodeId): $e\n$stackTrace');
     }
-    _propertiesController.add({'nodeId': nodeId, 'data': data});
   }
 
   /// Returns a broadcast stream that first emits the current
@@ -147,17 +163,22 @@ class SqliteDataSource implements DataSource {
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async {
-    final rows = await _db.query(
-      'instances',
-      where: 'parent_node_id = ? AND type_name = ?',
-      whereArgs: [parentNodeId, targetType.typeName],
-    );
-    return compute(
-      (args) => (args[0] as List<Map<String, dynamic>>)
-          .map((r) => InstanceRecord.fromMap(r, args[1] as String))
-          .toList(),
-      [rows, targetType.typeName],
-    );
+    try {
+      final rows = await _db.query(
+        'instances',
+        where: 'parent_node_id = ? AND type_name = ?',
+        whereArgs: [parentNodeId, targetType.typeName],
+      );
+      return compute(
+        (args) => (args[0] as List<Map<String, dynamic>>)
+            .map((r) => InstanceRecord.fromMap(r, args[1] as String))
+            .toList(),
+        [rows, targetType.typeName],
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchRelatedInstances: $e\n$stackTrace');
+      return [];
+    }
   }
 
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {

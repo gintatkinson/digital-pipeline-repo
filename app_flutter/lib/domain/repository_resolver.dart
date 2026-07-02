@@ -9,7 +9,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
-import 'repository.dart';
 import 'database_initializer.dart';
 
 
@@ -17,11 +16,11 @@ import 'database_initializer.dart';
 ///
 /// Reads a JSON configuration file (or falls back to defaults) to decide
 /// whether to initialise a local SQLite database or connect to Cloud
-/// Firestore. Returns a pair of ([AbstractRepository], [DataSource]) that
+/// Firestore. Returns a [DataSource] that
 /// the app uses for all read/write operations and schema discovery.
 ///
 /// Call this once at startup, before any data-dependent widget builds.
-/// The resolved pair is then injected via dependency injection or passed
+/// The resolved datasource is then injected via dependency injection or passed
 /// through the widget tree. Calling [resolve] multiple times creates
 /// separate connections — doing so is not recommended.
 class RepositoryResolver {
@@ -45,10 +44,10 @@ class RepositoryResolver {
   /// For Firebase: initialises the Firebase app and optionally connects
   /// to the Firestore emulator at [useEmulator].
   ///
-  /// Returns a tuple of ([AbstractRepository], [DataSource]) ready for
-  /// injection. Throws on network errors (Firebase init) or file I/O
-  /// errors (asset copy failure). Always resolves to a non-null pair.
-  static Future<(AbstractRepository, DataSource)> resolve({
+  /// Returns a [DataSource] ready for injection.
+  /// Throws on network errors (Firebase init) or file I/O
+  /// errors (asset copy failure). Always resolves to a non-null DataSource.
+  static Future<DataSource> resolve({
     String? configPath,
     String? dbAssetPath,
     bool sqliteInMemory = false,
@@ -83,13 +82,13 @@ class RepositoryResolver {
     }
   }
 
-  /// Initialies Firebase and returns a Firestore-backed pair.
+  /// Initialies Firebase and returns a Firestore-backed DataSource.
   ///
   /// Calls [Firebase.initializeApp] first (idempotent if already called).
   /// When [useEmulator] is true, redirects Firestore to the local emulator
   /// at localhost:8080 — useful for development without a real Firebase
   /// project. Throws if Firebase initialisation fails (missing config, etc.).
-  static Future<(FirebaseRepositoryAdapter, FirebaseDataSource)> _createFirebaseAdapter({
+  static Future<FirebaseDataSource> _createFirebaseAdapter({
     bool useEmulator = true,
   }) async {
     await Firebase.initializeApp();
@@ -97,22 +96,22 @@ class RepositoryResolver {
     if (useEmulator) {
       firestore.useFirestoreEmulator(_defaultEmulatorHost, _defaultEmulatorPort);
     }
-    return (FirebaseRepositoryAdapter(firestore), FirebaseDataSource(firestore));
+    return FirebaseDataSource(firestore);
   }
 
-  /// Initialises SQLite FFI and returns an SQLite-backed pair.
+  /// Initialises SQLite FFI and returns an SQLite-backed DataSource.
   ///
   /// When [inMemory] is true, creates a transient in-memory database
   /// (data is lost on app restart). Otherwise, copies the asset database
   /// from [dbAssetPath] (or the default asset) to the app support directory
   /// and opens it.
   /// Throws on file I/O errors or database corruption.
-  static Future<(SqliteRepositoryAdapter, DataSource)> _createSqliteAdapter({
+  static Future<DataSource> _createSqliteAdapter({
     String? dbAssetPath,
     bool inMemory = false,
   }) async {
     final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-    if (isTest || Platform.isWindows || Platform.isLinux) {
+    if (isTest || Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
@@ -130,8 +129,6 @@ class RepositoryResolver {
     }
 
     final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
-    final DataSource dataSource = SqliteDataSource(db);
-
-    return (SqliteRepositoryAdapter(db), dataSource);
+    return SqliteDataSource(db);
   }
 }

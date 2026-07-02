@@ -4,7 +4,6 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/repository_resolver.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/app/app.dart';
@@ -19,7 +18,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    final (repository, dataSource) = await RepositoryResolver.resolve(
+    final dataSource = await RepositoryResolver.resolve(
       dataSourceType: _dataSource,
     );
 
@@ -39,7 +38,6 @@ Future<void> main() async {
     runApp(
       MultiProvider(
         providers: [
-          Provider<AbstractRepository>.value(value: repository),
           Provider<DataSource>.value(value: dataSource),
           ChangeNotifierProvider<ThemeController>.value(value: themeController),
           ChangeNotifierProvider<TextScalerController>.value(value: textScalerController),

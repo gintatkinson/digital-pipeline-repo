@@ -1,322 +1,136 @@
-# Implementation Plan - Issue #69 Design Tokens Integration
+# Implementation Plan: Isolated Fault Tolerance & Generic Seeding
 
-This plan details copying, registering, parsing, and resolving the design tokens from logical-ui to the app_flutter codebase, replacing all hardcoded color references.
+This plan details the changes to implement isolated fault tolerance boundaries across external services and refactor the SQLite database seed logic to use a domain-free string template generation scheme.
 
-## Proposed Changes
+---
 
-### 1. Copy `design-tokens.json`
-- Copy `.pipeline/logical-ui/design-tokens.json` to `app_flutter/assets/design-tokens.json`.
+## Part 1: Isolated Fault Tolerance & Service Recovery
 
-### 2. Update `app_flutter/pubspec.yaml`
-- Register `assets/design-tokens.json` under the `assets:` section.
+To ensure that external plugin, network, or database failures are isolated and resolved with clean defaults rather than crashing the application runtime, we will wrap the following boundary layers:
 
-### 3. Create `app_flutter/lib/domain/design_tokens.dart`
-- Implement `DesignTokenRegistry` interface and a concrete implementation class.
-- Support recursive alias syntax parsing (e.g. `{global.color.blue-500}`).
-- Support theme-dependent values (`light` and `dark`).
-- Support parsing dimensions (e.g., "16px" -> 16.0) and colors (e.g., "#1a73e8" -> 0xFF1A73E8).
+### 1. SQLite Data Source
+- **File**: `app_flutter/lib/domain/data_sources/sqlite_data_source.dart`
+- **Remedy**: Wrap all database queries (`discoverTypes`, `typeFor`, `discoverHierarchy`, `fetchProperties`, and `fetchRelatedInstances`) in `try-catch` blocks. If any exception is caught, log the error using `debugPrint` and return safe empty defaults (empty lists/maps or `null`).
 
-### 4. Update `app_flutter/lib/main.dart`
-- Load `design-tokens.json` asynchronously on startup inside `main()`.
-- Initialize `DesignTokenRegistry` with the loaded JSON.
-- Provide the registry to the widget tree using an InheritedWidget or similar state provider.
-- Dynamically resolve ThemeData using the design tokens.
-- Replace all hardcoded colors with registry-resolved values.
+### 2. Firebase Data Source
+- **File**: `app_flutter/lib/domain/data_sources/firebase_data_source.dart`
+- **Remedy**: Wrap all Firestore query and persistence operations in `try-catch` blocks, logging errors and recovering with empty defaults.
 
-### 5. Update `app_flutter/lib/components/layout.dart`
-- Retrieve `DesignTokenRegistry` from context.
-- Update layout sizing (sidebar width, splitter min size) and all hardcoded color values to be resolved dynamically.
+### 3. SharedPreferences Theme Service
+- **File**: `app_flutter/lib/core/theme/theme_service.dart`
+- **Remedy**: Wrap all `SharedPreferences` reads and writes inside `SharedPreferencesThemeService` in `try-catch` blocks. Fall back to standard defaults (e.g., `ThemeMode.system`, text scale `1.0`, index `0`) if the platform storage is corrupt, locked, or failing.
 
-### 6. Update `app_flutter/lib/components/breadcrumbs.dart`
-- Retrieve `DesignTokenRegistry` from context.
-- Resolve breadcrumb colors dynamically.
+---
 
-### 7. Update `app_flutter/lib/components/property_grid.dart`
-- Retrieve `DesignTokenRegistry` from context.
-- Resolve property grid colors dynamically.
+## Part 2: Generic Database Seeding via Template Generation
 
-## Verification Plan
+To remove all domain-specific words from the production database without requiring runtime whitelists or blacklists, we will refactor `database_initializer.dart` to generate the database vocabulary and records programmatically:
 
-### Automated Verification Steps
-1. Run `flutter analyze` inside `app_flutter/` to verify zero static analysis warnings.
-2. Run `flutter test` inside `app_flutter/` to verify all tests pass.
-3. Verify remote push and branch synchronization.
+### 1. Types & Relations
+- **Master Types**: `Master_A`, `Master_B`, `Master_C`
+- **Detail Types**: `Detail_A`, `Detail_B`, `Detail_C`
+- **Relations**: Every Master Type contains all three Detail Types as tabs.
 
+### 2. Fields (Attributes)
+- Every type has three fields: `field_1`, `field_2`, `field_3`
 
-# Implementation Plan - Issue #70 Dynamic Workspace Split Layout Orientation Toggle
+### 3. Properties (Data Values)
+For any selected Master Node `[Master_Name]`, its field values are generated using the template:
+- `val_[Master_Name]_[field_name]`
+- *Example (for Master_A, field_1)*: `val_Master_A_field_1`
 
-This plan details implementing a setting to dynamically switch the workspace split layout between horizontal and vertical orientations, persisting the user preference, and binding it to the UI settings panel.
+### 4. Detail Instances
+For any Detail Type `[Detail_Name]` belonging to parent `[Master_Name]`, we generate $N$ instances (where `[index]` goes from $1$ to $N$) with:
+- **Instance ID**: `inst_[Master_Name]_[Detail_Name]_[index]`
+  * *Example*: `inst_Master_A_Detail_A_1`
+- **Instance Field Value**: `val_inst_[Master_Name]_[Detail_Name]_[index]_[field_name]`
+  * *Example*: `val_inst_Master_A_Detail_A_1_field_1`
 
-## Proposed Changes
+### 5. Conditional FFI Initialization in Seed Database
+- **File**: `app_flutter/lib/domain/database_initializer.dart`
+- **Remedy**: In `DatabaseInitializer.create(...)`, initialize SQLite FFI conditionally only if we are in a test environment (`Platform.environment.containsKey('FLUTTER_TEST')`) or on non-mobile desktop (Windows/Linux/macOS) to support the local desktop macOS target while preventing FFI leakages on mobile platforms (iOS/Android).
 
-### 1. In `app_flutter/lib/core/theme/theme_service.dart`
-- Add `Future<Axis> loadLayoutSplitAxis();` and `Future<void> saveLayoutSplitAxis(Axis axis);` to `ThemeService`.
-- Implement them in `SharedPreferencesThemeService` using key `'layout_split_axis'` and storing values `'horizontal'` or `'vertical'`. Use `Axis.horizontal` as the default.
+### 6. Transience of In-Memory Database
+- **File**: `app_flutter/lib/domain/database_initializer.dart`
+- **Remedy**: Prevent `p.absolute(dbPath)` from converting the special sqlite `':memory:'` string to a persistent file path on disk when the path matches `inMemoryDatabasePath`.
 
-### 2. In `app_flutter/lib/core/theme/theme_controller.dart`
-- Add private field `Axis _layoutSplitAxis = Axis.horizontal`.
-- Add getter `Axis get layoutSplitAxis => _layoutSplitAxis`.
-- Load this preference in `loadSettings()`.
-- Add `Future<void> updateLayoutSplitAxis(Axis newAxis)` that updates the state, notifies listeners, and calls `saveLayoutSplitAxis` on the service.
+---
 
-### 3. In `app_flutter/lib/features/layout/component_factory.dart`
-- Accept `preferredSplitAxis` (an optional `Axis?`) in the `ComponentFactory` constructor and store it.
-- In `build()`, if `preferredSplitAxis` is non-null, override the `direction` of the `SplitWorkspace` (for `SplitWorkspace` and `TopographicalView` containers) with `preferredSplitAxis`.
+## Part 3: Purge Legacy AbstractRepository Layer
 
-### 4. In `app_flutter/lib/features/layout/layout.dart`
-- Watch `ThemeController` in `_buildFromLayout` and retrieve the preferred layout split axis.
-- Pass this preferred axis to the `ComponentFactory`.
+To simplify the codebase and avoid architectural redundancy, we will remove `AbstractRepository` and inject `DataSource` directly into all consumers.
 
-### 5. In `app_flutter/lib/core/theme/widgets/settings_panel.dart`
-- Add a section titled "Workspace Split" showing a `SegmentedButton` to switch between Horizontal and Vertical split layout.
-- Bind this SegmentedButton to `themeController.layoutSplitAxis` and `themeController.updateLayoutSplitAxis()`.
+### 1. Delete File
+- **File**: `app_flutter/lib/domain/repository.dart`
+- **Action**: Delete completely.
 
-### 6. In `app_flutter/test/layout_test.dart`
-- Adjust the test window physical size to `1200x800` in tests that default to smaller screen sizes to prevent layout overflow errors when the workspace split axis defaults to horizontal.
+### 2. Refactor Repository Injection & Dependency Resolution
+- **Files**:
+  - `app_flutter/lib/main.dart`
+  - `app_flutter/lib/domain/repository_resolver.dart`
+- **Action**: Remove references to `AbstractRepository` and return/inject `DataSource` directly.
 
-## Verification Plan
+### 3. Update Tests
+- **Files**:
+  - `app_flutter/integration_test/app_e2e_test.dart`
+  - `app_flutter/test/layout_test.dart`
+  - `app_flutter/test/widget_test.dart`
+- **Action**: Replace `AbstractRepository` mocks or types with `DataSource` or `SqliteDataSource`/mock datasources.
+- **Remedy for horizontal layout overflow in Widget Test**: Set viewport physical size to `1200x800` inside `widget_test.dart` to prevent default `800x600` sizing from failing with horizontal layout overflows.
 
-### 1. Unit Tests
-- Add unit tests in `app_flutter/test/core/theme/theme_controller_test.dart` (or create a new test file if needed) verifying `ThemeController` loads, updates, and saves `layoutSplitAxis` properly.
+---
 
-### 2. Automated Runs
-- Run `flutter analyze` inside `app_flutter/` to verify zero static analysis warnings.
-- Run `flutter test` inside `app_flutter/` to verify all tests pass.
+## Part 4: Load 'Master_A' Instead of 'Item'
 
+To align with the generic database seeding, the app shell and view models will load `Master_A` as the active view and exclude the detail types from tree representation.
 
-# Implementation Plan - De-hardcoding Alarms/Events (Domain & Data Source Layers)
+### 1. Shell & View Model Updates
+- **Files**:
+  - `app_flutter/lib/app/app.dart`: Set `_activeView = 'Master_A'` instead of `Item`.
+  - `app_flutter/lib/features/tree/view_models/tree_view_model.dart`: Set `_excludedTypes = {'Detail_A', 'Detail_B', 'Detail_C'}`.
+  - `app_flutter/lib/features/tree/tree_defaults.dart`: Align `defaultTreeData` fallback hierarchy to `Master_A`, `Master_B`, and `Master_C`.
+  - `app_flutter/assets/strings.json`: Update string keys/values referencing `'Item'` to `'Master_A'`.
 
-This plan details the implementation of the Domain and Data Source layers to support generic parent-child queries (`fetchRelatedInstances`) instead of hardcoded type-specific methods.
+### 2. Test Alignment
+- **File**: `app_flutter/test/layout_test.dart`
+- **Action**: Update test layout assertions and mock values from `'Item'` to `'Master_A'`.
 
-## Proposed Changes
+---
 
-### 1. Create `app_flutter/lib/domain/instance_record.dart`
-- Define the `InstanceRecord` model with `id`, `parentNodeId`, `typeName`, and `attributes`.
-- Implement `fromMap` factory.
+## Part 5: Integration Test Path Adjustment for macOS Sandbox
 
-### 2. Modify `app_flutter/lib/domain/data_source.dart`
-- Remove `fetchElements`, `fetchAlarms`, and `fetchEvents`.
-- Add `fetchRelatedInstances` returning `Future<List<InstanceRecord>>`.
+To allow the GUI iteration stress tests to run successfully within the sandboxed macOS application environment:
+1. **Benchmark Log Path**: Update the path of `benchmarkLogFile` in `app_flutter/integration_test/node_iteration_test.dart` to point to the active workspace (`/Users/perkunas/jail/digital-pipeline-repo/benchmark_results.jsonl`).
+2. **macOS Sandbox Entitlements**: Update `app_flutter/macos/Runner/DebugProfile.entitlements` to permit read-write access to the `/jail/digital-pipeline-repo/` home-relative directory, allowing the application to write the benchmark results log file.
 
-### 3. Modify `app_flutter/lib/domain/data_sources/sqlite_data_source.dart`
-- Implement `fetchRelatedInstances` to query the SQLite table based on `targetType.typeName`.
-- Map results to `InstanceRecord`.
-- Remove `fetchElements`, `fetchAlarms`, and `fetchEvents`.
-
-### 4. Modify `app_flutter/lib/domain/data_sources/firebase_data_source.dart`
-- Implement `fetchRelatedInstances` to query the Firestore collection based on `targetType.typeName`.
-- Map results to `InstanceRecord`.
-- Remove `fetchElements`, `fetchAlarms`, and `fetchEvents`.
-
-### 5. Delete `app_flutter/lib/domain/data_sources/fallback_data_source.dart`
-- Delete the fallback data source as it is no longer needed.
-
-### 6. Modify `app_flutter/lib/domain/repository_resolver.dart`
-- Remove all imports and references to `FallbackDataSource`.
-- Remove the `typeCount` check and always return `SqliteDataSource(db)`.
+---
 
 ## Verification Plan
 
-### 1. Compilation check
-- Verify all modified files compile successfully without errors or warnings.
+### Step 1: Database Rebuild & Verification
+1. Run the database seed generator:
+   ```bash
+   (cd app_flutter && dart run lib/domain/database_initializer.dart)
+   ```
+2. Inspect the database tables using `sqlite3` to confirm the generated types and records match the template:
+   ```bash
+   sqlite3 app_flutter/assets/properties_db.db "SELECT * FROM type_definitions;"
+   ```
+   *(Expected: Master_A, Master_B, Master_C and Detail_A, Detail_B, Detail_C)*
 
+### Step 2: Automated Tests
+- Run `flutter test` and `flutter test integration_test/app_e2e_test.dart` to ensure zero regressions.
 
-# Implementation Plan - De-hardcoding Alarms/Events (View Model & Presentation Layers)
+### Step 3: GUI / Performance & Memory Profiling Harness
+- Run the GUI integration stress test harness to verify performance, theme/text scaling, and memory profile leakage constraints:
+  ```bash
+  (cd app_flutter && flutter test integration_test/node_iteration_test.dart)
+  ```
 
-This plan details refactoring the View Model and Presentation layers to fully adopt dynamic, metadata-driven tab discovery and data rendering.
-
-## Proposed Changes
-
-### 1. Refactor `app_flutter/lib/features/tables/view_models/tables_view_model.dart`
-- Update `TabDescriptor` class structure to hold `TypeDescriptor type` directly.
-- In `loadForNode`, retrieve child and related `TypeDescriptor`s via `_dataSource.typeFor(childTypeName)`, instantiating `TabDescriptor` with the fetched `type`.
-- In `_loadData`, query related instances via `_dataSource.fetchRelatedInstances(parentNodeId: _activeView, targetType: tab.type)`.
-- Map `records` to cell lists dynamically using `tab.type.fields`.
-
-### 2. Refactor `app_flutter/lib/features/layout/layout_config_service.dart`
-- Remove hardcoded fallback dictionary from `resolveLabelsMapping`, replacing it with `const <String, String>{}`.
-
-### 3. Refactor `app_flutter/lib/features/layout/layout.dart`
-- Remove hardcoded checks for `sub_elements_table`, `active_alarms_table`, and `historical_events_table` in `_resolveTabLabel`.
-- Implement Title Case conversion mapping for underscores in `tabId`.
-
-## Verification Plan
-
-### 1. Static Analysis
-- Run `flutter analyze` inside `app_flutter/` to verify zero compile or analysis warnings.
-
-### 2. Verification
-- Verify that tests compile and pass.
-
-
-# Implementation Plan - Refactor Automated Test Suites to SQLite
-
-This plan details refactoring the automated test suites in layout_test.dart and widget_test.dart to run against a real, seeded in-memory SQLite database instead of the deprecated FallbackDataSource.
-
-## Proposed Changes
-
-### 1. In `app_flutter/test/layout_test.dart`
-- Remove all references and imports of `FallbackDataSource`.
-- Add imports:
-  - `package:sqflite_common_ffi/sqflite_ffi.dart`
-  - `package:app_flutter/domain/database_initializer.dart`
-  - `package:app_flutter/domain/data_sources/sqlite_data_source.dart`
-- Implement helper function `Future<Database> createTestDatabase() async` with custom seeding of type definitions, type attributes, type relations, properties, elements, alarms, and events.
-- Update `wrapWithRepo` signature to accept a `DataSource dataSource` instead of using the hardcoded `FallbackDataSource()`.
-- Update all five `testWidgets` test cases:
-  - Wrap the setup and test execution in `tester.runAsync()`.
-  - Inside `runAsync`, initialize the database using `createTestDatabase()`.
-  - Register `addTearDown(() => db.close())` inside `runAsync`.
-  - Instantiate `SqliteDataSource(db)` and pass it as the provider `DataSource`.
-  - Update layout test assertions to search for `'Active View: Item'` and keys `'SubElement-table'`, `'Alarm-table'`, `'Event-table'`.
-
-### 2. In `app_flutter/test/widget_test.dart`
-- Remove all references and imports of `FallbackDataSource`.
-- Add import `package:app_flutter/domain/data_sources/sqlite_data_source.dart`.
-- Change the provider `DataSource` to `SqliteDataSource(db)`.
-- Change the database initialization to seed the in-memory database using `DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true)`.
-
-### 3. In mock data sources within table tests
-- Update `_MockDataSource` inside `tables_view_model_test.dart`, `table_view_widget_test.dart`, and `data_table_benchmark_test.dart`:
-  - Remove deprecated methods `fetchElements`, `fetchAlarms`, and `fetchEvents`.
-  - Add import `package:app_flutter/domain/instance_record.dart`.
-  - Implement `fetchRelatedInstances` returning mocked `InstanceRecord` lists matching the expected test data.
-
-## Verification Plan
-
-### 1. Automated Execution
-- Run `flutter test` inside the `app_flutter/` directory to verify that all 89 test cases execute and pass successfully.
-- Verify that `git diff origin/restore-june30` contains only the intended changes.
-
-# Implementation Plan - Safety & Verification Upgrades
-
-This plan details implementing Safety & Verification upgrades, including layout validation scripts, enabling SQLite foreign keys, and defensive schema validation in models.
-
-## Proposed Changes
-
-### 1. Create `scripts/validate_layout.py`
-- Create a python script that reads and parses `app_flutter/assets/logical-layout.json`.
-- Validate that:
-  - The file is a valid JSON document.
-  - Every layout node ID under the layout hierarchy is unique.
-  - All theme references are structured correctly.
-- Make the script executable.
-
-### 2. Modify `app_flutter/lib/domain/database_initializer.dart`
-- Enable SQLite foreign key constraints immediately after opening the database:
-  `await db.execute('PRAGMA foreign_keys = ON;');`
-
-### 3. Modify `app_flutter/lib/domain/instance_record.dart`
-- Add defensive schema validation on construction or mapping.
-- Add a custom `SchemaValidationException` class.
-- Add a `validate` method/factory to `InstanceRecord` checking `FieldDescriptor` constraints (required fields, value ranges, pattern matches, enum values).
-- Log a warning/error or throw `SchemaValidationException` on failure.
-
-## Verification Plan
-
-### 1. Automated Execution
-- Run `python3 scripts/validate_layout.py` to verify layout validation succeeds.
-- Run `flutter analyze` inside `app_flutter/` to verify zero compile or analysis warnings.
-- Run `flutter test` inside `app_flutter/` to verify that all test cases execute and pass successfully.
-- Verify that `git diff origin/restore-june30` contains only the intended changes.
-
-
-# Implementation Plan - Memory & Caching Upgrades
-
-This plan details implementing an in-memory cache in TablesViewModel to avoid redundant queries and heap re-allocations, and invalidating it on property saves.
-
-## Proposed Changes
-
-### 1. In `app_flutter/lib/features/tables/view_models/tables_view_model.dart`
-- Import `dart:async`.
-- Add an in-memory cache mapping `(nodeId, typeName)` keys (using Dart records `(String, String)`) to `List<InstanceRecord>`.
-- Add a `StreamSubscription<Map<String, dynamic>>? _propertiesSubscription` to monitor property changes on the active view.
-- Update the constructor to call a private `_setupPropertiesSubscription` method.
-- Update `loadForNode` to update the properties subscription for the new active view.
-- Override `dispose` to cancel `_propertiesSubscription`.
-- In `_loadData`, check the cache first. If a list of records for `(_activeView, tab.type.typeName)` exists, serve them immediately. Otherwise, fetch them and cache the result.
-- In `_setupPropertiesSubscription`, listen to `_dataSource.watchProperties(nodeId)`. Skip the first (initial) emission, and on subsequent emissions, clear `_cache` and reload data for the active tab to serve fresh data.
-
-## Verification Plan
-
-### 1. Static Analysis & Compilation
-- Run `flutter analyze` inside `app_flutter/` to verify zero compile or analysis warnings.
-
-### 2. Automated Tests
-- Run `flutter test` inside `app_flutter/` to verify all tests pass.
-- Verify that `git diff origin/restore-june30` contains only the intended changes.
-
-
-# Implementation Plan - Isolate-Offloaded Performance Upgrades
-
-This plan details offloading CPU-intensive row mapping and document serialization in `sqlite_data_source.dart` and `firebase_data_source.dart` to a background isolate using Dart's `compute` function.
-
-## Proposed Changes
-
-### 1. In `app_flutter/lib/domain/data_sources/sqlite_data_source.dart`
-- Import `package:flutter/foundation.dart` (for `compute`).
-- In `fetchRelatedInstances`, perform the SQLite query.
-- Offload the mapping of database row maps to `InstanceRecord` instances in a background isolate using `compute`.
-
-### 2. In `app_flutter/lib/domain/data_sources/firebase_data_source.dart`
-- Import `package:flutter/foundation.dart` (for `compute`).
-- In `fetchRelatedInstances`, retrieve the Firestore documents snapshot.
-- Extract ID and raw payload map list from the documents, then map/serialize them to `InstanceRecord` instances in a background isolate using `compute`.
-
-## Verification Plan
-
-### 1. Static Analysis
-- Run `flutter analyze` inside the `app_flutter/` directory to ensure zero compilation or analysis warnings.
-
-### 2. Unit & Widget Tests
-- Run `flutter test` inside the `app_flutter/` directory to verify that all existing tests compile and pass successfully.
-
-
-# Implementation Plan - Automated E2E Integration Test Suite
-
-This plan details implementing the automated visible E2E integration test suite in `app_flutter/integration_test/app_e2e_test.dart` and adding a "Save" button to the property grid to facilitate explicit saving.
-
-## Proposed Changes
-
-### 1. In `app_flutter/lib/features/properties/property_grid.dart`
-- Add an `ElevatedButton` with text "Save" and key `Key('save_properties_button')` below the fields.
-- Bind the button press to unfocusing the current focus, which triggers the blur listener and commits/saves properties.
-
-### 2. Create `app_flutter/integration_test/app_e2e_test.dart`
-- Initialize integration testing via `IntegrationTestWidgetsFlutterBinding.ensureInitialized()`.
-- Set up standard desktop window sizing for macOS (physical size 1280x800 with pixel ratio 2.0).
-- Write a main test scenario that:
-  - Boots the application and initializes the SQLite database using the generic metadata types (`Component`, `RelationA`, `RelationB`) and custom nodes (`root`, `Overview`, `Item-1`, `Item-2`, `Item-3`).
-  - Iterates recursively through all tree nodes in the navigation tree.
-  - For each node, loops through every text field in the property grid, enters a new mock value, and clicks the "Save" button.
-  - After saving, queries the SQLite database directly to verify the properties table maps correctly.
-  - Asserts that the new value is rendered correctly in the UI grid.
-  - Toggles relation tabs (Components, Relation A, Relation B) to ensure data is displayed.
-  - Once the last node is reached, changes the theme (light, dark, system modes) and layout density (text scale).
-  - Repeats the entire traversal loop 3 times.
-
-## Verification Plan
-
-### 1. Analysis
-- Run `flutter analyze` inside `app_flutter/` (to be performed outside or in subsequent verification steps if allowed) to verify zero compilation or analysis warnings.
-
-
-# Implementation Plan - Safe TabController Lifecycle Management
-
-This plan details implementing safe TabController lifecycle management in `app_flutter/lib/features/tables/tabbed_container.dart`.
-
-## Proposed Changes
-
-### 1. In `app_flutter/lib/features/tables/tabbed_container.dart`
-- Refactor `_TabbedContainerState` to mixin `TickerProviderStateMixin` instead of `SingleTickerProviderStateMixin`.
-- Keep track of the active `TablesViewModel? _viewModel` and register/remove listeners.
-- Update `_updateController` to safely dispose of the old `TabController` using `WidgetsBinding.instance.addPostFrameCallback`.
-- Add listener callbacks to the new `TabController` and select tabs in the view model when the active tab index changes.
-- Clean up listeners and dispose of controllers in `dispose()`.
-
-## Verification Plan
-
-### 1. Static Analysis & Compilation
-- Verify the file compiles correctly without errors.
-
-
+### Step 4: Manual Visual Verification
+- Boot the macOS application:
+  ```bash
+  (cd app_flutter && flutter run -d macos)
+  ```
+- Confirm the sidebar tree lists `Master_A`, `Master_B`, and `Master_C`.
+- Confirm selecting each updates the properties and details views dynamically.

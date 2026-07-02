@@ -13,7 +13,6 @@ import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/sidebar_tree.dart';
@@ -76,111 +75,84 @@ Future<Database> createTestDatabase() async {
 
   final batch = db.batch();
 
-  // Seed metadata types
-  batch.insert('type_definitions', {'type_name': 'Component', 'display_name': 'Component', 'icon_name': 'widgets'});
-  batch.insert('type_definitions', {'type_name': 'RelationA', 'display_name': 'Relation A', 'icon_name': 'warning'});
-  batch.insert('type_definitions', {'type_name': 'RelationB', 'display_name': 'Relation B', 'icon_name': 'event'});
-
-  // Attributes for Component
-  batch.insert('type_attributes', {'type_name': 'Component', 'attr_key': 'id', 'label': 'ID', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'Component', 'attr_key': 'name', 'label': 'Name', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'Component', 'attr_key': 'status', 'label': 'Status', 'attr_type': 'string'});
-
-  // Attributes for RelationA
-  batch.insert('type_attributes', {'type_name': 'RelationA', 'attr_key': 'id', 'label': 'ID', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'RelationA', 'attr_key': 'target', 'label': 'Target', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'RelationA', 'attr_key': 'severity', 'label': 'Severity', 'attr_type': 'string'});
-  batch.insert('type_attributes', {'type_name': 'RelationA', 'attr_key': 'timestamp', 'label': 'Timestamp', 'attr_type': 'string'});
-
-  // Attributes for RelationB
-  batch.insert('type_attributes', {'type_name': 'RelationB', 'attr_key': 'id', 'label': 'ID', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'RelationB', 'attr_key': 'source', 'label': 'Source', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'RelationB', 'attr_key': 'message', 'label': 'Message', 'attr_type': 'string', 'is_required': 1});
-  batch.insert('type_attributes', {'type_name': 'RelationB', 'attr_key': 'timestamp', 'label': 'Timestamp', 'attr_type': 'string'});
-
-  // Custom node types
-  final customNodes = ['root', 'Overview', 'Item-1', 'Item-2', 'Item-3'];
-  for (final node in customNodes) {
-    batch.insert('type_definitions', {'type_name': node, 'display_name': node, 'icon_name': 'folder'});
-    // Attributes
-    batch.insert('type_attributes', {'type_name': node, 'attr_key': 'name', 'label': 'Name', 'attr_type': 'string', 'is_required': 1});
-    batch.insert('type_attributes', {'type_name': node, 'attr_key': 'description', 'label': 'Description', 'attr_type': 'string', 'is_required': 0});
-    batch.insert('type_attributes', {'type_name': node, 'attr_key': 'custom_val', 'label': 'Custom Value', 'attr_type': 'string', 'is_required': 0});
-
-    // Relation tabs
-    batch.insert('type_relations', {
-      'parent_type_name': node,
-      'relation_name': 'components_rel',
-      'child_type_name': 'Component',
-      'child_label': 'Components',
+  // 3 root master types
+  final masters = ['Master_A', 'Master_B', 'Master_C'];
+  for (final m in masters) {
+    batch.insert('type_definitions', {
+      'type_name': m,
+      'display_name': m.replaceAll('_', ' '),
+      'icon_name': 'insert_drive_file',
     });
-    batch.insert('type_relations', {
-      'parent_type_name': node,
-      'relation_name': 'relation_a_rel',
-      'child_type_name': 'RelationA',
-      'child_label': 'Relation A',
-    });
-    batch.insert('type_relations', {
-      'parent_type_name': node,
-      'relation_name': 'relation_b_rel',
-      'child_type_name': 'RelationB',
-      'child_label': 'Relation B',
-    });
+  }
 
-    // Seed properties
-    batch.insert('properties', {
-      'node_id': node,
-      'data_json': '{"name":"Initial $node","description":"Initial Description","custom_val":"initial"}',
+  // 3 detail types
+  final details = ['Detail_A', 'Detail_B', 'Detail_C'];
+  for (final d in details) {
+    batch.insert('type_definitions', {
+      'type_name': d,
+      'display_name': d.replaceAll('_', ' '),
+      'icon_name': 'widgets',
     });
+  }
 
-    // Seed instances/rows in tabs
-    for (int j = 1; j <= 2; j++) {
-      batch.insert('instances', {
-        'id': 'elem-$node-$j',
-        'parent_node_id': node,
-        'type_name': 'Component',
-        'data_json': '{"id":"elem-$node-$j","name":"$node Component $j","status":"Active"}',
-      });
-      batch.insert('instances', {
-        'id': 'alarm-$node-$j',
-        'parent_node_id': node,
-        'type_name': 'RelationA',
-        'data_json': '{"id":"alarm-$node-$j","target":"$node Target $j","severity":"Warning","timestamp":"2026-07-02"}',
-      });
-      batch.insert('instances', {
-        'id': 'event-$node-$j',
-        'parent_node_id': node,
-        'type_name': 'RelationB',
-        'data_json': '{"id":"event-$node-$j","source":"System","message":"$node Relation B $j","timestamp":"2026-07-02"}',
+  // Child relations
+  for (final m in masters) {
+    for (final d in details) {
+      batch.insert('type_relations', {
+        'parent_type_name': m,
+        'relation_name': 'contains',
+        'child_type_name': d,
+        'child_label': d.replaceAll('_', ' '),
       });
     }
   }
 
-  // Hierarchy relations (contains)
-  batch.insert('type_relations', {
-    'parent_type_name': 'root',
-    'relation_name': 'contains',
-    'child_type_name': 'Overview',
-    'child_label': 'Overview',
-  });
-  batch.insert('type_relations', {
-    'parent_type_name': 'Overview',
-    'relation_name': 'contains',
-    'child_type_name': 'Item-1',
-    'child_label': 'Item-1',
-  });
-  batch.insert('type_relations', {
-    'parent_type_name': 'Overview',
-    'relation_name': 'contains',
-    'child_type_name': 'Item-2',
-    'child_label': 'Item-2',
-  });
-  batch.insert('type_relations', {
-    'parent_type_name': 'Overview',
-    'relation_name': 'contains',
-    'child_type_name': 'Item-3',
-    'child_label': 'Item-3',
-  });
+  // Attributes (fields)
+  final allTypes = [...masters, ...details];
+  for (final t in allTypes) {
+    for (int i = 1; i <= 3; i++) {
+      batch.insert('type_attributes', {
+        'type_name': t,
+        'attr_key': 'field_$i',
+        'label': 'Field $i',
+        'attr_type': 'string',
+        'section_label': 'General',
+        'section_order': 0,
+        'is_required': 0,
+      });
+    }
+  }
+
+  // Properties for Master Nodes
+  for (final m in masters) {
+    batch.insert('properties', {
+      'node_id': m,
+      'data_json': jsonEncode({
+        'field_1': 'val_${m}_field_1',
+        'field_2': 'val_${m}_field_2',
+        'field_3': 'val_${m}_field_3',
+      }),
+    });
+  }
+
+  // Instances for Details
+  for (final m in masters) {
+    for (final d in details) {
+      for (int k = 1; k <= 2; k++) {
+        final instId = 'inst_${m}_${d}_$k';
+        batch.insert('instances', {
+          'id': instId,
+          'parent_node_id': m,
+          'type_name': d,
+          'data_json': jsonEncode({
+            'field_1': 'val_inst_${m}_${d}_${k}_field_1',
+            'field_2': 'val_inst_${m}_${d}_${k}_field_2',
+            'field_3': 'val_inst_${m}_${d}_${k}_field_3',
+          }),
+        });
+      }
+    }
+  }
 
   await batch.commit(noResult: true);
   return db;
@@ -210,7 +182,6 @@ void main() {
       await db.close();
     });
 
-    final repository = SqliteRepositoryAdapter(db);
     final dataSource = SqliteDataSource(db);
 
     final themeController = ThemeController(SharedPreferencesThemeService());
@@ -240,7 +211,6 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          Provider<AbstractRepository>.value(value: repository),
           Provider<DataSource>.value(value: dataSource),
           ChangeNotifierProvider<ThemeController>.value(value: themeController),
           ChangeNotifierProvider<TextScalerController>.value(value: textScalerController),
@@ -253,7 +223,7 @@ void main() {
 
     // Wait for the tree view model to load
     int attempts = 0;
-    while (attempts < 20 && find.byKey(const Key('node_root')).evaluate().isEmpty) {
+    while (attempts < 20 && find.byKey(const Key('node_Master_A')).evaluate().isEmpty) {
       await Future<void>.delayed(const Duration(milliseconds: 200));
       await tester.pump();
       attempts++;
@@ -312,8 +282,8 @@ void main() {
         expect(find.text(val), findsAtLeast(1), reason: 'UI grid should display entered value: $val');
       }
 
-      // Toggle relation tabs (Components, Relation A, Relation B) to ensure data is displayed
-      final tabLabels = ['Components', 'Relation A', 'Relation B'];
+      // Toggle relation tabs to ensure data is displayed
+      final tabLabels = ['Detail A', 'Detail B', 'Detail C'];
       for (final label in tabLabels) {
         final tabFinder = find.descendant(
           of: find.byType(TabBar),
@@ -322,6 +292,12 @@ void main() {
         if (tabFinder.evaluate().isNotEmpty) {
           await tester.tap(tabFinder);
           await settle(tester);
+
+          // Verify that at least one row's cell value is rendered in the detail pane
+          final cleanLabel = label.replaceAll(' ', '_');
+          final expectedCellText = 'val_inst_${nodeId}_${cleanLabel}_1_field_1';
+          expect(find.text(expectedCellText), findsOneWidget, 
+                 reason: 'Detail table for $label should render seeded instance row containing: $expectedCellText');
         }
       }
 

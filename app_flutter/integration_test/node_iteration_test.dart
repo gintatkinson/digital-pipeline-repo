@@ -9,7 +9,7 @@ import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
 final File benchmarkLogFile = File(
-  '/Users/perkunas/opcode/digital-pipeline-repo/benchmark_results.jsonl',
+  '/Users/perkunas/jail/digital-pipeline-repo/benchmark_results.jsonl',
 );
 
 List<String> _flattenNodes(List<TreeNode> nodes) {

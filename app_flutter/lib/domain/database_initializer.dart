@@ -1,80 +1,56 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+Future<void> main() async {
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+  final dbPath = 'assets/properties_db.db';
+  final file = File(dbPath);
+  if (await file.exists()) {
+    await file.delete();
+  }
+  await DatabaseInitializer.create(dbPath: dbPath, seed: true);
+  print('Generic database properties_db.db regenerated successfully.');
+}
+
 /// Creates and optionally seeds a local SQLite database for development
 /// and testing.
 ///
-/// Generates the full schema (`properties`, `elements`, `alarms`, `events`,
-/// `type_definitions`, `type_attributes`, `type_relations`) and populates
-/// sample data when [seed] is true. Used at app startup when no pre-built
-/// database asset exists, or when running in CI/testing environments.
+/// Generates the full schema (`properties`, `instances`, `type_definitions`,
+/// `type_attributes`, `type_relations`) and populates sample data when [seed] is true.
+/// Used at app startup when no pre-built database asset exists, or when running in CI/testing environments.
 ///
 /// Call [create] once before any repository operation. The returned
-/// [Database] is shared across [SqliteRepositoryAdapter] and
-/// [SqliteDataSource]. Do not call [create] multiple times for the
+/// [Database] is shared across [SqliteDataSource]. Do not call [create] multiple times for the
 /// same path — it reopens the same file and re-runs `CREATE TABLE IF NOT
 /// EXISTS`, which is safe but wasteful.
 class DatabaseInitializer {
-  /// Number of seed rows per node (elements, alarms, events each get this many).
-  static const _entriesPerNode = 15;
-
-  /// Node IDs seeded as root and tree branches for demo data.
-  static const _nodeIds = [
-    'root',
-    'Overview', 'Watch', 'Measure', 'Position', 'Unit', 'Status',
-    'Spec', 'Capability', 'Path', 'Objective', 'Phase',
-    'Perimeter', 'Entry', 'Bridge', 'Principal', 'Journal',
-    'Base', 'Process', 'Store', 'Mesh',
-  ];
-
-  /// Object type names assigned to seeded elements.
-  static const _types = [
-    'Processor', 'Collector', 'Sensor', 'Actuator', 'Controller',
-    'Validator', 'Dispatcher', 'Distributor', 'Adapter', 'Filter',
-    'Aggregator', 'Store', 'Buffer', 'Channel', 'Observer',
-  ];
-
-  /// Alarm severity levels cycled through seeded alarms.
-  static const _severities = [
-    'Critical', 'Warning', 'Info', 'Major', 'Minor',
-  ];
-
-  /// Event source names cycled through seeded events.
-  static const _sources = [
-    'Core', 'Count', 'Coord', 'Unit', 'Plan',
-    'Rule', 'Gate', 'Link', 'Archive', 'Catalog',
-    'Coordinator', 'Watch', 'Timer', 'Checker', 'Entry',
-  ];
-
-  /// Admin status values assigned alternately to seed data.
-  static const _adminStatuses = ['ACTIVE', 'INACTIVE'];
-
-  /// Geographic place types assigned cyclically to seed locations.
-  static const _placeTypes = ['zone', 'area', 'cluster'];
-
   /// Opens (or creates) the database and ensures all tables exist.
   ///
   /// If [dbPath] is null, the database is placed in the app support
   /// directory as `properties_db.db`. When [seed] is true and the
-  /// `properties` table is empty, sample data is inserted for every
-  /// node defined in [_nodeIds] — each with 15 elements, alarms, and
-  /// events. Idempotent for the tables (uses `CREATE TABLE IF NOT
+  /// `properties` table is empty, sample data is inserted. Idempotent for the tables (uses `CREATE TABLE IF NOT
   /// EXISTS`) but NOT for seeding (checks row count first).
   ///
   /// Throws on I/O errors (path resolution, file creation) or SQL
   /// execution failures.
   static Future<Database> create({String? dbPath, bool seed = true}) async {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+    if (isTest || Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
 
-    final path = dbPath ??
-        p.join(
-          (await getApplicationSupportDirectory()).path,
-          'properties_db.db',
-        );
+    final path = dbPath != null
+        ? (dbPath == inMemoryDatabasePath ? dbPath : p.absolute(dbPath))
+        : p.join(
+            (await getApplicationSupportDirectory()).path,
+            'properties_db.db',
+          );
 
     final db = await databaseFactory.openDatabase(path);
     await db.execute('PRAGMA foreign_keys = ON;');
@@ -147,329 +123,89 @@ class DatabaseInitializer {
     return db;
   }
 
-  /// Builds a varied JSON property payload for a given node at [index].
-  ///
-  /// Fields cycle through predefined values (admin statuses, country codes,
-  /// place types) using [index] so that different nodes get different data.
-  /// The generated JSON is deterministic: same [nodeId] + [index] always
-  /// produces the same result.
-  static String _makeDataJson(String nodeId, int index) {
-    final data = {
-      'custom_attribute_1': '${nodeId.toLowerCase()}-prop-1',
-      'custom_attribute_2': 1500 + index,
-      'custom_attribute_3': index % 2 == 0 ? 'Active' : 'Inactive',
-      'custom_attribute_4': 40.0 + index + 0.5,
-      'custom_attribute_5': -74.0 - index * 0.1,
-      'custom_attribute_6': index * 5,
-      'custom_attribute_7': 'Prop ${index + 1}',
-    };
-    return jsonEncode(data);
-  }
-
-  /// Inserts sample data for every node in [_nodeIds].
-  ///
-  /// Each node gets one property row and [_entriesPerNode] elements,
-  /// alarms, and events. Uses a batch for performance. Throws on
-  /// constraint violations (duplicate keys) — practically never because
-  /// this is only called when the `properties` table is empty.
+  /// Inserts sample data.
   static Future<void> _seed(Database db) async {
     final batch = db.batch();
 
-    // Seed type definitions
-    batch.insert('type_definitions', {
-      'type_name': 'Item',
-      'display_name': 'Item',
-      'icon_name': 'insert_drive_file',
-    });
-    batch.insert('type_definitions', {
-      'type_name': 'Component',
-      'display_name': 'Component',
-      'icon_name': 'widgets',
-    });
-    batch.insert('type_definitions', {
-      'type_name': 'RelationA',
-      'display_name': 'Relation A',
-      'icon_name': 'warning',
-    });
-    batch.insert('type_definitions', {
-      'type_name': 'RelationB',
-      'display_name': 'Relation B',
-      'icon_name': 'event',
-    });
-
-    // Seed type attributes for Item
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'name',
-      'label': 'Name',
-      'attr_type': 'string',
-      'section_label': 'General',
-      'section_order': 0,
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'description',
-      'label': 'Description',
-      'attr_type': 'string',
-      'section_label': 'General',
-      'section_order': 0,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_1',
-      'label': 'Custom Attribute 1',
-      'attr_type': 'string',
-      'section_label': 'General',
-      'section_order': 0,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_2',
-      'label': 'Custom Attribute 2',
-      'attr_type': 'integer',
-      'section_label': 'General',
-      'section_order': 0,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_3',
-      'label': 'Custom Attribute 3',
-      'attr_type': 'string',
-      'section_label': 'General',
-      'section_order': 0,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_4',
-      'label': 'Custom Attribute 4',
-      'attr_type': 'real',
-      'section_label': 'Section A',
-      'section_order': 1,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_5',
-      'label': 'Custom Attribute 5',
-      'attr_type': 'real',
-      'section_label': 'Section A',
-      'section_order': 1,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_6',
-      'label': 'Custom Attribute 6',
-      'attr_type': 'integer',
-      'section_label': 'Section B',
-      'section_order': 2,
-      'is_required': 0,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Item',
-      'attr_key': 'custom_attribute_7',
-      'label': 'Custom Attribute 7',
-      'attr_type': 'string',
-      'section_label': 'Section B',
-      'section_order': 2,
-      'is_required': 0,
-    });
-
-    // Seed type attributes for Component
-    batch.insert('type_attributes', {
-      'type_name': 'Component',
-      'attr_key': 'id',
-      'label': 'ID',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Component',
-      'attr_key': 'name',
-      'label': 'Name',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'Component',
-      'attr_key': 'status',
-      'label': 'Status',
-      'attr_type': 'string',
-      'enum_options': '["Active","Standby","Error"]',
-    });
-
-    // Seed type attributes for RelationA
-    batch.insert('type_attributes', {
-      'type_name': 'RelationA',
-      'attr_key': 'id',
-      'label': 'ID',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'RelationA',
-      'attr_key': 'target',
-      'label': 'Target',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'RelationA',
-      'attr_key': 'severity',
-      'label': 'Severity',
-      'attr_type': 'string',
-      'enum_options': '["Critical","Warning","Info","Major","Minor"]',
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'RelationA',
-      'attr_key': 'timestamp',
-      'label': 'Timestamp',
-      'attr_type': 'string',
-    });
-
-    // Seed type attributes for RelationB
-    batch.insert('type_attributes', {
-      'type_name': 'RelationB',
-      'attr_key': 'id',
-      'label': 'ID',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'RelationB',
-      'attr_key': 'source',
-      'label': 'Source',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'RelationB',
-      'attr_key': 'message',
-      'label': 'Message',
-      'attr_type': 'string',
-      'is_required': 1,
-    });
-    batch.insert('type_attributes', {
-      'type_name': 'RelationB',
-      'attr_key': 'timestamp',
-      'label': 'Timestamp',
-      'attr_type': 'string',
-    });
-
-    // Seed type relations
-    batch.insert('type_relations', {
-      'parent_type_name': 'Item',
-      'relation_name': 'contains',
-      'child_type_name': 'Component',
-      'child_label': 'Components',
-    });
-    batch.insert('type_relations', {
-      'parent_type_name': 'Item',
-      'relation_name': 'affects',
-      'child_type_name': 'RelationA',
-      'child_label': 'Relation A',
-    });
-    batch.insert('type_relations', {
-      'parent_type_name': 'Item',
-      'relation_name': 'records',
-      'child_type_name': 'RelationB',
-      'child_label': 'Relation B',
-    });
-
-    for (var i = 0; i < _nodeIds.length; i++) {
-      final nodeId = _nodeIds[i];
-
-      batch.insert('properties', {
-        'node_id': nodeId,
-        'data_json': _makeDataJson(nodeId, i),
+    // 3 root master type definitions
+    final masters = ['Master_A', 'Master_B', 'Master_C'];
+    for (final m in masters) {
+      batch.insert('type_definitions', {
+        'type_name': m,
+        'display_name': m.replaceAll('_', ' '),
+        'icon_name': 'insert_drive_file',
       });
+    }
 
-      for (var j = 0; j < _entriesPerNode; j++) {
-        final elemId = 'elem-$nodeId-${j + 1}';
-        batch.insert('instances', {
-          'id': elemId,
-          'parent_node_id': nodeId,
-          'type_name': 'Component',
-          'data_json': jsonEncode({
-            'id': elemId,
-            'name': '${nodeId} Component ${j + 1}',
-            'status': j % 3 == 0 ? 'Active' : (j % 3 == 1 ? 'Standby' : 'Error'),
-          }),
-        });
+    // 3 detail type definitions
+    final details = ['Detail_A', 'Detail_B', 'Detail_C'];
+    for (final d in details) {
+      batch.insert('type_definitions', {
+        'type_name': d,
+        'display_name': d.replaceAll('_', ' '),
+        'icon_name': 'widgets',
+      });
+    }
 
-        final alarmId = 'alarm-$nodeId-${j + 1}';
-        batch.insert('instances', {
-          'id': alarmId,
-          'parent_node_id': nodeId,
-          'type_name': 'RelationA',
-          'data_json': jsonEncode({
-            'id': alarmId,
-            'target': '${nodeId} Target ${j + 1}',
-            'severity': _severities[(i + j) % _severities.length],
-            'timestamp': '2026-06-${(j % 28) + 1}',
-          }),
-        });
-
-        final eventId = 'event-$nodeId-${j + 1}';
-        batch.insert('instances', {
-          'id': eventId,
-          'parent_node_id': nodeId,
-          'type_name': 'RelationB',
-          'data_json': jsonEncode({
-            'id': eventId,
-            'source': _sources[(i + j) % _sources.length],
-            'message': '${nodeId} relation ${j + 1}: ${_sources[(i + j) % _sources.length]} update',
-            'timestamp': '2026-06-${(j % 28) + 1}',
-          }),
+    // Child type relations connecting each Master Type to all 3 Detail Types
+    for (final m in masters) {
+      for (final d in details) {
+        batch.insert('type_relations', {
+          'parent_type_name': m,
+          'relation_name': 'contains',
+          'child_type_name': d,
+          'child_label': d.replaceAll('_', ' '),
         });
       }
     }
-    // Also seed properties and instances for metadata types (used in tests and default views)
-    for (final nodeId in ['Item', 'Component', 'RelationA', 'RelationB']) {
+
+    // Seed 3 fields in type_attributes for each of these 6 types: field_1 (Text), field_2 (Text), field_3 (Text)
+    final allTypes = [...masters, ...details];
+    for (final t in allTypes) {
+      for (int i = 1; i <= 3; i++) {
+        batch.insert('type_attributes', {
+          'type_name': t,
+          'attr_key': 'field_$i',
+          'label': 'Field $i',
+          'attr_type': 'string',
+          'section_label': 'General',
+          'section_order': 0,
+          'is_required': 0,
+        });
+      }
+    }
+
+    // Seed properties for each of the 3 Master Nodes
+    for (final m in masters) {
       batch.insert('properties', {
-        'node_id': nodeId,
-        'data_json': '{"name":"Sample $nodeId","description":"Description for $nodeId"}',
-      });
-      batch.insert('instances', {
-        'id': 'elem-$nodeId-seed',
-        'parent_node_id': nodeId,
-        'type_name': 'Component',
+        'node_id': m,
         'data_json': jsonEncode({
-          'id': 'elem-$nodeId-seed',
-          'name': '$nodeId Component',
-          'status': 'Active',
+          'field_1': 'val_${m}_field_1',
+          'field_2': 'val_${m}_field_2',
+          'field_3': 'val_${m}_field_3',
         }),
       });
-      batch.insert('instances', {
-        'id': 'alarm-$nodeId-seed',
-        'parent_node_id': nodeId,
-        'type_name': 'RelationA',
-        'data_json': jsonEncode({
-          'id': 'alarm-$nodeId-seed',
-          'target': '$nodeId Target',
-          'severity': 'Warning',
-          'timestamp': '2026-06-01',
-        }),
-      });
-      batch.insert('instances', {
-        'id': 'event-$nodeId-seed',
-        'parent_node_id': nodeId,
-        'type_name': 'RelationB',
-        'data_json': jsonEncode({
-          'id': 'event-$nodeId-seed',
-          'source': 'System',
-          'message': '$nodeId Relation B seeded',
-          'timestamp': '2026-06-01',
-        }),
-      });
+    }
+
+    // Seed 15 instances for each Detail Type belonging to each parent Master Node
+    for (final m in masters) {
+      for (final d in details) {
+        for (int k = 1; k <= 15; k++) {
+          final instId = 'inst_${m}_${d}_$k';
+          batch.insert('instances', {
+            'id': instId,
+            'parent_node_id': m,
+            'type_name': d,
+            'data_json': jsonEncode({
+              'field_1': 'val_inst_${m}_${d}_${k}_field_1',
+              'field_2': 'val_inst_${m}_${d}_${k}_field_2',
+              'field_3': 'val_inst_${m}_${d}_${k}_field_3',
+            }),
+          });
+        }
+      }
     }
 
     await batch.commit(noResult: true);
   }
-
 }

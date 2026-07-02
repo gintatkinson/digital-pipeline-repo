@@ -50,73 +50,109 @@ class SharedPreferencesThemeService implements ThemeService {
   /// Reads the theme-mode string; unknown values fall back to system.
   @override
   Future<ThemeMode> loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_modeKey);
-    switch (value) {
-      case 'light': return ThemeMode.light;
-      case 'dark': return ThemeMode.dark;
-      default: return ThemeMode.system;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getString(_modeKey);
+      switch (value) {
+        case 'light': return ThemeMode.light;
+        case 'dark': return ThemeMode.dark;
+        default: return ThemeMode.system;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error in loadThemeMode: $e\n$stackTrace');
+      return ThemeMode.system;
     }
   }
 
   /// Writes a "light" / "dark" / "system" string.
   @override
   Future<void> saveThemeMode(ThemeMode themeMode) async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = themeMode == ThemeMode.light ? 'light'
-        : themeMode == ThemeMode.dark ? 'dark'
-        : 'system';
-    await prefs.setString(_modeKey, value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = themeMode == ThemeMode.light ? 'light'
+          : themeMode == ThemeMode.dark ? 'dark'
+          : 'system';
+      await prefs.setString(_modeKey, value);
+    } catch (e, stackTrace) {
+      debugPrint('Error in saveThemeMode: $e\n$stackTrace');
+    }
   }
 
   /// Reads an integer index; returns `0` when absent.
   @override
   Future<int> loadThemeScheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_schemeKey) ?? 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(_schemeKey) ?? 0;
+    } catch (e, stackTrace) {
+      debugPrint('Error in loadThemeScheme: $e\n$stackTrace');
+      return 0;
+    }
   }
 
   /// Persists the scheme [index] as an integer.
   @override
   Future<void> saveThemeScheme(int index) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_schemeKey, index);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_schemeKey, index);
+    } catch (e, stackTrace) {
+      debugPrint('Error in saveThemeScheme: $e\n$stackTrace');
+    }
   }
 
   /// Reads a double; returns `1.0` when absent.
   @override
   Future<double> loadTextScale() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_textScaleKey) ?? 1.0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getDouble(_textScaleKey) ?? 1.0;
+    } catch (e, stackTrace) {
+      debugPrint('Error in loadTextScale: $e\n$stackTrace');
+      return 1.0;
+    }
   }
 
   /// Persists the [scale] as a double.
   @override
   Future<void> saveTextScale(double scale) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_textScaleKey, scale);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_textScaleKey, scale);
+    } catch (e, stackTrace) {
+      debugPrint('Error in saveTextScale: $e\n$stackTrace');
+    }
   }
 
   /// Reads the workspace split axis string; unknown/invalid values fall back to horizontal.
   @override
   Future<Axis> loadLayoutSplitAxis() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_layoutSplitAxisKey);
-    switch (value) {
-      case 'vertical':
-        return Axis.vertical;
-      case 'horizontal':
-        return Axis.horizontal;
-      default:
-        return Axis.horizontal;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getString(_layoutSplitAxisKey);
+      switch (value) {
+        case 'vertical':
+          return Axis.vertical;
+        case 'horizontal':
+          return Axis.horizontal;
+        default:
+          return Axis.horizontal;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error in loadLayoutSplitAxis: $e\n$stackTrace');
+      return Axis.horizontal;
     }
   }
 
   /// Writes a "horizontal" or "vertical" string.
   @override
   Future<void> saveLayoutSplitAxis(Axis axis) async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = axis == Axis.vertical ? 'vertical' : 'horizontal';
-    await prefs.setString(_layoutSplitAxisKey, value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = axis == Axis.vertical ? 'vertical' : 'horizontal';
+      await prefs.setString(_layoutSplitAxisKey, value);
+    } catch (e, stackTrace) {
+      debugPrint('Error in saveLayoutSplitAxis: $e\n$stackTrace');
+    }
   }
 }

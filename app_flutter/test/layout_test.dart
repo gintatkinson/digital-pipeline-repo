@@ -12,24 +12,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/features/layout/layout.dart';
-import 'package:app_flutter/domain/repository.dart';
 import 'package:app_flutter/features/tables/tabbed_container.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
-
-class _TestRepository implements AbstractRepository {
-  @override
-  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
-  @override
-  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
-  @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) => Stream.empty();
-  @override
-  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async => [];
-  @override
-  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
-  @override
-  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
-}
 
 const String testLayoutConfig = '''
 {
@@ -87,7 +71,7 @@ Future<Database> createTestDatabase() async {
     'icon_name': 'insert_drive_file',
   });
   await db.insert('type_relations', {
-    'parent_type_name': 'Item',
+    'parent_type_name': 'Master_A',
     'relation_name': 'contains',
     'child_type_name': 'SubItem',
     'child_label': 'Sub Items',
@@ -98,7 +82,6 @@ Future<Database> createTestDatabase() async {
 Widget wrapWithRepo(Widget child, DataSource dataSource) {
   return MultiProvider(
     providers: [
-      Provider<AbstractRepository>.value(value: _TestRepository()),
       Provider<DataSource>.value(value: dataSource),
       ChangeNotifierProvider<ThemeController>.value(
         value: ThemeController(SharedPreferencesThemeService()),
@@ -154,7 +137,7 @@ void main() {
 
       expect(find.text(AppConfig.title), findsNWidgets(2));
       expect(find.text('Active View: root'), findsOneWidget);
-      expect(find.byKey(const Key('Component-table')), findsNothing);
+      expect(find.byKey(const Key('Detail_A-table')), findsNothing);
 
       await tester.pumpWidget(Container());
       await settle(tester);
@@ -176,7 +159,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithRepo(
           Layout(
-            activeView: 'Item',
+            activeView: 'Master_A',
             layoutConfig: testLayoutConfig,
           ),
           SqliteDataSource(db),
@@ -184,29 +167,29 @@ void main() {
       );
       await settle(tester);
 
-      // Components table is displayed initially
-      expect(find.byKey(const Key('Component-table')), findsOneWidget);
-      expect(find.byKey(const Key('RelationA-table')), findsNothing);
+      // Detail_A table is displayed initially
+      expect(find.byKey(const Key('Detail_A-table')), findsOneWidget);
+      expect(find.byKey(const Key('Detail_B-table')), findsNothing);
 
-      // Tap Relation A tab
-      await tester.tap(find.widgetWithText(Tab, 'Relation A'));
+      // Tap Detail B tab
+      await tester.tap(find.widgetWithText(Tab, 'Detail B'));
       for (int i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('Component-table')), findsNothing);
-      expect(find.byKey(const Key('RelationA-table')), findsOneWidget);
+      expect(find.byKey(const Key('Detail_A-table')), findsNothing);
+      expect(find.byKey(const Key('Detail_B-table')), findsOneWidget);
 
-      // Tap Relation B tab
-      await tester.tap(find.widgetWithText(Tab, 'Relation B'));
+      // Tap Detail C tab
+      await tester.tap(find.widgetWithText(Tab, 'Detail C'));
       for (int i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('RelationA-table')), findsNothing);
-      expect(find.byKey(const Key('RelationB-table')), findsOneWidget);
+      expect(find.byKey(const Key('Detail_B-table')), findsNothing);
+      expect(find.byKey(const Key('Detail_C-table')), findsOneWidget);
 
       await tester.pumpWidget(Container());
       await settle(tester);
@@ -229,7 +212,6 @@ void main() {
       await tester.pumpWidget(
         MultiProvider(
           providers: [
-            Provider<AbstractRepository>.value(value: _TestRepository()),
             Provider<DataSource>.value(value: SqliteDataSource(db)),
             ChangeNotifierProvider<ThemeController>.value(
               value: ThemeController(SharedPreferencesThemeService()),
@@ -297,8 +279,8 @@ void main() {
       );
       await settle(tester);
 
-      // Click on Item node to give focus to the tree FocusNode
-      await tester.tap(find.byKey(const Key('node_Item')));
+      // Click on Master_A node to give focus to the tree FocusNode
+      await tester.tap(find.byKey(const Key('node_Master_A')));
       await settle(tester);
 
       // Send ArrowDown key event — navigates to SubItem child
@@ -333,8 +315,8 @@ void main() {
       );
       await settle(tester);
 
-      // Tap the single Item node
-      await tester.tap(find.byKey(const Key('node_Item')));
+      // Tap the single Master_A node
+      await tester.tap(find.byKey(const Key('node_Master_A')));
       await settle(tester);
 
       await tester.pumpWidget(Container());
