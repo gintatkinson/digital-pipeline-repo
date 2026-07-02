@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data_source.dart';
-import 'data_sources/fallback_data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'repository.dart';
@@ -130,16 +129,7 @@ class RepositoryResolver {
       db = await databaseFactory.openDatabase(dbPath);
     }
 
-    int typeCount = 0;
-    try {
-      final result = await db.rawQuery('SELECT COUNT(*) AS c FROM type_definitions');
-      typeCount = result.isNotEmpty ? (result.first['c'] as int? ?? 0) : 0;
-    } catch (_) {
-      // metadata tables may not exist in pre-built DB
-    }
-    final DataSource dataSource = typeCount > 0
-        ? SqliteDataSource(db)
-        : FallbackDataSource();
+    final DataSource dataSource = SqliteDataSource(db);
 
     return (SqliteRepositoryAdapter(db), dataSource);
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
@@ -146,50 +147,27 @@ class FirebaseDataSource implements DataSource {
     }
   }
 
-  /// Queries the `elements` Firestore collection for all documents
-  /// whose `parent_node_id` equals [parentNodeId].
-  ///
-  /// Returns an empty list when no matching elements exist (e.g. a
-  /// leaf node with no children). Throws a [FirebaseException] on
-  /// network or permission failures. Each call triggers a Firestore
-  /// query against the `parent_node_id` index.
   @override
-  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
+  Future<List<InstanceRecord>> fetchRelatedInstances({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  }) async {
+    final collectionName = targetType.typeName == 'Alarm'
+        ? 'alarms'
+        : targetType.typeName == 'Event'
+            ? 'events'
+            : 'elements';
     final snapshot = await _firestore
-        .collection('elements')
+        .collection(collectionName)
         .where('parent_node_id', isEqualTo: parentNodeId)
         .get();
-    return snapshot.docs.map((d) => d.data()).toList();
-  }
-
-  /// Queries the `alarms` Firestore collection for all documents
-  /// whose `parent_node_id` equals [parentNodeId].
-  ///
-  /// Returns an empty list when no matching alarms exist. Throws a
-  /// [FirebaseException] on network or permission failures. Each call
-  /// triggers a Firestore query against the `parent_node_id` index.
-  @override
-  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
-    final snapshot = await _firestore
-        .collection('alarms')
-        .where('parent_node_id', isEqualTo: parentNodeId)
-        .get();
-    return snapshot.docs.map((d) => d.data()).toList();
-  }
-
-  /// Queries the `events` Firestore collection for all documents
-  /// whose `parent_node_id` equals [parentNodeId].
-  ///
-  /// Returns an empty list when no matching events exist. Throws a
-  /// [FirebaseException] on network or permission failures. Each call
-  /// triggers a Firestore query against the `parent_node_id` index.
-  @override
-  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
-    final snapshot = await _firestore
-        .collection('events')
-        .where('parent_node_id', isEqualTo: parentNodeId)
-        .get();
-    return snapshot.docs.map((d) => d.data()).toList();
+    return snapshot.docs.map((d) {
+      final data = Map<String, dynamic>.from(d.data());
+      if (!data.containsKey('id')) {
+        data['id'] = d.id;
+      }
+      return InstanceRecord.fromMap(data, targetType.typeName);
+    }).toList();
   }
 
   List<FieldDescriptor> _parseFields(List<dynamic>? fields) {

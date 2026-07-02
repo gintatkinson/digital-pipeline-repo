@@ -83,3 +83,40 @@ This plan details implementing a setting to dynamically switch the workspace spl
 - Run `flutter analyze` inside `app_flutter/` to verify zero static analysis warnings.
 - Run `flutter test` inside `app_flutter/` to verify all tests pass.
 
+
+# Implementation Plan - De-hardcoding Alarms/Events (Domain & Data Source Layers)
+
+This plan details the implementation of the Domain and Data Source layers to support generic parent-child queries (`fetchRelatedInstances`) instead of hardcoded type-specific methods.
+
+## Proposed Changes
+
+### 1. Create `app_flutter/lib/domain/instance_record.dart`
+- Define the `InstanceRecord` model with `id`, `parentNodeId`, `typeName`, and `attributes`.
+- Implement `fromMap` factory.
+
+### 2. Modify `app_flutter/lib/domain/data_source.dart`
+- Remove `fetchElements`, `fetchAlarms`, and `fetchEvents`.
+- Add `fetchRelatedInstances` returning `Future<List<InstanceRecord>>`.
+
+### 3. Modify `app_flutter/lib/domain/data_sources/sqlite_data_source.dart`
+- Implement `fetchRelatedInstances` to query the SQLite table based on `targetType.typeName`.
+- Map results to `InstanceRecord`.
+- Remove `fetchElements`, `fetchAlarms`, and `fetchEvents`.
+
+### 4. Modify `app_flutter/lib/domain/data_sources/firebase_data_source.dart`
+- Implement `fetchRelatedInstances` to query the Firestore collection based on `targetType.typeName`.
+- Map results to `InstanceRecord`.
+- Remove `fetchElements`, `fetchAlarms`, and `fetchEvents`.
+
+### 5. Delete `app_flutter/lib/domain/data_sources/fallback_data_source.dart`
+- Delete the fallback data source as it is no longer needed.
+
+### 6. Modify `app_flutter/lib/domain/repository_resolver.dart`
+- Remove all imports and references to `FallbackDataSource`.
+- Remove the `typeCount` check and always return `SqliteDataSource(db)`.
+
+## Verification Plan
+
+### 1. Compilation check
+- Verify all modified files compile successfully without errors or warnings.
+

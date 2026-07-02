@@ -1,3 +1,4 @@
+import 'instance_record.dart';
 import 'type_descriptor.dart';
 
 /// Abstract interface for a swappable data backend.
@@ -62,22 +63,11 @@ abstract class DataSource {
   /// stream emits an empty map and continues watching for future saves.
   Stream<Map<String, dynamic>> watchProperties(String nodeId);
 
-  /// Fetches child elements of [parentNodeId].
+  /// Fetches related instances of [targetType] under [parentNodeId].
   ///
-  /// Returns an empty list when [parentNodeId] has no children or when
-  /// the parent does not exist. Never throws. The default implementation
-  /// returns [] — override to provide real data.
-  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async => [];
-
-  /// Fetches alarms associated with [parentNodeId].
-  ///
-  /// Returns an empty list when no alarms exist. Never throws.
-  /// The default implementation returns [] — override to provide real data.
-  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
-
-  /// Fetches events associated with [parentNodeId].
-  ///
-  /// Returns an empty list when no events exist. Never throws.
-  /// The default implementation returns [] — override to provide real data.
-  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
+  /// Returns an empty list when no instances exist. Never throws.
+  Future<List<InstanceRecord>> fetchRelatedInstances({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  });
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 
@@ -133,38 +134,24 @@ class SqliteDataSource implements DataSource {
     }
   }
 
-  /// Queries the `elements` table for all child rows whose
-  /// `parent_node_id` equals [parentNodeId].
-  ///
-  /// Returns an empty list when no elements exist for that parent
-  /// (e.g. a leaf node with no children). Each call performs a
-  /// filtered scan on the table.
   @override
-  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async {
-    return await _db.query('elements',
-        where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
-  }
-
-  /// Queries the `alarms` table for all child rows whose
-  /// `parent_node_id` equals [parentNodeId].
-  ///
-  /// Returns an empty list when no alarms exist for that parent.
-  /// Each call performs a filtered scan on the table.
-  @override
-  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async {
-    return await _db.query('alarms',
-        where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
-  }
-
-  /// Queries the `events` table for all child rows whose
-  /// `parent_node_id` equals [parentNodeId].
-  ///
-  /// Returns an empty list when no events exist for that parent.
-  /// Each call performs a filtered scan on the table.
-  @override
-  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async {
-    return await _db.query('events',
-        where: 'parent_node_id = ?', whereArgs: [parentNodeId]);
+  Future<List<InstanceRecord>> fetchRelatedInstances({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  }) async {
+    final tableName = targetType.typeName == 'Alarm'
+        ? 'alarms'
+        : targetType.typeName == 'Event'
+            ? 'events'
+            : 'elements';
+    final rows = await _db.query(
+      tableName,
+      where: 'parent_node_id = ?',
+      whereArgs: [parentNodeId],
+    );
+    return rows
+        .map((row) => InstanceRecord.fromMap(row, targetType.typeName))
+        .toList();
   }
 
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {
