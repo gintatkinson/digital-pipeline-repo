@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/app/app.dart';
@@ -7,7 +8,7 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/data_sources/fallback_data_source.dart';
+import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -19,7 +20,7 @@ void main() {
     await tester.runAsync(() async {
       final db = await DatabaseInitializer.create(
         dbPath: inMemoryDatabasePath,
-        seed: false,
+        seed: true,
       );
       try {
         final repository = SqliteRepositoryAdapter(db);
@@ -32,7 +33,7 @@ void main() {
           MultiProvider(
             providers: [
               Provider<AbstractRepository>.value(value: repository),
-              Provider<DataSource>.value(value: FallbackDataSource()),
+              Provider<DataSource>.value(value: SqliteDataSource(db)),
               ChangeNotifierProvider<ThemeController>.value(value: themeController),
               ChangeNotifierProvider<TextScalerController>.value(value: textScaler),
             ],
@@ -41,10 +42,20 @@ void main() {
         );
 
         await tester.pump();
+        for (int i = 0; i < 15; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+        }
 
         expect(find.byType(MyApp), findsOneWidget);
         expect(find.byType(DashboardPage), findsOneWidget);
         expect(find.text(AppConfig.title), findsAtLeast(1));
+
+        await tester.pumpWidget(Container());
+        for (int i = 0; i < 15; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+        }
       } finally {
         await db.close();
       }

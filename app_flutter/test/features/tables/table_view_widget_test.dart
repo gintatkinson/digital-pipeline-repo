@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
+import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 
@@ -79,13 +80,10 @@ class _MockDataSource implements DataSource {
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* { yield {}; }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async => [];
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
+  Future<List<InstanceRecord>> fetchRelatedInstances({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  }) async => [];
 }
 
 Widget buildTableWithModel({

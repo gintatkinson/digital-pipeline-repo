@@ -149,3 +149,41 @@ This plan details refactoring the View Model and Presentation layers to fully ad
 - Verify that tests compile and pass.
 
 
+# Implementation Plan - Refactor Automated Test Suites to SQLite
+
+This plan details refactoring the automated test suites in layout_test.dart and widget_test.dart to run against a real, seeded in-memory SQLite database instead of the deprecated FallbackDataSource.
+
+## Proposed Changes
+
+### 1. In `app_flutter/test/layout_test.dart`
+- Remove all references and imports of `FallbackDataSource`.
+- Add imports:
+  - `package:sqflite_common_ffi/sqflite_ffi.dart`
+  - `package:app_flutter/domain/database_initializer.dart`
+  - `package:app_flutter/domain/data_sources/sqlite_data_source.dart`
+- Implement helper function `Future<Database> createTestDatabase() async` with custom seeding of type definitions, type attributes, type relations, properties, elements, alarms, and events.
+- Update `wrapWithRepo` signature to accept a `DataSource dataSource` instead of using the hardcoded `FallbackDataSource()`.
+- Update all five `testWidgets` test cases:
+  - Wrap the setup and test execution in `tester.runAsync()`.
+  - Inside `runAsync`, initialize the database using `createTestDatabase()`.
+  - Register `addTearDown(() => db.close())` inside `runAsync`.
+  - Instantiate `SqliteDataSource(db)` and pass it as the provider `DataSource`.
+  - Update layout test assertions to search for `'Active View: Item'` and keys `'SubElement-table'`, `'Alarm-table'`, `'Event-table'`.
+
+### 2. In `app_flutter/test/widget_test.dart`
+- Remove all references and imports of `FallbackDataSource`.
+- Add import `package:app_flutter/domain/data_sources/sqlite_data_source.dart`.
+- Change the provider `DataSource` to `SqliteDataSource(db)`.
+- Change the database initialization to seed the in-memory database using `DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true)`.
+
+### 3. In mock data sources within table tests
+- Update `_MockDataSource` inside `tables_view_model_test.dart`, `table_view_widget_test.dart`, and `data_table_benchmark_test.dart`:
+  - Remove deprecated methods `fetchElements`, `fetchAlarms`, and `fetchEvents`.
+  - Add import `package:app_flutter/domain/instance_record.dart`.
+  - Implement `fetchRelatedInstances` returning mocked `InstanceRecord` lists matching the expected test data.
+
+## Verification Plan
+
+### 1. Automated Execution
+- Run `flutter test` inside the `app_flutter/` directory to verify that all 89 test cases execute and pass successfully.
+- Verify that `git diff origin/restore-june30` contains only the intended changes.

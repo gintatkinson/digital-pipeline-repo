@@ -86,32 +86,11 @@ class DatabaseInitializer {
     ''');
 
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS elements (
+      CREATE TABLE IF NOT EXISTS instances (
         id TEXT PRIMARY KEY,
         parent_node_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        status TEXT NOT NULL
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS alarms (
-        id TEXT PRIMARY KEY,
-        parent_node_id TEXT NOT NULL,
-        target TEXT NOT NULL,
-        severity TEXT NOT NULL,
-        timestamp TEXT NOT NULL
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS events (
-        id TEXT PRIMARY KEY,
-        parent_node_id TEXT NOT NULL,
-        source TEXT NOT NULL,
-        message TEXT NOT NULL,
-        timestamp TEXT NOT NULL
+        type_name TEXT NOT NULL,
+        data_json TEXT NOT NULL
       )
     ''');
 
@@ -202,6 +181,200 @@ class DatabaseInitializer {
   static Future<void> _seed(Database db) async {
     final batch = db.batch();
 
+    // Seed type definitions
+    batch.insert('type_definitions', {
+      'type_name': 'Item',
+      'display_name': 'Item',
+      'icon_name': 'insert_drive_file',
+    });
+    batch.insert('type_definitions', {
+      'type_name': 'SubElement',
+      'display_name': 'Sub Element',
+      'icon_name': 'widgets',
+    });
+    batch.insert('type_definitions', {
+      'type_name': 'Alarm',
+      'display_name': 'Alarm',
+      'icon_name': 'warning',
+    });
+    batch.insert('type_definitions', {
+      'type_name': 'Event',
+      'display_name': 'Event',
+      'icon_name': 'event',
+    });
+
+    // Seed type attributes for Item
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'name',
+      'label': 'Name',
+      'attr_type': 'string',
+      'section_label': 'General',
+      'section_order': 0,
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'description',
+      'label': 'Description',
+      'attr_type': 'string',
+      'section_label': 'General',
+      'section_order': 0,
+      'is_required': 0,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'latitude',
+      'label': 'Latitude',
+      'attr_type': 'real',
+      'section_label': 'Location',
+      'section_order': 1,
+      'is_required': 0,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'longitude',
+      'label': 'Longitude',
+      'attr_type': 'real',
+      'section_label': 'Location',
+      'section_order': 1,
+      'is_required': 0,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'placeType',
+      'label': 'Place Type',
+      'attr_type': 'string',
+      'section_label': 'Location',
+      'section_order': 1,
+      'is_required': 0,
+      'enum_options': '["zone","area","cluster"]',
+      'enum_display_names': '["Zone","Area","Cluster"]',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'maxVoltage',
+      'label': 'Max Voltage',
+      'attr_type': 'real',
+      'section_label': 'Telemetry',
+      'section_order': 2,
+      'is_required': 0,
+      'min_value': 0.0,
+      'max_value': 1000.0,
+      'default_value': '120.0',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Item',
+      'attr_key': 'maxAllocatedPower',
+      'label': 'Max Allocated Power',
+      'attr_type': 'real',
+      'section_label': 'Telemetry',
+      'section_order': 2,
+      'is_required': 0,
+      'min_value': 0.0,
+    });
+
+    // Seed type attributes for SubElement
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'id',
+      'label': 'ID',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'name',
+      'label': 'Name',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'SubElement',
+      'attr_key': 'status',
+      'label': 'Status',
+      'attr_type': 'string',
+      'enum_options': '["Active","Standby","Error"]',
+    });
+
+    // Seed type attributes for Alarm
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'id',
+      'label': 'ID',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'target',
+      'label': 'Target',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'severity',
+      'label': 'Severity',
+      'attr_type': 'string',
+      'enum_options': '["Critical","Warning","Info","Major","Minor"]',
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Alarm',
+      'attr_key': 'timestamp',
+      'label': 'Timestamp',
+      'attr_type': 'string',
+    });
+
+    // Seed type attributes for Event
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'id',
+      'label': 'ID',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'source',
+      'label': 'Source',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'message',
+      'label': 'Message',
+      'attr_type': 'string',
+      'is_required': 1,
+    });
+    batch.insert('type_attributes', {
+      'type_name': 'Event',
+      'attr_key': 'timestamp',
+      'label': 'Timestamp',
+      'attr_type': 'string',
+    });
+
+    // Seed type relations
+    batch.insert('type_relations', {
+      'parent_type_name': 'Item',
+      'relation_name': 'contains',
+      'child_type_name': 'SubElement',
+      'child_label': 'Sub Elements',
+    });
+    batch.insert('type_relations', {
+      'parent_type_name': 'Item',
+      'relation_name': 'affects',
+      'child_type_name': 'Alarm',
+      'child_label': 'Alarms',
+    });
+    batch.insert('type_relations', {
+      'parent_type_name': 'Item',
+      'relation_name': 'records',
+      'child_type_name': 'Event',
+      'child_label': 'Events',
+    });
+
     for (var i = 0; i < _nodeIds.length; i++) {
       final nodeId = _nodeIds[i];
 
@@ -212,32 +385,82 @@ class DatabaseInitializer {
 
       for (var j = 0; j < _entriesPerNode; j++) {
         final elemId = 'elem-$nodeId-${j + 1}';
-        batch.insert('elements', {
+        batch.insert('instances', {
           'id': elemId,
           'parent_node_id': nodeId,
-          'name': '${nodeId} Element ${j + 1}',
-          'type': _types[(i + j) % _types.length],
-          'status': j % 3 == 0 ? 'Active' : (j % 3 == 1 ? 'Standby' : 'Error'),
+          'type_name': 'SubElement',
+          'data_json': jsonEncode({
+            'id': elemId,
+            'name': '${nodeId} Element ${j + 1}',
+            'status': j % 3 == 0 ? 'Active' : (j % 3 == 1 ? 'Standby' : 'Error'),
+          }),
         });
 
         final alarmId = 'alarm-$nodeId-${j + 1}';
-        batch.insert('alarms', {
+        batch.insert('instances', {
           'id': alarmId,
           'parent_node_id': nodeId,
-          'target': '${nodeId} Target ${j + 1}',
-          'severity': _severities[(i + j) % _severities.length],
-          'timestamp': '2026-06-${(j % 28) + 1}',
+          'type_name': 'Alarm',
+          'data_json': jsonEncode({
+            'id': alarmId,
+            'target': '${nodeId} Target ${j + 1}',
+            'severity': _severities[(i + j) % _severities.length],
+            'timestamp': '2026-06-${(j % 28) + 1}',
+          }),
         });
 
         final eventId = 'event-$nodeId-${j + 1}';
-        batch.insert('events', {
+        batch.insert('instances', {
           'id': eventId,
           'parent_node_id': nodeId,
-          'source': _sources[(i + j) % _sources.length],
-          'message': '${nodeId} event ${j + 1}: ${_sources[(i + j) % _sources.length]} notification',
-          'timestamp': '2026-06-${(j % 28) + 1}',
+          'type_name': 'Event',
+          'data_json': jsonEncode({
+            'id': eventId,
+            'source': _sources[(i + j) % _sources.length],
+            'message': '${nodeId} event ${j + 1}: ${_sources[(i + j) % _sources.length]} notification',
+            'timestamp': '2026-06-${(j % 28) + 1}',
+          }),
         });
       }
+    }
+    // Also seed properties and instances for metadata types (used in tests and default views)
+    for (final nodeId in ['Item', 'SubElement', 'Alarm', 'Event']) {
+      batch.insert('properties', {
+        'node_id': nodeId,
+        'data_json': '{"name":"Sample $nodeId","description":"Description for $nodeId"}',
+      });
+      batch.insert('instances', {
+        'id': 'elem-$nodeId-seed',
+        'parent_node_id': nodeId,
+        'type_name': 'SubElement',
+        'data_json': jsonEncode({
+          'id': 'elem-$nodeId-seed',
+          'name': '$nodeId Element',
+          'status': 'Active',
+        }),
+      });
+      batch.insert('instances', {
+        'id': 'alarm-$nodeId-seed',
+        'parent_node_id': nodeId,
+        'type_name': 'Alarm',
+        'data_json': jsonEncode({
+          'id': 'alarm-$nodeId-seed',
+          'target': '$nodeId Target',
+          'severity': 'Warning',
+          'timestamp': '2026-06-01',
+        }),
+      });
+      batch.insert('instances', {
+        'id': 'event-$nodeId-seed',
+        'parent_node_id': nodeId,
+        'type_name': 'Event',
+        'data_json': jsonEncode({
+          'id': 'event-$nodeId-seed',
+          'source': 'System',
+          'message': '$nodeId Event seeded',
+          'timestamp': '2026-06-01',
+        }),
+      });
     }
 
     await batch.commit(noResult: true);

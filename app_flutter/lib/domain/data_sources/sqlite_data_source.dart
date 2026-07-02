@@ -139,19 +139,12 @@ class SqliteDataSource implements DataSource {
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async {
-    final tableName = targetType.typeName == 'Alarm'
-        ? 'alarms'
-        : targetType.typeName == 'Event'
-            ? 'events'
-            : 'elements';
     final rows = await _db.query(
-      tableName,
-      where: 'parent_node_id = ?',
-      whereArgs: [parentNodeId],
+      'instances',
+      where: 'parent_node_id = ? AND type_name = ?',
+      whereArgs: [parentNodeId, targetType.typeName],
     );
-    return rows
-        .map((row) => InstanceRecord.fromMap(row, targetType.typeName))
-        .toList();
+    return rows.map((r) => InstanceRecord.fromMap(r, targetType.typeName)).toList();
   }
 
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {
@@ -163,17 +156,24 @@ class SqliteDataSource implements DataSource {
     final relRows = await _db.query('type_relations',
         where: 'parent_type_name = ?', whereArgs: [typeName]);
 
+    final childRows = relRows.where((r) => r['relation_name'] == 'contains');
+    final relatedRows = relRows.where((r) => r['relation_name'] != 'contains');
+
     return TypeDescriptor(
       typeName: typeName,
       displayName: typeRow['display_name'] as String,
       iconName: typeRow['icon_name'] as String,
       fields: attrRows.map(_parseField).toList(),
-      childTypes: relRows.map((r) => TypeRelationDescriptor(
+      childTypes: childRows.map((r) => TypeRelationDescriptor(
         relationName: r['relation_name'] as String,
         childTypeName: r['child_type_name'] as String,
         childLabel: r['child_label'] as String,
       )).toList(),
-      relatedTypes: [],
+      relatedTypes: relatedRows.map((r) => TypeRelationDescriptor(
+        relationName: r['relation_name'] as String,
+        childTypeName: r['child_type_name'] as String,
+        childLabel: r['child_label'] as String,
+      )).toList(),
       parentTypes: [], // populated by caller if needed
     );
   }

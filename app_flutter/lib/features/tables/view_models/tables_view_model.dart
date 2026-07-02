@@ -199,7 +199,7 @@ class TablesViewModel extends ChangeNotifier {
       if (requestId != _requestId) return;
 
       final rows = records.map((record) {
-        return tab.type.fields.map((f) => record.attributes[f.key] as String? ?? '').toList();
+        return tab.type.fields.map((f) => record.attributes[f.key]?.toString() ?? '').toList();
       }).toList();
 
       if (requestId != _requestId) return;

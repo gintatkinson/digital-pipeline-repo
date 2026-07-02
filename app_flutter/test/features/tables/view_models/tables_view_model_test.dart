@@ -1,6 +1,7 @@
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
+import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,12 +10,10 @@ class _MockDataSource implements DataSource {
   String get name => 'mock';
 
   Future<TypeDescriptor?> Function(String typeName)? onTypeFor;
-  Future<List<Map<String, dynamic>>> Function(String parentNodeId)?
-      onFetchElements;
-  Future<List<Map<String, dynamic>>> Function(String parentNodeId)?
-      onFetchAlarms;
-  Future<List<Map<String, dynamic>>> Function(String parentNodeId)?
-      onFetchEvents;
+  Future<List<InstanceRecord>> Function({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  })? onFetchRelatedInstances;
 
   @override
   Future<List<TypeDescriptor>> discoverTypes() async => [];
@@ -37,19 +36,14 @@ class _MockDataSource implements DataSource {
       const Stream.empty();
 
   @override
-  Future<List<Map<String, dynamic>>> fetchElements(
-          String parentNodeId) async =>
-      onFetchElements?.call(parentNodeId) ?? [];
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchAlarms(
-          String parentNodeId) async =>
-      onFetchAlarms?.call(parentNodeId) ?? [];
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchEvents(
-          String parentNodeId) async =>
-      onFetchEvents?.call(parentNodeId) ?? [];
+  Future<List<InstanceRecord>> fetchRelatedInstances({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  }) async =>
+      onFetchRelatedInstances?.call(
+        parentNodeId: parentNodeId,
+        targetType: targetType,
+      ) ?? [];
 }
 
 void main() {
@@ -105,8 +99,16 @@ void main() {
         return null;
       };
 
-      dataSource.onFetchElements = (parentNodeId) async => [
-        {'k1': 'a', 'k2': '1', 'k3': '1.0'},
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async => [
+        InstanceRecord(
+          id: '1',
+          parentNodeId: parentNodeId,
+          typeName: targetType.typeName,
+          attributes: {'k1': 'a', 'k2': '1', 'k3': '1.0'},
+        ),
       ];
 
       await viewModel.loadForNode('root');
@@ -151,8 +153,16 @@ void main() {
         return null;
       };
 
-      dataSource.onFetchElements = (parentNodeId) async => [
-        {'voltage': '230', 'current': '10'},
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async => [
+        InstanceRecord(
+          id: '1',
+          parentNodeId: parentNodeId,
+          typeName: targetType.typeName,
+          attributes: {'voltage': '220.0', 'current': '1.5'},
+        ),
       ];
 
       await viewModel.loadForNode('root');
@@ -201,8 +211,11 @@ void main() {
         return null;
       };
 
-      dataSource.onFetchElements = (parentNodeId) async =>
-          throw Exception('fetch failed');
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async =>
+          throw Exception('Fetch error');
 
       await viewModel.loadForNode('root');
       expect(viewModel.columnModels, isEmpty);
@@ -254,8 +267,16 @@ void main() {
         return null;
       };
 
-      dataSource.onFetchElements = (parentNodeId) async => [
-        {'k1': 'a', 'k2': '1'},
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async => [
+        InstanceRecord(
+          id: '1',
+          parentNodeId: parentNodeId,
+          typeName: targetType.typeName,
+          attributes: {'k1': 'a', 'k2': '1'},
+        ),
       ];
 
       await viewModel.loadForNode('test-node');
@@ -312,8 +333,16 @@ void main() {
         return null;
       };
 
-      dataSource.onFetchElements = (parentNodeId) async => [
-        {'k1': 'a', 'k2': '1'},
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async => [
+        InstanceRecord(
+          id: '1',
+          parentNodeId: parentNodeId,
+          typeName: targetType.typeName,
+          attributes: {'k1': 'a', 'k2': '1'},
+        ),
       ];
 
       await viewModel.loadForNode('test-node');
@@ -356,8 +385,16 @@ void main() {
         return null;
       };
 
-      dataSource.onFetchElements = (parentNodeId) async => [
-        {'k1': 'a', 'k2': '1'},
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async => [
+        InstanceRecord(
+          id: '1',
+          parentNodeId: parentNodeId,
+          typeName: targetType.typeName,
+          attributes: {'k1': 'a', 'k2': '1'},
+        ),
       ];
 
       await viewModel.loadForNode('test-node');

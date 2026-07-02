@@ -152,21 +152,18 @@ class FirebaseDataSource implements DataSource {
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async {
-    final collectionName = targetType.typeName == 'Alarm'
-        ? 'alarms'
-        : targetType.typeName == 'Event'
-            ? 'events'
-            : 'elements';
     final snapshot = await _firestore
-        .collection(collectionName)
+        .collection('instances')
         .where('parent_node_id', isEqualTo: parentNodeId)
+        .where('type_name', isEqualTo: targetType.typeName)
         .get();
     return snapshot.docs.map((d) {
-      final data = Map<String, dynamic>.from(d.data());
-      if (!data.containsKey('id')) {
-        data['id'] = d.id;
-      }
-      return InstanceRecord.fromMap(data, targetType.typeName);
+      return InstanceRecord(
+        id: d.id,
+        parentNodeId: parentNodeId,
+        typeName: targetType.typeName,
+        attributes: d.data(),
+      );
     }).toList();
   }
 

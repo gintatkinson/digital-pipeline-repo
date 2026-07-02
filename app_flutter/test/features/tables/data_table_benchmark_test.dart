@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
+import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 
@@ -45,12 +46,17 @@ class _MockDataSource implements DataSource {
   @override
   Stream<Map<String, dynamic>> watchProperties(String nodeId) async* { yield {}; }
   @override
-  Future<List<Map<String, dynamic>>> fetchElements(String parentNodeId) async =>
-    List.generate(rowCount, (i) => {for (int j = 0; j < 5; j++) 'c$j': 'V${i}_$j'});
-  @override
-  Future<List<Map<String, dynamic>>> fetchAlarms(String parentNodeId) async => [];
-  @override
-  Future<List<Map<String, dynamic>>> fetchEvents(String parentNodeId) async => [];
+  Future<List<InstanceRecord>> fetchRelatedInstances({
+    required String parentNodeId,
+    required TypeDescriptor targetType,
+  }) async {
+    return List.generate(rowCount, (i) => InstanceRecord(
+      id: 'id-$i',
+      parentNodeId: parentNodeId,
+      typeName: targetType.typeName,
+      attributes: {for (int j = 0; j < 5; j++) 'c$j': 'V${i}_$j'},
+    ));
+  }
 }
 
 Widget _buildDataTableDirect(int rowCount) {

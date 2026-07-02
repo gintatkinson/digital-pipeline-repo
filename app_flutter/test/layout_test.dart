@@ -8,9 +8,13 @@ import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/data_sources/fallback_data_source.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/features/layout/layout.dart';
 import 'package:app_flutter/domain/repository.dart';
+import 'package:app_flutter/features/tables/tabbed_container.dart';
+import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
 class _TestRepository implements AbstractRepository {
   @override
@@ -72,17 +76,42 @@ const String testLayoutConfig = '''
 }
 ''';
 
-Widget wrapWithRepo(Widget child) {
+Future<Database> createTestDatabase() async {
+  return DatabaseInitializer.create(
+    dbPath: inMemoryDatabasePath,
+    seed: true,
+  );
+}
+
+Widget wrapWithRepo(Widget child, DataSource dataSource) {
   return MultiProvider(
     providers: [
       Provider<AbstractRepository>.value(value: _TestRepository()),
-      Provider<DataSource>.value(value: FallbackDataSource()),
+      Provider<DataSource>.value(value: dataSource),
       ChangeNotifierProvider<ThemeController>.value(
         value: ThemeController(SharedPreferencesThemeService()),
       ),
     ],
     child: MaterialApp(home: child),
   );
+}
+
+Future<void> settle(WidgetTester tester) async {
+  await Future<void>.delayed(const Duration(milliseconds: 50));
+  await tester.pump();
+
+  for (int i = 0; i < 50; i++) {
+    if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+      break;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await tester.pump();
+  }
+
+  for (int i = 0; i < 3; i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    await tester.pump();
+  }
 }
 
 void main() {
@@ -96,18 +125,28 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await tester.pumpWidget(
-      wrapWithRepo(
-        Layout(
-          layoutConfig: testLayoutConfig,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      final db = await createTestDatabase();
+      addTearDown(() => db.close());
 
-    expect(find.text(AppConfig.title), findsNWidgets(2));
-    expect(find.text('Active View: Item'), findsOneWidget);
-    expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
+      await tester.pumpWidget(
+        wrapWithRepo(
+          Layout(
+            activeView: 'root',
+            layoutConfig: testLayoutConfig,
+          ),
+          SqliteDataSource(db),
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text(AppConfig.title), findsNWidgets(2));
+      expect(find.text('Active View: root'), findsOneWidget);
+      expect(find.byKey(const Key('SubElement-table')), findsNothing);
+
+      await tester.pumpWidget(Container());
+      await settle(tester);
+    });
   });
 
   testWidgets('Layout switches tabs in TabbedContainer', (WidgetTester tester) async {
@@ -118,32 +157,48 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await tester.pumpWidget(
-      wrapWithRepo(
-        Layout(
-          layoutConfig: testLayoutConfig,
+    await tester.runAsync(() async {
+      final db = await createTestDatabase();
+      addTearDown(() => db.close());
+
+      await tester.pumpWidget(
+        wrapWithRepo(
+          Layout(
+            activeView: 'Item',
+            layoutConfig: testLayoutConfig,
+          ),
+          SqliteDataSource(db),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await settle(tester);
 
-    // Items table is displayed initially
-    expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
-    expect(find.byKey(const Key('Alarm-table')), findsNothing);
+      // Items table is displayed initially
+      expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
+      expect(find.byKey(const Key('Alarm-table')), findsNothing);
 
-    // Tap Alarms tab
-    await tester.tap(find.widgetWithText(Tab, 'Alarms'));
-    await tester.pumpAndSettle();
+      // Tap Alarms tab
+      await tester.tap(find.widgetWithText(Tab, 'Alarms'));
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await settle(tester);
 
-    expect(find.byKey(const Key('SubElement-table')), findsNothing);
-    expect(find.byKey(const Key('Alarm-table')), findsOneWidget);
+      expect(find.byKey(const Key('SubElement-table')), findsNothing);
+      expect(find.byKey(const Key('Alarm-table')), findsOneWidget);
 
-    // Tap Events tab
-    await tester.tap(find.widgetWithText(Tab, 'Events'));
-    await tester.pumpAndSettle();
+      // Tap Events tab
+      await tester.tap(find.widgetWithText(Tab, 'Events'));
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await settle(tester);
 
-    expect(find.byKey(const Key('Alarm-table')), findsNothing);
-    expect(find.byKey(const Key('Event-table')), findsOneWidget);
+      expect(find.byKey(const Key('Alarm-table')), findsNothing);
+      expect(find.byKey(const Key('Event-table')), findsOneWidget);
+
+      await tester.pumpWidget(Container());
+      await settle(tester);
+    });
   });
 
   testWidgets('Layout splitter drags update sizes', (WidgetTester tester) async {
@@ -155,47 +210,55 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          Provider<AbstractRepository>.value(value: _TestRepository()),
-          Provider<DataSource>.value(value: FallbackDataSource()),
-          ChangeNotifierProvider<ThemeController>.value(
-            value: ThemeController(SharedPreferencesThemeService()),
-          ),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Layout(
-              layoutConfig: testLayoutConfig,
+    await tester.runAsync(() async {
+      final db = await createTestDatabase();
+      addTearDown(() => db.close());
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            Provider<AbstractRepository>.value(value: _TestRepository()),
+            Provider<DataSource>.value(value: SqliteDataSource(db)),
+            ChangeNotifierProvider<ThemeController>.value(
+              value: ThemeController(SharedPreferencesThemeService()),
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Layout(
+                layoutConfig: testLayoutConfig,
+              ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await settle(tester);
 
-    // Test vertical splitter dragging
-    final Finder verticalSplitter = find.byKey(const Key('vertical_splitter'));
-    expect(verticalSplitter, findsOneWidget);
+      // Test vertical splitter dragging
+      final Finder verticalSplitter = find.byKey(const Key('vertical_splitter'));
+      expect(verticalSplitter, findsOneWidget);
 
-    // Drag vertical splitter to the right
-    await tester.drag(verticalSplitter, const Offset(50, 0));
-    await tester.pumpAndSettle();
+      // Drag vertical splitter to the right
+      await tester.drag(verticalSplitter, const Offset(50, 0));
+      await settle(tester);
 
-    // Test horizontal SplitWorkspace splitter dragging
-    final Finder horizontalSplitter = find.byKey(const Key('horizontal_splitter'));
-    expect(horizontalSplitter, findsOneWidget);
+      // Test horizontal SplitWorkspace splitter dragging
+      final Finder horizontalSplitter = find.byKey(const Key('horizontal_splitter'));
+      expect(horizontalSplitter, findsOneWidget);
 
-    await tester.drag(horizontalSplitter, const Offset(0, 50));
-    await tester.pumpAndSettle();
+      await tester.drag(horizontalSplitter, const Offset(0, 50));
+      await settle(tester);
 
-    // Test topographical view child splitter dragging (since child is present)
-    final Finder topoSplitter = find.byKey(const Key('topo_splitter'));
-    expect(topoSplitter, findsOneWidget);
+      // Test topographical view child splitter dragging (since child is present)
+      final Finder topoSplitter = find.byKey(const Key('topo_splitter'));
+      expect(topoSplitter, findsOneWidget);
 
-    await tester.drag(topoSplitter, const Offset(0, 30));
-    await tester.pumpAndSettle();
+      await tester.drag(topoSplitter, const Offset(0, 30));
+      await settle(tester);
+
+      await tester.pumpWidget(Container());
+      await settle(tester);
+    });
   });
 
   testWidgets('Layout keyboard navigation and node selection', (WidgetTester tester) async {
@@ -206,25 +269,34 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    String? selectedView;
-    await tester.pumpWidget(
-      wrapWithRepo(
-        Layout(
-          layoutConfig: testLayoutConfig,
-          onViewChange: (view) => selectedView = view,
+    await tester.runAsync(() async {
+      final db = await createTestDatabase();
+      addTearDown(() => db.close());
+
+      String? selectedView;
+      await tester.pumpWidget(
+        wrapWithRepo(
+          Layout(
+            layoutConfig: testLayoutConfig,
+            onViewChange: (view) => selectedView = view,
+          ),
+          SqliteDataSource(db),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await settle(tester);
 
-    // Click on Item node to give focus to the tree FocusNode
-    await tester.tap(find.byKey(const Key('node_Item')));
-    await tester.pumpAndSettle();
+      // Click on Item node to give focus to the tree FocusNode
+      await tester.tap(find.byKey(const Key('node_Item')));
+      await settle(tester);
 
-    // Send ArrowDown key event — navigates to SubElement child
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pumpAndSettle();
-    expect(selectedView, 'SubElement');
+      // Send ArrowDown key event — navigates to SubElement child
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await settle(tester);
+      expect(selectedView, 'SubElement');
+
+      await tester.pumpWidget(Container());
+      await settle(tester);
+    });
   });
 
   testWidgets('Layout handles tree node tap selection without crashing', (WidgetTester tester) async {
@@ -235,17 +307,26 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await tester.pumpWidget(
-      wrapWithRepo(
-        Layout(
-          layoutConfig: testLayoutConfig,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      final db = await createTestDatabase();
+      addTearDown(() => db.close());
 
-    // Tap the single Item node
-    await tester.tap(find.byKey(const Key('node_Item')));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        wrapWithRepo(
+          Layout(
+            layoutConfig: testLayoutConfig,
+          ),
+          SqliteDataSource(db),
+        ),
+      );
+      await settle(tester);
+
+      // Tap the single Item node
+      await tester.tap(find.byKey(const Key('node_Item')));
+      await settle(tester);
+
+      await tester.pumpWidget(Container());
+      await settle(tester);
+    });
   });
 }

@@ -79,8 +79,11 @@ class TreeViewModel extends ChangeNotifier {
     for (final (parent, child) in hierarchy) {
       children.putIfAbsent(parent, () => []);
       if (typeMap.containsKey(child)) {
-        children[parent]!.add(TreeNode(id: child, label: typeMap[child]!.displayName));
-        hasParent.add(child);
+        final exists = children[parent]!.any((n) => n.id == child);
+        if (!exists) {
+          children[parent]!.add(TreeNode(id: child, label: typeMap[child]!.displayName));
+          hasParent.add(child);
+        }
       }
     }
 
@@ -90,8 +93,11 @@ class TreeViewModel extends ChangeNotifier {
         final childName = ct.childTypeName;
         if (typeMap.containsKey(childName)) {
           children.putIfAbsent(type.typeName, () => []);
-          children[type.typeName]!.add(TreeNode(id: childName, label: typeMap[childName]!.displayName));
-          hasParent.add(childName);
+          final exists = children[type.typeName]!.any((n) => n.id == childName);
+          if (!exists) {
+            children[type.typeName]!.add(TreeNode(id: childName, label: typeMap[childName]!.displayName));
+            hasParent.add(childName);
+          }
         }
       }
     }

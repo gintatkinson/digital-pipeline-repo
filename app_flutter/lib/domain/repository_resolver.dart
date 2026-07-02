@@ -103,8 +103,7 @@ class RepositoryResolver {
   /// When [inMemory] is true, creates a transient in-memory database
   /// (data is lost on app restart). Otherwise, copies the asset database
   /// from [dbAssetPath] (or the default asset) to the app support directory
-  /// and opens it. Checks for `type_definitions` table to decide between
-  /// [SqliteDataSource] (real schema) and [FallbackDataSource] (demo view).
+  /// and opens it.
   /// Throws on file I/O errors or database corruption.
   static Future<(SqliteRepositoryAdapter, DataSource)> _createSqliteAdapter({
     String? dbAssetPath,
