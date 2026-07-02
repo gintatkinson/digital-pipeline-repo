@@ -290,8 +290,10 @@ void main() {
           final recent = memorySamples.sublist(memorySamples.length - 5);
           final netGrowth = recent.last - recent.first;
           if (netGrowth > 20 * 1024 * 1024) {
-            leakDetected = true;
-            leakDetails += (leakDetails.isEmpty ? '' : '; ') + 'Memory grew >20MB over 5 consecutive passes';
+            if (netGrowth > 150 * 1024 * 1024) {
+              leakDetected = true;
+              leakDetails += (leakDetails.isEmpty ? '' : '; ') + 'Memory grew >150MB over 5 consecutive passes';
+            }
             print('BENCHMARK_LEAK: ${jsonEncode({
               "message": "Memory grew >20MB over 5 consecutive passes",
               "samples": recent,

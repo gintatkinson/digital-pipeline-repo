@@ -91,6 +91,10 @@ class _TableViewWidgetState extends State<TableViewWidget> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final headerIndices = <String, int>{
+          for (int idx = 0; idx < allHeaders.length; idx++)
+            allHeaders[idx].key: idx
+        };
         final colCount = headers.length;
         final spacingWidth = colCount > 1
             ? (colCount - 1) * widget.columnSpacing
@@ -127,7 +131,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                     return _DataRow(
                       cells: row,
                       columnModels: headers,
-                      allHeaders: allHeaders,
+                      headerIndices: headerIndices,
                       colWidth: colWidth,
                       dataRowMinHeight: widget.dataRowMinHeight,
                       dataRowMaxHeight: widget.dataRowMaxHeight,
@@ -275,7 +279,7 @@ class _HeaderCell extends StatelessWidget {
 class _DataRow extends StatelessWidget {
   final List<String> cells;
   final List<ColumnModel> columnModels;
-  final List<ColumnModel> allHeaders;
+  final Map<String, int> headerIndices;
   final double colWidth;
   final double dataRowMinHeight;
   final double dataRowMaxHeight;
@@ -286,7 +290,7 @@ class _DataRow extends StatelessWidget {
   const _DataRow({
     required this.cells,
     required this.columnModels,
-    required this.allHeaders,
+    required this.headerIndices,
     required this.colWidth,
     required this.dataRowMinHeight,
     required this.dataRowMaxHeight,
@@ -305,18 +309,19 @@ class _DataRow extends StatelessWidget {
       color: index.isEven ? null : Colors.black.withOpacity(0.03),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          for (int i = 0; i < columnModels.length; i++)
-            _DataCell(
-              value: cells[allHeaders.indexWhere((h) => h.key == columnModels[i].key)],
-              columnModel: columnModels[i],
-              colWidth: colWidth,
-              horizontalMargin: horizontalMargin,
-              columnSpacing: columnSpacing,
-              isFirst: i == 0,
-              isLast: i == columnModels.length - 1,
-            ),
-        ],
+        children: List.generate(columnModels.length, (i) {
+          final cellIdx = headerIndices[columnModels[i].key];
+          final cellValue = cellIdx != null && cellIdx < cells.length ? cells[cellIdx] : '';
+          return _DataCell(
+            value: cellValue,
+            columnModel: columnModels[i],
+            colWidth: colWidth,
+            horizontalMargin: horizontalMargin,
+            columnSpacing: columnSpacing,
+            isFirst: i == 0,
+            isLast: i == columnModels.length - 1,
+          );
+        }),
       ),
     );
   }
