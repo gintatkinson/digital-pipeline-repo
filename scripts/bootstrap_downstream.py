@@ -34,7 +34,7 @@ def main():
     print(f"Bootstrapping {platform} baseline template from {src_dir} to {destination}...")
 
     # Set of files/folders to preserve at destination
-    preserved = {".git", "node_modules", ".dart_tool", "package-lock.json", "pubspec.lock", "yarn.lock", "pnpm-lock.yaml"}
+    preserved = {".git", "node_modules", ".dart_tool", "package-lock.json", "pubspec.lock", "yarn.lock", "pnpm-lock.yaml", "build"}
 
     copied_count = 0
     skipped_count = 0
