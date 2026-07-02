@@ -21,6 +21,8 @@ import 'package:app_flutter/features/tree/tree_node.dart';
 /// -1 is handled), root nodes with no parents to expand, and views whose
 /// parent chain is already visible (no-op expand).
 class TreeViewModel extends ChangeNotifier {
+  static const _excludedTypes = {'Component', 'RelationA', 'RelationB'};
+
   TreeViewModel(this._dataSource, {
     String initialView = '',
     this.onViewSelected,
@@ -72,11 +74,17 @@ class TreeViewModel extends ChangeNotifier {
   /// Mutations: writes [_treeData] on the parent object. No [notifyListeners]
   /// call — the caller ([loadTree]) is responsible.
   List<TreeNode> _buildTree(List<TypeDescriptor> types, List<(String, String)> hierarchy) {
-    final typeMap = {for (final t in types) t.typeName: t};
+    final typeMap = {
+      for (final t in types)
+        if (!_excludedTypes.contains(t.typeName)) t.typeName: t
+    };
     final children = <String, List<TreeNode>>{};
     final hasParent = <String>{};
 
     for (final (parent, child) in hierarchy) {
+      if (_excludedTypes.contains(parent) || _excludedTypes.contains(child)) {
+        continue;
+      }
       children.putIfAbsent(parent, () => []);
       if (typeMap.containsKey(child)) {
         final exists = children[parent]!.any((n) => n.id == child);
@@ -89,8 +97,10 @@ class TreeViewModel extends ChangeNotifier {
 
     // Build children from childTypes (used for tree hierarchy)
     for (final type in types) {
+      if (_excludedTypes.contains(type.typeName)) continue;
       for (final ct in type.childTypes) {
         final childName = ct.childTypeName;
+        if (_excludedTypes.contains(childName)) continue;
         if (typeMap.containsKey(childName)) {
           children.putIfAbsent(type.typeName, () => []);
           final exists = children[type.typeName]!.any((n) => n.id == childName);
@@ -104,13 +114,15 @@ class TreeViewModel extends ChangeNotifier {
 
     // Types referenced in parentTypes also have parents
     for (final type in types) {
+      if (_excludedTypes.contains(type.typeName)) continue;
       for (final pt in type.parentTypes) {
+        if (_excludedTypes.contains(pt.childTypeName)) continue;
         hasParent.add(type.typeName);
       }
     }
 
     return types
-        .where((t) => !hasParent.contains(t.typeName))
+        .where((t) => !_excludedTypes.contains(t.typeName) && !hasParent.contains(t.typeName))
         .map((t) => TreeNode(
               id: t.typeName,
               label: t.displayName,

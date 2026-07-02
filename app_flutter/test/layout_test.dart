@@ -77,10 +77,22 @@ const String testLayoutConfig = '''
 ''';
 
 Future<Database> createTestDatabase() async {
-  return DatabaseInitializer.create(
+  final db = await DatabaseInitializer.create(
     dbPath: inMemoryDatabasePath,
     seed: true,
   );
+  await db.insert('type_definitions', {
+    'type_name': 'SubItem',
+    'display_name': 'Sub Item',
+    'icon_name': 'insert_drive_file',
+  });
+  await db.insert('type_relations', {
+    'parent_type_name': 'Item',
+    'relation_name': 'contains',
+    'child_type_name': 'SubItem',
+    'child_label': 'Sub Items',
+  });
+  return db;
 }
 
 Widget wrapWithRepo(Widget child, DataSource dataSource) {
@@ -289,10 +301,10 @@ void main() {
       await tester.tap(find.byKey(const Key('node_Item')));
       await settle(tester);
 
-      // Send ArrowDown key event — navigates to Component child
+      // Send ArrowDown key event — navigates to SubItem child
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await settle(tester);
-      expect(selectedView, 'Component');
+      expect(selectedView, 'SubItem');
 
       await tester.pumpWidget(Container());
       await settle(tester);

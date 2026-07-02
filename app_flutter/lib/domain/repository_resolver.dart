@@ -111,8 +111,11 @@ class RepositoryResolver {
     String? dbAssetPath,
     bool inMemory = false,
   }) async {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+    if (isTest || Platform.isWindows || Platform.isLinux) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
 
     final dir = await getApplicationSupportDirectory();
     final dbPath = inMemory ? inMemoryDatabasePath : p.join(dir.path, 'properties_db.db');
