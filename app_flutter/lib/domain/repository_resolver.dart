@@ -25,7 +25,7 @@ import 'database_initializer.dart';
 /// separate connections — doing so is not recommended.
 class RepositoryResolver {
   static const _defaultConfig = 'assets/persistence-config.json';
-  static const _defaultDbAsset = 'assets/properties_db.db';
+  static const _defaultDbAsset = 'assets/properties_db.db.gz';
 
   static const _defaultEmulatorHost = 'localhost';
   static const _defaultEmulatorPort = 8080;
@@ -124,7 +124,11 @@ class RepositoryResolver {
       final assetPath = dbAssetPath ?? _defaultDbAsset;
       try {
         final bytes = await rootBundle.load(assetPath);
-        await dbFile.writeAsBytes(bytes.buffer.asUint8List());
+        List<int> decodedBytes = bytes.buffer.asUint8List();
+        if (assetPath.endsWith('.gz')) {
+          decodedBytes = gzip.decode(decodedBytes);
+        }
+        await dbFile.writeAsBytes(decodedBytes);
       } catch (_) {}
     }
 

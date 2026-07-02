@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/column_model.dart';
@@ -94,7 +95,9 @@ class _TableViewWidgetState extends State<TableViewWidget> {
         final spacingWidth = colCount > 1
             ? (colCount - 1) * widget.columnSpacing
             : 0.0;
-        final colWidth = (constraints.maxWidth - 2 * widget.horizontalMargin - spacingWidth) / colCount;
+        final colWidth = math.max(120.0, (constraints.maxWidth - 2 * widget.horizontalMargin - spacingWidth) / colCount);
+        final tableWidth = math.max(constraints.maxWidth, colCount * colWidth + spacingWidth + 2 * widget.horizontalMargin);
+        debugPrint('TableViewWidget: constraints=$constraints, colCount=$colCount, spacingWidth=$spacingWidth, colWidth=$colWidth, tableWidth=$tableWidth');
 
         void onSort(int columnIndex) {
           setState(() {
@@ -111,7 +114,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
           scrollDirection: Axis.horizontal,
           child: SizedBox(
             key: Key(testId),
-            width: constraints.maxWidth,
+            width: tableWidth,
             height: constraints.maxHeight,
             child: Stack(
               children: [

@@ -72,7 +72,7 @@ flutter:
     - assets/persistence-config.json
     - assets/logical-layout.json
     - assets/design-tokens.json
-    - assets/properties_db.db
+    - assets/properties_db.db.gz
     - assets/topology_data.json
     - assets/strings.json
 

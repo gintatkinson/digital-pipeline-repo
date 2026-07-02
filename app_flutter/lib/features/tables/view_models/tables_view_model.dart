@@ -58,6 +58,7 @@ class TablesViewModel extends ChangeNotifier {
   bool _loading = true;
   String? _error;
   int _requestId = 0;
+  bool _disposed = false;
 
   final Map<(String, String), List<InstanceRecord>> _cache = {};
   StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
@@ -256,7 +257,14 @@ class TablesViewModel extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     _propertiesSubscription?.cancel();
     super.dispose();
   }

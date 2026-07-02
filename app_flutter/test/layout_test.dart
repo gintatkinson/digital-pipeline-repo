@@ -71,7 +71,7 @@ Future<Database> createTestDatabase() async {
     'icon_name': 'insert_drive_file',
   });
   await db.insert('type_relations', {
-    'parent_type_name': 'Master_A',
+    'parent_type_name': 'Master_1',
     'relation_name': 'contains',
     'child_type_name': 'SubItem',
     'child_label': 'Sub Items',
@@ -159,7 +159,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithRepo(
           Layout(
-            activeView: 'Master_A',
+            activeView: 'Master_1',
             layoutConfig: testLayoutConfig,
           ),
           SqliteDataSource(db),
@@ -279,8 +279,8 @@ void main() {
       );
       await settle(tester);
 
-      // Click on Master_A node to give focus to the tree FocusNode
-      await tester.tap(find.byKey(const Key('node_Master_A')));
+      // Click on Master_1 node to give focus to the tree FocusNode
+      await tester.tap(find.byKey(const Key('node_Master_1')));
       await settle(tester);
 
       // Send ArrowDown key event — navigates to SubItem child
@@ -315,8 +315,8 @@ void main() {
       );
       await settle(tester);
 
-      // Tap the single Master_A node
-      await tester.tap(find.byKey(const Key('node_Master_A')));
+      // Tap the single Master_1 node
+      await tester.tap(find.byKey(const Key('node_Master_1')));
       await settle(tester);
 
       await tester.pumpWidget(Container());

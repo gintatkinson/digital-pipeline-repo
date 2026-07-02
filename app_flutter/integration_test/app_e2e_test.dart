@@ -76,7 +76,7 @@ Future<Database> createTestDatabase() async {
   final batch = db.batch();
 
   // 3 root master types
-  final masters = ['Master_A', 'Master_B', 'Master_C'];
+  final masters = ['Master_1', 'Master_2', 'Master_3'];
   for (final m in masters) {
     batch.insert('type_definitions', {
       'type_name': m,
@@ -223,7 +223,7 @@ void main() {
 
     // Wait for the tree view model to load
     int attempts = 0;
-    while (attempts < 20 && find.byKey(const Key('node_Master_A')).evaluate().isEmpty) {
+    while (attempts < 20 && find.byKey(const Key('node_Master_1')).evaluate().isEmpty) {
       await Future<void>.delayed(const Duration(milliseconds: 200));
       await tester.pump();
       attempts++;

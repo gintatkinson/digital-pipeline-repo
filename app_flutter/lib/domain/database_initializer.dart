@@ -15,6 +15,15 @@ Future<void> main() async {
   }
   await DatabaseInitializer.create(dbPath: dbPath, seed: true);
   print('Generic database properties_db.db regenerated successfully.');
+
+  final gzFile = File('assets/properties_db.db.gz');
+  if (await gzFile.exists()) {
+    await gzFile.delete();
+  }
+  final bytes = await file.readAsBytes();
+  final gzipped = gzip.encode(bytes);
+  await gzFile.writeAsBytes(gzipped);
+  print('Database gzipped to properties_db.db.gz successfully.');
 }
 
 /// Creates and optionally seeds a local SQLite database for development
@@ -127,8 +136,8 @@ class DatabaseInitializer {
   static Future<void> _seed(Database db) async {
     final batch = db.batch();
 
-    // 3 root master type definitions
-    final masters = ['Master_A', 'Master_B', 'Master_C'];
+    // 1000 root master type definitions (Master_1 to Master_1000)
+    final masters = List.generate(1000, (i) => 'Master_${i + 1}');
     for (final m in masters) {
       batch.insert('type_definitions', {
         'type_name': m,
@@ -159,10 +168,10 @@ class DatabaseInitializer {
       }
     }
 
-    // Seed 3 fields in type_attributes for each of these 6 types: field_1 (Text), field_2 (Text), field_3 (Text)
+    // Seed 50 fields in type_attributes for each of these types: field_1 to field_50
     final allTypes = [...masters, ...details];
     for (final t in allTypes) {
-      for (int i = 1; i <= 3; i++) {
+      for (int i = 1; i <= 50; i++) {
         batch.insert('type_attributes', {
           'type_name': t,
           'attr_key': 'field_$i',
@@ -175,32 +184,30 @@ class DatabaseInitializer {
       }
     }
 
-    // Seed properties for each of the 3 Master Nodes
+    // Seed properties for each of the 1000 Master Nodes (with 50 fields)
     for (final m in masters) {
+      final propertiesMap = {
+        for (int j = 1; j <= 50; j++) 'field_$j': 'val_${m}_field_$j'
+      };
       batch.insert('properties', {
         'node_id': m,
-        'data_json': jsonEncode({
-          'field_1': 'val_${m}_field_1',
-          'field_2': 'val_${m}_field_2',
-          'field_3': 'val_${m}_field_3',
-        }),
+        'data_json': jsonEncode(propertiesMap),
       });
     }
 
-    // Seed 15 instances for each Detail Type belonging to each parent Master Node
+    // Seed 50 instances for each Detail Type belonging to each parent Master Node
     for (final m in masters) {
       for (final d in details) {
-        for (int k = 1; k <= 15; k++) {
+        for (int k = 1; k <= 50; k++) {
           final instId = 'inst_${m}_${d}_$k';
+          final instanceMap = {
+            for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${m}_${d}_${k}_field_$j'
+          };
           batch.insert('instances', {
             'id': instId,
             'parent_node_id': m,
             'type_name': d,
-            'data_json': jsonEncode({
-              'field_1': 'val_inst_${m}_${d}_${k}_field_1',
-              'field_2': 'val_inst_${m}_${d}_${k}_field_2',
-              'field_3': 'val_inst_${m}_${d}_${k}_field_3',
-            }),
+            'data_json': jsonEncode(instanceMap),
           });
         }
       }

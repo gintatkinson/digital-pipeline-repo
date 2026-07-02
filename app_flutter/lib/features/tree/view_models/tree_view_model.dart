@@ -35,6 +35,7 @@ class TreeViewModel extends ChangeNotifier {
   final Map<String, bool> _expanded = {};
   final FocusNode _treeFocusNode = FocusNode();
   final Map<String, GlobalKey> _nodeKeys = {};
+  bool _disposed = false;
 
   List<TreeNode> get treeData => _treeData;
   String get currentView => _currentView;
@@ -53,6 +54,7 @@ class TreeViewModel extends ChangeNotifier {
   Future<void> loadTree() async {
     final types = await _dataSource.discoverTypes();
     final hierarchy = await _dataSource.discoverHierarchy();
+    if (_disposed) return;
     _treeData = _buildTree(types, hierarchy);
 
     if (_currentView.isEmpty && _treeData.isNotEmpty) {
@@ -254,7 +256,14 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     _treeFocusNode.dispose();
     super.dispose();
   }
