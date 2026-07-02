@@ -120,3 +120,32 @@ This plan details the implementation of the Domain and Data Source layers to sup
 ### 1. Compilation check
 - Verify all modified files compile successfully without errors or warnings.
 
+
+# Implementation Plan - De-hardcoding Alarms/Events (View Model & Presentation Layers)
+
+This plan details refactoring the View Model and Presentation layers to fully adopt dynamic, metadata-driven tab discovery and data rendering.
+
+## Proposed Changes
+
+### 1. Refactor `app_flutter/lib/features/tables/view_models/tables_view_model.dart`
+- Update `TabDescriptor` class structure to hold `TypeDescriptor type` directly.
+- In `loadForNode`, retrieve child and related `TypeDescriptor`s via `_dataSource.typeFor(childTypeName)`, instantiating `TabDescriptor` with the fetched `type`.
+- In `_loadData`, query related instances via `_dataSource.fetchRelatedInstances(parentNodeId: _activeView, targetType: tab.type)`.
+- Map `records` to cell lists dynamically using `tab.type.fields`.
+
+### 2. Refactor `app_flutter/lib/features/layout/layout_config_service.dart`
+- Remove hardcoded fallback dictionary from `resolveLabelsMapping`, replacing it with `const <String, String>{}`.
+
+### 3. Refactor `app_flutter/lib/features/layout/layout.dart`
+- Remove hardcoded checks for `sub_elements_table`, `active_alarms_table`, and `historical_events_table` in `_resolveTabLabel`.
+- Implement Title Case conversion mapping for underscores in `tabId`.
+
+## Verification Plan
+
+### 1. Static Analysis
+- Run `flutter analyze` inside `app_flutter/` to verify zero compile or analysis warnings.
+
+### 2. Verification
+- Verify that tests compile and pass.
+
+

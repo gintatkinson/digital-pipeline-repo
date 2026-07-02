@@ -259,11 +259,12 @@ class _LayoutState extends State<Layout> {
         return entry.value;
       }
     }
-    // TODO(#79): Replace hardcoded tab label fallbacks with config-driven mapping.
-    if (tabId == 'sub_elements_table') return 'Items';
-    if (tabId == 'active_alarms_table') return 'Status';
-    if (tabId == 'historical_events_table') return 'Activity';
-    return tabId;
+    final words = tabId.split('_');
+    final capitalized = words.map((word) {
+      if (word.isEmpty) return '';
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join(' ');
+    return capitalized;
   }
 
   // TODO(#79): Replace mock topology nodes/links with DB-backed data.

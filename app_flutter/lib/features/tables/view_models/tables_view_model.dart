@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
 /// Metadata for a single tab in the table view, derived from either a child
@@ -11,12 +12,12 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 class TabDescriptor {
   final String id;
   final String label;
-  final List<FieldDescriptor> columns;
+  final TypeDescriptor type;
 
   const TabDescriptor({
     required this.id,
     required this.label,
-    required this.columns,
+    required this.type,
   });
 }
 
@@ -128,7 +129,7 @@ class TablesViewModel extends ChangeNotifier {
         tabs.add(TabDescriptor(
           id: ct.childTypeName,
           label: ct.childLabel,
-          columns: childDesc.fields,
+          type: childDesc,
         ));
       }
 
@@ -139,7 +140,7 @@ class TablesViewModel extends ChangeNotifier {
         tabs.add(TabDescriptor(
           id: rt.childTypeName,
           label: rt.childLabel,
-          columns: relDesc.fields,
+          type: relDesc,
         ));
       }
 
@@ -188,18 +189,17 @@ class TablesViewModel extends ChangeNotifier {
 
   Future<void> _loadData(TabDescriptor tab, int requestId) async {
     try {
-      _headers = tab.columns.map(ColumnModel.fromFieldDescriptor).toList();
-      _columnModels = tab.columns.map(ColumnModel.fromFieldDescriptor).toList();
-      final data = switch (tab.id) {
-        'Alarm' => await _dataSource.fetchAlarms(_activeView),
-        'Event' => await _dataSource.fetchEvents(_activeView),
-        _ => await _dataSource.fetchElements(_activeView),
-      };
+      _headers = tab.type.fields.map(ColumnModel.fromFieldDescriptor).toList();
+      _columnModels = tab.type.fields.map(ColumnModel.fromFieldDescriptor).toList();
+      final List<InstanceRecord> records = await _dataSource.fetchRelatedInstances(
+        parentNodeId: _activeView,
+        targetType: tab.type,
+      );
 
       if (requestId != _requestId) return;
 
-      final rows = data.map((row) {
-        return tab.columns.map((f) => row[f.key] as String? ?? '').toList();
+      final rows = records.map((record) {
+        return tab.type.fields.map((f) => record.attributes[f.key] as String? ?? '').toList();
       }).toList();
 
       if (requestId != _requestId) return;

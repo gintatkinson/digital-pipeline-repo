@@ -41,9 +41,5 @@ Map<String, String> resolveLabelsMapping(Map<String, dynamic> layoutConfig) {
       return rawLabels.map((key, value) => MapEntry(key, value.toString()));
     }
   } catch (_) {}
-  return const <String, String>{
-    'elements': 'Items',
-    'alarms': 'Status',
-    'events': 'Activity',
-  };
+  return const <String, String>{};
 }
