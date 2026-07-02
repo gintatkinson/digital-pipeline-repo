@@ -56,15 +56,15 @@ const String testLayoutConfig = '''
               "children": [
                 {
                   "type": "TableView",
-                  "id": "sub_elements_table"
+                  "id": "components_table"
                 },
                 {
                   "type": "TableView",
-                  "id": "active_alarms_table"
+                  "id": "relation_a_table"
                 },
                 {
                   "type": "TableView",
-                  "id": "historical_events_table"
+                  "id": "relation_b_table"
                 }
               ]
             }
@@ -142,7 +142,7 @@ void main() {
 
       expect(find.text(AppConfig.title), findsNWidgets(2));
       expect(find.text('Active View: root'), findsOneWidget);
-      expect(find.byKey(const Key('SubElement-table')), findsNothing);
+      expect(find.byKey(const Key('Component-table')), findsNothing);
 
       await tester.pumpWidget(Container());
       await settle(tester);
@@ -172,29 +172,29 @@ void main() {
       );
       await settle(tester);
 
-      // Items table is displayed initially
-      expect(find.byKey(const Key('SubElement-table')), findsOneWidget);
-      expect(find.byKey(const Key('Alarm-table')), findsNothing);
+      // Components table is displayed initially
+      expect(find.byKey(const Key('Component-table')), findsOneWidget);
+      expect(find.byKey(const Key('RelationA-table')), findsNothing);
 
-      // Tap Alarms tab
-      await tester.tap(find.widgetWithText(Tab, 'Alarms'));
+      // Tap Relation A tab
+      await tester.tap(find.widgetWithText(Tab, 'Relation A'));
       for (int i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('SubElement-table')), findsNothing);
-      expect(find.byKey(const Key('Alarm-table')), findsOneWidget);
+      expect(find.byKey(const Key('Component-table')), findsNothing);
+      expect(find.byKey(const Key('RelationA-table')), findsOneWidget);
 
-      // Tap Events tab
-      await tester.tap(find.widgetWithText(Tab, 'Events'));
+      // Tap Relation B tab
+      await tester.tap(find.widgetWithText(Tab, 'Relation B'));
       for (int i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('Alarm-table')), findsNothing);
-      expect(find.byKey(const Key('Event-table')), findsOneWidget);
+      expect(find.byKey(const Key('RelationA-table')), findsNothing);
+      expect(find.byKey(const Key('RelationB-table')), findsOneWidget);
 
       await tester.pumpWidget(Container());
       await settle(tester);
@@ -289,10 +289,10 @@ void main() {
       await tester.tap(find.byKey(const Key('node_Item')));
       await settle(tester);
 
-      // Send ArrowDown key event — navigates to SubElement child
+      // Send ArrowDown key event — navigates to Component child
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await settle(tester);
-      expect(selectedView, 'SubElement');
+      expect(selectedView, 'Component');
 
       await tester.pumpWidget(Container());
       await settle(tester);

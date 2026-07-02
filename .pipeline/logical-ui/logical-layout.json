@@ -40,39 +40,18 @@
             "width": "spacing.layout-sidebar-width",
             "hierarchy": [
               {
-                "id": "Ingestion",
-                "label": "Ingestion"
-              },
-              {
-                "id": "Monitoring",
-                "label": "Monitoring",
+                "id": "CategoryA",
+                "label": "Category A",
                 "children": [
-                  {
-                    "id": "Metrics",
-                    "label": "Metrics"
-                  },
-                  {
-                    "id": "Location",
-                    "label": "Location"
-                  },
-                  {
-                    "id": "Chassis",
-                    "label": "Chassis"
-                  }
+                  { "id": "ItemA1", "label": "Item A1" },
+                  { "id": "ItemA2", "label": "Item A2" }
                 ]
               },
               {
-                "id": "Spec",
-                "label": "Spec",
+                "id": "CategoryB",
+                "label": "Category B",
                 "children": [
-                  {
-                    "id": "Epics",
-                    "label": "Epics"
-                  },
-                  {
-                    "id": "Traceability",
-                    "label": "Traceability"
-                  }
+                  { "id": "ItemB1", "label": "Item B1" }
                 ]
               }
             ]
@@ -122,44 +101,44 @@
               "children": [
                 {
                   "type": "TableView",
-                  "id": "sub_elements_table",
+                  "id": "components_table",
                   "props": {
-                    "label": "token:layout.labels.elements",
+                    "label": "token:layout.labels.components",
                     "sortable": true,
                     "filterable": true,
                     "high_density": true,
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "token:layout.data_sources.sub_elements"
+                    "data_source": "token:layout.data_sources.components"
                   }
                 },
                 {
                   "type": "TableView",
-                  "id": "active_alarms_table",
+                  "id": "relation_a_table",
                   "props": {
-                    "label": "token:layout.labels.alarms",
+                    "label": "token:layout.labels.relation_a",
                     "sortable": true,
                     "filterable": true,
                     "high_density": true,
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "token:layout.data_sources.active_alarms"
+                    "data_source": "token:layout.data_sources.relation_a"
                   }
                 },
                 {
                   "type": "TableView",
-                  "id": "historical_events_table",
+                  "id": "relation_b_table",
                   "props": {
-                    "label": "token:layout.labels.events",
+                    "label": "token:layout.labels.relation_b",
                     "sortable": true,
                     "filterable": true,
                     "high_density": true,
                     "display_all_attributes": true
                   },
                   "bindings": {
-                    "data_source": "token:layout.data_sources.historical_events"
+                    "data_source": "token:layout.data_sources.relation_b"
                   }
                 }
               ]

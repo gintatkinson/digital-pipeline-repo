@@ -230,17 +230,17 @@
   },
   "layout_mappings": {
     "labels": {
-      "elements": "Items",
-      "alarms": "Status",
-      "events": "Activity"
+      "components": "Components",
+      "relation_a": "Relation A",
+      "relation_b": "Relation B"
     },
     "hierarchy": ["Level1", "Level2", "Level3"],
     "data_sources": {
       "resource_tree": "provider:generic-hierarchy-provider",
       "topology": "schema:generic-topology/topology[@id='selected_entity']",
-      "sub_elements": "schema:generic-topology/topology/element[@id='active_focused_element']/child-elements",
-      "active_alarms": "schema:generic-status/status[target='active_focused_element']",
-      "historical_events": "schema:generic-events/events[source='active_focused_element']"
+      "components": "schema:generic-topology/topology/component[@id='active_focused_element']/child-components",
+      "relation_a": "schema:generic-status/relation_a[target='active_focused_element']",
+      "relation_b": "schema:generic-events/relation_b[source='active_focused_element']"
     },
     "coordinate_mapping": {
       "x": "position/dim_0",
