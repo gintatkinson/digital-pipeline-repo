@@ -10,6 +10,8 @@ import 'data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'repository.dart';
+import 'database_initializer.dart';
+
 
 /// Resolves the data-access backend at app startup.
 ///
@@ -112,22 +114,19 @@ class RepositoryResolver {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
 
-    late final Database db;
+    final dir = await getApplicationSupportDirectory();
+    final dbPath = inMemory ? inMemoryDatabasePath : p.join(dir.path, 'properties_db.db');
 
-    if (inMemory) {
-      db = await databaseFactory.openDatabase(inMemoryDatabasePath);
-    } else {
-      final dir = await getApplicationSupportDirectory();
-      final dbPath = p.join(dir.path, 'properties_db.db');
+    if (!inMemory) {
       final dbFile = File(dbPath);
-
       final assetPath = dbAssetPath ?? _defaultDbAsset;
-      final bytes = await rootBundle.load(assetPath);
-      await dbFile.writeAsBytes(bytes.buffer.asUint8List());
-
-      db = await databaseFactory.openDatabase(dbPath);
+      try {
+        final bytes = await rootBundle.load(assetPath);
+        await dbFile.writeAsBytes(bytes.buffer.asUint8List());
+      } catch (_) {}
     }
 
+    final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
     final DataSource dataSource = SqliteDataSource(db);
 
     return (SqliteRepositoryAdapter(db), dataSource);

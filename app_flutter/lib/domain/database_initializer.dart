@@ -137,7 +137,7 @@ class DatabaseInitializer {
 
     if (seed) {
       final countResult =
-          await db.rawQuery('SELECT COUNT(*) as count FROM properties');
+          await db.rawQuery('SELECT COUNT(*) as count FROM type_definitions');
       final count = countResult.first['count'] as int? ?? 0;
       if (count == 0) {
         await _seed(db);
