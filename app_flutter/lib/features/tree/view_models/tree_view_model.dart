@@ -55,7 +55,8 @@ class TreeViewModel extends ChangeNotifier {
   Future<void> loadTree() async {
     final roots = await _dataSource.fetchRootNodes();
     if (_disposed) return;
-    _treeData = roots.isNotEmpty ? roots : defaultTreeData;
+    _treeData = roots.isNotEmpty ? roots : List<TreeNode>.from(defaultTreeData);
+    _sortNodesRecursively(_treeData);
 
     _expanded.clear();
     _loadingNodes.clear();
@@ -138,6 +139,7 @@ class TreeViewModel extends ChangeNotifier {
 
       try {
         final children = await _dataSource.fetchChildrenForNode(node.id);
+        _sortNodesRecursively(children);
         node.children = children;
         _buildNodeKeys(children);
       } catch (e) {
@@ -339,5 +341,50 @@ class TreeViewModel extends ChangeNotifier {
         );
       }
     });
+  }
+
+  void _sortNodesRecursively(List<TreeNode> nodes) {
+    nodes.sort((a, b) => _naturalCompare(a.id, b.id));
+    for (final node in nodes) {
+      if (node.children != null && node.children!.isNotEmpty) {
+        _sortNodesRecursively(node.children!);
+      }
+    }
+  }
+
+  int _naturalCompare(String a, String b) {
+    final bool isChildOrGcA = a.contains('_Child_') || a.contains('_Grandchild_');
+    final bool isChildOrGcB = b.contains('_Child_') || b.contains('_Grandchild_');
+    
+    if (isChildOrGcA != isChildOrGcB) {
+      return isChildOrGcA ? 1 : -1;
+    }
+
+    final RegExp regExp = RegExp(r'(\d+)|(\D+)');
+    final Iterable<Match> matchesA = regExp.allMatches(a);
+    final Iterable<Match> matchesB = regExp.allMatches(b);
+    
+    final List<String> chunksA = matchesA.map((m) => m.group(0)!).toList();
+    final List<String> chunksB = matchesB.map((m) => m.group(0)!).toList();
+    
+    final int minLen = chunksA.length < chunksB.length ? chunksA.length : chunksB.length;
+    for (int i = 0; i < minLen; i++) {
+      final String chunkA = chunksA[i];
+      final String chunkB = chunksB[i];
+      
+      final bool isDigitA = RegExp(r'^\d+$').hasMatch(chunkA);
+      final bool isDigitB = RegExp(r'^\d+$').hasMatch(chunkB);
+      
+      if (isDigitA && isDigitB) {
+        final int valA = int.parse(chunkA);
+        final int valB = int.parse(chunkB);
+        final int cmp = valA.compareTo(valB);
+        if (cmp != 0) return cmp;
+      } else {
+        final int cmp = chunkA.compareTo(chunkB);
+        if (cmp != 0) return cmp;
+      }
+    }
+    return chunksA.length.compareTo(chunksB.length);
   }
 }

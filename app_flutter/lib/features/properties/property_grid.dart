@@ -528,7 +528,11 @@ class _PropertyGridState extends State<PropertyGrid> {
     final groupFields = _fields
         .where((field) => (field.sectionLabel ?? 'Other') == group)
         .toList()
-      ..sort((a, b) => a.sectionOrder.compareTo(b.sectionOrder));
+      ..sort((a, b) {
+        final int cmp = a.sectionOrder.compareTo(b.sectionOrder);
+        if (cmp != 0) return cmp;
+        return _naturalCompare(a.key, b.key);
+      });
 
     final List<Widget> fields = [];
     for (final field in groupFields) {
@@ -806,5 +810,34 @@ class _PropertyGridState extends State<PropertyGrid> {
         ],
       ),
     );
+  }
+
+  int _naturalCompare(String a, String b) {
+    final RegExp regExp = RegExp(r'(\d+)|(\D+)');
+    final Iterable<Match> matchesA = regExp.allMatches(a);
+    final Iterable<Match> matchesB = regExp.allMatches(b);
+    
+    final List<String> chunksA = matchesA.map((m) => m.group(0)!).toList();
+    final List<String> chunksB = matchesB.map((m) => m.group(0)!).toList();
+    
+    final int minLen = chunksA.length < chunksB.length ? chunksA.length : chunksB.length;
+    for (int i = 0; i < minLen; i++) {
+      final String chunkA = chunksA[i];
+      final String chunkB = chunksB[i];
+      
+      final bool isDigitA = RegExp(r'^\d+$').hasMatch(chunkA);
+      final bool isDigitB = RegExp(r'^\d+$').hasMatch(chunkB);
+      
+      if (isDigitA && isDigitB) {
+        final int valA = int.parse(chunkA);
+        final int valB = int.parse(chunkB);
+        final int cmp = valA.compareTo(valB);
+        if (cmp != 0) return cmp;
+      } else {
+        final int cmp = chunkA.compareTo(chunkB);
+        if (cmp != 0) return cmp;
+      }
+    }
+    return chunksA.length.compareTo(chunksB.length);
   }
 }

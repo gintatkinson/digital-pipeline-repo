@@ -1,63 +1,49 @@
-# Implementation Plan: Recursive Parent-Child Topological Hierarchy
+# Implementation Plan: Defect #12 Remediation (Natural Sorting & Multi-Level Seeding)
 
-This plan details the changes to support recursive, lazy-loaded parent-child relationships (roots, children, and grandchildren) in the sidebar tree backed by SQLite.
+This plan details the changes to apply natural sorting to the sidebar tree nodes and properties grid fields, and to expand database seeding to generate detail instances for all hierarchical levels.
 
 ---
 
 ## Proposed Changes
 
-### 1. SQLite Schema & Seeding Expansion
+### 1. Seeding Adjustment
 - **File**: `app_flutter/lib/domain/database_initializer.dart`
 - **Action**:
-  - Update `properties` table creation: Add `parent_node_id TEXT REFERENCES properties(node_id)`.
-  - Refactor seeding to generate a nested topology:
-    - **Root Nodes (1,000)**: `Master_1` to `Master_1000` (parent is `NULL`).
-    - **Child Nodes (5 per root)**: `Master_N_Child_1` to `Master_N_Child_5` (parent is `Master_N`).
-    - **Grandchild Nodes (2 per child)**: `Master_N_Child_M_Grandchild_1` to `Master_N_Child_M_Grandchild_2` (parent is `Master_N_Child_M`).
-  - Update properties values and types definition loops to match.
-  - Compile the new gzipped database asset.
+  - Remove the `if (isRoot)` guard to seed detail instances for all levels of tree nodes (Roots, Children, and Grandchildren).
+  - To optimize database asset file size, set the number of detail instances per table to **5** (totaling 15 detail rows per tree node), keeping the gzipped asset package size under 15MB.
 
 ---
 
-### 2. Data Source Query Refactoring
-- **Files**:
-  - `app_flutter/lib/domain/data_source.dart`
-  - `app_flutter/lib/domain/data_sources/sqlite_data_source.dart`
-- **Action**:
-  - Add query methods:
-    - `Future<List<TreeNode>> fetchRootNodes()`: Fetches all nodes where `parent_node_id IS NULL`.
-    - `Future<List<TreeNode>> fetchChildrenForNode(String parentId)`: Fetches immediate child nodes where `parent_node_id = parentId`.
-
----
-
-### 3. Lazy-Loaded View Model (TreeViewModel)
+### 2. Natural Sorting for Tree Nodes
 - **File**: `app_flutter/lib/features/tree/view_models/tree_view_model.dart`
 - **Action**:
-  - Refactor `loadTree` to load only the root nodes on startup.
-  - Add `Future<void> expandNode(TreeNode node)` to fetch children on demand from the database and insert them dynamically.
-  - Exclude detail instances from expanding as tree nodes if they are represented in detail tables.
+  - Implement a natural alphanumeric sorting comparator for sorting tree nodes:
+    ```dart
+    int naturalCompare(String a, String b) {
+       // Compares strings containing numbers naturally, e.g., "Master_2" < "Master_10"
+    }
+    ```
+  - Sort the root nodes and children lists recursively before notifying listeners.
 
 ---
 
-### 4. UI Expansion Tile Async Integration (SidebarTree)
-- **File**: `app_flutter/lib/features/tree/sidebar_tree.dart`
+### 3. Natural Sorting for Properties Grid Fields
+- **File**: `app_flutter/lib/features/properties/property_grid.dart`
 - **Action**:
-  - Update `SidebarTree` to trigger `expandNode` when a node is expanded in the tree.
-  - Display a dynamic progress indicator next to the node icon during active database fetches.
+  - Ensure that fields are rendered in their natural numerical sorting order (`field_1` through `field_50`) rather than simple lexicographical string sorting.
 
 ---
 
 ## Verification Plan
 
-### Step 1: Database Verification
-1. Run the database compiler:
+### Step 1: Run the Profiler Audit
+1. Execute the profiling audit runner:
    ```bash
-   (cd app_flutter && dart run lib/domain/database_initializer.dart)
+   python3 scripts/run_profile_audit.py
    ```
-2. Verify nested references:
-   ```bash
-   sqlite3 app_flutter/assets/properties_db.db "SELECT count(*) FROM properties WHERE parent_node_id IS NOT NULL;"
-   ```
+2. Verify the audit succeeds and outputs:
+   - **Average Frame Build Time**: under **16.6ms** (Target met).
+   - **Memory Leaks**: `False` (No leaks).
 
 ### Step 2: Automated Tests
-- Run `flutter test` and integration audits to ensure the lazy loading resolves frame timings within 16.6ms.
+- Run `flutter test` to ensure zero regressions across widget and unit test suites.

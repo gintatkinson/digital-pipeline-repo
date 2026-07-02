@@ -223,20 +223,18 @@ class DatabaseInitializer {
       'data_json': jsonEncode(propertiesMap),
     });
 
-    if (isRoot) {
-      for (final d in details) {
-        for (int k = 1; k <= 50; k++) {
-          final instId = 'inst_${node}_${d}_$k';
-          final instanceMap = {
-            for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${node}_${d}_${k}_field_$j'
-          };
-          batch.insert('instances', {
-            'id': instId,
-            'parent_node_id': node,
-            'type_name': d,
-            'data_json': jsonEncode(instanceMap),
-          });
-        }
+    for (final d in details) {
+      for (int k = 1; k <= 5; k++) {
+        final instId = 'inst_${node}_${d}_$k';
+        final instanceMap = {
+          for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${node}_${d}_${k}_field_$j'
+        };
+        batch.insert('instances', {
+          'id': instId,
+          'parent_node_id': node,
+          'type_name': d,
+          'data_json': jsonEncode(instanceMap),
+        });
       }
     }
   }
