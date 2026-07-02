@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
@@ -58,7 +59,12 @@ class TablesViewModel extends ChangeNotifier {
   String? _error;
   int _requestId = 0;
 
-  TablesViewModel(this._dataSource, this._activeView);
+  final Map<(String, String), List<InstanceRecord>> _cache = {};
+  StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
+
+  TablesViewModel(this._dataSource, this._activeView) {
+    _setupPropertiesSubscription(_activeView);
+  }
 
   /// All discovered tabs for the current node. Empty until [loadForNode]
   /// completes successfully and the node has child/related types.
@@ -115,6 +121,7 @@ class TablesViewModel extends ChangeNotifier {
     _loading = true;
     _error = null;
     notifyListeners();
+    _setupPropertiesSubscription(nodeId);
 
     try {
       final typeDescriptor = await _dataSource.typeFor(nodeId);
@@ -191,12 +198,19 @@ class TablesViewModel extends ChangeNotifier {
     try {
       _headers = tab.type.fields.map(ColumnModel.fromFieldDescriptor).toList();
       _columnModels = tab.type.fields.map(ColumnModel.fromFieldDescriptor).toList();
-      final List<InstanceRecord> records = await _dataSource.fetchRelatedInstances(
-        parentNodeId: _activeView,
-        targetType: tab.type,
-      );
 
-      if (requestId != _requestId) return;
+      final cacheKey = (_activeView, tab.type.typeName);
+      final List<InstanceRecord> records;
+      if (_cache.containsKey(cacheKey)) {
+        records = _cache[cacheKey]!;
+      } else {
+        records = await _dataSource.fetchRelatedInstances(
+          parentNodeId: _activeView,
+          targetType: tab.type,
+        );
+        if (requestId != _requestId) return;
+        _cache[cacheKey] = records;
+      }
 
       final rows = records.map((record) {
         return tab.type.fields.map((f) => record.attributes[f.key]?.toString() ?? '').toList();
@@ -217,5 +231,32 @@ class TablesViewModel extends ChangeNotifier {
       debugPrint('TablesViewModel._loadData error: $e\n$st');
       notifyListeners();
     }
+  }
+
+  void _setupPropertiesSubscription(String nodeId) {
+    _propertiesSubscription?.cancel();
+    bool isFirst = true;
+    _propertiesSubscription = _dataSource.watchProperties(nodeId).listen(
+      (data) {
+        if (isFirst) {
+          isFirst = false;
+          return;
+        }
+        _cache.clear();
+        if (_tabs.isNotEmpty && _selectedTabId != null) {
+          final tab = _tabs.firstWhere((t) => t.id == _selectedTabId);
+          _loadData(tab, _requestId);
+        }
+      },
+      onError: (Object e) {
+        debugPrint('TablesViewModel properties subscription error: $e');
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _propertiesSubscription?.cancel();
+    super.dispose();
   }
 }

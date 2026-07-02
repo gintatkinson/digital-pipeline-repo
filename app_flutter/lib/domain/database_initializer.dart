@@ -77,6 +77,7 @@ class DatabaseInitializer {
         );
 
     final db = await databaseFactory.openDatabase(path);
+    await db.execute('PRAGMA foreign_keys = ON;');
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS properties (

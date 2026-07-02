@@ -187,3 +187,87 @@ This plan details refactoring the automated test suites in layout_test.dart and 
 ### 1. Automated Execution
 - Run `flutter test` inside the `app_flutter/` directory to verify that all 89 test cases execute and pass successfully.
 - Verify that `git diff origin/restore-june30` contains only the intended changes.
+
+# Implementation Plan - Safety & Verification Upgrades
+
+This plan details implementing Safety & Verification upgrades, including layout validation scripts, enabling SQLite foreign keys, and defensive schema validation in models.
+
+## Proposed Changes
+
+### 1. Create `scripts/validate_layout.py`
+- Create a python script that reads and parses `app_flutter/assets/logical-layout.json`.
+- Validate that:
+  - The file is a valid JSON document.
+  - Every layout node ID under the layout hierarchy is unique.
+  - All theme references are structured correctly.
+- Make the script executable.
+
+### 2. Modify `app_flutter/lib/domain/database_initializer.dart`
+- Enable SQLite foreign key constraints immediately after opening the database:
+  `await db.execute('PRAGMA foreign_keys = ON;');`
+
+### 3. Modify `app_flutter/lib/domain/instance_record.dart`
+- Add defensive schema validation on construction or mapping.
+- Add a custom `SchemaValidationException` class.
+- Add a `validate` method/factory to `InstanceRecord` checking `FieldDescriptor` constraints (required fields, value ranges, pattern matches, enum values).
+- Log a warning/error or throw `SchemaValidationException` on failure.
+
+## Verification Plan
+
+### 1. Automated Execution
+- Run `python3 scripts/validate_layout.py` to verify layout validation succeeds.
+- Run `flutter analyze` inside `app_flutter/` to verify zero compile or analysis warnings.
+- Run `flutter test` inside `app_flutter/` to verify that all test cases execute and pass successfully.
+- Verify that `git diff origin/restore-june30` contains only the intended changes.
+
+
+# Implementation Plan - Memory & Caching Upgrades
+
+This plan details implementing an in-memory cache in TablesViewModel to avoid redundant queries and heap re-allocations, and invalidating it on property saves.
+
+## Proposed Changes
+
+### 1. In `app_flutter/lib/features/tables/view_models/tables_view_model.dart`
+- Import `dart:async`.
+- Add an in-memory cache mapping `(nodeId, typeName)` keys (using Dart records `(String, String)`) to `List<InstanceRecord>`.
+- Add a `StreamSubscription<Map<String, dynamic>>? _propertiesSubscription` to monitor property changes on the active view.
+- Update the constructor to call a private `_setupPropertiesSubscription` method.
+- Update `loadForNode` to update the properties subscription for the new active view.
+- Override `dispose` to cancel `_propertiesSubscription`.
+- In `_loadData`, check the cache first. If a list of records for `(_activeView, tab.type.typeName)` exists, serve them immediately. Otherwise, fetch them and cache the result.
+- In `_setupPropertiesSubscription`, listen to `_dataSource.watchProperties(nodeId)`. Skip the first (initial) emission, and on subsequent emissions, clear `_cache` and reload data for the active tab to serve fresh data.
+
+## Verification Plan
+
+### 1. Static Analysis & Compilation
+- Run `flutter analyze` inside `app_flutter/` to verify zero compile or analysis warnings.
+
+### 2. Automated Tests
+- Run `flutter test` inside `app_flutter/` to verify all tests pass.
+- Verify that `git diff origin/restore-june30` contains only the intended changes.
+
+
+# Implementation Plan - Isolate-Offloaded Performance Upgrades
+
+This plan details offloading CPU-intensive row mapping and document serialization in `sqlite_data_source.dart` and `firebase_data_source.dart` to a background isolate using Dart's `compute` function.
+
+## Proposed Changes
+
+### 1. In `app_flutter/lib/domain/data_sources/sqlite_data_source.dart`
+- Import `package:flutter/foundation.dart` (for `compute`).
+- In `fetchRelatedInstances`, perform the SQLite query.
+- Offload the mapping of database row maps to `InstanceRecord` instances in a background isolate using `compute`.
+
+### 2. In `app_flutter/lib/domain/data_sources/firebase_data_source.dart`
+- Import `package:flutter/foundation.dart` (for `compute`).
+- In `fetchRelatedInstances`, retrieve the Firestore documents snapshot.
+- Extract ID and raw payload map list from the documents, then map/serialize them to `InstanceRecord` instances in a background isolate using `compute`.
+
+## Verification Plan
+
+### 1. Static Analysis
+- Run `flutter analyze` inside the `app_flutter/` directory to ensure zero compilation or analysis warnings.
+
+### 2. Unit & Widget Tests
+- Run `flutter test` inside the `app_flutter/` directory to verify that all existing tests compile and pass successfully.
+

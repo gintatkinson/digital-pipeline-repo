@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
@@ -144,7 +145,12 @@ class SqliteDataSource implements DataSource {
       where: 'parent_node_id = ? AND type_name = ?',
       whereArgs: [parentNodeId, targetType.typeName],
     );
-    return rows.map((r) => InstanceRecord.fromMap(r, targetType.typeName)).toList();
+    return compute(
+      (args) => (args[0] as List<Map<String, dynamic>>)
+          .map((r) => InstanceRecord.fromMap(r, args[1] as String))
+          .toList(),
+      [rows, targetType.typeName],
+    );
   }
 
   Future<TypeDescriptor> _buildType(Map<String, dynamic> typeRow) async {

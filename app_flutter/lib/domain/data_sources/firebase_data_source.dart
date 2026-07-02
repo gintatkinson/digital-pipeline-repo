@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/data_source.dart';
@@ -157,14 +158,26 @@ class FirebaseDataSource implements DataSource {
         .where('parent_node_id', isEqualTo: parentNodeId)
         .where('type_name', isEqualTo: targetType.typeName)
         .get();
-    return snapshot.docs.map((d) {
-      return InstanceRecord(
-        id: d.id,
-        parentNodeId: parentNodeId,
-        typeName: targetType.typeName,
-        attributes: d.data(),
-      );
+    final rawDocs = snapshot.docs.map((d) => {
+      'id': d.id,
+      'data': d.data(),
     }).toList();
+    return compute(
+      (args) {
+        final docs = args[0] as List<Map<String, dynamic>>;
+        final pId = args[1] as String;
+        final tName = args[2] as String;
+        return docs.map((doc) {
+          return InstanceRecord(
+            id: doc['id'] as String,
+            parentNodeId: pId,
+            typeName: tName,
+            attributes: doc['data'] as Map<String, dynamic>,
+          );
+        }).toList();
+      },
+      [rawDocs, parentNodeId, targetType.typeName],
+    );
   }
 
   List<FieldDescriptor> _parseFields(List<dynamic>? fields) {
