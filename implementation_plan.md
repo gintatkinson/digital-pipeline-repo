@@ -1,68 +1,58 @@
-# Implementation Plan: Seeding 1,000 Master Nodes with 50 Properties & 50 Table Rows
+# Implementation Plan: Closed-Loop Performance Profiling & Automated Defect Filing
 
-This plan details the changes to expand the SQLite database seeding to a high-density, real-world stress dataset: 1,000 Master Nodes, each with 50 properties, and 50 rows in each detail table (totaling 150,000 detail instances).
+This plan details the changes to integrate frame performance timeline tracking, VM-level memory leak detection, and an automated runner script that parses profile reports and files GitHub defect issues to close the loop with the `debug-protocol`.
 
 ---
 
 ## Proposed Changes
 
-### 1. Seeding Logic Refactor
-- **File**: `app_flutter/lib/domain/database_initializer.dart`
+### 1. VM Leak Detection & Frame Timeline Tracking
+- **File**: `app_flutter/integration_test/node_iteration_test.dart`
 - **Action**:
-  - Replace master nodes count with 1,000 master nodes (`Master_1` to `Master_1000`).
-  - Update `type_attributes` count to generate 50 fields (`field_1` to `field_50`) for all types (masters and details).
-  - Update properties seeding to write 50 properties inside the `data_json` map for each master node.
-  - Update `instances` seeding to insert 50 detail instances per detail type (`Detail_A`, `Detail_B`, `Detail_C`) for each of the 1,000 master nodes (totaling 150,000 instance rows).
-
----
-
-### 2. Table Column Constraint Fix (Defect Remediation)
-- **File**: `app_flutter/lib/features/tables/table_view_widget.dart`
+  - Wrap the node iteration stress loop in `binding.watchPerformance(...)` to capture the UI/Raster timeline traces.
+  - Implement a VM Service connection helper that connects to the Dart VM during test runs.
+  - Trigger garbage collection programmatically and verify that instance counts for key State/ViewModel/Controller classes (e.g. `TreeViewModel`, `PropertiesViewModel`, `TablesViewModel`) have returned to their expected baseline.
+  - Write detailed JSON records of frame times, memory growth (RSS), and leak details directly to `benchmark_results.jsonl`.
+- **File**: `app_flutter/macos/Runner/DebugProfile.entitlements`
 - **Action**:
-  - Enforce a minimum column width of `120.0` pixels using `math.max` to prevent cumulative column spacing from producing negative width constraints under high column counts (such as 50 columns):
-    ```dart
-    final colWidth = math.max(120.0, (constraints.maxWidth - 2 * widget.horizontalMargin - spacingWidth) / colCount);
-    ```
+  - Add `com.apple.security.network.client` key set to true to allow the macOS desktop target application to connect to the local VM service via WebSocket.
 
 ---
 
-### 3. Application Default Shell State
-- **Files**:
-  - `app_flutter/lib/app/app.dart`: Set default active view `_activeView = 'Master_1';`.
-  - `app_flutter/assets/strings.json`: Update `"fallback.typeName"` to `'Master_1'`, and add fallback field labels for `field_1` through `field_50`.
-  - `app_flutter/lib/features/tree/tree_defaults.dart`: Update default fallback tree nodes to `Master_1`, `Master_2`, and `Master_3`.
+### 2. Closed-Loop Profiler Runner (Automated Bug Filing)
+- **File [NEW]**: `scripts/run_profile_audit.py`
+- **Action**:
+  - A Python automation script that runs the integration test command.
+  - Parses the execution stdout and `benchmark_results.jsonl` logs.
+  - Detects memory leaks, high frame build times (jank > 16.6ms), or test failures.
+  - If a defect or bottleneck is found:
+    - Formats a comprehensive markdown report with the profiling traces, RSS deltas, and affected widgets.
+    - Files a GitHub issue directly in the repository via the `gh` CLI:
+      ```bash
+      gh issue create --title "Defect: [Performance/Memory Leak] detected during profile audit" --body-file [report_path] --label "bug"
+      ```
+    - Prints the created Issue ID, allowing it to be immediately picked up and solved using the `debug-protocol`.
 
 ---
 
-### 4. Test Alignment
-- **Files**:
-  - `app_flutter/integration_test/app_e2e_test.dart`
-  - `app_flutter/test/layout_test.dart`
-  - `app_flutter/test/widget_test.dart`
-- **Action**: Update assertions, loops, and mock expectations to handle the expanded type names (`Master_1`) and check rendering across the 50 properties.
+### 3. Developer documentation
+- **File**: `app_flutter/README.md`
+- **Action**:
+  - Add execution instructions for running `python scripts/run_profile_audit.py` to trigger the closed-loop profiling and bug-hunting flow.
 
 ---
 
 ## Verification Plan
 
-### Step 1: Database Rebuild
-1. Run the database seed script to compile the new high-density database asset:
+### Step 1: Run the Profiler Audit
+1. Execute the profiling audit runner:
    ```bash
-   (cd app_flutter && dart run lib/domain/database_initializer.dart)
+   python scripts/run_profile_audit.py
    ```
-2. Verify table size using SQLite query commands:
-   ```bash
-   sqlite3 app_flutter/assets/properties_db.db "SELECT count(*) FROM type_definitions;"
-   sqlite3 app_flutter/assets/properties_db.db "SELECT count(*) FROM type_attributes;"
-   sqlite3 app_flutter/assets/properties_db.db "SELECT count(*) FROM instances;"
-   ```
-   *(Expected: 1,003 type definitions, 50,150 attributes, and 150,000 detail instances)*
+2. Confirm the test executes and writes performance metrics to `benchmark_results.jsonl`.
 
-### Step 2: Automated Tests
-- Run `flutter test` and `flutter test integration_test/app_e2e_test.dart` to verify zero regressions.
-
-### Step 3: GUI / Performance & Memory Profiling Harness
-- Run the GUI iteration stress test to verify rendering speeds and memory allocation safety under the high-density layout:
-  ```bash
-  (cd app_flutter && flutter test integration_test/node_iteration_test.dart)
-  ```
+### Step 2: Verification of Automated Bug Filing
+1. Temporarily insert a memory leak (e.g., holding references to disposed ViewModels in a global list).
+2. Run `python scripts/run_profile_audit.py`.
+3. Verify that the script successfully detects the leak, halts execution, and files a detailed defect issue on GitHub.
+4. Verify that the filed issue is labeled `bug` and displays correct trace info.
