@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
@@ -18,8 +19,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
     final dataSource = await RepositoryResolver.resolve(
       dataSourceType: _dataSource,
+      sqliteInMemory: isTest,
     );
 
     // Theme

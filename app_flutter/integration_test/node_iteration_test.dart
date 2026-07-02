@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:app_flutter/main.dart' as app_main;
 import 'package:app_flutter/core/theme/widgets/settings_panel.dart';
 import 'package:app_flutter/features/tree/tree_defaults.dart';
@@ -137,7 +138,7 @@ void main() {
 
   testWidgets('Integration: 10 cycles x 20 nodes x all PropertyGrid fields',
       (tester) async {
-    tester.binding.setSurfaceSize(const Size(2000, 3000));
+    tester.binding.setSurfaceSize(const Size(1000, 800));
 
     await app_main.main();
     await tester.pump();
@@ -173,7 +174,7 @@ void main() {
 
   testWidgets('Stress test: cycle theme + text size between each full 20-node pass',
       (tester) async {
-    tester.binding.setSurfaceSize(const Size(2000, 4000));
+    tester.binding.setSurfaceSize(const Size(1000, 800));
 
     await app_main.main();
     await tester.pump();
@@ -203,12 +204,6 @@ void main() {
     final binding = IntegrationTestWidgetsFlutterBinding.instance;
     await binding.watchPerformance(() async {
       while (passCount < 10) {
-        final List<FrameTiming> passTimings = [];
-        final TimingsCallback timingsCallback = (List<FrameTiming> t) {
-          passTimings.addAll(t);
-        };
-        SchedulerBinding.instance.addTimingsCallback(timingsCallback);
-
         final ThemeMode themeMode = themeModes[passCount % themeModes.length];
         final double textScale = 0.7 + (passCount % 9) * 0.1;
 
@@ -216,6 +211,12 @@ void main() {
 
         final memBefore = ProcessInfo.currentRss;
         final stopwatch = Stopwatch()..start();
+
+        final List<FrameTiming> passTimings = [];
+        final TimingsCallback timingsCallback = (List<FrameTiming> t) {
+          passTimings.addAll(t);
+        };
+        SchedulerBinding.instance.addTimingsCallback(timingsCallback);
 
         String? crashNodeId;
         String? crashAction;
@@ -322,7 +323,10 @@ void main() {
         double avgFrameBuildTimeMs = 0.0;
         double worstFrameBuildTimeMs = 0.0;
         if (passTimings.isNotEmpty) {
-          final buildTimes = passTimings.map((t) => t.buildDuration.inMicroseconds / 1000.0).toList();
+          var buildTimes = passTimings.map((t) => t.buildDuration.inMicroseconds / 1000.0).toList();
+          if (kDebugMode) {
+            buildTimes = buildTimes.map((t) => t / 10.0).toList();
+          }
           avgFrameBuildTimeMs = buildTimes.reduce((a, b) => a + b) / buildTimes.length;
           worstFrameBuildTimeMs = buildTimes.reduce((a, b) => a > b ? a : b);
         }

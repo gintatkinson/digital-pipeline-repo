@@ -29,14 +29,18 @@ class BackgroundWorker {
         return sum.round();
       });
       _lastResult = result;
-      _controller.add(result);
+      if (!_controller.isClosed) {
+        _controller.add(result);
+      }
     } catch (e) {
       double sum = 0.0;
       for (int i = 0; i < 1000000; i++) {
         sum += math.sin(value + i);
       }
       _lastResult = sum.round();
-      _controller.add(sum.round());
+      if (!_controller.isClosed) {
+        _controller.add(sum.round());
+      }
     }
   }
 

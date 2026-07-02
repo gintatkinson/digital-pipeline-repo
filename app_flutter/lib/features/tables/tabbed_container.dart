@@ -35,6 +35,7 @@ class _TabbedContainerState extends State<TabbedContainer>
     with TickerProviderStateMixin {
   TabController? _tabController;
   TablesViewModel? _viewModel;
+  int? _lastIndex;
 
   @override
   void didChangeDependencies() {
@@ -73,15 +74,22 @@ class _TabbedContainerState extends State<TabbedContainer>
           tabs.indexWhere((t) => t.id == _viewModel?.selectedTabId);
       if (initialIndex > 0) _tabController!.index = initialIndex;
       _tabController!.addListener(_onTabTick);
+      _lastIndex = _tabController!.index;
     }
   }
 
   void _onTabTick() {
-    if (_tabController != null && !_tabController!.indexIsChanging) {
-      final tabs = _viewModel?.tabs ?? [];
-      if (_tabController!.index < tabs.length) {
-        final tab = tabs[_tabController!.index];
-        _viewModel?.selectTab(tab.id);
+    if (_tabController != null) {
+      if (_tabController!.index != _lastIndex) {
+        _lastIndex = _tabController!.index;
+        setState(() {});
+      }
+      if (!_tabController!.indexIsChanging) {
+        final tabs = _viewModel?.tabs ?? [];
+        if (_tabController!.index < tabs.length) {
+          final tab = tabs[_tabController!.index];
+          _viewModel?.selectTab(tab.id);
+        }
       }
     }
   }
@@ -114,7 +122,12 @@ class _TabbedContainerState extends State<TabbedContainer>
         Expanded(
           child: TabBarView(
             controller: _tabController!,
-            children: tabs.map((_) => const TableViewWidget()).toList(),
+            children: List.generate(tabs.length, (idx) {
+              return LazyTab(
+                isSelected: _tabController!.index == idx,
+                child: const TableViewWidget(),
+              );
+            }),
           ),
         ),
       ],
@@ -127,5 +140,16 @@ class _TabbedContainerState extends State<TabbedContainer>
     _tabController?.removeListener(_onTabTick);
     _tabController?.dispose();
     super.dispose();
+  }
+}
+
+class LazyTab extends StatelessWidget {
+  final Widget child;
+  final bool isSelected;
+  const LazyTab({required this.child, required this.isSelected, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return isSelected ? child : const SizedBox.shrink();
   }
 }

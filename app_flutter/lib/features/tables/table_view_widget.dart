@@ -101,7 +101,6 @@ class _TableViewWidgetState extends State<TableViewWidget> {
             : 0.0;
         final colWidth = math.max(120.0, (constraints.maxWidth - 2 * widget.horizontalMargin - spacingWidth) / colCount);
         final tableWidth = math.max(constraints.maxWidth, colCount * colWidth + spacingWidth + 2 * widget.horizontalMargin);
-        debugPrint('TableViewWidget: constraints=$constraints, colCount=$colCount, spacingWidth=$spacingWidth, colWidth=$colWidth, tableWidth=$tableWidth');
 
         void onSort(int columnIndex) {
           setState(() {
@@ -122,24 +121,26 @@ class _TableViewWidgetState extends State<TableViewWidget> {
             height: constraints.maxHeight,
             child: Stack(
               children: [
-                ListView.builder(
-                  key: Key('$testId-body'),
-                  itemCount: rows.length,
-                  padding: EdgeInsets.only(top: widget.headingRowHeight),
-                  itemBuilder: (context, index) {
-                    final row = rows[index];
-                    return _DataRow(
-                      cells: row,
-                      columnModels: headers,
-                      headerIndices: headerIndices,
-                      colWidth: colWidth,
-                      dataRowMinHeight: widget.dataRowMinHeight,
-                      dataRowMaxHeight: widget.dataRowMaxHeight,
-                      horizontalMargin: widget.horizontalMargin,
-                      columnSpacing: widget.columnSpacing,
-                      index: index,
-                    );
-                  },
+                RepaintBoundary(
+                  child: ListView.builder(
+                    key: Key('$testId-body'),
+                    itemCount: rows.length,
+                    padding: EdgeInsets.only(top: widget.headingRowHeight),
+                    itemBuilder: (context, index) {
+                      final row = rows[index];
+                      return _DataRow(
+                        cells: row,
+                        columnModels: headers,
+                        headerIndices: headerIndices,
+                        colWidth: colWidth,
+                        dataRowMinHeight: widget.dataRowMinHeight,
+                        dataRowMaxHeight: widget.dataRowMaxHeight,
+                        horizontalMargin: widget.horizontalMargin,
+                        columnSpacing: widget.columnSpacing,
+                        index: index,
+                      );
+                    },
+                  ),
                 ),
                 Positioned(
                   top: 0,
@@ -301,27 +302,29 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        minHeight: dataRowMinHeight,
-        maxHeight: dataRowMaxHeight,
-      ),
-      color: index.isEven ? null : Colors.black.withOpacity(0.03),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(columnModels.length, (i) {
-          final cellIdx = headerIndices[columnModels[i].key];
-          final cellValue = cellIdx != null && cellIdx < cells.length ? cells[cellIdx] : '';
-          return _DataCell(
-            value: cellValue,
-            columnModel: columnModels[i],
-            colWidth: colWidth,
-            horizontalMargin: horizontalMargin,
-            columnSpacing: columnSpacing,
-            isFirst: i == 0,
-            isLast: i == columnModels.length - 1,
-          );
-        }),
+    return RepaintBoundary(
+      child: Container(
+        constraints: BoxConstraints(
+          minHeight: dataRowMinHeight,
+          maxHeight: dataRowMaxHeight,
+        ),
+        color: index.isEven ? null : Colors.black.withOpacity(0.03),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(columnModels.length, (i) {
+            final cellIdx = headerIndices[columnModels[i].key];
+            final cellValue = cellIdx != null && cellIdx < cells.length ? cells[cellIdx] : '';
+            return _DataCell(
+              value: cellValue,
+              columnModel: columnModels[i],
+              colWidth: colWidth,
+              horizontalMargin: horizontalMargin,
+              columnSpacing: columnSpacing,
+              isFirst: i == 0,
+              isLast: i == columnModels.length - 1,
+            );
+          }),
+        ),
       ),
     );
   }
