@@ -46,6 +46,30 @@ class SettingsPanel extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
+          Text('Workspace Split', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          SegmentedButton<Axis>(
+            segments: const [
+              ButtonSegment(
+                value: Axis.horizontal,
+                icon: Icon(Icons.splitscreen_outlined, size: 18),
+                label: Text('Horizontal'),
+              ),
+              ButtonSegment(
+                value: Axis.vertical,
+                icon: RotatedBox(
+                  quarterTurns: 1,
+                  child: Icon(Icons.splitscreen_outlined, size: 18),
+                ),
+                label: Text('Vertical'),
+              ),
+            ],
+            selected: {themeController.layoutSplitAxis},
+            onSelectionChanged: (Set<Axis> newSelection) {
+              themeController.updateLayoutSplitAxis(newSelection.first);
+            },
+          ),
+          const SizedBox(height: 16),
 
           Text('Color', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),

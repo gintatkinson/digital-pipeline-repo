@@ -21,6 +21,7 @@ class ThemeController extends ChangeNotifier {
   final ThemeService _themeService;
   ThemeMode _themeMode = ThemeMode.system;
   int _currentThemeIndex = 0;
+  Axis _layoutSplitAxis = Axis.horizontal;
 
   /// Current [ThemeMode] (light / dark / system).
   ThemeMode get themeMode => _themeMode;
@@ -29,6 +30,9 @@ class ThemeController extends ChangeNotifier {
   ///
   /// Guaranteed to be a valid index after [loadSettings] completes.
   int get currentThemeIndex => _currentThemeIndex;
+
+  /// Current layout split axis orientation.
+  Axis get layoutSplitAxis => _layoutSplitAxis;
 
   /// Convenience getter for the currently selected [FlexSchemeData].
   ///
@@ -48,6 +52,7 @@ class ThemeController extends ChangeNotifier {
     if (_currentThemeIndex < 0 || _currentThemeIndex >= AppThemes.customSchemes.length) {
       _currentThemeIndex = 0;
     }
+    _layoutSplitAxis = await _themeService.loadLayoutSplitAxis();
     notifyListeners();
   }
 
@@ -74,5 +79,17 @@ class ThemeController extends ChangeNotifier {
     _currentThemeIndex = newIndex;
     notifyListeners();
     await _themeService.saveThemeScheme(newIndex);
+  }
+
+  /// Updates the layout split axis orientation and persists it via [ThemeService].
+  ///
+  /// No-op when [newAxis] is null or matches the current value.
+  /// Fires `notifyListeners()` before persisting.
+  /// Persistence failure is silently swallowed.
+  Future<void> updateLayoutSplitAxis(Axis? newAxis) async {
+    if (newAxis == null || newAxis == _layoutSplitAxis) return;
+    _layoutSplitAxis = newAxis;
+    notifyListeners();
+    await _themeService.saveLayoutSplitAxis(newAxis);
   }
 }

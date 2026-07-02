@@ -66,6 +66,10 @@ class ComponentFactory {
   /// [HierarchyTreeSelector] is skipped entirely.
   final TreeViewModel? treeViewModel;
 
+  /// The preferred split axis orientation for resizable workspaces.
+  /// Overrides the configured axis when non-null.
+  final Axis? preferredSplitAxis;
+
   /// Creates a [ComponentFactory] with the required dependency resolvers.
   ///
   /// All parameters are required except [treeViewModel] which may be null when
@@ -80,6 +84,7 @@ class ComponentFactory {
     required this.resolveTabLabel,
     required this.buildChildWidget,
     this.treeViewModel,
+    this.preferredSplitAxis,
   });
 
   /// Builds a widget subtree from a layout [node] with the given constraints.
@@ -147,7 +152,7 @@ class ComponentFactory {
           trailing: tabbedChild != null
               ? build(tabbedChild as Map<String, dynamic>, parentWidth, parentHeight, context)
               : const SizedBox.shrink(),
-          direction: _parseAxis(node),
+          direction: preferredSplitAxis ?? _parseAxis(node),
           minFirstPaneSize: minPaneSize,
           initialRatio: defaultRatio(),
           splitterKey: const Key('horizontal_splitter'),
@@ -162,7 +167,7 @@ class ComponentFactory {
           treeData: treeData,
           splitMinFirstPaneSize: minPaneSize,
           splitInitialRatio: defaultRatio(),
-          splitDirection: _parseAxis(node),
+          splitDirection: preferredSplitAxis ?? _parseAxis(node),
         );
       case 'TabbedContainer':
         return _TabbedContainerHost(currentView: currentView);

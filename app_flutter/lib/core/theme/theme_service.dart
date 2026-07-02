@@ -26,6 +26,13 @@ abstract class ThemeService {
 
   /// Persists the text [scale] factor so it survives app restarts.
   Future<void> saveTextScale(double scale);
+
+  /// Loads the persisted workspace split axis orientation; defaults to
+  /// [Axis.horizontal] if the key is missing or invalid.
+  Future<Axis> loadLayoutSplitAxis();
+
+  /// Persists [axis] so it survives app restarts.
+  Future<void> saveLayoutSplitAxis(Axis axis);
 }
 
 /// [ThemeService] implementation backed by [SharedPreferences].
@@ -38,6 +45,7 @@ class SharedPreferencesThemeService implements ThemeService {
   static const _modeKey = 'theme_mode';
   static const _schemeKey = 'theme_scheme';
   static const _textScaleKey = 'text_scale';
+  static const _layoutSplitAxisKey = 'layout_split_axis';
 
   /// Reads the theme-mode string; unknown values fall back to system.
   @override
@@ -87,5 +95,28 @@ class SharedPreferencesThemeService implements ThemeService {
   Future<void> saveTextScale(double scale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_textScaleKey, scale);
+  }
+
+  /// Reads the workspace split axis string; unknown/invalid values fall back to horizontal.
+  @override
+  Future<Axis> loadLayoutSplitAxis() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_layoutSplitAxisKey);
+    switch (value) {
+      case 'vertical':
+        return Axis.vertical;
+      case 'horizontal':
+        return Axis.horizontal;
+      default:
+        return Axis.horizontal;
+    }
+  }
+
+  /// Writes a "horizontal" or "vertical" string.
+  @override
+  Future<void> saveLayoutSplitAxis(Axis axis) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = axis == Axis.vertical ? 'vertical' : 'horizontal';
+    await prefs.setString(_layoutSplitAxisKey, value);
   }
 }

@@ -89,6 +89,13 @@ void main() {
   StringResources.loadFromJson('{"sidebar.header": "Platform Console", "breadcrumbs.home": "Platform Console"}');
 
   testWidgets('Layout parses JSON config and renders components', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     await tester.pumpWidget(
       wrapWithRepo(
         Layout(
@@ -104,6 +111,13 @@ void main() {
   });
 
   testWidgets('Layout switches tabs in TabbedContainer', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     await tester.pumpWidget(
       wrapWithRepo(
         Layout(
@@ -185,6 +199,13 @@ void main() {
   });
 
   testWidgets('Layout keyboard navigation and node selection', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     String? selectedView;
     await tester.pumpWidget(
       wrapWithRepo(
@@ -207,6 +228,13 @@ void main() {
   });
 
   testWidgets('Layout handles tree node tap selection without crashing', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     await tester.pumpWidget(
       wrapWithRepo(
         Layout(

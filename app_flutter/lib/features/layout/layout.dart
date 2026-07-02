@@ -13,6 +13,7 @@ import 'package:app_flutter/features/topology/topology_defaults.dart' show empty
 import 'package:app_flutter/features/layout/component_factory.dart';
 import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 import 'package:app_flutter/core/background_worker.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
 
 /// Root layout widget that parses a logical-layout JSON and builds the full
 /// Flutter widget hierarchy (sidebar, split panes, topology, tabs, property
@@ -335,6 +336,7 @@ class _LayoutState extends State<Layout> {
   /// Delegates to [ComponentFactory] with the current view, callbacks, and
   /// resolvers. Constrained by [constraints] from the parent [LayoutBuilder].
   Widget _buildFromLayout(BuildContext context, BoxConstraints constraints) {
+    final preferredSplitAxis = context.watch<ThemeController>().layoutSplitAxis;
     final factory = ComponentFactory(
       currentView: _currentView,
       workerResult: _worker?.lastResult,
@@ -345,6 +347,7 @@ class _LayoutState extends State<Layout> {
       resolveTabLabel: _resolveTabLabel,
       buildChildWidget: _buildChildWidget,
       treeViewModel: _treeViewModel,
+      preferredSplitAxis: preferredSplitAxis,
     );
     final rootNode = _parsedLayout!['layout']['root_container']
         as Map<String, dynamic>;
