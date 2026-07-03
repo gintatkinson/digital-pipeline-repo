@@ -130,13 +130,9 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 
 To create a new project workspace directly from the template repository on GitHub's servers:
 
-1. Use the GitHub CLI to create the repository on GitHub from the template:
+1. Use the GitHub CLI to create the repository on GitHub from the template and clone it locally:
    ```bash
-   gh repo create my-new-app --template gintatkinson/digital-pipeline-repo --public
-   ```
-2. Clone the newly created repository locally to start working:
-   ```bash
-   git clone https://github.com/gintatkinson/my-new-app.git
+   gh repo create my-new-app --template gintatkinson/digital-pipeline-repo --public --clone
    ```
 
 ---
