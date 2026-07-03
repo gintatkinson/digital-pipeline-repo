@@ -126,7 +126,23 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 
 ---
 
-### Method 1: Direct Copy (Simplest)
+### Installation Option 1: One-Step Downstream Bootstrapping (Recommended)
+
+To clone the pipeline and bootstrap a fully configured downstream project workspace (containing the template code, rules, and skills in a single command):
+
+**For Stable Version (`master`):**
+```bash
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git && cd digital-pipeline-repo && python3 scripts/bootstrap_downstream.py flutter ../my-new-app
+```
+
+**For Refactored Version (`refactor`):**
+```bash
+git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git && cd digital-pipeline-repo && python3 scripts/bootstrap_downstream.py flutter ../my-new-app
+```
+
+---
+
+### Installation Option 2: Direct Copy (Simplest)
 
 Copy the `skills/`, `rules/`, `.pipeline/`, and `.agents/` directories into your project repository.
 
@@ -158,7 +174,7 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 
 ---
 
-### Method 2: Git Submodule (Versioned, Updatable)
+### Installation Option 3: Git Submodule (Versioned, Updatable)
 
 Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates.
 
@@ -194,7 +210,7 @@ For workspace-scoped rules, update your agent configuration to point to `.pipeli
 
 ---
 
-### Method 3: Tessl Registry (Managed Distribution)
+### Installation Option 4: Tessl Registry (Managed Distribution)
 
 Use Tessl for version-locked, team-wide distribution with automated rule injection and quality evaluation. See the [Tessl Integration](#tessl-integration-skill-registry--evaluation) section below for full details.
 

@@ -86,5 +86,20 @@ def main():
     print(f"Copied: {copied_count} files.")
     print(f"Skipped/Preserved: {skipped_count} files.")
 
+    # Auto-copy skills/ and rules/ directories to destination root
+    print("\nCopying pipeline rules and skills to destination root...")
+    skills_src = os.path.join(repo_root, "skills")
+    rules_src = os.path.join(repo_root, "rules")
+    
+    if os.path.exists(skills_src):
+        skills_dest = os.path.join(destination, "skills")
+        shutil.copytree(skills_src, skills_dest, dirs_exist_ok=True)
+        print(f"Copied pipeline skills to {skills_dest}")
+        
+    if os.path.exists(rules_src):
+        rules_dest = os.path.join(destination, "rules")
+        shutil.copytree(rules_src, rules_dest, dirs_exist_ok=True)
+        print(f"Copied pipeline rules to {rules_dest}")
+
 if __name__ == "__main__":
     main()

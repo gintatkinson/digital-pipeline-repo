@@ -164,9 +164,23 @@ tessl install github:gintatkinson/digital-pipeline-repo
 If using direct copy:
 - Reference `./skills/` and `./rules/` in the Gemini CLI session or Antigravity project config.
 
-## Installation Methods
+## Installation Options
 
-### Method 1: Direct Copy
+### Option 1: One-Step Downstream Bootstrapping (Recommended)
+
+To clone the pipeline and bootstrap a fully configured downstream project workspace (containing the template code, rules, and skills in a single command):
+
+Stable version:
+```bash
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git && cd digital-pipeline-repo && python3 scripts/bootstrap_downstream.py flutter ../my-new-app
+```
+
+Refactored version:
+```bash
+git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git && cd digital-pipeline-repo && python3 scripts/bootstrap_downstream.py flutter ../my-new-app
+```
+
+### Option 2: Direct Copy
 
 Copy `skills/`, `rules/`, `.pipeline/`, and `.agents/` into the project repository.
 
@@ -194,7 +208,7 @@ cp ./.tmp-pipeline/requirements.txt ./
 rm -rf ./.tmp-pipeline
 ```
 
-### Method 2: Git Submodule
+### Option 3: Git Submodule
 
 Stable version:
 ```bash
@@ -226,7 +240,7 @@ When using the Git Submodule method, the skills and rules directories are nested
 
 For workspace-scoped rules, update the agent configuration to point to `.pipeline-skills/rules/` instead of `./rules/`.
 
-### Method 3: Tessl Registry
+### Option 4: Tessl Registry
 
 Stable version:
 ```bash
