@@ -1,39 +1,24 @@
-# Implementation Plan: One-Step Downstream Bootstrapping (Option 1)
+# Implementation Plan: Fix Bootstrapper build folder copy bug
 
-This plan details the changes to implement the approved plan for the one-step downstream bootstrapping setup.
+This plan details the changes to prevent the downstream bootstrapping script from walking into `build/` and `dist/` directories.
 
 ---
 
 ## Proposed Changes
 
-### 1. Auto-copy pipeline skills/ and rules/ to destination root
+### 1. Update preserved set in bootstrapping script
 - **File**: `scripts/bootstrap_downstream.py`
-- **Action**: Append logic at the end of the `main()` function (after line 88, before `if __name__ == "__main__":`) to copy the `skills/` and `rules/` directories from `repo_root` to `destination`.
-- **Snippet to insert**:
+- **Action**: Update the `preserved` set to include `"build"` and `"dist"`.
+- **Target Content**:
   ```python
-    # Auto-copy skills/ and rules/ directories to destination root
-    print("\nCopying pipeline rules and skills to destination root...")
-    skills_src = os.path.join(repo_root, "skills")
-    rules_src = os.path.join(repo_root, "rules")
-    
-    if os.path.exists(skills_src):
-        skills_dest = os.path.join(destination, "skills")
-        shutil.copytree(skills_src, skills_dest, dirs_exist_ok=True)
-        print(f"Copied pipeline skills to {skills_dest}")
-        
-    if os.path.exists(rules_src):
-        rules_dest = os.path.join(destination, "rules")
-        shutil.copytree(rules_src, rules_dest, dirs_exist_ok=True)
-        print(f"Copied pipeline rules to {rules_dest}")
+      # Set of files/folders to preserve at destination
+      preserved = {".git", "node_modules", ".dart_tool", "package-lock.json", "pubspec.lock", "yarn.lock", "pnpm-lock.yaml"}
   ```
-
-### 2. Update README.md
-- **File**: `README.md`
-- **Action**: Add "Installation Option 1: One-Step Downstream Bootstrapping (Recommended)" as the primary option, and adjust Option 2 and Option 3. Preserve original license warnings and diagrams.
-
-### 3. Update wiki/Configuration.md
-- **File**: `wiki/Configuration.md`
-- **Action**: Place the one-step bootstrapping command as the recommended Option 1.
+- **Replacement Content**:
+  ```python
+      # Set of files/folders to preserve at destination
+      preserved = {".git", "node_modules", ".dart_tool", "package-lock.json", "pubspec.lock", "yarn.lock", "pnpm-lock.yaml", "build", "dist"}
+  ```
 
 ---
 
@@ -42,11 +27,18 @@ This plan details the changes to implement the approved plan for the one-step do
 ### Step 1: Execute Bootstrapping script
 1. Run:
    ```bash
-   python3 scripts/bootstrap_downstream.py flutter /tmp/test-bootstrapped-app
+   python3 scripts/bootstrap_downstream.py flutter scratch/test-bootstrapped-app
    ```
-2. Verify that `/tmp/test-bootstrapped-app` contains the copied application, the `skills/` folder, and the `rules/` folder.
-3. Clean up `/tmp/test-bootstrapped-app`.
+2. Verify that the command executes and completes successfully with exit code 0.
+3. Verify that `scratch/test-bootstrapped-app` contains the correct application templates, rules, and skills folders.
 
-### Step 2: Push and Verify Git Diff
+### Step 2: Clean up
+1. Run:
+   ```bash
+   rm -rf scratch/test-bootstrapped-app
+   ```
+
+### Step 3: Git Operations
 1. Commit the changes and push to origin/main.
 2. Verify `git diff origin/main` is empty.
+
