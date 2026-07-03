@@ -166,17 +166,17 @@ If using direct copy:
 
 ## Installation Options
 
-### Option 1: One-Step Downstream Bootstrapping (Recommended)
+### Option 1: Native GitHub Template (Recommended)
 
-To clone the pipeline and bootstrap a fully configured project workspace (containing the template code, rules, and skills in a single command):
+To create a new project workspace directly from the template repository on GitHub's servers:
 
-1. Navigate to your designated writable workspace folder:
+1. Use the GitHub CLI to create the repository on GitHub from the template:
    ```bash
-   cd ~/projects
+   gh repo create my-new-app --template gintatkinson/digital-pipeline-repo --public
    ```
-2. Run the unified cloning and bootstrapping command. Use a relative path for the destination name so it is created directly inside your workspace folder:
+2. Clone the newly created repository locally to start working:
    ```bash
-   git clone https://github.com/gintatkinson/digital-pipeline-repo.git && python3 digital-pipeline-repo/scripts/bootstrap_downstream.py flutter my-new-app && cd my-new-app
+   git clone https://github.com/gintatkinson/my-new-app.git
    ```
 
 ### Option 2: Direct Copy
@@ -185,7 +185,7 @@ Copy `skills/`, `rules/`, `.pipeline/`, and `.agents/` into the project reposito
 
 Stable version:
 ```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
@@ -197,7 +197,7 @@ rm -rf ./.tmp-pipeline
 
 Refactored version:
 ```bash
-git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone -b refactor https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
@@ -211,12 +211,12 @@ rm -rf ./.tmp-pipeline
 
 Stable version:
 ```bash
-git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+git submodule add https://github.com/<owner>/<template-repo>.git .pipeline-skills
 ```
 
 Refactored version:
 ```bash
-git submodule add -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+git submodule add -b refactor https://github.com/<owner>/<template-repo>.git .pipeline-skills
 ```
 
 Update:

@@ -126,17 +126,17 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 
 ---
 
-### Installation Option 1: One-Step Downstream Bootstrapping (Recommended)
+### Installation Option 1: Native GitHub Template (Recommended)
 
-To clone the pipeline and bootstrap a fully configured project workspace (containing the template code, rules, and skills in a single command):
+To create a new project workspace directly from the template repository on GitHub's servers:
 
-1. Navigate to your designated writable workspace folder:
+1. Use the GitHub CLI to create the repository on GitHub from the template:
    ```bash
-   cd ~/projects
+   gh repo create my-new-app --template gintatkinson/digital-pipeline-repo --public
    ```
-2. Run the unified cloning and bootstrapping command. Use a relative path for the destination name so it is created directly inside your workspace folder:
+2. Clone the newly created repository locally to start working:
    ```bash
-   git clone https://github.com/gintatkinson/digital-pipeline-repo.git && python3 digital-pipeline-repo/scripts/bootstrap_downstream.py flutter my-new-app && cd my-new-app
+   git clone https://github.com/gintatkinson/my-new-app.git
    ```
 
 ---
@@ -147,7 +147,7 @@ Copy the `skills/`, `rules/`, `.pipeline/`, and `.agents/` directories into your
 
 **For Stable Version (`master`):**
 ```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
@@ -159,7 +159,7 @@ rm -rf ./.tmp-pipeline
 
 **For Refactored Version (`refactor`):**
 ```bash
-git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone -b refactor https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
@@ -179,12 +179,12 @@ Add the pipeline as a Git submodule so your project tracks a specific version an
 
 **For Stable Version (`master`):**
 ```bash
-git submodule add https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+git submodule add https://github.com/<owner>/<template-repo>.git .pipeline-skills
 ```
 
 **For Refactored Version (`refactor`):**
 ```bash
-git submodule add -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git .pipeline-skills
+git submodule add -b refactor https://github.com/<owner>/<template-repo>.git .pipeline-skills
 ```
 
 To update to the latest version of the submodule:
@@ -322,7 +322,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > Execute the full delivery workflow with TDD execution discipline:
 >
 > 0. Pre-Execution Seeding & Rules Verification:
->    - Ensure the downstream workspace has been bootstrapped using the upstream-only `scripts/bootstrap_downstream.py` script. Note that this is an upstream-only tool and must be executed from the upstream repository directory (`/path/to/digital-pipeline-repo`) targeting the downstream workspace path BEFORE the downstream agent begins work (use `--no-domain` if implementing a different project domain).
+>    - Ensure the downstream workspace is correctly initialized using the native GitHub Template or one of the manual installation methods.
 >    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`), specifically Section 4.5 (Downstream Conformance Gates) and Section 5 (Forbidden Practices - do NOT delete or bypass the layout splitters, timeline scrubber, or focus-loss property grid).
 >    - Adhere to the Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in final DI).
 >
@@ -344,16 +344,9 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 ---
 
-## Downstream Baseline Seeding and Compliance
+## Downstream Baseline Compliance
 
-To enforce consistent architecture, layout controls, and validation gates across downstream repositories, the pipeline includes automation scripts for seeding and compliance verification.
-
-### Seeding a Downstream Target Workspace
-Prior to starting development in a downstream repository, bootstrap the directory with our baseline widgets (timeline scrubbers, custom resizable splitters, and validation-on-focus-loss property grids). **Crucially, this command must be executed from the upstream repository directory (`/path/to/digital-pipeline-repo`):**
-```bash
-python3 scripts/bootstrap_downstream.py [react | flutter] <destination_path> [--no-domain]
-```
-This copies the exact source templates (`web_react` or `app_flutter`) to your target destination while preserving all existing `.git`, `node_modules`, `.dart_tool`, and package lockfiles. Use `--no-domain` to skip copying domain directories/files (e.g. `lib/domain` for Flutter or `src/types.ts` for React) when implementing a different project domain.
+To enforce consistent architecture, layout controls, and validation gates across downstream repositories, the pipeline includes automation scripts for compliance verification.
 
 ### Running Compliance Verification Gates
 To verify that a downstream workspace adheres to the Project Constitution (including mandated types and passing compilation/tests) run:
