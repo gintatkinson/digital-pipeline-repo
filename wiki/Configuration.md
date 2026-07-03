@@ -168,17 +168,16 @@ If using direct copy:
 
 ### Option 1: One-Step Downstream Bootstrapping (Recommended)
 
-To clone the pipeline and bootstrap a fully configured downstream project workspace (containing the template code, rules, and skills in a single command):
+To clone the pipeline and bootstrap a fully configured project workspace (containing the template code, rules, and skills in a single command):
 
-Stable version:
-```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git && cd digital-pipeline-repo && python3 scripts/bootstrap_downstream.py flutter ../my-new-app
-```
-
-Refactored version:
-```bash
-git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git && cd digital-pipeline-repo && python3 scripts/bootstrap_downstream.py flutter ../my-new-app
-```
+1. Navigate to your designated writable workspace folder:
+   ```bash
+   cd ~/projects
+   ```
+2. Run the unified cloning and bootstrapping command. Use a relative path for the destination name so it is created directly inside your workspace folder:
+   ```bash
+   git clone https://github.com/gintatkinson/digital-pipeline-repo.git && python3 digital-pipeline-repo/scripts/bootstrap_downstream.py flutter my-new-app && cd my-new-app
+   ```
 
 ### Option 2: Direct Copy
 

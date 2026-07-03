@@ -123,34 +123,35 @@ This plan details the changes to implement the GitHub-first bootstrapping workfl
           sys.exit(1)
   ```
 
+### 4. Update README.md with generic onboarding Option 1 and placeholders
+- **File**: `README.md`
+- **Action**: Modify Option 1 block to use generic structure and path (`~/projects`), ensure Option 2 and Option 3 use generic placeholders, and replace absolute local paths (`/Users/perkunas/digital-pipeline-repo`) with `/path/to/digital-pipeline-repo`.
+- **Target Content**:
+  Option 1, 2, 3 block and other local paths.
+
+### 5. Update wiki/Configuration.md with generic onboarding Option 1 and placeholders
+- **File**: `wiki/Configuration.md`
+- **Action**: Restructure Option 1 setup guide to match the README format exactly using `~/projects` as the workspace path.
+- **Target Content**:
+  Option 1 setup guide block.
+
 ---
 
 ## Verification Plan
 
-### Step 1: Run bootstrapper script to test
-1. Execute:
-   ```bash
-   python3 scripts/bootstrap_downstream.py flutter scratch/unreal-spatial-project
-   ```
-2. Verify it:
-   - Creates the GitHub repository `unreal-spatial-project`.
-   - Clones it locally into `scratch/unreal-spatial-project`.
-   - Populates it with Flutter templates, pipeline rules, and skills.
-   - Pushes it back successfully.
+### Step 1: Verify README.md Changes
+1. Inspect `README.md` changes.
+2. Check that Option 1 matches the exact format specified in the prompt.
+3. Check that Option 2 and Option 3, as well as general text, contain no personal usernames or local jail paths.
 
-### Step 2: Clean up
-1. Remove the local scratch directory:
-   ```bash
-   rm -rf scratch/unreal-spatial-project
-   ```
-2. Delete the GitHub repository:
-   ```bash
-   gh repo delete unreal-spatial-project --yes
-   ```
+### Step 2: Verify wiki/Configuration.md Changes
+1. Inspect `wiki/Configuration.md` changes.
+2. Check that Option 1 matches the README.md version exactly.
 
 ### Step 3: Git Check and Push
 1. Commit the changes.
 2. Push to `origin/main`.
 3. Verify that `git diff origin/main` is empty.
+
 
 
