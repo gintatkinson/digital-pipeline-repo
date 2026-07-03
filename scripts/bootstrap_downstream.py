@@ -8,6 +8,8 @@ import argparse
 import os
 import shutil
 import sys
+import subprocess
+import re
 
 def main():
     parser = argparse.ArgumentParser(description="Bootstrap downstream baseline template files.")
@@ -39,9 +41,55 @@ def main():
     copied_count = 0
     skipped_count = 0
 
-    # Ensure destination directory exists
-    if not os.path.exists(destination):
-        os.makedirs(destination, exist_ok=True)
+    # Check if gh CLI is available
+    if not shutil.which("gh"):
+        print("ERROR: GitHub CLI ('gh') is not installed or not in PATH.", file=sys.stderr)
+        sys.exit(1)
+
+    repo_name = os.path.basename(destination)
+
+    # 1. Create the repository on GitHub
+    print(f"Creating GitHub repository '{repo_name}' as the single source of truth...")
+    try:
+        create_res = subprocess.run(
+            ["gh", "repo", "create", repo_name, "--public"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        output = create_res.stdout.strip() + "\n" + create_res.stderr.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: Failed to create repository on GitHub: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+    # 2. Extract the clone URL dynamically
+    clone_url = None
+    urls = re.findall(r'https://github\.com/[^\s]+', output)
+    if urls:
+        clone_url = urls[0].replace(".git", "") + ".git"
+    
+    if not clone_url:
+        # Fallback dynamic resolution
+        user_res = subprocess.run(["gh", "api", "user", "-q", ".login"], capture_output=True, text=True)
+        username = user_res.stdout.strip()
+        if not username:
+            print("ERROR: Failed to resolve authenticated GitHub user.", file=sys.stderr)
+            sys.exit(1)
+        clone_url = f"https://github.com/{username}/{repo_name}.git"
+
+    print(f"Dynamically resolved clone URL: {clone_url}")
+
+    # Clean up destination if a partial directory exists (excluding git metadata if cloning fails)
+    if os.path.exists(destination):
+        shutil.rmtree(destination)
+
+    # 3. Clone the empty GitHub repository locally
+    print(f"Cloning empty repository to {destination}...")
+    try:
+        subprocess.run(["git", "clone", clone_url, destination], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: Failed to clone repository: {e}", file=sys.stderr)
+        sys.exit(1)
 
     for root, dirs, files in os.walk(src_dir):
         # Filter directories in-place to avoid walking into preserved subdirectories
@@ -100,6 +148,23 @@ def main():
         rules_dest = os.path.join(destination, "rules")
         shutil.copytree(rules_src, rules_dest, dirs_exist_ok=True)
         print(f"Copied pipeline rules to {rules_dest}")
+
+    # 4. Automate Initial Commit and Push to remote
+    print("\nStaging, committing, and pushing initial template code to GitHub...")
+    try:
+        subprocess.run(["git", "add", "-A"], cwd=destination, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "chore: bootstrap project from pipeline templates"],
+            cwd=destination,
+            check=True
+        )
+        # Rename branch to main if needed
+        subprocess.run(["git", "branch", "-M", "main"], cwd=destination, check=True)
+        subprocess.run(["git", "push", "-u", "origin", "main"], cwd=destination, check=True)
+        print("\nSUCCESS: Downstream project successfully bootstrapped and synced to GitHub remote!")
+    except subprocess.CalledProcessError as e:
+        print(f"\nERROR during Git push operations: {e}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
