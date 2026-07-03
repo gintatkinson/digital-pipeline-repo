@@ -50,6 +50,7 @@ def main():
 
     # 1. Create the repository on GitHub
     print(f"Creating GitHub repository '{repo_name}' as the single source of truth...")
+    output = ""
     try:
         create_res = subprocess.run(
             ["gh", "repo", "create", repo_name, "--public"],
@@ -59,8 +60,13 @@ def main():
         )
         output = create_res.stdout.strip() + "\n" + create_res.stderr.strip()
     except subprocess.CalledProcessError as e:
-        print(f"ERROR: Failed to create repository on GitHub: {e.stderr}", file=sys.stderr)
-        sys.exit(1)
+        err_msg = (e.stdout or "") + "\n" + (e.stderr or "")
+        if "already exists" in err_msg.lower() or "name already exists" in err_msg.lower():
+            print(f"WARNING: Repository '{repo_name}' already exists on GitHub. Proceeding to clone existing repository...")
+            output = err_msg
+        else:
+            print(f"ERROR: Failed to create repository on GitHub: {err_msg}", file=sys.stderr)
+            sys.exit(1)
 
     # 2. Extract the clone URL dynamically
     clone_url = None
