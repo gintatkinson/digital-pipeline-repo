@@ -52,3 +52,8 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 ## Mandatory Subagent Termination & Cleanup
 - The coordinator MUST immediately terminate any spawned subagents using the `manage_subagents` tool (action `kill` or `kill_all`) once the subagent's task has been completed and the work is integrated.
 - Subagents are strictly forbidden from being left in an idle or dormant state upon completion of their atomic work package to prevent resource consumption and potential conflicts.
+
+## Mandatory Directory Constraints (No Root Writes)
+- Agents are strictly forbidden from writing, modifying, or executing commands that create source code or project configuration files at the root level of this repository (except for `implementation_plan.md`, `.gitignore`, or custom configurations when explicitly approved).
+- All source code, assets, configurations, and tests for the Flutter application MUST reside exclusively under `app_flutter/`.
+- All source code, assets, configurations, and tests for the React application MUST reside exclusively under `web_react/`.
