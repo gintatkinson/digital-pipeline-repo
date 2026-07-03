@@ -372,6 +372,18 @@ class _PropertyGridState extends State<PropertyGrid> {
     final List<String> sortedGroups = groups.toList();
     sortedGroups.sort();
 
+    final List<Widget> sections = sortedGroups.map((group) {
+      final bool isActive = group == widget.activeView ||
+          (widget.activeView == 'root' && group == sortedGroups.first);
+
+      return _buildSystemSection(
+        title: group,
+        isActive: isActive,
+        isDark: isDark,
+        child: _buildGroupFields(group, isDark),
+      );
+    }).toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -379,42 +391,14 @@ class _PropertyGridState extends State<PropertyGrid> {
         children: [
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final double cardWidth = constraints.maxWidth > widget.wideLayoutBreakpoint
-                  ? (constraints.maxWidth - 16.0) / 2.0
-                  : constraints.maxWidth;
+              final int columnCount = (constraints.maxWidth / 350.0).floor().clamp(1, 4);
+              final double cardWidth = (constraints.maxWidth - (columnCount - 1) * widget.gapSize) / columnCount - 0.01;
 
-              final List<Widget> sections = sortedGroups.map((group) {
-                final bool isActive = group == widget.activeView ||
-                    (widget.activeView == 'root' && group == sortedGroups.first);
-
-                return _buildSystemSection(
-                  title: group,
-                  isActive: isActive,
-                  isDark: isDark,
-                  width: cardWidth,
-                  child: _buildGroupFields(group, isDark),
-                );
-              }).toList();
-
-              if (constraints.maxWidth > widget.wideLayoutBreakpoint && sections.length >= 2) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    sections[0],
-                    SizedBox(width: widget.gapSize),
-                    sections[1],
-                  ],
-                );
-              } else {
-                final List<Widget> columnChildren = [];
-                for (int i = 0; i < sections.length; i++) {
-                  columnChildren.add(sections[i]);
-                  if (i < sections.length - 1) {
-                    columnChildren.add(SizedBox(height: widget.gapSize));
-                  }
-                }
-                return Column(children: columnChildren);
-              }
+              return Wrap(
+                spacing: widget.gapSize,
+                runSpacing: widget.gapSize,
+                children: sections.map((sec) => SizedBox(width: cardWidth, child: sec)).toList(),
+              );
             },
           ),
           SizedBox(height: widget.gapSize),
@@ -446,7 +430,6 @@ class _PropertyGridState extends State<PropertyGrid> {
     required String title,
     required bool isActive,
     required bool isDark,
-    required double width,
     required Widget child,
   }) {
     final cs = Theme.of(context).colorScheme;
@@ -458,7 +441,6 @@ class _PropertyGridState extends State<PropertyGrid> {
     return Opacity(
       opacity: isActive ? 1.0 : _inactiveSectionOpacity,
       child: Container(
-        width: width,
         padding: widget.sectionPadding,
         decoration: BoxDecoration(
           color: surfaceFill,

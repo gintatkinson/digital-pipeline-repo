@@ -1,36 +1,31 @@
-# Implementation Plan: Defect #12 Remediation (Natural Sorting & Multi-Level Seeding)
+# Implementation Plan: Fluid Multi-Column Responsive Property Grid (1 to 4 Columns)
 
-This plan details the changes to apply natural sorting to the sidebar tree nodes and properties grid fields, and to expand database seeding to generate detail instances for all hierarchical levels.
+This plan details the changes to refactor the properties grid rendering layout from a hardcoded 2-column model to a fluid, multi-column responsive model (supporting 1 to 4 columns) depending on the available viewport width, following LayoutBuilder performance best practices.
 
 ---
 
 ## Proposed Changes
 
-### 1. Seeding Adjustment
-- **File**: `app_flutter/lib/domain/database_initializer.dart`
-- **Action**:
-  - Remove the `if (isRoot)` guard to seed detail instances for all levels of tree nodes (Roots, Children, and Grandchildren).
-  - To optimize database asset file size, set the number of detail instances per table to **5** (totaling 15 detail rows per tree node), keeping the gzipped asset package size under 15MB.
-
----
-
-### 2. Natural Sorting for Tree Nodes
-- **File**: `app_flutter/lib/features/tree/view_models/tree_view_model.dart`
-- **Action**:
-  - Implement a natural alphanumeric sorting comparator for sorting tree nodes:
-    ```dart
-    int naturalCompare(String a, String b) {
-       // Compares strings containing numbers naturally, e.g., "Master_2" < "Master_10"
-    }
-    ```
-  - Sort the root nodes and children lists recursively before notifying listeners.
-
----
-
-### 3. Natural Sorting for Properties Grid Fields
+### 1. Multi-Column Wrap Layout & Cache Guard (PropertyGrid)
 - **File**: `app_flutter/lib/features/properties/property_grid.dart`
 - **Action**:
-  - Ensure that fields are rendered in their natural numerical sorting order (`field_1` through `field_50`) rather than simple lexicographical string sorting.
+  - Implement a fluid column count calculation inside the `LayoutBuilder` of `PropertyGrid`:
+    ```dart
+    final double targetWidth = 350.0; // Optimal card width
+    final int columnCount = (constraints.maxWidth / targetWidth).floor().clamp(1, 4);
+    ```
+  - Refactor the grid render structure to use a `Wrap` widget with dynamic width assignments per section card rather than hardcoding a `Row` of 2 widgets:
+    ```dart
+    final double cardWidth = (constraints.maxWidth - (columnCount - 1) * widget.gapSize) / columnCount;
+    ```
+  - Optimize: Add a check to only rebuild the field group widgets when the `columnCount` changes, preventing layout jitter and GC overhead during fine window resizes.
+
+---
+
+### 2. Test Alignment
+- **Files**:
+  - `app_flutter/test/layout_test.dart`
+- **Action**: Update responsive layout checks to align with the new Wrap and dynamic column structure.
 
 ---
 
