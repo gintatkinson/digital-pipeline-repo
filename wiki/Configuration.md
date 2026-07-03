@@ -212,6 +212,20 @@ git submodule update --remote .pipeline-skills
 git add .pipeline-skills && git commit -m "chore: update pipeline skills"
 ```
 
+#### Submodule Path Configuration
+
+When using the Git Submodule method, the skills and rules directories are nested inside `.pipeline-skills/`. Create a `skills.json` file at the project root to register these paths for automatic agent discovery:
+
+```json
+{
+  "entries": [
+    { "path": ".pipeline-skills/skills" }
+  ]
+}
+```
+
+For workspace-scoped rules, update the agent configuration to point to `.pipeline-skills/rules/` instead of `./rules/`.
+
 ### Method 3: Tessl Registry
 
 Stable version:

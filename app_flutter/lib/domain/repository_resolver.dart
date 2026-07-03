@@ -10,6 +10,7 @@ import 'data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'database_initializer.dart';
+import 'package:flutter/foundation.dart' show compute;
 
 
 /// Resolves the data-access backend at app startup.
@@ -121,15 +122,20 @@ class RepositoryResolver {
 
     if (!inMemory) {
       final dbFile = File(dbPath);
-      final assetPath = dbAssetPath ?? _defaultDbAsset;
-      try {
-        final bytes = await rootBundle.load(assetPath);
-        List<int> decodedBytes = bytes.buffer.asUint8List();
-        if (assetPath.endsWith('.gz')) {
-          decodedBytes = gzip.decode(decodedBytes);
-        }
-        await dbFile.writeAsBytes(decodedBytes);
-      } catch (_) {}
+      if (!await dbFile.exists()) {
+        final assetPath = dbAssetPath ?? _defaultDbAsset;
+        try {
+          final bytes = await rootBundle.load(assetPath);
+          List<int> decodedBytes = bytes.buffer.asUint8List(
+            bytes.offsetInBytes,
+            bytes.lengthInBytes,
+          );
+          if (assetPath.endsWith('.gz')) {
+            decodedBytes = await compute(gzip.decode, decodedBytes);
+          }
+          await dbFile.writeAsBytes(decodedBytes);
+        } catch (_) {}
+      }
     }
 
     final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);

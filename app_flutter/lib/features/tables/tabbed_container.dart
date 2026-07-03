@@ -60,6 +60,9 @@ class _TabbedContainerState extends State<TabbedContainer>
   void _updateController() {
     final tabs = _viewModel?.tabs ?? [];
     if (tabs.isEmpty) {
+      _tabController?.removeListener(_onTabTick);
+      _tabController?.dispose();
+      _tabController = null;
       return;
     }
     if (_tabController == null || _tabController!.length != tabs.length) {
@@ -143,13 +146,21 @@ class _TabbedContainerState extends State<TabbedContainer>
   }
 }
 
-class LazyTab extends StatelessWidget {
+class LazyTab extends StatefulWidget {
+  const LazyTab({super.key, required this.child, required this.isSelected});
   final Widget child;
   final bool isSelected;
-  const LazyTab({required this.child, required this.isSelected, super.key});
+  @override
+  State<LazyTab> createState() => _LazyTabState();
+}
+
+class _LazyTabState extends State<LazyTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    return isSelected ? child : const SizedBox.shrink();
+    super.build(context);
+    return Offstage(offstage: !widget.isSelected, child: widget.child);
   }
 }

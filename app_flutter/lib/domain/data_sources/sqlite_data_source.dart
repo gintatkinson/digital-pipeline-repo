@@ -39,11 +39,44 @@ class SqliteDataSource implements DataSource {
   Future<List<TypeDescriptor>> discoverTypes() async {
     try {
       final typeRows = await _db.query('type_definitions');
-      final types = <TypeDescriptor>[];
-      for (final typeRow in typeRows) {
-        types.add(await _buildType(typeRow));
+      final allAttrRows = await _db.query('type_attributes', orderBy: 'section_order, id');
+      final allRelRows = await _db.query('type_relations');
+
+      final attrsByType = <String, List<Map<String, dynamic>>>{};
+      for (final row in allAttrRows) {
+        final tn = row['type_name'] as String;
+        (attrsByType[tn] ??= []).add(row);
       }
-      return types;
+      final relsByType = <String, List<Map<String, dynamic>>>{};
+      for (final row in allRelRows) {
+        final tn = row['parent_type_name'] as String;
+        (relsByType[tn] ??= []).add(row);
+      }
+
+      return typeRows.map((typeRow) {
+        final typeName = typeRow['type_name'] as String;
+        final attrRows = attrsByType[typeName] ?? [];
+        final relRows = relsByType[typeName] ?? [];
+        final childRows = relRows.where((r) => r['relation_name'] == 'contains');
+        final relatedRows = relRows.where((r) => r['relation_name'] != 'contains');
+        return TypeDescriptor(
+          typeName: typeName,
+          displayName: typeRow['display_name'] as String,
+          iconName: typeRow['icon_name'] as String,
+          fields: attrRows.map(_parseField).toList(),
+          childTypes: childRows.map((r) => TypeRelationDescriptor(
+            relationName: r['relation_name'] as String,
+            childTypeName: r['child_type_name'] as String,
+            childLabel: r['child_label'] as String,
+          )).toList(),
+          relatedTypes: relatedRows.map((r) => TypeRelationDescriptor(
+            relationName: r['relation_name'] as String,
+            childTypeName: r['child_type_name'] as String,
+            childLabel: r['child_label'] as String,
+          )).toList(),
+          parentTypes: [],
+        );
+      }).toList();
     } catch (e, stackTrace) {
       debugPrint('Error in discoverTypes: $e\n$stackTrace');
       return [];

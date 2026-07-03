@@ -34,11 +34,19 @@ class TreeNodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<TreeViewModel>();
-    final isSelected = viewModel.currentView == node.id;
+    final isSelected = context.select<TreeViewModel, bool>(
+      (vm) => vm.currentView == node.id,
+    );
+    final isExpanded = context.select<TreeViewModel, bool>(
+      (vm) => vm.expanded[node.id] == true,
+    );
+    final isLoading = context.select<TreeViewModel, bool>(
+      (vm) => vm.loadingNodes[node.id] == true,
+    );
+    final nodeKeyValue = context.select<TreeViewModel, GlobalKey?>(
+      (vm) => vm.nodeKey(node.id),
+    );
     final isParent = node.children != null;
-    final isExpanded = viewModel.expanded[node.id] == true;
-    final isLoading = viewModel.loadingNodes[node.id] == true;
 
     IconData icon;
     if (isParent) {
@@ -53,7 +61,7 @@ class TreeNodeWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Material(
-          key: viewModel.nodeKey(node.id),
+          key: nodeKeyValue,
           type: MaterialType.transparency,
           child: ListTile(
             key: Key('node_${node.id}'),
@@ -83,7 +91,7 @@ class TreeNodeWidget extends StatelessWidget {
                     : InkWell(
                         key: Key('toggle_${node.id}'),
                         onTap: () {
-                          viewModel.toggleExpand(node.id);
+                          context.read<TreeViewModel>().toggleExpand(node.id);
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(4.0),
@@ -95,6 +103,7 @@ class TreeNodeWidget extends StatelessWidget {
                       )
                 : null,
             onTap: () {
+              final viewModel = context.read<TreeViewModel>();
               viewModel.selectView(node.id);
               viewModel.focusNode.requestFocus();
             },

@@ -391,8 +391,9 @@ class _PropertyGridState extends State<PropertyGrid> {
         children: [
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final int columnCount = (constraints.maxWidth / 350.0).floor().clamp(1, 4);
-              final double cardWidth = (constraints.maxWidth - (columnCount - 1) * widget.gapSize) / columnCount - 0.01;
+              final double width = constraints.maxWidth.isFinite ? constraints.maxWidth : 350.0;
+              final int columnCount = (width / 350.0).floor().clamp(1, 4);
+              final double cardWidth = (width - (columnCount - 1) * widget.gapSize) / columnCount - 0.01;
 
               return Wrap(
                 spacing: widget.gapSize,

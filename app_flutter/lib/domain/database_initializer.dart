@@ -62,6 +62,8 @@ class DatabaseInitializer {
           );
 
     final db = await databaseFactory.openDatabase(path);
+    await db.execute('PRAGMA journal_mode = WAL;');
+    await db.execute('PRAGMA busy_timeout = 5000;');
     await db.execute('PRAGMA foreign_keys = ON;');
 
     await db.execute('''

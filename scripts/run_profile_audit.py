@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import subprocess
 import sys
@@ -72,7 +73,7 @@ def main():
                 leak_details_all.append(f"Pass {idx}: {details}")
                 
     if max_memory_delta_kb > rss_threshold_kb:
-        regression_reasons.append(f"Memory growth delta of {max_memory_delta_kb / 1024:.2f}MB exceeded the 25MB threshold.")
+        regression_reasons.append(f"Memory growth delta of {max_memory_delta_kb / 1024:.2f}MB exceeded the 100MB threshold.")
         
     if max_avg_frame_build_time > jank_threshold_ms:
         regression_reasons.append(f"Average frame build time of {max_avg_frame_build_time:.2f}ms exceeded the 16.6ms jank threshold.")
@@ -183,4 +184,9 @@ def main():
         sys.exit(0)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Run Flutter integration tests and audit performance/memory profiles. "
+                    "Files a GitHub issue if regressions are detected."
+    )
+    parser.parse_args()
     main()
