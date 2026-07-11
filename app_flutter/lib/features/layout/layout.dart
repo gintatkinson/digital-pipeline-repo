@@ -64,6 +64,8 @@ class _LayoutState extends State<Layout> {
 
   static const double _minPaneSize = 150.0;
 
+  bool _layoutInitialized = false;
+
   /// Subscribes to property changes for the given [nodeId].
   ///
   /// Cancels any previous subscription before creating a new one. Updates
@@ -141,6 +143,11 @@ class _LayoutState extends State<Layout> {
   /// Checks [path] and `../$path` for the file; returns an empty map if
   /// neither exists or parsing fails. Caches `codebase_rules` and `labels`
   /// files separately so repeated calls avoid I/O.
+  ///
+  /// @deprecated Prefer [_preloadConfigs] which loads asynchronously on a
+  /// background isolate to avoid blocking the UI thread. This method uses
+  /// synchronous I/O existSync/readAsStringSync and is retained only as a
+  /// fallback path.
   Map<String, dynamic> _loadJsonOnce(String path) {
     if (_cachedRules != null && path.contains('codebase_rules')) return _cachedRules!;
     if (_cachedLabels != null && path.contains('labels')) return _cachedLabels!;
@@ -162,6 +169,7 @@ class _LayoutState extends State<Layout> {
 
   /// Preloaded topology data from external JSON asset; null until loaded.
   TopologyData? _topologyData;
+  TopologyData? _cachedTopologyData;
 
   @override
   void initState() {
@@ -180,7 +188,26 @@ class _LayoutState extends State<Layout> {
       if (mounted) setState(() {});
     });
 
+    _preloadConfigs();
     _preloadTopologyData();
+  }
+
+  Future<void> _preloadConfigs() async {
+    try {
+      final rulesFile = File('.pipeline/logical-ui/codebase_rules.json');
+      if (await rulesFile.exists()) {
+        final content = await rulesFile.readAsString();
+        _cachedRules = jsonDecode(content) as Map<String, dynamic>;
+      }
+      final labelsFile = File('.pipeline/logical-ui/labels.json');
+      if (await labelsFile.exists()) {
+        final content = await labelsFile.readAsString();
+        _cachedLabels = jsonDecode(content) as Map<String, dynamic>;
+      }
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {}
   }
 
   /// Preloads topology data from an external JSON asset for later use.
@@ -189,10 +216,15 @@ class _LayoutState extends State<Layout> {
   /// logged and do not crash the widget.
   Future<void> _preloadTopologyData() async {
     try {
-      final data = await loadTopologyData();
+      final dataSource = context.read<DataSource>();
+      var data = await dataSource.fetchTopologyData();
+      if (data.nodes.isEmpty) {
+        data = await loadTopologyData();
+      }
       if (mounted) {
         setState(() {
           _topologyData = data;
+          _cachedTopologyData = null;
         });
       }
     } catch (e) {
@@ -273,13 +305,17 @@ class _LayoutState extends State<Layout> {
   /// Uses preloaded [_topologyData] if available, otherwise falls back to
   /// [emptyTopologyData].
   TopologyData _resolveTopologyData() {
+    if (_cachedTopologyData != null) {
+      return _cachedTopologyData!;
+    }
     final mapping = _resolveCoordinateMapping();
     final data = _topologyData ?? emptyTopologyData;
-    return TopologyData(
+    _cachedTopologyData = TopologyData(
       coordinateMapping: mapping,
       nodes: data.nodes,
       links: data.links,
     );
+    return _cachedTopologyData!;
   }
 
 
@@ -309,11 +345,14 @@ class _LayoutState extends State<Layout> {
   /// [widget.activeView] is null and tree data is available, sets the current
   /// view to the first tree node and resubscribes properties.
   void _updateCurrentViewFromLayout() {
-    if (widget.activeView == null && _treeViewModel != null && _treeViewModel!.treeData.isNotEmpty) {
+    if (_layoutInitialized) return;
+    if (_treeViewModel == null || _treeViewModel!.treeData.isEmpty) return;
+    if (widget.activeView == null && _currentView == 'root') {
       _currentView = _treeViewModel!.treeData.first.id;
       _subscribeProperties(_currentView);
       _propertiesViewModel?.loadType(_currentView);
     }
+    _layoutInitialized = true;
   }
 
   /// Selects a view by [viewId], updating state, tree model, properties, and

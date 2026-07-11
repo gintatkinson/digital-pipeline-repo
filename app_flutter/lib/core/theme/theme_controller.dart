@@ -21,7 +21,18 @@ class ThemeController extends ChangeNotifier {
   final ThemeService _themeService;
   ThemeMode _themeMode = ThemeMode.system;
   int _currentThemeIndex = 0;
-  Axis _layoutSplitAxis = Axis.horizontal;
+  Axis _layoutSplitAxis = Axis.vertical;
+  double _panelOpacity = 0.85;
+  bool _disposed = false;
+
+  Future<void> _operationQueue = Future.value();
+
+  Future<void> _enqueue(Future<void> Function() operation) {
+    return _operationQueue = _operationQueue.then((_) {
+      if (_disposed) return Future<void>.value();
+      return operation();
+    }).catchError((_) {});
+  }
 
   /// Current [ThemeMode] (light / dark / system).
   ThemeMode get themeMode => _themeMode;
@@ -33,6 +44,9 @@ class ThemeController extends ChangeNotifier {
 
   /// Current layout split axis orientation.
   Axis get layoutSplitAxis => _layoutSplitAxis;
+
+  /// Panel/overlay opacity between 0.0 and 1.0.
+  double get panelOpacity => _panelOpacity;
 
   /// Convenience getter for the currently selected [FlexSchemeData].
   ///
@@ -46,14 +60,29 @@ class ThemeController extends ChangeNotifier {
   /// theme state. Calling again resets state. An out-of-bounds persisted
   /// index is silently clamped to 0. Fires `notifyListeners()` on
   /// completion even if values are unchanged.
-  Future<void> loadSettings() async {
-    _themeMode = await _themeService.loadThemeMode();
-    _currentThemeIndex = await _themeService.loadThemeScheme();
-    if (_currentThemeIndex < 0 || _currentThemeIndex >= AppThemes.customSchemes.length) {
-      _currentThemeIndex = 0;
-    }
-    _layoutSplitAxis = await _themeService.loadLayoutSplitAxis();
-    notifyListeners();
+  Future<void> loadSettings() {
+    return _enqueue(() async {
+      final mode = await _themeService.loadThemeMode();
+      if (_disposed) return;
+      _themeMode = mode;
+
+      final scheme = await _themeService.loadThemeScheme();
+      if (_disposed) return;
+      _currentThemeIndex = scheme;
+      if (_currentThemeIndex < 0 || _currentThemeIndex >= AppThemes.customSchemes.length) {
+        _currentThemeIndex = 0;
+      }
+
+      final axis = await _themeService.loadLayoutSplitAxis();
+      if (_disposed) return;
+      _layoutSplitAxis = axis;
+
+      final opacity = await _themeService.loadPanelOpacity();
+      if (_disposed) return;
+      _panelOpacity = opacity;
+
+      notifyListeners();
+    });
   }
 
   /// Updates the theme mode and persists it via [ThemeService].
@@ -61,11 +90,13 @@ class ThemeController extends ChangeNotifier {
   /// No-op when [newThemeMode] is null or matches the current value.
   /// Fires `notifyListeners()` before persisting so the UI updates
   /// immediately. Persistence failure is silently swallowed.
-  Future<void> updateThemeMode(ThemeMode? newThemeMode) async {
-    if (newThemeMode == null || newThemeMode == _themeMode) return;
-    _themeMode = newThemeMode;
-    notifyListeners();
-    await _themeService.saveThemeMode(newThemeMode);
+  Future<void> updateThemeMode(ThemeMode? newThemeMode) {
+    return _enqueue(() async {
+      if (newThemeMode == null || newThemeMode == _themeMode) return;
+      _themeMode = newThemeMode;
+      notifyListeners();
+      await _themeService.saveThemeMode(newThemeMode);
+    });
   }
 
   /// Updates the colour-scheme index and persists it via [ThemeService].
@@ -73,12 +104,14 @@ class ThemeController extends ChangeNotifier {
   /// No-op when [newIndex] is null, matches the current value, or is
   /// outside valid bounds. Fires `notifyListeners()` before persisting.
   /// Persistence failure is silently swallowed.
-  Future<void> updateThemeScheme(int? newIndex) async {
-    if (newIndex == null || newIndex == _currentThemeIndex) return;
-    if (newIndex < 0 || newIndex >= AppThemes.customSchemes.length) return;
-    _currentThemeIndex = newIndex;
-    notifyListeners();
-    await _themeService.saveThemeScheme(newIndex);
+  Future<void> updateThemeScheme(int? newIndex) {
+    return _enqueue(() async {
+      if (newIndex == null || newIndex == _currentThemeIndex) return;
+      if (newIndex < 0 || newIndex >= AppThemes.customSchemes.length) return;
+      _currentThemeIndex = newIndex;
+      notifyListeners();
+      await _themeService.saveThemeScheme(newIndex);
+    });
   }
 
   /// Updates the layout split axis orientation and persists it via [ThemeService].
@@ -86,10 +119,39 @@ class ThemeController extends ChangeNotifier {
   /// No-op when [newAxis] is null or matches the current value.
   /// Fires `notifyListeners()` before persisting.
   /// Persistence failure is silently swallowed.
-  Future<void> updateLayoutSplitAxis(Axis? newAxis) async {
-    if (newAxis == null || newAxis == _layoutSplitAxis) return;
-    _layoutSplitAxis = newAxis;
-    notifyListeners();
-    await _themeService.saveLayoutSplitAxis(newAxis);
+  Future<void> updateLayoutSplitAxis(Axis? newAxis) {
+    return _enqueue(() async {
+      if (newAxis == null || newAxis == _layoutSplitAxis) return;
+      _layoutSplitAxis = newAxis;
+      notifyListeners();
+      await _themeService.saveLayoutSplitAxis(newAxis);
+    });
+  }
+
+  /// Updates the panel opacity value and persists it via [ThemeService].
+  ///
+  /// No-op when [newOpacity] is null or matches the current value.
+  /// Fires `notifyListeners()` before persisting.
+  /// Persistence failure is silently swallowed.
+  Future<void> updatePanelOpacity(double? newOpacity) {
+    return _enqueue(() async {
+      if (newOpacity == null || newOpacity == _panelOpacity) return;
+      _panelOpacity = newOpacity;
+      notifyListeners();
+      await _themeService.savePanelOpacity(newOpacity);
+    });
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

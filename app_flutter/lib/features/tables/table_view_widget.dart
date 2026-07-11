@@ -28,7 +28,7 @@ class TableViewWidget extends StatefulWidget {
     super.key,
     this.headingRowHeight = 32.0,
     this.dataRowMinHeight = 28.0,
-    this.dataRowMaxHeight = 28.0,
+    this.dataRowMaxHeight = double.infinity,
     this.horizontalMargin = 12.0,
     this.columnSpacing = 24.0,
   });
@@ -46,6 +46,47 @@ class TableViewWidget extends StatefulWidget {
 class _TableViewWidgetState extends State<TableViewWidget> {
   int? _sortColumnIndex;
   bool _sortAscending = true;
+
+  List<List<String>>? _cachedSourceRows;
+  List<ColumnModel>? _cachedHeaders;
+  List<List<String>>? _cachedSortedRows;
+  int? _cachedSortColumnIndex;
+  bool? _cachedSortAscending;
+
+  List<List<String>> _getSortedRows(
+    List<List<String>> rows,
+    List<ColumnModel> headers,
+    Map<String, int> headerIndices,
+  ) {
+    if (_sortColumnIndex == null || _sortColumnIndex! >= headers.length) {
+      return rows;
+    }
+
+    if (identical(_cachedSourceRows, rows) &&
+        identical(_cachedHeaders, headers) &&
+        _cachedSortColumnIndex == _sortColumnIndex &&
+        _cachedSortAscending == _sortAscending &&
+        _cachedSortedRows != null) {
+      return _cachedSortedRows!;
+    }
+
+    _cachedSourceRows = rows;
+    _cachedHeaders = headers;
+    _cachedSortColumnIndex = _sortColumnIndex;
+    _cachedSortAscending = _sortAscending;
+
+    final sortedRows = List<List<String>>.from(rows);
+    final key = headers[_sortColumnIndex!].key;
+    final absIdx = headerIndices[key] ?? _sortColumnIndex!;
+    sortedRows.sort((a, b) {
+      final aVal = absIdx < a.length ? a[absIdx] : '';
+      final bVal = absIdx < b.length ? b[absIdx] : '';
+      return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
+    });
+
+    _cachedSortedRows = sortedRows;
+    return sortedRows;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,18 +113,13 @@ class _TableViewWidgetState extends State<TableViewWidget> {
 
     final headers = viewModel.visibleColumnModels;
     final allHeaders = viewModel.headers;
-    var rows = viewModel.rows;
-    final testId = '${viewModel.tabId}-table';
+    final headerIndices = <String, int>{
+      for (int idx = 0; idx < allHeaders.length; idx++)
+        allHeaders[idx].key: idx
+    };
 
-    if (_sortColumnIndex != null && _sortColumnIndex! < headers.length) {
-      final sortedRows = List<List<String>>.from(rows);
-      sortedRows.sort((a, b) {
-        final aVal = a[_sortColumnIndex!];
-        final bVal = b[_sortColumnIndex!];
-        return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
-      });
-      rows = sortedRows;
-    }
+    final rows = _getSortedRows(viewModel.rows, headers, headerIndices);
+    final testId = '${viewModel.tabId}-table';
 
     if (headers.isEmpty) {
       return const SizedBox.shrink();
@@ -91,10 +127,6 @@ class _TableViewWidgetState extends State<TableViewWidget> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final headerIndices = <String, int>{
-          for (int idx = 0; idx < allHeaders.length; idx++)
-            allHeaders[idx].key: idx
-        };
         final colCount = headers.length;
         final spacingWidth = colCount > 1
             ? (colCount - 1) * widget.columnSpacing
@@ -196,6 +228,7 @@ class _HeaderRow extends StatelessWidget {
       key: Key('$testId-header'),
       height: headingRowHeight,
       decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
           bottom: BorderSide(color: Theme.of(context).dividerColor),
         ),
@@ -216,6 +249,7 @@ class _HeaderRow extends StatelessWidget {
               isActiveSort: sortColumnIndex == i,
               sortAscending: sortAscending,
               onTap: headers[i].sortable ? () => onSort(i) : null,
+              isNumeric: headers[i].type == 'int' || headers[i].type == 'double',
             ),
         ],
       ),
@@ -235,6 +269,7 @@ class _HeaderCell extends StatelessWidget {
   final bool isActiveSort;
   final bool sortAscending;
   final VoidCallback? onTap;
+  final bool isNumeric;
 
   const _HeaderCell({
     required this.label,
@@ -248,6 +283,7 @@ class _HeaderCell extends StatelessWidget {
     required this.isActiveSort,
     required this.sortAscending,
     required this.onTap,
+    required this.isNumeric,
   });
 
   @override
@@ -264,7 +300,7 @@ class _HeaderCell extends StatelessWidget {
           right: isLast ? horizontalMargin : columnSpacing / 2,
         ),
         child: Align(
-          alignment: Alignment.centerLeft,
+          alignment: isNumeric ? Alignment.centerRight : Alignment.centerLeft,
           child: sortable
               ? GestureDetector(
                   onTap: onTap,
@@ -306,7 +342,6 @@ class _DataRow extends StatelessWidget {
       child: Container(
         constraints: BoxConstraints(
           minHeight: dataRowMinHeight,
-          maxHeight: dataRowMaxHeight,
         ),
         color: index.isEven ? null : Colors.black.withOpacity(0.03),
         child: Row(
@@ -387,7 +422,7 @@ class _DataCell extends StatelessWidget {
     }
 
     return SizedBox(
-      width: colWidth,
+      width: columnModel.width ?? colWidth,
       child: Padding(
         padding: EdgeInsets.only(
           left: isFirst ? horizontalMargin : columnSpacing / 2,

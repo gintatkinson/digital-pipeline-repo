@@ -5,6 +5,7 @@ import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
+import 'package:app_flutter/features/topology/topology_map.dart' show TopologyData, TopologyNode, TopologyNodePosition, TopologyLink;
 
 /// [DataSource] implementation backed by Cloud Firestore.
 ///
@@ -23,8 +24,7 @@ class FirebaseDataSource implements DataSource {
   /// correct project before calling any data methods.
   FirebaseDataSource(this._firestore);
   final FirebaseFirestore _firestore;
-  final StreamController<Map<String, dynamic>> _propertiesController =
-      StreamController<Map<String, dynamic>>.broadcast();
+  List<TypeDescriptor>? _cachedTypes;
 
   @override
   String get name => 'firebase';
@@ -44,6 +44,7 @@ class FirebaseDataSource implements DataSource {
   /// triggers a Firestore read.
   @override
   Future<List<TypeDescriptor>> discoverTypes() async {
+    if (_cachedTypes != null) return _cachedTypes!;
     try {
       final snapshot = await _firestore.collection('schema').doc('types').get();
       final data = snapshot.data();
@@ -63,6 +64,7 @@ class FirebaseDataSource implements DataSource {
           parentTypes: _parseRelations(def['parentTypes'] as List<dynamic>?),
         ));
       }
+      _cachedTypes = types;
       return types;
     } catch (e, stackTrace) {
       debugPrint('Error in discoverTypes: $e\n$stackTrace');
@@ -147,7 +149,6 @@ class FirebaseDataSource implements DataSource {
   Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
     try {
       await _firestore.collection('data').doc(nodeId).set(data, SetOptions(merge: true));
-      _propertiesController.add({'nodeId': nodeId, 'data': data});
     } catch (e, stackTrace) {
       debugPrint('Error in saveProperties($nodeId): $e\n$stackTrace');
     }
@@ -164,13 +165,14 @@ class FirebaseDataSource implements DataSource {
   /// Firestore writes from other clients; only in-process calls to
   /// [saveProperties] trigger stream events.
   @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
-    yield await fetchProperties(nodeId);
-    await for (final event in _propertiesController.stream) {
-      if (event['nodeId'] == nodeId) {
-        yield event['data'] as Map<String, dynamic>;
-      }
-    }
+  Stream<Map<String, dynamic>> watchProperties(String nodeId) {
+    return _firestore
+        .collection('data')
+        .doc(nodeId)
+        .snapshots()
+        .map((snapshot) {
+          return Map<String, dynamic>.from(snapshot.data() as Map? ?? {});
+        });
   }
 
   @override
@@ -252,11 +254,208 @@ class FirebaseDataSource implements DataSource {
 
   @override
   Future<List<TreeNode>> fetchRootNodes() async {
-    return [];
+    try {
+      final types = await discoverTypes();
+      final typeMap = {for (final t in types) t.typeName: t};
+
+      final snapshot = await _firestore
+          .collection('data')
+          .where('parent_node_id', isNull: true)
+          .get();
+
+      final List<TreeNode> roots = [];
+      for (final doc in snapshot.docs) {
+        final id = doc.id;
+        final docData = doc.data();
+        final typeName = docData['type_name'] as String? ?? id;
+        final displayNameFromDoc = docData['name']?.toString() ?? docData['displayName']?.toString();
+        final typeDesc = typeMap[id] ?? typeMap[typeName];
+        final label = displayNameFromDoc ?? typeDesc?.displayName ?? id.replaceAll('_', ' ');
+
+        final hasChildren = docData['has_children'] as bool? ?? false;
+
+        roots.add(TreeNode(
+          id: id,
+          label: label,
+          children: hasChildren ? const [] : null,
+        ));
+      }
+
+      roots.sort((a, b) => a.id.compareTo(b.id));
+      return roots;
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchRootNodes: $e\n$stackTrace');
+      return [];
+    }
   }
 
   @override
   Future<List<TreeNode>> fetchChildrenForNode(String parentId) async {
-    return [];
+    try {
+      final types = await discoverTypes();
+      final typeMap = {for (final t in types) t.typeName: t};
+
+      final parentDoc = await _firestore.collection('data').doc(parentId).get();
+      final parentData = parentDoc.data();
+      final parentTypeName = parentData?['type_name']?.toString() ?? parentId;
+
+      final childrenSnapshot = await _firestore
+          .collection('data')
+          .where('parent_node_id', isEqualTo: parentId)
+          .get();
+
+      final List<TreeNode> nodes = [];
+      final Set<String> childIdsInProperties = {};
+
+      for (final doc in childrenSnapshot.docs) {
+        final id = doc.id;
+        childIdsInProperties.add(id);
+        final docData = doc.data();
+        final typeName = docData['type_name'] as String? ?? id;
+        final displayNameFromDoc = docData['name']?.toString() ?? docData['displayName']?.toString();
+        final typeDesc = typeMap[id] ?? typeMap[typeName];
+        final label = displayNameFromDoc ?? typeDesc?.displayName ?? id.replaceAll('_', ' ');
+
+        final hasChildren = docData['has_children'] as bool? ?? false;
+
+        nodes.add(TreeNode(
+          id: id,
+          label: label,
+          children: hasChildren ? const [] : null,
+        ));
+      }
+
+      final parentType = typeMap[parentTypeName];
+      if (parentType != null) {
+        for (final relation in parentType.childTypes) {
+          final childTypeName = relation.childTypeName;
+          if (const ['Detail_A', 'Detail_B', 'Detail_C'].contains(childTypeName)) {
+            continue;
+          }
+          if (childIdsInProperties.contains(childTypeName)) {
+            continue;
+          }
+
+          final instancesSnapshot = await _firestore
+              .collection('instances')
+              .where('parent_node_id', isEqualTo: parentId)
+              .where('type_name', isEqualTo: childTypeName)
+              .limit(1)
+              .get();
+
+          if (instancesSnapshot.docs.isNotEmpty) {
+            nodes.add(TreeNode(
+              id: childTypeName,
+              label: relation.childLabel,
+              children: null,
+            ));
+          }
+        }
+      }
+
+      nodes.sort((a, b) {
+        final aMatches = a.id.contains('_Child_') || a.id.contains('_Grandchild_');
+        final bMatches = b.id.contains('_Child_') || b.id.contains('_Grandchild_');
+        if (aMatches != bMatches) {
+          return aMatches ? 1 : -1;
+        }
+        return a.id.compareTo(b.id);
+      });
+
+      return nodes;
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchChildrenForNode: $e\n$stackTrace');
+      return [];
+    }
   }
+
+  @override
+  Future<TopologyData> fetchTopologyData() async {
+    try {
+      final snapshot = await _firestore
+          .collection('data')
+          .where('has_location', isEqualTo: true)
+          .get();
+      final List<TopologyNode> nodes = [];
+      final List<TopologyLink> links = [];
+
+      for (final doc in snapshot.docs) {
+        final nodeId = doc.id;
+        final decoded = doc.data();
+        if (decoded.isEmpty) continue;
+
+        final geo = decoded['ietfGeoLocation'] ?? decoded['location'] ?? decoded['position'];
+        if (geo == null) continue;
+
+        double? latVal;
+        double? lngVal;
+        double? altVal;
+
+        if (geo is Map) {
+          final loc = geo['location'] ?? geo;
+          if (loc is Map) {
+            final ellip = loc['ellipsoid'] ?? loc;
+            if (ellip is Map) {
+              latVal = double.tryParse(ellip['latitude']?.toString() ?? '');
+              lngVal = double.tryParse(ellip['longitude']?.toString() ?? '');
+              altVal = double.tryParse(ellip['height']?.toString() ?? ellip['altitude']?.toString() ?? '');
+            }
+          }
+        }
+
+        if (latVal == null || lngVal == null) {
+          continue;
+        }
+
+        nodes.add(TopologyNode(
+          id: nodeId,
+          label: decoded['name']?.toString() ?? nodeId,
+          position: TopologyNodePosition(
+            dim0: lngVal,
+            dim1: latVal,
+            dim2: altVal ?? 0.0,
+            timeIndex: 0,
+            vector: const [],
+          ),
+          status: decoded['status']?.toString() ?? 'Active',
+          rawProperties: decoded,
+        ));
+      }
+
+      final interfaceSnapshot = await _firestore
+          .collection('instances')
+          .where('type_name', isEqualTo: 'interface')
+          .get();
+
+      final regExp = RegExp(r'link to node\s+([\w\-]+)');
+      for (final doc in interfaceSnapshot.docs) {
+        final parentNodeId = doc.data()['parent_node_id']?.toString() ?? '';
+        final description = doc.data()['description']?.toString();
+        if (description != null) {
+          final match = regExp.firstMatch(description);
+          if (match != null) {
+            final targetNodeId = match.group(1)!;
+            links.add(TopologyLink(
+              source: parentNodeId,
+              target: targetNodeId,
+              type: 'interface',
+            ));
+          }
+        }
+      }
+
+      return TopologyData(
+        coordinateMapping: const {},
+        nodes: nodes,
+        links: links,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Error in fetchTopologyData: $e\n$stackTrace');
+      return const TopologyData(coordinateMapping: {}, nodes: [], links: []);
+    }
+  }
+
+  @override
+  Future<void> dispose() async {}
 }
+

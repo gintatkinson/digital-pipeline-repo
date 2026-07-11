@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
 
 /// A resizable split pane that lays out [leading] and [trailing] widgets
 /// along [direction] with a draggable divider.
@@ -52,6 +54,8 @@ class SplitWorkspace extends StatefulWidget {
   final Key? splitterKey;
   final ValueChanged<double>? onDrag;
 
+  final bool paintLeadingOnTop;
+
   const SplitWorkspace({
     super.key,
     required this.leading,
@@ -64,6 +68,7 @@ class SplitWorkspace extends StatefulWidget {
     this.gripHeight = 40.0,
     this.splitterKey,
     this.onDrag,
+    this.paintLeadingOnTop = false,
   });
 
   @override
@@ -76,6 +81,7 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    final panelOpacity = context.watch<ThemeController>().panelOpacity;
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalSize = widget.direction == Axis.horizontal
@@ -87,9 +93,12 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
           _initialized = true;
         }
 
+        final maxPossibleFirstPane = (totalSize - widget.dividerSize).clamp(0, totalSize).toDouble();
+        final safeMinFirstPane = math.min(widget.minFirstPaneSize, maxPossibleFirstPane);
+
         final clampedFirstPane = _firstPaneSize.clamp(
-          widget.minFirstPaneSize,
-          math.max(widget.minFirstPaneSize, totalSize - widget.minFirstPaneSize),
+          safeMinFirstPane,
+          math.max(safeMinFirstPane, totalSize - widget.minFirstPaneSize),
         ).toDouble();
 
         final isHorizontal = widget.direction == Axis.horizontal;
@@ -122,7 +131,7 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
               width: isHorizontal ? widget.dividerSize : double.infinity,
               height: isHorizontal ? double.infinity : widget.dividerSize,
               decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor,
+                color: Theme.of(context).cardColor.withOpacity(panelOpacity),
                 border: isHorizontal
                     ? Border(
                         left: BorderSide(
@@ -158,20 +167,55 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
         );
 
         final leadingPane = isHorizontal
-            ? SizedBox(width: clampedFirstPane, child: RepaintBoundary(child: widget.leading))
-            : SizedBox(height: clampedFirstPane, child: RepaintBoundary(child: widget.leading));
+            ? SizedBox(width: clampedFirstPane, child: RepaintBoundary(key: ValueKey('leading_${clampedFirstPane.round()}'), child: widget.leading))
+            : SizedBox(height: clampedFirstPane, child: RepaintBoundary(key: ValueKey('leading_${clampedFirstPane.round()}'), child: widget.leading));
 
-        final trailingPane = Expanded(child: RepaintBoundary(child: widget.trailing));
+        final trailingPane = RepaintBoundary(child: widget.trailing);
 
-        if (isHorizontal) {
-          return Row(
-            children: [leadingPane, splitter, trailingPane],
-          );
-        } else {
-          return Column(
-            children: [leadingPane, splitter, trailingPane],
-          );
-        }
+        final splitterWidget = Positioned(
+          left: isHorizontal ? clampedFirstPane : 0,
+          right: isHorizontal ? null : 0,
+          top: isHorizontal ? 0 : clampedFirstPane,
+          bottom: isHorizontal ? 0 : null,
+          width: isHorizontal ? widget.dividerSize : null,
+          height: isHorizontal ? null : widget.dividerSize,
+          child: RepaintBoundary(child: splitter),
+        );
+
+        final leadingWidget = Positioned(
+          left: 0,
+          right: isHorizontal ? null : 0,
+          top: 0,
+          bottom: isHorizontal ? 0 : null,
+          width: isHorizontal ? clampedFirstPane : null,
+          height: isHorizontal ? null : clampedFirstPane,
+          child: leadingPane,
+        );
+
+        final double? trailingWidth = isHorizontal
+            ? math.max(0.0, totalSize - clampedFirstPane - widget.dividerSize)
+            : null;
+        final double? trailingHeight = isHorizontal
+            ? null
+            : math.max(0.0, totalSize - clampedFirstPane - widget.dividerSize);
+
+        final trailingWidget = Positioned(
+          left: isHorizontal ? clampedFirstPane + widget.dividerSize : 0,
+          right: isHorizontal ? null : 0,
+          top: isHorizontal ? 0 : clampedFirstPane + widget.dividerSize,
+          bottom: isHorizontal ? 0 : null,
+          width: trailingWidth,
+          height: trailingHeight,
+          child: trailingPane,
+        );
+
+        final List<Widget> children = widget.paintLeadingOnTop
+            ? [trailingWidget, splitterWidget, leadingWidget]
+            : [leadingWidget, splitterWidget, trailingWidget];
+
+        return Stack(
+          children: children,
+        );
       },
     );
   }

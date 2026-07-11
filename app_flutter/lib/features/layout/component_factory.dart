@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/tree/sidebar_tree.dart';
@@ -111,18 +112,19 @@ class ComponentFactory {
           (c) => c['type'] == 'SplitWorkspace',
           orElse: () => null,
         );
-        return SplitWorkspace(
-          leading: sidebarChild != null
-              ? build(sidebarChild as Map<String, dynamic>, parentWidth, parentHeight, context)
-              : const SizedBox.shrink(),
-          trailing: splitWorkspaceChild != null
-              ? build(splitWorkspaceChild as Map<String, dynamic>, parentWidth, parentHeight, context)
-              : const SizedBox.shrink(),
-          direction: Axis.horizontal,
-          minFirstPaneSize: minPaneSize,
-          initialRatio: 0.25,
-          splitterKey: const Key('vertical_splitter'),
-        );
+            return SplitWorkspace(
+              leading: sidebarChild != null
+                  ? build(sidebarChild as Map<String, dynamic>, parentWidth, parentHeight, context)
+                  : const SizedBox.shrink(),
+              trailing: splitWorkspaceChild != null
+                  ? build(splitWorkspaceChild as Map<String, dynamic>, parentWidth, parentHeight, context)
+                  : const SizedBox.shrink(),
+              direction: Axis.horizontal,
+              minFirstPaneSize: minPaneSize,
+              initialRatio: 0.25,
+              splitterKey: const Key('vertical_splitter'),
+              paintLeadingOnTop: true,
+            );
       case 'HierarchyTreeSelector':
         final tree = SidebarTree(
           workerResult: workerResult,
@@ -159,10 +161,14 @@ class ComponentFactory {
         );
       case 'TopographicalView':
         final treeData = treeViewModel?.treeData ?? [];
+        final panelOpacity = context.watch<ThemeController>().panelOpacity;
         return TopographicalView(
           currentView: currentView,
           onViewSelected: onViewSelected,
-          child: buildChildWidget(context),
+          child: Container(
+            color: Theme.of(context).cardColor.withOpacity(panelOpacity),
+            child: buildChildWidget(context),
+          ),
           topologyData: resolveTopologyData(),
           treeData: treeData,
           splitMinFirstPaneSize: minPaneSize,
@@ -176,6 +182,12 @@ class ComponentFactory {
         return _TableViewContainer(
           tabId: id,
           currentView: currentView,
+        );
+      case 'PropertiesPanel':
+        final panelOpacity = context.watch<ThemeController>().panelOpacity;
+        return Container(
+          color: Theme.of(context).cardColor.withOpacity(panelOpacity),
+          child: buildChildWidget(context),
         );
       default:
         return const SizedBox.shrink();

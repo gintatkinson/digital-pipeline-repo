@@ -70,6 +70,16 @@ class NavigationBreadcrumbs extends StatefulWidget {
 
 class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
   bool _isExpanded = false;
+  bool _isNavigating = false;
+
+  void _safeNavigate(VoidCallback callback) {
+    if (_isNavigating) return;
+    _isNavigating = true;
+    callback();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isNavigating = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +133,10 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
       }
 
       if (isEllipsis) {
+        final cb = item.onClick;
         children.add(
           ActionChip(
-            onPressed: item.onClick,
+            onPressed: cb != null ? () => _safeNavigate(cb) : null,
             label: Text(
               item.label,
               style: Theme.of(context).textTheme.bodyMedium,
@@ -140,9 +151,10 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
           ),
         );
       } else {
+        final cb = item.onClick;
         children.add(
           ActionChip(
-            onPressed: item.onClick,
+            onPressed: cb != null ? () => _safeNavigate(cb) : null,
             label: Text(
               item.label,
               style: Theme.of(context).textTheme.bodyMedium,
@@ -199,17 +211,15 @@ List<BreadcrumbItem> getBreadcrumbsItems(
   List<TreeNode> treeData, {
   ValueChanged<String>? onSelectView,
 }) {
+  final homeTreeData = treeData;
+
   final List<BreadcrumbItem> base = [
     BreadcrumbItem(
       id: 'home',
       label: StringResources.get('breadcrumbs.home'),
-      onClick: () {
-        if (treeData.isNotEmpty) {
-          onSelectView?.call(getFirstLeafId(treeData.first));
-        } else {
-          onSelectView?.call(getFirstLeafId(treeData.first));
-        }
-      },
+      onClick: homeTreeData.isNotEmpty
+          ? () => onSelectView?.call(getFirstLeafId(homeTreeData.first))
+          : () {},
     ),
   ];
 
@@ -237,11 +247,12 @@ List<BreadcrumbItem> getBreadcrumbsItems(
     if (i == path.length - 1) {
       items.add(BreadcrumbItem(id: node.id, label: node.label));
     } else {
+      final capturedNode = node;
       items.add(
         BreadcrumbItem(
           id: node.id,
           label: node.label,
-          onClick: () => onSelectView?.call(getFirstLeafId(node)),
+          onClick: () => onSelectView?.call(getFirstLeafId(capturedNode)),
         ),
       );
     }

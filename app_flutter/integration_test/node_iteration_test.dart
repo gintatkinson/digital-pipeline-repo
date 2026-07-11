@@ -14,7 +14,8 @@ import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 
 final File benchmarkLogFile = File(
-  '/Users/perkunas/jail/digital-pipeline-repo/benchmark_results.jsonl',
+  Platform.environment['BENCHMARK_PATH'] ??
+  '${Directory.current.parent.path}/benchmark_results.jsonl',
 );
 
 Future<VmService?> _connectToVmService() async {
@@ -96,9 +97,9 @@ Future<void> _editTextFields(
 
 Future<void> _changeSettingsViaUI(
     WidgetTester tester, ThemeMode themeMode, double textScale) async {
-  await tester.ensureVisible(find.byIcon(Icons.settings));
+  await tester.ensureVisible(find.byKey(const Key('sidebar_settings_button')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byIcon(Icons.settings));
+  await tester.tap(find.byKey(const Key('sidebar_settings_button')));
   await tester.pumpAndSettle();
 
   final IconData themeIcon;
@@ -113,10 +114,7 @@ Future<void> _changeSettingsViaUI(
   await tester.tap(find.byIcon(themeIcon).last);
   await tester.pumpAndSettle();
 
-  final slider = find.descendant(
-    of: find.byType(SettingsPanel),
-    matching: find.byType(Slider),
-  );
+  final slider = find.byKey(const Key('settings_text_scale_slider'));
   final rect = tester.getRect(slider);
   const double min = 0.7;
   const double max = 1.5;
@@ -129,7 +127,7 @@ Future<void> _changeSettingsViaUI(
   );
   await tester.pumpAndSettle();
 
-  await tester.tapAt(Offset.zero);
+  await tester.tap(find.byType(ModalBarrier).last);
   await tester.pumpAndSettle();
 }
 
@@ -138,12 +136,13 @@ void main() {
 
   testWidgets('Integration: 10 cycles x 20 nodes x all PropertyGrid fields',
       (tester) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
     tester.binding.setSurfaceSize(const Size(1000, 800));
 
     await app_main.main();
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump();
+    await tester.pumpAndSettle(const Duration(seconds: 15));
     int attempts = 0;
     while (attempts < 20 && find.byKey(Key('node_${allNodeIds.first}')).evaluate().isEmpty) {
       await tester.pump(const Duration(milliseconds: 500));
@@ -154,9 +153,9 @@ void main() {
       for (int nodeIdx = 0; nodeIdx < allNodeIds.length; nodeIdx++) {
         final String nodeId = allNodeIds[nodeIdx];
 
+        await tester.ensureVisible(find.byKey(Key('node_$nodeId')));
         await tester.tap(find.byKey(Key('node_$nodeId')));
-        await tester.pump();
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         await _editTextFields(tester, [
           'Node-$nodeIdx-$cycle',
@@ -165,21 +164,18 @@ void main() {
       }
     }
 
-    // Drain pending async saves before teardown
-    for (int i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 200));
-    }
-    await tester.pump();
+    await tester.pumpAndSettle(const Duration(seconds: 5));
   });
 
   testWidgets('Stress test: cycle theme + text size between each full 20-node pass',
       (tester) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
     tester.binding.setSurfaceSize(const Size(1000, 800));
 
     await app_main.main();
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump();
+    await tester.pumpAndSettle(const Duration(seconds: 15));
     int attempts = 0;
     while (attempts < 20 && find.byKey(Key('node_${allNodeIds.first}')).evaluate().isEmpty) {
       await tester.pump(const Duration(milliseconds: 500));
@@ -229,8 +225,7 @@ void main() {
             crashAction = 'tap';
             await tester.ensureVisible(find.byKey(Key('node_$nodeId')));
             await tester.tap(find.byKey(Key('node_$nodeId')));
-            await tester.pump();
-            await tester.pump();
+            await tester.pumpAndSettle();
 
             crashAction = 'edit_fields';
             await _editTextFields(tester, [
@@ -262,7 +257,6 @@ void main() {
 
         SchedulerBinding.instance.removeTimingsCallback(timingsCallback);
 
-        // VM Service connection and GC + heap analysis
         VmService? vmService;
         try {
           vmService = await _connectToVmService();
@@ -276,13 +270,17 @@ void main() {
         bool leakDetected = false;
         String leakDetails = '';
         if (vmService != null) {
-          final treeVmCount = await _countInstances(vmService, 'TreeViewModel');
-          final propVmCount = await _countInstances(vmService, 'PropertiesViewModel');
-          final tablesVmCount = await _countInstances(vmService, 'TablesViewModel');
-          
-          if (treeVmCount > 1 || propVmCount > 1 || tablesVmCount > 1) {
-            leakDetected = true;
-            leakDetails = 'Leaks: TreeViewModel ($treeVmCount), PropertiesViewModel ($propVmCount), TablesViewModel ($tablesVmCount)';
+          try {
+            final treeVmCount = await _countInstances(vmService, 'TreeViewModel');
+            final propVmCount = await _countInstances(vmService, 'PropertiesViewModel');
+            final tablesVmCount = await _countInstances(vmService, 'TablesViewModel');
+            
+            if (treeVmCount > 1 || propVmCount > 1 || tablesVmCount > 1) {
+              leakDetected = true;
+              leakDetails = 'Leaks: TreeViewModel ($treeVmCount), PropertiesViewModel ($propVmCount), TablesViewModel ($tablesVmCount)';
+            }
+          } finally {
+            vmService.dispose();
           }
         }
 
@@ -345,17 +343,19 @@ void main() {
 
         print('STRESS_RESULT: ${jsonEncode(results)}');
 
-        final logFile = benchmarkLogFile;
-        await logFile.writeAsString(
-          '${jsonEncode({...results, "timestamp": DateTime.now().toIso8601String()})}\n',
-          mode: FileMode.append,
-        );
+        try {
+          final logFile = benchmarkLogFile;
+          await logFile.writeAsString(
+            '${jsonEncode({...results, "timestamp": DateTime.now().toIso8601String()})}\n',
+            mode: FileMode.append,
+          );
+        } catch (e) {
+          print('WARNING: Failed to write to benchmark log file: $e');
+        }
 
         passCount++;
 
-        for (int i = 0; i < 10; i++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
+        await tester.pumpAndSettle(const Duration(seconds: 1));
       }
     });
   });

@@ -854,21 +854,25 @@ class TopologyPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Draw background
-    final Paint bgPaint = Paint()..color = colors.bgColor;
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    // 2. Draw grid lines every 40px
-    final Paint gridPaint = Paint()
-      ..color = colors.gridColor
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    for (double x = 0; x < size.width; x += gridSpacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    // 1. Draw background (skip if nodes will cover the viewport)
+    if (activeData.nodes.isEmpty) {
+      final Paint bgPaint = Paint()..color = colors.bgColor;
+      canvas.drawRect(Offset.zero & size, bgPaint);
     }
-    for (double y = 0; y < size.height; y += gridSpacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+
+    // 2. Draw grid lines
+    if (gridSpacing > 0) {
+      final Paint gridPaint = Paint()
+        ..color = colors.gridColor
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke;
+
+      for (double x = 0; x < size.width; x += gridSpacing) {
+        canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+      }
+      for (double y = 0; y < size.height; y += gridSpacing) {
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      }
     }
 
     // 3. Compute projected positions
@@ -954,17 +958,11 @@ class TopologyPainter extends CustomPainter {
       }
 
       // Draw node label below
-      final TextPainter textPainter = TextPainter(
-        text: TextSpan(
-          text: node.label,
-          style: TextStyle(
-            color: colors.labelColor,
-            fontSize: labelFontSize,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
+      final TextPainter textPainter = _TextPainterCache.getOrCreate(
+        node.label,
+        colors.labelColor,
+        labelFontSize,
       );
-      textPainter.layout();
       textPainter.paint(
         canvas,
         Offset(pos.dx - textPainter.width / 2.0, pos.dy + 14.0),
@@ -978,5 +976,59 @@ class TopologyPainter extends CustomPainter {
         oldDelegate.activeFocusedNode != activeFocusedNode ||
         oldDelegate.activeData != activeData ||
         oldDelegate.colors != colors;
+  }
+}
+
+class _TextPainterKey {
+  final String text;
+  final Color color;
+  final double fontSize;
+  _TextPainterKey(this.text, this.color, this.fontSize);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _TextPainterKey &&
+          text == other.text &&
+          color == other.color &&
+          fontSize == other.fontSize;
+
+  @override
+  int get hashCode => Object.hash(text, color, fontSize);
+}
+
+class _TextPainterCache {
+  static final Map<_TextPainterKey, TextPainter> _cache = {};
+  static const int _maxEntries = 256;
+
+  static TextPainter getOrCreate(String text, Color color, double fontSize) {
+    final key = _TextPainterKey(text, color, fontSize);
+    final existing = _cache[key];
+    if (existing != null) return existing;
+
+    if (_cache.length >= _maxEntries) {
+      final evictedKey = _cache.keys.first;
+      _cache.remove(evictedKey)?.dispose();
+    }
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    painter.layout();
+    _cache[key] = painter;
+    return painter;
+  }
+
+  static void clear() {
+    for (final painter in _cache.values) {
+      painter.dispose();
+    }
+    _cache.clear();
   }
 }

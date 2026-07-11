@@ -18,6 +18,8 @@ class TextScalerController extends ChangeNotifier {
   TextScalerController([this._themeService]);
   final ThemeService? _themeService;
   double _scale = 1.0;
+  bool _disposed = false;
+  int _writeCount = 0;
 
   /// The current text scale factor, always in [0.7, 1.5].
   double get scale => _scale;
@@ -27,7 +29,11 @@ class TextScalerController extends ChangeNotifier {
   /// Returns `1.0` when no value has been saved or when the service is
   /// null. Fires `notifyListeners()` after loading so the UI refreshes.
   Future<void> load() async {
-    _scale = await _themeService?.loadTextScale() ?? 1.0;
+    final currentWrite = _writeCount;
+    final val = await _themeService?.loadTextScale() ?? 1.0;
+    if (_disposed) return;
+    if (_writeCount != currentWrite) return;
+    _scale = val;
     notifyListeners();
   }
 
@@ -37,10 +43,24 @@ class TextScalerController extends ChangeNotifier {
   /// asynchronously. Persistence errors are caught and logged via
   /// [debugPrint] — they never propagate to the caller.
   void setScale(double value) {
+    _writeCount++;
     _scale = value.clamp(0.7, 1.5);
     notifyListeners();
     unawaited(_themeService?.saveTextScale(_scale).catchError((Object e) {
       debugPrint('Failed to save text scale: $e');
     }));
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

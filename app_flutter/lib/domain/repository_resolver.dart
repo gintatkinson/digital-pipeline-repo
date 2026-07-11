@@ -10,7 +10,7 @@ import 'data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'database_initializer.dart';
-import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/foundation.dart';
 
 
 /// Resolves the data-access backend at app startup.
@@ -30,6 +30,15 @@ class RepositoryResolver {
 
   static const _defaultEmulatorHost = 'localhost';
   static const _defaultEmulatorPort = 8080;
+
+  static DataSource? _lastResolved;
+  // NOTE: Once set, the Firebase SDK prevents reconfiguring the emulator
+  // connection within a single process lifetime (BUG #216 — by design).
+  static bool _firebaseEmulatorConfigured = false;
+
+  // _isResolving guards against concurrent resolve() calls creating
+  // duplicate connections (BUG #215).
+  static bool _isResolving = false;
 
   /// Resolves and initialises the appropriate backend.
   ///
@@ -55,31 +64,47 @@ class RepositoryResolver {
     String? dataSourceType,
     bool useEmulator = true,
   }) async {
-    String type = dataSourceType ?? 'sqlite';
-
-    // If no explicit type, try reading from config file
-    if (dataSourceType == null) {
-      final path = configPath ?? _defaultConfig;
-      try {
-        final configJson = await rootBundle.loadString(path);
-        final config = jsonDecode(configJson) as Map<String, dynamic>;
-        type = config['repository_type'] as String? ?? 'sqlite';
-      } catch (_) {}
+    if (_isResolving) {
+      if (_lastResolved != null) return _lastResolved!;
+      while (_isResolving) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      if (_lastResolved != null) return _lastResolved!;
     }
+    _isResolving = true;
+    try {
+      String type = dataSourceType ?? 'sqlite';
 
-    switch (type) {
-      case 'firebase':
-        return _createFirebaseAdapter(useEmulator: useEmulator);
-      case 'sqlite':
-        return _createSqliteAdapter(
-          dbAssetPath: dbAssetPath,
-          inMemory: sqliteInMemory,
-        );
-      default:
-        return _createSqliteAdapter(
-          dbAssetPath: dbAssetPath,
-          inMemory: sqliteInMemory,
-        );
+      // If no explicit type, try reading from config file
+      if (dataSourceType == null) {
+        final path = configPath ?? _defaultConfig;
+        try {
+          final configJson = await rootBundle.loadString(path);
+          final config = jsonDecode(configJson) as Map<String, dynamic>;
+          type = config['repository_type'] as String? ?? 'sqlite';
+        } catch (_) {}
+      }
+
+      await _lastResolved?.dispose();
+      final DataSource resolved;
+      switch (type) {
+        case 'firebase':
+          resolved = await _createFirebaseAdapter(useEmulator: useEmulator);
+        case 'sqlite':
+          resolved = await _createSqliteAdapter(
+            dbAssetPath: dbAssetPath,
+            inMemory: sqliteInMemory,
+          );
+        default:
+          resolved = await _createSqliteAdapter(
+            dbAssetPath: dbAssetPath,
+            inMemory: sqliteInMemory,
+          );
+      }
+      _lastResolved = resolved;
+      return resolved;
+    } finally {
+      _isResolving = false;
     }
   }
 
@@ -94,8 +119,9 @@ class RepositoryResolver {
   }) async {
     await Firebase.initializeApp();
     final firestore = FirebaseFirestore.instance;
-    if (useEmulator) {
+    if (useEmulator && !_firebaseEmulatorConfigured) {
       firestore.useFirestoreEmulator(_defaultEmulatorHost, _defaultEmulatorPort);
+      _firebaseEmulatorConfigured = true;
     }
     return FirebaseDataSource(firestore);
   }
@@ -111,18 +137,52 @@ class RepositoryResolver {
     String? dbAssetPath,
     bool inMemory = false,
   }) async {
-    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
-    if (isTest || Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    if (!kIsWeb && (isTest || Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
 
-    final dir = await getApplicationSupportDirectory();
-    final dbPath = inMemory ? inMemoryDatabasePath : p.join(dir.path, 'properties_db.db');
+    final String dbPath;
+    if (kIsWeb) {
+      dbPath = inMemoryDatabasePath;
+    } else {
+      final dir = await getApplicationSupportDirectory();
+      dbPath = inMemory ? inMemoryDatabasePath : p.join(dir.path, 'properties_db.db');
+    }
 
-    if (!inMemory) {
+    if (!kIsWeb && !inMemory) {
       final dbFile = File(dbPath);
-      if (!await dbFile.exists()) {
+      bool isOutdated = false;
+      final exists = await dbFile.exists();
+      if (exists) {
+        Database? tempDb;
+        try {
+          tempDb = await databaseFactory.openDatabase(dbPath);
+          final tables = ['properties', 'instances', 'type_definitions', 'type_attributes', 'type_relations'];
+          final rows = await tempDb.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN (${tables.map((t) => "'$t'").join(', ')})"
+          );
+          if (rows.length < tables.length) {
+            isOutdated = true;
+          }
+        } catch (_) {
+          isOutdated = true;
+        } finally {
+          if (tempDb != null) {
+            await tempDb.close();
+          }
+        }
+      }
+
+      if (!exists || isOutdated) {
+        if (exists) {
+          try {
+            await dbFile.delete();
+          } catch (e) {
+            debugPrint('Failed to delete outdated database file: $e');
+          }
+        }
         final assetPath = dbAssetPath ?? _defaultDbAsset;
         try {
           final bytes = await rootBundle.load(assetPath);
@@ -134,7 +194,9 @@ class RepositoryResolver {
             decodedBytes = await compute(gzip.decode, decodedBytes);
           }
           await dbFile.writeAsBytes(decodedBytes);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('Failed to write database file "$dbPath": $e');
+        }
       }
     }
 

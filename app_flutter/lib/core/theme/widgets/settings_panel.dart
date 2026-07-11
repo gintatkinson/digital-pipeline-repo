@@ -70,6 +70,25 @@ class SettingsPanel extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
+          Text('Overlay Opacity', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.opacity, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
+              Expanded(
+                child: Slider(
+                  value: themeController.panelOpacity,
+                  min: 0.0,
+                  max: 1.0,
+                  divisions: 10,
+                  label: '${(themeController.panelOpacity * 100).round()}%',
+                  onChanged: (value) => themeController.updatePanelOpacity(value),
+                ),
+              ),
+              Icon(Icons.opacity, size: 22, color: cs.onSurface),
+            ],
+          ),
+          const SizedBox(height: 16),
 
           Text('Color', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
@@ -113,6 +132,7 @@ class SettingsPanel extends StatelessWidget {
               Icon(Icons.text_fields, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
               Expanded(
                 child: Slider(
+                  key: const Key('settings_text_scale_slider'),
                   value: textScaler.scale,
                   min: 0.7,
                   max: 1.5,
