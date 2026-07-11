@@ -69,7 +69,7 @@ class CodebaseValidator(IValidator):
         react_dir_name = target_dirs.react
         react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
         if react_dir_name and not os.path.exists(react_dir):
-            if has_files_with_extensions(react_rules.file_extensions):
+            if react_rules and has_files_with_extensions(react_rules.file_extensions):
                 errors.append(f"Compliance Bypass Loophole: Configured React directory '{react_dir_name}' does not exist on disk.")
         
         flutter_dir_name = target_dirs.flutter
@@ -115,7 +115,7 @@ class CodebaseValidator(IValidator):
             hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
             
         # 1. React Web Codebase Compliance
-        if react_dir and os.path.exists(react_dir):
+        if react_dir and os.path.exists(react_dir) and react_rules:
             react_exts = tuple(react_rules.file_extensions)
             react_exclusions = set(react_rules.exclusions)
             react_forbidden_words = react_rules.forbidden_words

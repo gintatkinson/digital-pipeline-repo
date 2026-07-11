@@ -79,6 +79,7 @@ def _main_impl():
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
     parser.add_argument("--spec-only", action="store_true", help="Run in specification-only mode, bypassing codebase checks")
+    parser.add_argument("--allow-missing-specs", action="store_true", help="Skip exiting with status code 1 when there are missing specification files")
     
     args = parser.parse_args()
     
@@ -230,7 +231,8 @@ def _main_impl():
         print("[!] Missing local specification files for open feature issues:")
         for spec in missing_specs:
             print(f"  - {spec}")
-        sys.exit(1)
+        if not args.allow_missing_specs:
+            sys.exit(1)
     
     skip_coverage_checks = False
     if args.spec_only or not features:
@@ -262,7 +264,7 @@ def _main_impl():
         
         # React
         react_dir_name = rules.target_directories.react
-        if react_dir_name:
+        if react_dir_name and rules.react_rules:
             react_dir = os.path.join(repo.workspace_dir, react_dir_name)
             if os.path.exists(react_dir):
                 react_exts = tuple(rules.react_rules.file_extensions)

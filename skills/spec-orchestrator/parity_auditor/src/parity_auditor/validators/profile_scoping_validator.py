@@ -29,7 +29,10 @@ class ProfileScopingValidator(IValidator):
             return matched
             
         react_rules = rules.react_rules
-        react_files = find_files(react_dir, react_rules.file_extensions, set(react_rules.exclusions))
+        if react_rules:
+            react_files = find_files(react_dir, react_rules.file_extensions, set(react_rules.exclusions))
+        else:
+            react_files = []
         
         flutter_rules = rules.flutter_rules
         flutter_files = find_files(flutter_dir, flutter_rules.file_extensions, set(flutter_rules.exclusions))

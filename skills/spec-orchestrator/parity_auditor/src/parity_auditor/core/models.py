@@ -24,7 +24,7 @@ class BacklogDirectories:
 
 @dataclass
 class TargetDirectories:
-    react: str = "web_react"
+    react: Optional[str] = None
     flutter: str = "app_flutter"
 
 @dataclass
@@ -129,7 +129,7 @@ class CodebaseRules:
     tracker_rules: Dict[str, Any] = field(default_factory=dict)
     backlog_directories: BacklogDirectories = field(default_factory=BacklogDirectories)
     target_directories: TargetDirectories = field(default_factory=TargetDirectories)
-    react_rules: ReactRules = field(default_factory=ReactRules)
+    react_rules: Optional[ReactRules] = None
     flutter_rules: FlutterRules = field(default_factory=FlutterRules)
     python_rules: PythonRules = field(default_factory=PythonRules)
     spec_rules: SpecRules = field(default_factory=SpecRules)
@@ -145,8 +145,11 @@ def load_from_dict(data: dict) -> CodebaseRules:
     td_data = data.get("target_directories", {})
     target_directories = TargetDirectories(**{k: v for k, v in td_data.items() if k in TargetDirectories.__dataclass_fields__})
     
-    react_data = data.get("react_rules", {})
-    react_rules = ReactRules(**{k: v for k, v in react_data.items() if k in ReactRules.__dataclass_fields__})
+    react_data = data.get("react_rules")
+    if react_data is not None:
+        react_rules = ReactRules(**{k: v for k, v in react_data.items() if k in ReactRules.__dataclass_fields__})
+    else:
+        react_rules = None
     
     flutter_data = data.get("flutter_rules", {})
     flutter_rules = FlutterRules(**{k: v for k, v in flutter_data.items() if k in FlutterRules.__dataclass_fields__})
