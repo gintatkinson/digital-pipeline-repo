@@ -349,8 +349,12 @@ To verify that a downstream workspace adheres to the Project Constitution (inclu
 ```bash
 python3 scripts/verify_downstream_baseline.py [react | flutter] <destination_path>
 ```
-* **React Checks**: Asserts presence of core React baseline files, checks for mandated domain classes in `types.ts` (loaded dynamically from target config files like `.pipeline/logical-ui/codebase_rules.json`, `codebase_rules.json`, or `baseline_manifest.json` under `"validation_rules" -> "mandated_classes"` or at root; otherwise falls back to defaults), and verifies compilation/packaging via `npm run build`.
-* **Flutter Checks**: Asserts presence of core Flutter baseline files, checks for mandated domain classes in `types.dart` (loaded dynamically from target config files if present; otherwise falls back to defaults), and runs full diagnostics and test suite via `flutter analyze && flutter test`.
+Or to skip checking the domain model files (`types.ts`/`types.dart`) and type compatibility checks:
+```bash
+python3 scripts/verify_downstream_baseline.py --no-domain [react | flutter] <destination_path>
+```
+* **React Checks**: Asserts presence of core React baseline files (excludes `types.ts` if `--no-domain` is specified), checks for mandated domain classes in `types.ts` (skipped if `--no-domain` is specified), and verifies compilation/packaging via `npm run build`.
+* **Flutter Checks**: Asserts presence of core Flutter baseline files (excludes `types.dart` if `--no-domain` is specified), checks for mandated domain classes in `types.dart` (skipped if `--no-domain` is specified), and runs full diagnostics and test suite via `flutter analyze && flutter test`.
 
 ---
 

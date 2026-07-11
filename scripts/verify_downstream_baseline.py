@@ -60,6 +60,7 @@ def load_mandated_classes(destination):
 
 def main():
     parser = argparse.ArgumentParser(description="Verify a downstream project's baseline conformance.")
+    parser.add_argument("--no-domain", action="store_true", help="Skip checking the domain model")
     parser.add_argument("platform", choices=["react", "flutter"], help="Target platform ('react' or 'flutter')")
     parser.add_argument("destination", help="Path to the downstream project directory")
     args = parser.parse_args()
@@ -84,6 +85,8 @@ def main():
             "src/App.tsx",
             "src/types.ts"
         ]
+        if args.no_domain:
+            baseline_files.remove("src/types.ts")
         types_file = os.path.join(dest, "src", "types.ts")
     else:  # flutter
         baseline_files = [
@@ -93,6 +96,8 @@ def main():
             "lib/domain/types.dart",
             "lib/domain/validation.dart"
         ]
+        if args.no_domain:
+            baseline_files.remove("lib/domain/types.dart")
         types_file = os.path.join(dest, "lib", "domain", "types.dart")
 
     missing_files = []
@@ -108,29 +113,32 @@ def main():
     print("Success: All baseline files exist.")
 
     # 2. Validate type compatibility
-    if not os.path.exists(types_file):
-        print(f"ERROR: Types file '{types_file}' does not exist.", file=sys.stderr)
-        sys.exit(1)
+    if args.no_domain:
+        print("Skipping domain type compatibility validation (--no-domain specified).")
+    else:
+        if not os.path.exists(types_file):
+            print(f"ERROR: Types file '{types_file}' does not exist.", file=sys.stderr)
+            sys.exit(1)
 
-    with open(types_file, "r", encoding="utf-8") as f:
-        content = f.read()
+        with open(types_file, "r", encoding="utf-8") as f:
+            content = f.read()
 
-    missing_classes = []
-    mandated_classes = load_mandated_classes(dest)
-    for cls in mandated_classes:
-        if platform == "react":
-            pattern = rf"\b(?:interface|class)\s+{cls}\b"
-        else:
-            pattern = rf"\bclass\s+{cls}\b"
-            
-        if not re.search(pattern, content):
-            missing_classes.append(cls)
+        missing_classes = []
+        mandated_classes = load_mandated_classes(dest)
+        for cls in mandated_classes:
+            if platform == "react":
+                pattern = rf"\b(?:interface|class)\s+{cls}\b"
+            else:
+                pattern = rf"\bclass\s+{cls}\b"
+                
+            if not re.search(pattern, content):
+                missing_classes.append(cls)
 
-    if missing_classes:
-        print(f"ERROR: Type validation failed. Mandated classes/interfaces missing in {os.path.basename(types_file)}: {', '.join(missing_classes)}", file=sys.stderr)
-        sys.exit(1)
+        if missing_classes:
+            print(f"ERROR: Type validation failed. Mandated classes/interfaces missing in {os.path.basename(types_file)}: {', '.join(missing_classes)}", file=sys.stderr)
+            sys.exit(1)
 
-    print("Success: Type compatibility validation passed (all mandated domain classes exist).")
+        print("Success: Type compatibility validation passed (all mandated domain classes exist).")
 
     # 3. Run build/test commands
     try:
