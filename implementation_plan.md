@@ -1,40 +1,34 @@
-# Implementation Plan: Add --no-domain flag to verify_downstream_baseline.py
+# Implementation Plan: Document Cleanup of Stale Domain Features
 
-This plan details the changes required to add a `--no-domain` option to `scripts/verify_downstream_baseline.py` to allow skipping domain type compatibility checks and excluding domain baseline files from verification.
+This plan details the changes required to document the cleanup of stale domain feature specifications.
 
 ---
 
 ## Proposed Changes
 
-### 1. Parse `--no-domain` argument
-- **File**: `scripts/verify_downstream_baseline.py`
-- **Action**: Add `--no-domain` as a boolean option (using `action="store_true"`) to the argument parser.
+### 1. Create Solution Walkthrough Document
+- **File**: `docs/designs/feat-cleanup-stale-domain-features.md`
+- **Action**: Create a new Markdown file that:
+  - Details the deleted domain feature files:
+    - `docs/features/feat-06-physical-structural.md`
+    - `docs/features/feat-07-physical-geographic-location.md`
+    - `docs/features/feat-08-rack-infrastructure.md`
+    - `docs/features/feat-09-distributed-chassis-containment.md`
+  - Explains the architectural rationale: these files contained static domain-specific models which conflict with the dynamic runtime schema-driven architecture of the pipeline, and their capabilities are already fully realized by the generic dynamic layout and forms validation logic.
 
-### 2. Handle `--no-domain` flag
-- **File**: `scripts/verify_downstream_baseline.py`
-- **Action**:
-  - If `--no-domain` is specified, exclude `"src/types.ts"` (for React) or `"lib/domain/types.dart"` (for Flutter) from `baseline_files`.
-  - Skip the type compatibility check (checking if mandated classes exist in `types_file`) entirely and print a message: `Skipping domain type compatibility validation (--no-domain specified).`
-  - Maintain the exit logic, exiting with code 0 on success.
-
-### 3. Update README.md to document the `--no-domain` option
-- **File**: `README.md`
-- **Action**: Update the section "Running Compliance Verification Gates" to document the usage of the `--no-domain` flag.
+### 2. Update Wiki Decision Records Index
+- **File**: `wiki/Decision-Records.md`
+- **Action**: Add the entry for `feat-cleanup-stale-domain-features.md` to the index table under "Design Solutions".
 
 ---
 
 ## Verification Plan
 
-### Step 1: Run verification commands locally
-- Create a test branch `feat/add-no-domain-flag`.
-- Run `python3 scripts/verify_downstream_baseline.py --help` to confirm the new flag is listed.
-- Verify React downstream conformance with `--no-domain`:
-  `python3 scripts/verify_downstream_baseline.py --no-domain react web_react`
-- Verify Flutter downstream conformance with `--no-domain`:
-  `python3 scripts/verify_downstream_baseline.py --no-domain flutter app_flutter`
-- Verify normal behavior still functions correctly when `--no-domain` is not provided.
+### Step 1: Verify Walkthrough Document Creation
+- Confirm that `docs/designs/feat-cleanup-stale-domain-features.md` contains all requested information and is formatted as markdown.
+- Confirm that `wiki/Decision-Records.md` properly references the new walkthrough file.
 
-### Step 2: Commit and push changes
-- Commit the changes.
-- Push to origin tracking branch.
-- Verify `git diff origin/<branch>` is empty.
+### Step 2: Commit and Push Changes
+- Commit `docs/designs/feat-cleanup-stale-domain-features.md`, `wiki/Decision-Records.md`, and the updated `implementation_plan.md`.
+- Push to origin `main` branch.
+- Verify `git diff origin/main` is empty.

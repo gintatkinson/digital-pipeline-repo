@@ -34,6 +34,7 @@ The `docs/designs/` directory contains cumulative solution walkthroughs for impl
 | Walkthrough | File |
 |---|---|
 | Adversarial Audit Solution | `docs/designs/feat-adversarial-audit-solution.md` |
+| Cleanup of Stale Domain Features | `docs/designs/feat-cleanup-stale-domain-features.md` |
 | Epic Template Mandate Plan | `docs/designs/feat-epic-template-mandate-plan.md` |
 | Epic Template Mandate Solution | `docs/designs/feat-epic-template-mandate-solution.md` |
 | Pipeline Audit Solution | `docs/designs/feat-pipeline-audit-solution.md` |
