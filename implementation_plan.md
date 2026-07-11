@@ -32,6 +32,10 @@ This plan details the changes required to back-propagate features and skills fro
 - **Target File**: `skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/schema_mapping_validator.py`
 - **Action**: Guard schema mapping checks to skip react files when `react_rules` is `None`.
 
+### 5. Document Back-propagation of Downstream Changes
+- **Target File**: `docs/designs/feat-backprop-downstream-changes.md`
+- **Action**: Create a solution walkthrough detailing the modified files (`models.py`, `cli.py`, `codebase.py`, `profile_scoping_validator.py`, `schema_mapping_validator.py`), the new file (`skills/adversarial-code-auditor/SKILL.md`), and the rationale behind making React rules optional and adding `--allow-missing-specs`.
+
 ---
 
 ## Verification Plan
@@ -43,7 +47,9 @@ Run the following validation checks to ensure the rules parsing and validation l
 
 ### Step 2: Git Verification & Commit
 - Verify `git status` shows the correct files are added/modified.
+- Create and write the solution walkthrough document at `docs/designs/feat-backprop-downstream-changes.md`.
 - Commit all changes to the active branch `feat/backprop-application-changes` with the commit message:
-  `feat: import adversarial-code-auditor and make react rules optional in parity auditor`
+  `feat: import adversarial-code-auditor and make react rules optional in parity auditor` and then commit the walkthrough document.
 - Push the branch to `origin`.
 - Confirm that `git diff origin/feat/backprop-application-changes` is empty.
+
