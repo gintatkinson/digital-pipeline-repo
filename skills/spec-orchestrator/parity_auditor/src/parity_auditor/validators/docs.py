@@ -12,7 +12,6 @@ class DocsValidator(IValidator):
         doc_files = [
             "README.md",
             ".pipeline/constitution.md",
-            ".pipeline/profiles/react.md",
             ".pipeline/profiles/flutter.md"
         ]
         

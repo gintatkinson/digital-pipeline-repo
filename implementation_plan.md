@@ -1,19 +1,21 @@
-# Delete React Configurations from Codebase Rules
+# Clean out all React
 
-We will remove all React-related rules and directory configurations from the pipeline rules (`codebase_rules.json`) to completely clean up the React configuration since the React application is deleted.
+We will completely remove all React-related profiles and validation configurations from the repository.
 
 ## Proposed Changes
 
 ### Spec Orchestrator Configuration
 
-#### [MODIFY] [codebase_rules.json](file:///Users/perkunas/jail/digital-pipeline-repo/.pipeline/logical-ui/codebase_rules.json)
-- Set `"react"` to `null` in `target_directories`.
-- Remove `"react_rules"` block completely.
+#### [DELETE] [react.md](file:///Users/perkunas/jail/digital-pipeline-repo/.pipeline/profiles/react.md)
+- Delete the React profile document.
+
+#### [MODIFY] [docs.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/docs.py)
+- Remove `".pipeline/profiles/react.md"` from `doc_files` validation list.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run the python test suite to verify that removing the React configuration does not break the linter validators:
+- Run the python test suite to verify that removing the React profile and updating the docs validator does not break the test suite:
   ```bash
   PYTHONPATH=skills/spec-orchestrator/parity_auditor/src python3 -m pytest
   ```
