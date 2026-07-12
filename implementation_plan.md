@@ -16,11 +16,18 @@ This plan outlines the surgical changes required to correct the clone URL placeh
 - **Target File**: `implementation_plan.md`
 - **Action**: Document the current implementation plan for this branch/task.
 
+### 3. Solution Walkthrough Document
+- **Target File**: `docs/designs/feat-fix-readme-installation.md`
+- **Action**: Create the walkthrough document detailing the changes to `README.md` and their rationales.
+
 ## Verification Plan
 
 ### Step 1: Git Diff Check
 - Run `git diff README.md` to verify that only the expected replacement edits were performed.
 
-### Step 2: Push and Sync Check
+### Step 2: Walkthrough Check
+- Verify that `docs/designs/feat-fix-readme-installation.md` exists and contains the correct details.
+
+### Step 3: Push and Sync Check
 - Commit and push to origin on the branch `fix/installation-instructions-readme`.
 - Verify that `git diff origin/fix/installation-instructions-readme` is empty.
