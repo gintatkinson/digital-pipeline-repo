@@ -385,8 +385,8 @@ class UmlValidator(IValidator):
                                         
                             if val_rules.use_case_extend_arrow_direction_check:
                                 if conn.label and "extend" in conn.label.lower():
-                                    src_has_ext = "extend" in src_id.lower() or "ext" in src_id.lower() or (src_node and src_node.label and ("extend" in src_node.label.lower() or "ext" in src_node.label.lower()))
-                                    tgt_has_ext = "extend" in tgt_id.lower() or "ext" in tgt_id.lower() or (tgt_node and tgt_node.label and ("extend" in tgt_node.label.lower() or "ext" in tgt_node.label.lower()))
+                                    src_has_ext = bool(re.search(r"\bextend\b|\bext\b", src_id, re.I) or (src_node and src_node.label and re.search(r"\bextend\b|\bext\b", src_node.label, re.I)))
+                                    tgt_has_ext = bool(re.search(r"\bextend\b|\bext\b", tgt_id, re.I) or (tgt_node and tgt_node.label and re.search(r"\bextend\b|\bext\b", tgt_node.label, re.I)))
                                     if tgt_has_ext and not src_has_ext:
                                         errors.append(f"Use Case {basename} extend arrow from '{src_id}' to '{tgt_id}' is reversed. Extend arrows must point from the extending Use Case (client) to the base Use Case (supplier).")
                                         

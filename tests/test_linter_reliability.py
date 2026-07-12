@@ -325,3 +325,35 @@ def test_reconcile_backlog_frontmatter_resolution(tmp_path, base_config):
         
     assert "issue_id: #42" in content
 
+def test_extend_arrow_false_positives(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    os.makedirs(ws_dir / "docs" / "use-cases", exist_ok=True)
+    uc_path = ws_dir / "docs" / "use-cases" / "uc-01-register.md"
+    with open(uc_path, "w", encoding="utf-8") as f:
+        f.write("""---
+title: "Use Case 1: Register"
+type: "use-case"
+spec_source: "Standard"
+---
+# Use Case: Register
+
+## UML Diagrams
+### Use Case Diagram
+```mermaid
+graph TB
+    subgraph boundary ["System Boundary"]
+        UC1["Register (Context)"]
+        UC2["Edit (Texture)"]
+        UC1 -->|extend| UC2
+    end
+```
+""")
+    
+    repo = WorkspaceRepository(str(ws_dir))
+    from parity_auditor.validators.uml import UmlValidator
+    validator = UmlValidator()
+    errors = validator.validate(repo)
+    extend_errors = [e for e in errors if "extend arrow" in e]
+    assert not extend_errors, f"Expected no extend arrow errors, but got: {extend_errors}"
+
+

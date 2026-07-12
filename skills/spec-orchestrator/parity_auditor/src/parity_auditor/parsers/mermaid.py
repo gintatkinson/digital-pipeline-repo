@@ -93,11 +93,11 @@ class MermaidFlowchartParser(IParser):
             if not line or line.lower() in ("flowchart", "graph td", "graph lr", "graph", "flowchart td", "flowchart lr"):
                 continue
 
-            subgraph_match = re.match(r'^subgraph\s+([^\s\[\"\(]+)(?:\s+\[\s*\"([^\"]*)\"\s*\]|\s+\[([^\]]*)\]|\s+\"([^\"]*)\"|\s+(\S+))?', line, re.IGNORECASE)
+            subgraph_match = re.match(r'^subgraph\s+(?:\"([^\"]+)\"|([^\s\[\"\(]+))(?:\s+\[\s*\"([^\"]*)\"\s*\]|\s+\[([^\]]*)\]|\s+\"([^\"]*)\"|\s+(\S+))?', line, re.IGNORECASE)
             if subgraph_match:
-                sub_id = subgraph_match.group(1)
+                sub_id = subgraph_match.group(1) or subgraph_match.group(2)
                 label = None
-                for g in (subgraph_match.group(2), subgraph_match.group(3), subgraph_match.group(4), subgraph_match.group(5)):
+                for g in (subgraph_match.group(3), subgraph_match.group(4), subgraph_match.group(5), subgraph_match.group(6)):
                     if g is not None:
                         label = g.strip()
                         break
