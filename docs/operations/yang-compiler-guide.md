@@ -163,17 +163,19 @@ resources.
 
 ### 4.2. Attribute Mapping
 
+Property mappings are completely dynamic and determined at build/runtime from the source schemas rather than being statically compiled or hardcoded. The network-specific topology terms below (such as `mtu` or `interfaces`) are purely illustrative examples.
+
 | YANG Construct | LUI Attribute Property | Example |
 |---|---|---|
 | `leaf name { type string; }` | Attribute `key` + `type: "string"` | `{"key": "system/name", "type": "string"}` |
-| `leaf mtu { type uint32; }` | `type: "int"` | `{"type": "int"}` |
-| `leaf voltage { type float64; }` | `type: "double"` | `{"type": "double"}` |
+| `leaf mtu { type uint32; }` | `type: "int"` | `{"type": "int"}` (Example network term) |
+| `leaf voltage { type float64; }` | `type: "double"` | `{"type": "double"}` (Example network term) |
 | `leaf enabled { type boolean; }` | `type: "boolean"` | `{"type": "boolean"}` |
 | `uint32 { range "68..9216"; }` | `minValue` / `maxValue` | `{"minValue": 68, "maxValue": 9216}` |
 | `pattern '[A-Z]{2}';` | `pattern` | `{"pattern": "[A-Z]{2}"}` |
-| `enumeration { enum UP; enum DOWN; }` | `options` array | `{"options": ["UP", "DOWN"]}` |
+| `enumeration { enum UP; enum DOWN; }` | `options` array | `{"options": ["UP", "DOWN"]}` (Example network options) |
 | `mandatory true` | `isRequired: true` | `{"isRequired": true}` |
-| `container interfaces { leaf name; }` | `sectionGroup: "interfaces"` | `{"sectionGroup": "interfaces"}` |
+| `container interfaces { leaf name; }` | `sectionGroup: "interfaces"` | `{"sectionGroup": "interfaces"}` (Example network group) |
 
 ### 4.3. YANG Built-in Type Mapping
 

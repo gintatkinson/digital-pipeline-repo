@@ -266,6 +266,28 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
     hierarchy = build_hierarchy(data_defs)
     attributes = build_attributes(data_defs)
 
+    # Load layout rules from codebase_rules.json or .pipeline/logical-ui/codebase_rules.json
+    codebase_rules = {}
+    for path in ['codebase_rules.json', '.pipeline/logical-ui/codebase_rules.json']:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    codebase_rules = json.load(f)
+                break
+            except Exception:
+                pass
+
+    layout_rules = codebase_rules.get('layout_rules', {})
+    details_tabs = layout_rules.get('details_tabs')
+    if not details_tabs:
+        details_tabs = [
+            {
+                "type": "TableView",
+                "id": "properties_table",
+                "props": { "title": "Properties" }
+            }
+        ]
+
     return {
         'meta': {
             'version': '1.0.0',
@@ -311,20 +333,7 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
                             {
                                 'type': 'TabbedContainer',
                                 'id': 'details_and_relations_tab',
-                                'children': [
-                                    {
-                                        'type': 'TableView',
-                                        'id': 'sub_elements_table',
-                                    },
-                                    {
-                                        'type': 'TableView',
-                                        'id': 'active_alarms_table',
-                                    },
-                                    {
-                                        'type': 'TableView',
-                                        'id': 'historical_events_table',
-                                    },
-                                ],
+                                'children': details_tabs,
                             },
                         ],
                     },

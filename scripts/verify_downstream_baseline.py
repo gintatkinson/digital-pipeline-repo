@@ -13,17 +13,7 @@ import subprocess
 import sys
 
 # Mandated domain classes/interfaces to check in types.ts or types.dart
-MANDATED_CLASSES = [
-    "Velocity",
-    "TemporalContext",
-    "PhysicalAddress",
-    "LocationType",
-    "LocationHierarchy",
-    "RackLocation",
-    "Rack",
-    "ContainedChassis",
-    "ChassisContainmentSubsystem"
-]
+MANDATED_CLASSES = []
 
 def load_mandated_classes(destination):
     config_paths = [

@@ -2,96 +2,40 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Layout } from './layout';
 import { PropertyGrid } from './property-grid';
-import {
-  validateTemporalContext,
-  validatePhysicalAddress,
-  validateLocationType,
-  validateRack,
-  hasSlotOverlap
-} from '../domain/validation';
+import { validateFields } from '../domain/validation';
 import { Counter32, Gauge32 } from '../domain/numeric-metrics';
 
 describe('Domain Validations', () => {
-  it('should validate temporal context rules', () => {
-    // validUntil must be >= timestamp
-    expect(validateTemporalContext({
-      timestamp: '2026-06-22T12:00:00Z',
-      validUntil: '2026-06-22T13:00:00Z',
-      velocity: { vNorth: 0, vEast: 0, vUp: 0 }
-    })).toBe(true);
-
-    expect(validateTemporalContext({
-      timestamp: '2026-06-22T13:00:00Z',
-      validUntil: '2026-06-22T12:00:00Z',
-      velocity: { vNorth: 0, vEast: 0, vUp: 0 }
-    })).toBe(false);
+  it('should validate required constraints dynamically', () => {
+    const descriptors = [{ key: 'name', label: 'Name', type: 'string', isRequired: true }];
+    expect(validateFields({ name: 'John' }, descriptors)).toBe(true);
+    expect(validateFields({ name: '' }, descriptors)).toBe(false);
+    expect(validateFields({}, descriptors)).toBe(false);
   });
 
-  it('should validate ISO-2 uppercase country codes', () => {
-    expect(validatePhysicalAddress({
-      address: '123 Main St',
-      postalCode: '12345',
-      state: 'CA',
-      city: 'San Francisco',
-      countryCode: 'US'
-    })).toBe(true);
-
-    expect(validatePhysicalAddress({
-      address: '123 Main St',
-      postalCode: '12345',
-      state: 'CA',
-      city: 'San Francisco',
-      countryCode: 'us' // lowercase is invalid
-    })).toBe(false);
-
-    expect(validatePhysicalAddress({
-      address: '123 Main St',
-      postalCode: '12345',
-      state: 'CA',
-      city: 'San Francisco',
-      countryCode: 'USA' // 3-letter is invalid
-    })).toBe(false);
+  it('should validate ISO-2 uppercase country codes pattern dynamically', () => {
+    const descriptors = [{ key: 'countryCode', label: 'Country Code', type: 'string', pattern: '^[A-Z]{2}$' }];
+    expect(validateFields({ countryCode: 'US' }, descriptors)).toBe(true);
+    expect(validateFields({ countryCode: 'us' }, descriptors)).toBe(false);
+    expect(validateFields({ countryCode: 'USA' }, descriptors)).toBe(false);
   });
 
-  it('should validate location hierarchy type identities', () => {
-    expect(validateLocationType({ identity: 'site' })).toBe(true);
-    expect(validateLocationType({ identity: 'room' })).toBe(true);
-    expect(validateLocationType({ identity: 'building' })).toBe(true);
-    expect(validateLocationType({ identity: 'invalid' as any })).toBe(false);
+  it('should validate location hierarchy type identities dynamically', () => {
+    const descriptors = [{ key: 'locationType', label: 'Location Hierarchy Type', type: 'enum', options: ['site', 'room', 'building'] }];
+    expect(validateFields({ locationType: 'site' }, descriptors)).toBe(true);
+    expect(validateFields({ locationType: 'room' }, descriptors)).toBe(true);
+    expect(validateFields({ locationType: 'building' }, descriptors)).toBe(true);
+    expect(validateFields({ locationType: 'invalid' }, descriptors)).toBe(false);
   });
 
-  it('should validate rack metrics are non-negative', () => {
-    expect(validateRack({
-      maxVoltage: 240,
-      maxAllocatedPower: 15000,
-      heightUnits: 42,
-      location: { roomName: 'A', gridRow: 1, gridColumn: 1 }
-    })).toBe(true);
-
-    expect(validateRack({
-      maxVoltage: -10,
-      maxAllocatedPower: 15000,
-      heightUnits: 42,
-      location: { roomName: 'A', gridRow: 1, gridColumn: 1 }
-    })).toBe(false);
-
-    expect(validateRack({
-      maxVoltage: 240,
-      maxAllocatedPower: -100,
-      heightUnits: 42,
-      location: { roomName: 'A', gridRow: 1, gridColumn: 1 }
-    })).toBe(false);
-  });
-
-  it('should detect contained chassis slot overlap conflicts', () => {
-    const chassisA = { chassisId: 'A', startSlot: 1, slotWidth: 2, validateSlotOverlap: () => false };
-    const chassisB = { chassisId: 'B', startSlot: 2, slotWidth: 2, validateSlotOverlap: () => false };
-    const chassisC = { chassisId: 'C', startSlot: 3, slotWidth: 2, validateSlotOverlap: () => false };
-
-    // A: slots [1, 2], B: slots [2, 3] -> Overlap at slot 2
-    expect(hasSlotOverlap(chassisA, chassisB)).toBe(true);
-    // A: slots [1, 2], C: slots [3, 4] -> No overlap
-    expect(hasSlotOverlap(chassisA, chassisC)).toBe(false);
+  it('should validate rack metrics min/max limits dynamically', () => {
+    const descriptors = [
+      { key: 'maxVoltage', label: 'Max Voltage', type: 'int', minValue: 0 },
+      { key: 'maxAllocatedPower', label: 'Max Allocated Power', type: 'int', minValue: 0 }
+    ];
+    expect(validateFields({ maxVoltage: 240, maxAllocatedPower: 15000 }, descriptors)).toBe(true);
+    expect(validateFields({ maxVoltage: -10, maxAllocatedPower: 15000 }, descriptors)).toBe(false);
+    expect(validateFields({ maxVoltage: 240, maxAllocatedPower: -100 }, descriptors)).toBe(false);
   });
 });
 

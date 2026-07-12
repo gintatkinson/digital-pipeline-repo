@@ -1,28 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { validatePhysicalAddress, validateLocationType, validateRack } from '../domain/validation';
+import { validateFields } from '../domain/validation';
+import logicalLayout from '../../../.pipeline/logical-ui/logical-layout.json';
 
 export interface PropertyGridProps {
   activeView: string;
   onSave?: (data: any) => void;
 }
 
+const defaultShowcase: Record<string, any> = {
+  latitude: 37.7749,
+  longitude: -122.4194,
+  altitude: 10,
+  roomName: 'Main-Data-Room',
+  gridRow: 12,
+  gridColumn: 4,
+  maxVoltage: 240,
+  maxAllocatedPower: 15000,
+  countryCode: 'US',
+  locationType: 'room'
+};
+
+const fallbackAttributes = [
+  { key: 'latitude', label: 'Latitude', type: 'double', sectionGroup: 'Geodetic Coordinate Frame', isRequired: false },
+  { key: 'longitude', label: 'Longitude', type: 'double', sectionGroup: 'Geodetic Coordinate Frame', isRequired: false },
+  { key: 'altitude', label: 'Elevation / Altitude (m)', type: 'double', sectionGroup: 'Geodetic Coordinate Frame', isRequired: false },
+  { key: 'roomName', label: 'Room Identifier', type: 'string', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false },
+  { key: 'gridRow', label: 'Grid Row', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false },
+  { key: 'gridColumn', label: 'Grid Column', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false },
+  { key: 'maxVoltage', label: 'Max Voltage (V)', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, minValue: 0 },
+  { key: 'maxAllocatedPower', label: 'Max Allocated Power (W)', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, minValue: 0 },
+  { key: 'countryCode', label: 'Country Code (ISO-2)', type: 'string', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, pattern: '^[A-Z]{2}$' },
+  { key: 'locationType', label: 'Location Hierarchy Type', type: 'enum', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, options: ['site', 'room', 'building'] }
+];
+
 export const PropertyGrid: React.FC<PropertyGridProps> = ({ activeView, onSave }) => {
+  const attributes = (logicalLayout as any).attributes || fallbackAttributes;
+
+  const getInitialData = () => {
+    const data: Record<string, any> = {};
+    attributes.forEach((attr: any) => {
+      if (defaultShowcase[attr.key] !== undefined) {
+        data[attr.key] = defaultShowcase[attr.key];
+      } else if (attr.defaultValue !== undefined) {
+        data[attr.key] = attr.defaultValue;
+      } else if (attr.type === 'boolean') {
+        data[attr.key] = false;
+      } else if (attr.type === 'int' || attr.type === 'double' || attr.type === 'real') {
+        data[attr.key] = 0;
+      } else if (attr.type === 'enum') {
+        const opts = attr.options || attr.enumOptions || [];
+        data[attr.key] = opts.length > 0 ? opts[0] : '';
+      } else {
+        data[attr.key] = '';
+      }
+    });
+    return data;
+  };
+
   // Parent state simulated for showcase
-  const [committedData, setCommittedData] = useState({
-    latitude: 37.7749,
-    longitude: -122.4194,
-    altitude: 10,
-    roomName: 'Main-Data-Room',
-    gridRow: 12,
-    gridColumn: 4,
-    maxVoltage: 240,
-    maxAllocatedPower: 15000,
-    countryCode: 'US',
-    locationType: 'room'
-  });
+  const [committedData, setCommittedData] = useState<Record<string, any>>(() => getInitialData());
 
   // Local buffered state to prevent re-renders on keystroke
-  const [bufferedData, setBufferedData] = useState({ ...committedData });
+  const [bufferedData, setBufferedData] = useState<Record<string, any>>(() => ({ ...committedData }));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Synchronize buffer when activeView changes or parent state is updated
@@ -31,7 +70,7 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ activeView, onSave }
     setErrors({});
   }, [activeView, committedData]);
 
-  const handleInputChange = (field: string, value: string | number) => {
+  const handleInputChange = (field: string, value: any) => {
     setBufferedData((prev) => ({
       ...prev,
       [field]: value
@@ -39,52 +78,42 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ activeView, onSave }
   };
 
   const handleBlur = (field: string) => {
-    const value = bufferedData[field as keyof typeof bufferedData];
+    const value = bufferedData[field];
     const newErrors = { ...errors };
     let isValid = true;
 
-    // Trigger specific domain validations
-    if (field === 'countryCode') {
-      const isCountryValid = validatePhysicalAddress({
-        address: '',
-        postalCode: '',
-        state: '',
-        city: '',
-        countryCode: String(value)
-      });
-      if (!isCountryValid) {
-        newErrors.countryCode = 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
-        isValid = false;
-      } else {
-        delete newErrors.countryCode;
-      }
-    }
+    // Find the attribute definition to perform validation
+    const attr = attributes.find((a: any) => a.key === field);
+    if (attr) {
+      // Validate using our generic validation function
+      const singleInput = { [field]: value };
+      const singleDescriptor = [attr];
+      const isFieldValid = validateFields(singleInput, singleDescriptor);
 
-    if (field === 'locationType') {
-      const isLocTypeValid = validateLocationType({
-        identity: value as any
-      });
-      if (!isLocTypeValid) {
-        newErrors.locationType = "Must be 'site', 'room', or 'building'";
-        isValid = false;
-      } else {
-        delete newErrors.locationType;
-      }
-    }
-
-    if (field === 'maxVoltage' || field === 'maxAllocatedPower') {
-      const isRackValid = validateRack({
-        maxVoltage: field === 'maxVoltage' ? Number(value) : bufferedData.maxVoltage,
-        maxAllocatedPower: field === 'maxAllocatedPower' ? Number(value) : bufferedData.maxAllocatedPower,
-        heightUnits: 42,
-        location: {
-          roomName: bufferedData.roomName,
-          gridRow: bufferedData.gridRow,
-          gridColumn: bufferedData.gridColumn
+      if (!isFieldValid) {
+        // Construct detailed error message based on constraints
+        if ((attr.required || attr.isRequired) && (value === undefined || value === null || (typeof value === 'string' && value.trim() === ''))) {
+          newErrors[field] = `${attr.label} is required`;
+        } else if (attr.type === 'int' && (typeof value !== 'number' || isNaN(value))) {
+          newErrors[field] = 'Must be a valid integer';
+        } else if ((attr.type === 'double' || attr.type === 'real') && (typeof value !== 'number' || isNaN(value))) {
+          newErrors[field] = 'Must be a valid number';
+        } else if (attr.minValue !== undefined && value < attr.minValue) {
+          newErrors[field] = `Value cannot be less than ${attr.minValue}`;
+        } else if (attr.maxValue !== undefined && value > attr.maxValue) {
+          newErrors[field] = `Value cannot be greater than ${attr.maxValue}`;
+        } else if (attr.pattern && typeof value === 'string' && !new RegExp(attr.pattern).test(value)) {
+          if (field === 'countryCode') {
+            newErrors[field] = 'Must match ISO 2-letter uppercase pattern (e.g. US, FI)';
+          } else {
+            newErrors[field] = 'Invalid format';
+          }
+        } else if (attr.type === 'enum') {
+          const opts = attr.options || attr.enumOptions || [];
+          newErrors[field] = `Must be one of: ${opts.join(', ')}`;
+        } else {
+          newErrors[field] = 'Invalid value';
         }
-      });
-      if (!isRackValid) {
-        newErrors[field] = 'Value cannot be negative';
         isValid = false;
       } else {
         delete newErrors[field];
@@ -105,153 +134,92 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ activeView, onSave }
     }
   };
 
-  // Determine system highlighting
-  const isGeodeticActive = activeView === 'Location' || activeView === 'Ingestion';
-  const isAlternateActive = !isGeodeticActive;
+  // Group attributes by sectionGroup
+  const groups: Record<string, typeof attributes> = {};
+  attributes.forEach((attr: any) => {
+    const groupName = attr.sectionGroup || 'General';
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push(attr);
+  });
+
+  const isGeodeticGroup = (groupName: string) => {
+    const nameLower = groupName.toLowerCase();
+    return nameLower.includes('geodetic') || nameLower.includes('location') || nameLower.includes('ingestion');
+  };
+
+  const isHighlighted = (groupName: string) => {
+    const geodeticActive = activeView === 'Location' || activeView === 'Ingestion';
+    if (isGeodeticGroup(groupName)) {
+      return geodeticActive;
+    } else {
+      return !geodeticActive;
+    }
+  };
 
   return (
     <div className="property-grid-container">
       <div className="system-sections-wrapper">
-        {/* Geodetic Reference Frame */}
-        <div className={`system-section ${isGeodeticActive ? 'highlighted' : 'dimmed'}`}>
-          <div className="section-header-row">
-            <h4>Geodetic Coordinate Frame</h4>
-            {isGeodeticActive && <span className="highlight-tag">Active Reference</span>}
-          </div>
-          
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Latitude</label>
-              <input
-                type="number"
-                step="0.0001"
-                value={bufferedData.latitude}
-                onChange={(e) => handleInputChange('latitude', parseFloat(e.target.value) || 0)}
-                onBlur={() => handleBlur('latitude')}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Longitude</label>
-              <input
-                type="number"
-                step="0.0001"
-                value={bufferedData.longitude}
-                onChange={(e) => handleInputChange('longitude', parseFloat(e.target.value) || 0)}
-                onBlur={() => handleBlur('longitude')}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Elevation / Altitude (m)</label>
-              <input
-                type="number"
-                value={bufferedData.altitude}
-                onChange={(e) => handleInputChange('altitude', parseInt(e.target.value, 10) || 0)}
-                onBlur={() => handleBlur('altitude')}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Alternate Reference Frame */}
-        <div className={`system-section ${isAlternateActive ? 'highlighted' : 'dimmed'}`}>
-          <div className="section-header-row">
-            <h4>Alternate Structural Grid Frame</h4>
-            {isAlternateActive && <span className="highlight-tag alternate">Active Reference</span>}
-          </div>
-
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Room Identifier</label>
-              <input
-                type="text"
-                value={bufferedData.roomName}
-                onChange={(e) => handleInputChange('roomName', e.target.value)}
-                onBlur={() => handleBlur('roomName')}
-              />
-            </div>
-
-            <div className="form-row-cols">
-              <div className="form-group">
-                <label>Grid Row</label>
-                <input
-                  type="number"
-                  value={bufferedData.gridRow}
-                  onChange={(e) => handleInputChange('gridRow', parseInt(e.target.value, 10) || 0)}
-                  onBlur={() => handleBlur('gridRow')}
-                />
+        {Object.keys(groups).map((groupName) => {
+          const groupAttrs = groups[groupName];
+          const highlighted = isHighlighted(groupName);
+          return (
+            <div key={groupName} className={`system-section ${highlighted ? 'highlighted' : 'dimmed'}`}>
+              <div className="section-header-row">
+                <h4>{groupName}</h4>
+                {highlighted && <span className="highlight-tag">Active Reference</span>}
               </div>
-
-              <div className="form-group">
-                <label>Grid Column</label>
-                <input
-                  type="number"
-                  value={bufferedData.gridColumn}
-                  onChange={(e) => handleInputChange('gridColumn', parseInt(e.target.value, 10) || 0)}
-                  onBlur={() => handleBlur('gridColumn')}
-                />
+              <div className="form-grid">
+                {groupAttrs.map((attr: any) => {
+                  const hasError = !!errors[attr.key];
+                  return (
+                    <div key={attr.key} className="form-group">
+                      <label>{attr.label}</label>
+                      {attr.type === 'boolean' ? (
+                        <input
+                          type="checkbox"
+                          checked={!!bufferedData[attr.key]}
+                          onChange={(e) => handleInputChange(attr.key, e.target.checked)}
+                          onBlur={() => handleBlur(attr.key)}
+                        />
+                      ) : attr.type === 'enum' ? (
+                        <select
+                          value={bufferedData[attr.key] || ''}
+                          className={hasError ? 'input-error' : ''}
+                          onChange={(e) => handleInputChange(attr.key, e.target.value)}
+                          onBlur={() => handleBlur(attr.key)}
+                        >
+                          <option value="">-- Select Option --</option>
+                          {(attr.options || attr.enumOptions || []).map((opt: string) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={attr.type === 'int' || attr.type === 'double' || attr.type === 'real' ? 'number' : 'text'}
+                          step={attr.type === 'double' || attr.type === 'real' ? 'any' : '1'}
+                          className={hasError ? 'input-error' : ''}
+                          value={bufferedData[attr.key] ?? ''}
+                          onChange={(e) => {
+                            const val = attr.type === 'double' || attr.type === 'real'
+                              ? parseFloat(e.target.value)
+                              : attr.type === 'int'
+                              ? parseInt(e.target.value, 10)
+                              : e.target.value;
+                            handleInputChange(attr.key, typeof val === 'number' && isNaN(val) ? '' : val);
+                          }}
+                          onBlur={() => handleBlur(attr.key)}
+                        />
+                      )}
+                      {hasError && <span className="error-text">{errors[attr.key]}</span>}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-
-            <div className="form-row-cols">
-              <div className="form-group">
-                <label>Max Voltage (V)</label>
-                <input
-                  type="number"
-                  className={errors.maxVoltage ? 'input-error' : ''}
-                  value={bufferedData.maxVoltage}
-                  onChange={(e) => handleInputChange('maxVoltage', parseInt(e.target.value, 10) || 0)}
-                  onBlur={() => handleBlur('maxVoltage')}
-                />
-                {errors.maxVoltage && <span className="error-text">{errors.maxVoltage}</span>}
-              </div>
-
-              <div className="form-group">
-                <label>Max Allocated Power (W)</label>
-                <input
-                  type="number"
-                  className={errors.maxAllocatedPower ? 'input-error' : ''}
-                  value={bufferedData.maxAllocatedPower}
-                  onChange={(e) => handleInputChange('maxAllocatedPower', parseInt(e.target.value, 10) || 0)}
-                  onBlur={() => handleBlur('maxAllocatedPower')}
-                />
-                {errors.maxAllocatedPower && <span className="error-text">{errors.maxAllocatedPower}</span>}
-              </div>
-            </div>
-
-            <div className="form-row-cols">
-              <div className="form-group">
-                <label>Country Code (ISO-2)</label>
-                <input
-                  type="text"
-                  maxLength={2}
-                  className={errors.countryCode ? 'input-error' : ''}
-                  value={bufferedData.countryCode}
-                  onChange={(e) => handleInputChange('countryCode', e.target.value.toUpperCase())}
-                  onBlur={() => handleBlur('countryCode')}
-                />
-                {errors.countryCode && <span className="error-text">{errors.countryCode}</span>}
-              </div>
-
-              <div className="form-group">
-                <label>Location Hierarchy Type</label>
-                <select
-                  value={bufferedData.locationType}
-                  className={errors.locationType ? 'input-error' : ''}
-                  onChange={(e) => handleInputChange('locationType', e.target.value)}
-                  onBlur={() => handleBlur('locationType')}
-                >
-                  <option value="site">Site</option>
-                  <option value="room">Room</option>
-                  <option value="building">Building</option>
-                  <option value="invalid-test-option">Invalid (Test Only)</option>
-                </select>
-                {errors.locationType && <span className="error-text">{errors.locationType}</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Committed State Display */}
