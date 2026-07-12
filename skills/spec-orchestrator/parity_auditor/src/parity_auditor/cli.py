@@ -59,6 +59,27 @@ def get_open_feature_issues() -> list:
         print(f"Warning: Failed to run gh CLI to fetch open feature issues: {e}")
         return []
 
+def parse_ignore_issues(ignore_str: str) -> set:
+    ignored = set()
+    if not ignore_str:
+        return ignored
+    for part in ignore_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            try:
+                start, end = part.split("-", 1)
+                ignored.update(range(int(start), int(end) + 1))
+            except ValueError:
+                pass
+        else:
+            try:
+                ignored.add(int(part))
+            except ValueError:
+                pass
+    return ignored
+
 def _main_impl():
     """
     Orchestrate the full parity audit pipeline.
@@ -80,6 +101,7 @@ def _main_impl():
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
     parser.add_argument("--spec-only", action="store_true", help="Run in specification-only mode, bypassing codebase checks")
     parser.add_argument("--allow-missing-specs", action="store_true", help="Skip exiting with status code 1 when there are missing specification files")
+    parser.add_argument("--ignore-issues", help="Comma-separated list of issue numbers or ranges to ignore (e.g., 14,16-18)")
     
     args = parser.parse_args()
     
@@ -209,7 +231,21 @@ def _main_impl():
     print(f"Loaded {len(features)} feature specifications.\n")
     
     # Cross-reference local docs/features/ spec files against open feature issues fetched via gh CLI
+    ignored_set = set()
+    if args.ignore_issues:
+        ignored_set.update(parse_ignore_issues(args.ignore_issues))
+    rule_ignore = rules.tracker_rules.get("ignore_issues")
+    if rule_ignore:
+        if isinstance(rule_ignore, list):
+            for ri in rule_ignore:
+                ignored_set.update(parse_ignore_issues(str(ri)))
+        else:
+            ignored_set.update(parse_ignore_issues(str(rule_ignore)))
+
     open_issues = get_open_feature_issues()
+    if ignored_set:
+        open_issues = [issue for issue in open_issues if issue.get("number") not in ignored_set]
+
     missing_specs = []
     for issue in open_issues:
         issue_number = issue.get("number")

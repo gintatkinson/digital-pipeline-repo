@@ -385,6 +385,9 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
                 title = re.sub(r'\(.*?\)', '', title).strip()
                 title = title.strip('[]-* ')
                 
+        if not title and "issue_id:" in line:
+            title = extract_title(filepath)
+
         if title:
             norm = normalize_title(title, rules)
             type_context = resolve_type_context(line, filepath, section_context)

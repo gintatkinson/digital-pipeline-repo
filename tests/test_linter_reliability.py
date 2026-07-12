@@ -262,3 +262,66 @@ def test_spec_only_coverage_validation(tmp_path, base_config):
     finally:
         sys.argv = old_argv
         os.chdir(old_cwd)
+
+def test_ignore_issues_filtering(tmp_path, base_config):
+    from parity_auditor.cli import parse_ignore_issues
+    assert parse_ignore_issues("14,16-18,20") == {14, 16, 17, 18, 20}
+    assert parse_ignore_issues("12") == {12}
+    assert parse_ignore_issues("") == set()
+
+def test_ignore_issues_integration(tmp_path, base_config, monkeypatch, capsys):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    
+    def mock_get_open_feature_issues():
+        return [
+            {"number": 14, "title": "Defect: Perf"},
+            {"number": 15, "title": "Bug: verify"}
+        ]
+    import parity_auditor.cli
+    monkeypatch.setattr(parity_auditor.cli, "get_open_feature_issues", mock_get_open_feature_issues)
+    
+    old_cwd = os.getcwd()
+    os.chdir(ws_dir)
+    old_argv = sys.argv
+    sys.argv = ["parity-auditor", "--spec-only", "--ignore-issues", "14,15"]
+    
+    try:
+        with pytest.raises(SystemExit):
+            main()
+    finally:
+        sys.argv = old_argv
+        os.chdir(old_cwd)
+        
+    captured = capsys.readouterr()
+    assert "Missing local specification files for open feature issues" not in captured.out
+
+def test_reconcile_backlog_frontmatter_resolution(tmp_path, base_config):
+    ws_dir = tmp_path / "workspace"
+    os.makedirs(ws_dir / ".pipeline" / "logical-ui", exist_ok=True)
+    with open(ws_dir / ".pipeline" / "logical-ui" / "codebase_rules.json", "w", encoding="utf-8") as f:
+        json.dump(base_config, f)
+        
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    feat_path = ws_dir / "docs" / "features" / "feat-01-geo.md"
+    with open(feat_path, "w", encoding="utf-8") as f:
+        f.write("---\ntitle: \"Feature 1: Geolocation\"\nissue_id: #[IssueID]\n---\n# Feature 1: Geolocation\n")
+        
+    sys.path.insert(0, str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))))
+    import reconcile_backlog
+    
+    feature_titles = {"geolocation": 42}
+    reconcile_backlog.resolve_issue_ids_in_file(
+        str(feat_path),
+        epic_titles={},
+        feature_titles=feature_titles,
+        story_titles={},
+        usecase_titles={},
+        rules=base_config
+    )
+    
+    with open(feat_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    assert "issue_id: #42" in content
+
