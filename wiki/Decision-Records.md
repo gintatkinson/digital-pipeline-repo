@@ -15,7 +15,6 @@ This page indexes the architectural and process decision records maintained in t
 | Adversarial Hardcode Audit Report | `docs/decisions/adversarial_hardcode_audit_report.md` | Audit focused on hardcoded assumptions |
 | Incident Retrospective | `docs/decisions/incident_retrospective.md` | Post-incident review and remediation |
 | Logical UI Adversarial Audit | `docs/decisions/logical_ui_adversarial_audit.md` | UI layer audit findings |
-| React Platform Adversarial Audit | `docs/decisions/react_platform_adversarial_audit.md` | React-specific audit findings |
 | UML Compliance Agentic Analysis Plan | `docs/decisions/uml_compliance_agentic_analysis_plan.md` | Plan for agentic UML compliance analysis |
 | UML Compliance Audit Report | `docs/decisions/uml_compliance_audit_report.md` | UML conformance audit results |
 | UML Frontend Alignment Audit | `docs/decisions/uml_frontend_alignment_audit.md` | Alignment between UML models and frontend implementation |

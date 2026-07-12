@@ -15,7 +15,6 @@ A typical project using the pipeline looks like this:
 ├── .pipeline/                 # Project-specific pipeline configuration
 │   ├── constitution.md        # Tier 1: Functional constitution
 │   └── profiles/              # Tier 2: Implementation profiles
-│       ├── react.md
 │       ├── flutter.md
 │       └── dotnet.md
 ├── docs/                      # Living documentation
