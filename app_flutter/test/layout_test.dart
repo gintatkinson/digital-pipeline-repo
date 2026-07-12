@@ -64,12 +64,67 @@ const String testLayoutConfig = '''
 Future<Database> createTestDatabase() async {
   final db = await DatabaseInitializer.create(
     dbPath: inMemoryDatabasePath,
-    seed: true,
+    seed: false,
   );
+  await db.insert('type_definitions', {
+    'type_name': 'Master_1',
+    'display_name': 'Master 1',
+    'icon_name': 'insert_drive_file',
+  });
+  await db.insert('properties', {
+    'node_id': 'Master_1',
+    'parent_node_id': null,
+    'data_json': '{}',
+  });
+
+  final details = ['Detail_A', 'Detail_B', 'Detail_C'];
+  for (final d in details) {
+    await db.insert('type_definitions', {
+      'type_name': d,
+      'display_name': d.replaceAll('_', ' '),
+      'icon_name': 'widgets',
+    });
+    await db.insert('type_attributes', {
+      'type_name': d,
+      'attr_key': 'field_1',
+      'label': 'Field 1',
+      'attr_type': 'string',
+      'section_label': 'General',
+      'section_order': 0,
+      'is_required': 0,
+    });
+    await db.insert('type_relations', {
+      'parent_type_name': 'Master_1',
+      'relation_name': 'contains',
+      'child_type_name': d,
+      'child_label': d.replaceAll('_', ' '),
+    });
+    await db.insert('instances', {
+      'id': 'inst_Master_1_${d}_1',
+      'parent_node_id': 'Master_1',
+      'type_name': d,
+      'data_json': '{"field_1": "val_1"}',
+    });
+  }
+
   await db.insert('type_definitions', {
     'type_name': 'SubItem',
     'display_name': 'Sub Item',
     'icon_name': 'insert_drive_file',
+  });
+  await db.insert('type_attributes', {
+    'type_name': 'SubItem',
+    'attr_key': 'field_1',
+    'label': 'Field 1',
+    'attr_type': 'string',
+    'section_label': 'General',
+    'section_order': 0,
+    'is_required': 0,
+  });
+  await db.insert('properties', {
+    'node_id': 'SubItem',
+    'parent_node_id': 'Master_1',
+    'data_json': '{"field_1": "val_1"}',
   });
   await db.insert('type_relations', {
     'parent_type_name': 'Master_1',
@@ -81,7 +136,7 @@ Future<Database> createTestDatabase() async {
     'id': 'inst_Master_1_SubItem_1',
     'parent_node_id': 'Master_1',
     'type_name': 'SubItem',
-    'data_json': '{}',
+    'data_json': '{"field_1": "val_1"}',
   });
   return db;
 }

@@ -46,23 +46,7 @@
           "id": "resource_tree",
           "props": {
             "width": "spacing.layout-sidebar-width",
-              "hierarchy": [
-                {
-                  "id": "CategoryA",
-                  "label": "Category A",
-                  "children": [
-                    { "id": "ItemA1", "label": "Item A1" },
-                    { "id": "ItemA2", "label": "Item A2" }
-                  ]
-                },
-                {
-                  "id": "CategoryB",
-                  "label": "Category B",
-                  "children": [
-                    { "id": "ItemB1", "label": "Item B1" }
-                  ]
-                }
-              ]
+              "hierarchy": []
           },
           "bindings": {
             "data_source": "token:layout.data_sources.resource_tree",

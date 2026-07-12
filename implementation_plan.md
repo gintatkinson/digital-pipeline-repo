@@ -1,43 +1,26 @@
-# Delete All React Logic and References
+# Remove All Mock Seeding and Layout Mocks
 
-We will completely clean out all React-specific dead code from the validators, downstream scripts, and rewrite the React linter reliability tests to use Flutter/Dart.
+We will remove all hardcoded mock data and sample database generation logic from the baseline project workspace.
 
 ## Proposed Changes
 
-### Spec Orchestrator Validators
+### Configuration and Initializer
 
-#### [MODIFY] [codebase.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/codebase.py)
-- Remove the "1. React Web Codebase Compliance" block.
-- Remove references to `react_rules` and `react_dir`.
+#### [MODIFY] [database_initializer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/database_initializer.dart)
+- Disable mock seeding by changing the default parameter of `DatabaseInitializer.create(..., bool seed = false)`.
+- Make `_seed(db)` and `_addNodeToBatch` no-ops or remove mock items.
 
-#### [MODIFY] [profile_scoping_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/profile_scoping_validator.py)
-- Remove React-specific checks and file lists.
-
-#### [MODIFY] [schema_mapping_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/schema_mapping_validator.py)
-- Remove React file collection and React exclusions/rules checks.
-
-### Linter Reliability Tests
-
-#### [MODIFY] [test_linter_reliability.py](file:///Users/perkunas/jail/digital-pipeline-repo/tests/test_linter_reliability.py)
-- Update mock `base_config` to remove `react_rules` and `react` targets.
-- Rewrite `test_comment_only_bypass`, `test_unrelated_variable_bypass`, and `test_regex_parser_features_and_duplicates` to use Flutter/Dart (`app_flutter/` and `.dart` files) instead of React.
-
-### Downstream Utility Scripts
-
-#### [MODIFY] [verify_downstream_baseline.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/verify_downstream_baseline.py)
-- Remove the `"react"` platform choice and React verification logic.
-
-#### [MODIFY] [bootstrap_downstream.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/bootstrap_downstream.py)
-- Remove the `"react"` platform choice and React bootstrap logic.
+#### [MODIFY] [logical-layout.json](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/assets/logical-layout.json)
+- Clear the hardcoded mock items in the `"hierarchy"` array, setting it to `[]` under `HierarchyTreeSelector`.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run the python test suite to verify that the updated tests pass:
+- Regenerate the SQLite database asset to apply the mock-free schema:
   ```bash
-  PYTHONPATH=skills/spec-orchestrator/parity_auditor/src python3 -m pytest
+  dart run app_flutter/lib/domain/database_initializer.dart
   ```
-- Run the local linter tool:
+- Run the Flutter tests to verify that the app initializes cleanly without mock data:
   ```bash
-  PYTHONPATH=skills/spec-orchestrator/parity_auditor/src python3 -m parity_auditor.cli --spec-only
+  flutter test app_flutter/
   ```
