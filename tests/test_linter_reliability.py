@@ -233,3 +233,32 @@ def test_regex_parser_features_and_duplicates(tmp_path, base_config):
     errors = validator.validate(repo)
     
     assert not errors, f"Expected no validation errors, but got: {errors}"
+
+def test_spec_only_coverage_validation(tmp_path, base_config):
+    schemas = {
+        "geo.yang": """
+        module geo {
+            container GeoLocation {
+                leaf lat { type decimal64; }
+            }
+        }
+        """
+    }
+    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas)
+    
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    with open(ws_dir / "docs" / "features" / "feat-01-geo.md", "w", encoding="utf-8") as f:
+        f.write("# Feature 1: Geolocation\n\n## UML Class Diagram\n```mermaid\nclassDiagram\nclass EmptyClass {}\n```\n")
+        
+    old_cwd = os.getcwd()
+    os.chdir(ws_dir)
+    old_argv = sys.argv
+    sys.argv = ["parity-auditor", "--spec-only", "--allow-missing-specs"]
+    
+    try:
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code != 0
+    finally:
+        sys.argv = old_argv
+        os.chdir(old_cwd)

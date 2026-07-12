@@ -383,6 +383,52 @@ def _main_impl():
             print("No UML elements found in specifications to verify.")
             sys.exit(1)
             
+    elif args.spec_only and features:
+        print("\n=== Spec-Only Model Coverage Validation ===")
+        all_definitions = {}
+        for module_defs in modules.values():
+            all_definitions.update(module_defs)
+        
+        spec_coverage_gaps = []
+        spec_elements = set()
+        for cls_name, cls_info in global_classes.items():
+            spec_elements.add(cls_name.lower())
+            for attr in cls_info.get("attributes", []):
+                spec_elements.add(attr["name"].lower())
+            for method in cls_info.get("methods", []):
+                spec_elements.add(method["name"].lower())
+                
+        for key in sorted(all_definitions):
+            name = key.split(":", 1)[1] if ":" in key else key
+            
+            variants = {name}
+            if '-' in name or '_' in name or '.' in name:
+                parts = re.split(r'[-_.]', name)
+                variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
+                variants.add("".join(p.capitalize() for p in parts))
+                variants.add("_".join(p.lower() for p in parts))
+            else:
+                if name:
+                    variants.add(name[0].lower() + name[1:])
+                    variants.add(name[0].upper() + name[1:])
+                    
+            mapped = False
+            for v in variants:
+                if v.lower() in spec_elements:
+                    mapped = True
+                    break
+            if not mapped:
+                spec_coverage_gaps.append(f"Schema node '{name}'")
+                
+        if spec_coverage_gaps:
+            print("[!] Spec-Only Model Coverage Gaps Identified:")
+            for gap in sorted(spec_coverage_gaps):
+                print(f"  - {gap}")
+            print("\nError: 100% spec-only model coverage validation failed.")
+            has_failed = True
+        else:
+            print("Success: 100% spec-only model coverage verified across all specification files.")
+
     print("\n=== UML Diagrams Compliance Audit ===")
     uml_errors = []
     if not features:
