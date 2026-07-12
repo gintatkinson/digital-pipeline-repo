@@ -52,7 +52,8 @@ def base_config():
                         "\\bcontainer\\s+([a-zA-Z0-9_\\-]+)",
                         "\\blist\\s+([a-zA-Z0-9_\\-]+)",
                         "\\brpc\\s+([a-zA-Z0-9_\\-]+)",
-                        "\\baction\\s+([a-zA-Z0-9_\\-]+)"
+                        "\\baction\\s+([a-zA-Z0-9_\\-]+)",
+                        "\\bfeature\\s+([a-zA-Z0-9_\\-]+)"
                     ]
                 }
             },
@@ -200,3 +201,35 @@ def test_missing_spec(tmp_path, base_config):
     finally:
         sys.argv = old_argv
         os.chdir(old_cwd)
+
+def test_regex_parser_features_and_duplicates(tmp_path, base_config):
+    schemas = {
+        "geo.yang": """
+        module geo {
+            feature alternate-systems;
+            grouping geo-location {
+                leaf lat { type decimal64; }
+            }
+            container geo-location {
+                leaf lon { type decimal64; }
+            }
+        }
+        """
+    }
+    react_files = {
+        "components/GeoView.tsx": """
+        const alternateSystems = true;
+        export interface GeoLocation {
+            lat: number;
+            lon: number;
+        }
+        """
+    }
+    
+    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, react_files=react_files)
+    repo = WorkspaceRepository(str(ws_dir))
+    
+    validator = SchemaMappingValidator()
+    errors = validator.validate(repo)
+    
+    assert not errors, f"Expected no validation errors, but got: {errors}"

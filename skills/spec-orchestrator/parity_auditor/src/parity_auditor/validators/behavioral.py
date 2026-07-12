@@ -46,7 +46,11 @@ class BehavioralValidator(IValidator):
         
         triggers = repo.get_behavioral_triggers(schema_dir)
         
-        all_nodes_normalized = {normalize_case(node) for defs in modules.values() for node in defs}
+        all_nodes_normalized = set()
+        for defs in modules.values():
+            for key in defs:
+                name = key.split(":", 1)[1] if ":" in key else key
+                all_nodes_normalized.add(normalize_case(name))
         
         errors = []
         for trigger in triggers:

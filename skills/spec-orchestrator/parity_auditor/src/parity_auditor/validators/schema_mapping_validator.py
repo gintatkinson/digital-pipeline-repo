@@ -91,27 +91,41 @@ class SchemaMappingValidator(IValidator):
             except Exception:
                 pass
                 
-        for name in sorted(definitions):
-            def_type = definitions[name]
+        for key in sorted(definitions):
+            def_type = definitions[key]
+            name = key.split(":", 1)[1] if ":" in key else key
             found_in_code = False
             found_in_ui = False
             
+            variants = {name}
+            if '-' in name or '_' in name or '.' in name:
+                parts = re.split(r'[-_.]', name)
+                variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
+                variants.add("".join(p.capitalize() for p in parts))
+                variants.add("_".join(p.lower() for p in parts))
+            else:
+                if name:
+                    variants.add(name[0].lower() + name[1:])
+                    variants.add(name[0].upper() + name[1:])
+            
+            variants_pattern = '(?:' + '|'.join(re.escape(v) for v in sorted(variants, key=len, reverse=True)) + ')'
+            
             if def_type in ("container", "list", "grouping", "typedef", "identity"):
                 patterns = [
-                    r'\b(class|interface|type|enum|struct|mixin|extension)\s+' + re.escape(name) + r'\b'
+                    r'\b(class|interface|type|enum|struct|mixin|extension)\s+' + variants_pattern + r'\b'
                 ]
             elif def_type in ("rpc", "action", "notification"):
                 patterns = [
-                    r'\bfunction\s+' + re.escape(name) + r'\b',
-                    r'\b' + re.escape(name) + r'\s*\([^)]*\)\s*(\{|=)',
-                    r'\b(void|int|double|num|bool|String|[A-Z][a-zA-Z0-9_<>]*)\s+' + re.escape(name) + r'\s*\('
+                    r'\bfunction\s+' + variants_pattern + r'\b',
+                    r'\b' + variants_pattern + r'\s*\([^)]*\)\s*(\{|=)',
+                    r'\b(void|int|double|num|bool|String|[A-Z][a-zA-Z0-9_<>]*)\s+' + variants_pattern + r'\s*\('
                 ]
             else:
                 patterns = [
-                    r'\b(let|const|var|final|late|dynamic)\s+[^=;]*\b' + re.escape(name) + r'\b',
-                    r'\b' + re.escape(name) + r'\s*\??\s*:',
-                    r'\b([A-Z][a-zA-Z0-9_<>]*|String|int|double|num|bool)\s+' + re.escape(name) + r'\b',
-                    r'\bthis\.' + re.escape(name) + r'\b'
+                    r'\b(let|const|var|final|late|dynamic)\s+[^=;]*\b' + variants_pattern + r'\b',
+                    r'\b' + variants_pattern + r'\s*\??\s*:',
+                    r'\b([A-Z][a-zA-Z0-9_<>]*|String|int|double|num|bool)\s+' + variants_pattern + r'\b',
+                    r'\bthis\.' + variants_pattern + r'\b'
                 ]
             
             for filepath, content, is_ui in codebase_contents:

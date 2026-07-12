@@ -50,6 +50,6 @@ class RegexSchemaParser(IParser):
             for match in re.finditer(pattern, content):
                 name = match.group(1)
                 if name not in schema_exclude_keywords:
-                    definitions[name] = def_type
+                    definitions[f"{def_type}:{name}"] = def_type
 
         return module_name, definitions

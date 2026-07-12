@@ -155,7 +155,8 @@
           "\\banyxml\\s+([a-zA-Z0-9_\\-]+)",
           "\\brpc\\s+([a-zA-Z0-9_\\-]+)",
           "\\bnotification\\s+([a-zA-Z0-9_\\-]+)",
-          "\\baction\\s+([a-zA-Z0-9_\\-]+)"
+          "\\baction\\s+([a-zA-Z0-9_\\-]+)",
+          "\\bfeature\\s+([a-zA-Z0-9_\\-]+)"
         ]
       }
     },
