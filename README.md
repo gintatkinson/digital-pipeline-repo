@@ -143,7 +143,7 @@ Copy the `skills/`, `rules/`, `.pipeline/`, and `.agents/` directories into your
 
 **For Stable Version (`master`):**
 ```bash
-git clone https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
@@ -155,7 +155,7 @@ rm -rf ./.tmp-pipeline
 
 **For Refactored Version (`refactor`):**
 ```bash
-git clone -b refactor https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
+git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
