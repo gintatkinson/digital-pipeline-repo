@@ -13,9 +13,6 @@ class SchemaMappingValidator(IValidator):
         
         schema_dir = os.path.join(repo.workspace_dir, backlog_dirs.schemas)
         
-        react_dir_name = target_dirs.react
-        react_dir = os.path.join(repo.workspace_dir, react_dir_name) if react_dir_name else None
-        
         flutter_dir_name = target_dirs.flutter
         flutter_dir = os.path.join(repo.workspace_dir, flutter_dir_name) if flutter_dir_name else None
         
@@ -39,14 +36,6 @@ class SchemaMappingValidator(IValidator):
         codebase_files = []
         ui_files = []
         
-        react_rules = rules.react_rules
-        if react_rules:
-            react_exclusions = set(react_rules.exclusions)
-            react_ui_dirs = set(react_rules.ui_directories)
-        else:
-            react_exclusions = set()
-            react_ui_dirs = set()
-        
         flutter_rules = rules.flutter_rules
         flutter_exclusions = set(flutter_rules.exclusions)
         flutter_ui_dirs = set(flutter_rules.ui_directories)
@@ -66,8 +55,6 @@ class SchemaMappingValidator(IValidator):
                            if is_ui:
                                ui_files.append(filepath)
                                  
-        if react_rules:
-            collect_files(react_dir, react_rules.file_extensions, react_exclusions, react_ui_dirs)
         collect_files(flutter_dir, flutter_rules.file_extensions, flutter_exclusions, flutter_ui_dirs)
         
         if not codebase_files:

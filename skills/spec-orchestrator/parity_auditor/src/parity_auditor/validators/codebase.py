@@ -52,7 +52,6 @@ class CodebaseValidator(IValidator):
         playhead_rate_limits = val_rules.playhead_rate_limits
         target_dirs = rules.target_directories
         
-        react_rules = rules.react_rules
         flutter_rules = rules.flutter_rules
         python_rules = rules.python_rules
         spec_rules = rules.spec_rules
@@ -66,12 +65,6 @@ class CodebaseValidator(IValidator):
                         return True
             return False
 
-        react_dir_name = target_dirs.react
-        react_dir = os.path.join(workspace_dir, react_dir_name) if react_dir_name else None
-        if react_dir_name and not os.path.exists(react_dir):
-            if react_rules and has_files_with_extensions(react_rules.file_extensions):
-                errors.append(f"Compliance Bypass Loophole: Configured React directory '{react_dir_name}' does not exist on disk.")
-        
         flutter_dir_name = target_dirs.flutter
         flutter_dir = os.path.join(workspace_dir, flutter_dir_name) if flutter_dir_name else None
         if flutter_dir_name and not os.path.exists(flutter_dir):
@@ -101,8 +94,6 @@ class CodebaseValidator(IValidator):
             errors.append(f"No forbidden design token colors could be extracted from design tokens file at: {design_tokens_path}")
             return errors
             
-        hardcoded_colors_react = {hex_val: f"Forbidden design token color ({hex_val})" for hex_val in forbidden_colors_hex}
-        
         hardcoded_colors_flutter = {}
         for hex_val in forbidden_colors_hex:
             clean_hex = hex_val.replace("#", "").lower()
@@ -113,84 +104,6 @@ class CodebaseValidator(IValidator):
             else:
                 flutter_hex = "ff" + clean_hex
             hardcoded_colors_flutter[flutter_hex] = f"Forbidden design token color (0x{flutter_hex.upper()})"
-            
-        # 1. React Web Codebase Compliance
-        if react_dir and os.path.exists(react_dir) and react_rules:
-            react_exts = tuple(react_rules.file_extensions)
-            react_exclusions = set(react_rules.exclusions)
-            react_forbidden_words = react_rules.forbidden_words
-            react_write_lock_keywords = react_rules.write_lock_keywords
-            react_selection_keywords = react_rules.selection_keywords
-            react_interaction_keywords = react_rules.interaction_keywords
-            react_playhead_clamp_regex = react_rules.playhead_clamp_regex
-            react_ui_dirs = react_rules.ui_directories
-            react_net_dirs = react_rules.network_directories
-            react_ast_compliance_method = react_rules.ast_compliance_method
-            react_viewport_file_patterns = react_rules.viewport_file_patterns
-            react_network_file_patterns = react_rules.network_file_patterns
-            
-            for root, dirs, files in os.walk(react_dir):
-                dirs[:] = [d for d in dirs if d not in react_exclusions]
-                for file in files:
-                    if file.endswith(react_exts):
-                        filepath = os.path.join(root, file)
-                        rel_path = os.path.relpath(filepath, workspace_dir)
-                        try:
-                            with open(filepath, "r", encoding="utf-8") as f:
-                                content = f.read()
-                        except UnicodeDecodeError as e:
-                            errors.append(f"Compliance Bypass Risk: '{rel_path}' is not valid UTF-8. Binary files are not permitted.")
-                            continue
-                        except OSError as e:
-                            errors.append(f"System Error: Failed to open '{rel_path}' for compliance read: {e}")
-                            continue
-                            
-                        if "design-tokens" in file or "design_tokens" in file:
-                            continue
-                            
-                        content_lower = content.lower()
-                        for color, desc in hardcoded_colors_react.items():
-                            if color in content_lower:
-                                errors.append(f"React File '{rel_path}' contains hardcoded alarm color '{color}' ({desc}). Use CSS custom properties or theme tokens instead.")
-                                
-                        clean_content = strip_c_style_comments(content)
-                        
-                        if ast_check_event_echo_guard(content, react_selection_keywords, react_interaction_keywords, react_ast_compliance_method):
-                            errors.append(f"React File '{rel_path}' contains a programmatic selection setter that also emits callbacks without calling '{react_ast_compliance_method}()'. This violates the Event-Echo Guard.")
-                                    
-                        is_react_ui = False
-                        for d in react_ui_dirs:
-                            if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
-                                is_react_ui = True
-                                break
-                        if is_react_ui:
-                            banned_libs = self._check_banned_imports(content, react_forbidden_words, ".js")
-                            if banned_libs:
-                                msg = react_rules.forbidden_words_message
-                                errors.append(f"React File '{rel_path}' is a {msg}")
-                                
-                        is_react_net = False
-                        for d in react_net_dirs:
-                            if f"{d}/" in rel_path or rel_path.startswith(f"{d}/"):
-                                is_react_net = True
-                                break
-                        is_react_net_file = False
-                        for pat in react_network_file_patterns:
-                            if pat in file.lower():
-                                is_react_net_file = True
-                                break
-                        if is_react_net and is_react_net_file:
-                            if not any(lock_kw in clean_content.lower() for lock_kw in react_write_lock_keywords):
-                                errors.append(f"React Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
-                                
-                        is_react_viewport = False
-                        for pat in react_viewport_file_patterns:
-                            if pat in rel_path.lower():
-                                is_react_viewport = True
-                                break
-                        if is_react_viewport:
-                            if not all(re.search(pat, clean_content) for pat in react_playhead_clamp_regex):
-                                errors.append(f"React Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {playhead_rate_limits} for 4D spatial-temporal viewports.")
                                 
         # 2. Flutter Desktop/Web Codebase Compliance
         if flutter_dir and os.path.exists(flutter_dir):

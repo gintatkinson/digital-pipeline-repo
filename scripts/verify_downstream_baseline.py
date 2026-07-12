@@ -51,44 +51,28 @@ def load_mandated_classes(destination):
 def main():
     parser = argparse.ArgumentParser(description="Verify a downstream project's baseline conformance.")
     parser.add_argument("--no-domain", action="store_true", help="Skip checking the domain model")
-    parser.add_argument("platform", choices=["react", "flutter"], help="Target platform ('react' or 'flutter')")
     parser.add_argument("destination", help="Path to the downstream project directory")
     args = parser.parse_args()
 
-    platform = args.platform
     dest = os.path.abspath(args.destination)
 
     if not os.path.isdir(dest):
         print(f"ERROR: Destination path '{dest}' is not a directory.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Verifying conformance for platform '{platform}' at '{dest}'...")
+    print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
 
     # 1. Assert baseline files exist
-    if platform == "react":
-        baseline_files = [
-            "package.json",
-            "tsconfig.json",
-            "vite.config.ts",
-            "index.html",
-            "src/main.tsx",
-            "src/App.tsx",
-            "src/types.ts"
-        ]
-        if args.no_domain:
-            baseline_files.remove("src/types.ts")
-        types_file = os.path.join(dest, "src", "types.ts")
-    else:  # flutter
-        baseline_files = [
-            "pubspec.yaml",
-            "analysis_options.yaml",
-            "lib/main.dart",
-            "lib/domain/types.dart",
-            "lib/domain/validation.dart"
-        ]
-        if args.no_domain:
-            baseline_files.remove("lib/domain/types.dart")
-        types_file = os.path.join(dest, "lib", "domain", "types.dart")
+    baseline_files = [
+        "pubspec.yaml",
+        "analysis_options.yaml",
+        "lib/main.dart",
+        "lib/domain/types.dart",
+        "lib/domain/validation.dart"
+    ]
+    if args.no_domain:
+        baseline_files.remove("lib/domain/types.dart")
+    types_file = os.path.join(dest, "lib", "domain", "types.dart")
 
     missing_files = []
     for f in baseline_files:
@@ -116,10 +100,7 @@ def main():
         missing_classes = []
         mandated_classes = load_mandated_classes(dest)
         for cls in mandated_classes:
-            if platform == "react":
-                pattern = rf"\b(?:interface|class)\s+{cls}\b"
-            else:
-                pattern = rf"\bclass\s+{cls}\b"
+            pattern = rf"\bclass\s+{cls}\b"
                 
             if not re.search(pattern, content):
                 missing_classes.append(cls)
@@ -132,25 +113,14 @@ def main():
 
     # 3. Run build/test commands
     try:
-        if platform == "react":
-            # Check if node_modules is missing or package.json exists.
-            # We want to run npm install to ensure package-lock.json/dependencies are resolved.
-            node_modules_path = os.path.join(dest, "node_modules")
-            if not os.path.isdir(node_modules_path):
-                print("node_modules folder not found. Running 'npm install'...")
-                subprocess.run(["npm", "install"], cwd=dest, check=True)
-            
-            print("Running 'npm run build'...")
-            subprocess.run(["npm", "run", "build"], cwd=dest, check=True)
-        else:  # flutter
-            print("Running 'flutter pub get' to resolve dependencies...")
-            subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True)
-            
-            print("Running 'flutter analyze'...")
-            subprocess.run(["flutter", "analyze"], cwd=dest, check=True)
-            
-            print("Running 'flutter test'...")
-            subprocess.run(["flutter", "test"], cwd=dest, check=True)
+        print("Running 'flutter pub get' to resolve dependencies...")
+        subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True)
+        
+        print("Running 'flutter analyze'...")
+        subprocess.run(["flutter", "analyze"], cwd=dest, check=True)
+        
+        print("Running 'flutter test'...")
+        subprocess.run(["flutter", "test"], cwd=dest, check=True)
     except subprocess.CalledProcessError as e:
         print(f"ERROR: Verification command failed: {e}", file=sys.stderr)
         sys.exit(1)

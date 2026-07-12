@@ -28,13 +28,7 @@ def base_config():
             "schemas": "schema"
         },
         "target_directories": {
-            "react": "web_react",
             "flutter": "app_flutter"
-        },
-        "react_rules": {
-            "file_extensions": [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"],
-            "exclusions": ["node_modules", "build", "dist", ".git"],
-            "ui_directories": ["components", "views"]
         },
         "flutter_rules": {
             "file_extensions": [".dart"],
@@ -61,7 +55,7 @@ def base_config():
         }
     }
 
-def setup_workspace(tmp_path, config, schemas=None, react_files=None, flutter_files=None):
+def setup_workspace(tmp_path, config, schemas=None, flutter_files=None):
     ws_dir = tmp_path / "test_workspace"
     os.makedirs(ws_dir, exist_ok=True)
     
@@ -77,16 +71,6 @@ def setup_workspace(tmp_path, config, schemas=None, react_files=None, flutter_fi
     if schemas:
         for name, content in schemas.items():
             with open(schema_dir / name, "w", encoding="utf-8") as f:
-                f.write(content)
-                
-    # Write React codebase files
-    react_dir = ws_dir / "web_react"
-    os.makedirs(react_dir, exist_ok=True)
-    if react_files:
-        for rel_path, content in react_files.items():
-            filepath = react_dir / rel_path
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(content)
                 
     # Write Flutter codebase files
@@ -113,11 +97,11 @@ def test_comment_only_bypass(tmp_path, base_config):
         """
     }
     # 2. Mock codebase containing only a comment '// Location class info'
-    react_files = {
-        "components/LocationView.tsx": "// Location class info"
+    flutter_files = {
+        "widgets/location_view.dart": "// Location class info"
     }
     
-    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, react_files=react_files)
+    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, flutter_files=flutter_files)
     repo = WorkspaceRepository(str(ws_dir))
     
     validator = SchemaMappingValidator()
@@ -137,12 +121,12 @@ def test_unrelated_variable_bypass(tmp_path, base_config):
         }
         """
     }
-    # 2. Codebase file containing a variable 'let increment = 5;'
-    react_files = {
-        "components/MathController.ts": "let increment = 5;"
+    # 2. Codebase file containing a variable 'var increment = 5;'
+    flutter_files = {
+        "widgets/math_controller.dart": "var increment = 5;"
     }
     
-    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, react_files=react_files)
+    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, flutter_files=flutter_files)
     repo = WorkspaceRepository(str(ws_dir))
     
     validator = SchemaMappingValidator()
@@ -216,17 +200,17 @@ def test_regex_parser_features_and_duplicates(tmp_path, base_config):
         }
         """
     }
-    react_files = {
-        "components/GeoView.tsx": """
-        const alternateSystems = true;
-        export interface GeoLocation {
-            lat: number;
-            lon: number;
+    flutter_files = {
+        "widgets/geo_view.dart": """
+        const bool alternateSystems = true;
+        class GeoLocation {
+            double lat;
+            double lon;
         }
         """
     }
     
-    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, react_files=react_files)
+    ws_dir = setup_workspace(tmp_path, base_config, schemas=schemas, flutter_files=flutter_files)
     repo = WorkspaceRepository(str(ws_dir))
     
     validator = SchemaMappingValidator()
