@@ -80,17 +80,22 @@ def main():
 
     print(f"Dynamically resolved clone URL: {clone_url}")
 
-    # Clean up destination if a partial directory exists (excluding git metadata if cloning fails)
-    if os.path.exists(destination):
-        shutil.rmtree(destination)
+    # 3. Clone the empty GitHub repository locally if destination is not a Git repo
+    is_git_repo = os.path.isdir(os.path.join(destination, ".git"))
+    if not is_git_repo:
+        if os.path.exists(destination):
+            shutil.rmtree(destination)
+        print(f"Cloning empty repository to {destination}...")
+        try:
+            subprocess.run(["git", "clone", clone_url, destination], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to clone repository: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print(f"Destination '{destination}' is already a Git repository. Skipping clone.")
 
-    # 3. Clone the empty GitHub repository locally
-    print(f"Cloning empty repository to {destination}...")
-    try:
-        subprocess.run(["git", "clone", clone_url, destination], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: Failed to clone repository: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Target app_flutter directory in the destination repository
+    flutter_dest = os.path.join(destination, "app_flutter")
 
     for root, dirs, files in os.walk(src_dir):
         # Filter directories in-place to avoid walking into preserved subdirectories
@@ -105,9 +110,9 @@ def main():
                 dirs.remove("domain")
 
         if rel_path == ".":
-            target_dir = destination
+            target_dir = flutter_dest
         else:
-            target_dir = os.path.join(destination, rel_path)
+            target_dir = os.path.join(flutter_dest, rel_path)
 
         if not os.path.exists(target_dir):
             os.makedirs(target_dir, exist_ok=True)
@@ -122,6 +127,11 @@ def main():
                 continue
 
             src_file = os.path.join(root, file)
+            if os.path.exists(target_file):
+                try:
+                    os.chmod(target_file, 0o666)
+                except Exception:
+                    pass
             shutil.copy2(src_file, target_file)
             print(f"Copied: {rel_path if rel_path != '.' else ''}/{file} -> {target_file}")
             copied_count += 1
@@ -148,16 +158,47 @@ def main():
     # 4. Automate Initial Commit and Push to remote
     print("\nStaging, committing, and pushing initial template code to GitHub...")
     try:
-        subprocess.run(["git", "add", "-A"], cwd=destination, check=True)
-        subprocess.run(
-            ["git", "commit", "-m", "chore: bootstrap project from pipeline templates"],
+        # Get active branch name
+        branch_res = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=destination,
+            capture_output=True,
+            text=True,
             check=True
         )
-        # Rename branch to main if needed
-        subprocess.run(["git", "branch", "-M", "main"], cwd=destination, check=True)
-        subprocess.run(["git", "push", "-u", "origin", "main"], cwd=destination, check=True)
-        print("\nSUCCESS: Downstream project successfully bootstrapped and synced to GitHub remote!")
+        current_branch = branch_res.stdout.strip()
+        
+        # Check status before committing
+        status_res = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=destination,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        if status_res.stdout.strip():
+            subprocess.run(["git", "add", "-A"], cwd=destination, check=True)
+            subprocess.run(
+                ["git", "commit", "-m", "chore: bootstrap project from pipeline templates"],
+                cwd=destination,
+                check=True
+            )
+            # Push changes to active tracking branch if configured, else origin current_branch
+            tracking_res = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+                cwd=destination,
+                capture_output=True,
+                text=True
+            )
+            if tracking_res.returncode == 0:
+                subprocess.run(["git", "push"], cwd=destination, check=True)
+                print(f"\nSUCCESS: Downstream project successfully bootstrapped and synced to remote tracking branch!")
+            else:
+                subprocess.run(["git", "push", "-u", "origin", current_branch], cwd=destination, check=True)
+                print(f"\nSUCCESS: Downstream project successfully bootstrapped and synced to GitHub remote on branch '{current_branch}'!")
+        else:
+            print("\nSUCCESS: No changes to commit. Downstream project is already up-to-date and clean.")
     except subprocess.CalledProcessError as e:
         print(f"\nERROR during Git push operations: {e}", file=sys.stderr)
         sys.exit(1)
