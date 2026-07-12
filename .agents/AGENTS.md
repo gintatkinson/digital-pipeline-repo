@@ -57,3 +57,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 - Agents are strictly forbidden from writing, modifying, or executing commands that create source code or project configuration files at the root level of this repository (except for `implementation_plan.md`, `.gitignore`, or custom configurations when explicitly approved).
 - All source code, assets, configurations, and tests for the Flutter application MUST reside exclusively under `app_flutter/`.
 - All source code, assets, configurations, and tests for the React application MUST reside exclusively under `web_react/`.
+
+## Strict Context Isolation & Skill Fidelity (No Cross-Talk)
+- **No Cross-Talk / Memory Leakage**: You are strictly forbidden from reading, scanning, or referencing logs, transcripts, artifacts, or files belonging to other projects, folders, or conversation IDs (such as `3dgs-ion`, `3dgs-phoenix`, or other network models) stored under the App Data Directory (`~/.gemini/antigravity/brain/`). You must execute tasks strictly based on the inputs and schema files present in the *active* workspace.
+- **Literal Skill Execution (No Summarization)**: When adopting a skill, you must read the skill's instructions in full and adhere to them literally. You are strictly forbidden from summarizing, truncating, or using abbreviated interpretations of instructions.

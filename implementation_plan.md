@@ -1,38 +1,29 @@
-# Implementation Plan - Update Onboarding Instructions in Feature Skill
+# Implementation Plan - Update Project Rules for Context Isolation
 
-This plan details the changes required to update onboarding instructions by replacing stale references to `bootstrap_downstream.py` with native GitHub template instructions.
+This plan details the changes required to append strict context isolation and skill fidelity rules to the project-scoped rules document.
 
 ## Proposed Changes
 
-### 1. Update Workspace Feature Skill
-- **Target File**: `skills/feature-driven-implementation/SKILL.md`
-- **Action**: In line 42, replace the stale instruction about `bootstrap_downstream.py` with native GitHub template onboarding instructions.
-  - **Before**: `Ensure that the downstream workspace has been bootstrapped using the upstream-only \`bootstrap_downstream.py\` script. Note that this is an upstream-only tool and must be executed from the upstream repository directory (\`<upstream_workspace_path>\`) targeting the downstream workspace path BEFORE the downstream agent begins work (use the \`--no-domain\` flag with the bootstrap script if implementing a different project domain).`
-  - **After**: `Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow: 'gh repo create <new_app_name> --template gintatkinson/digital-pipeline-repo --public --clone'. This creates a fresh repository on GitHub and clones it locally BEFORE the downstream agent begins work.`
+### 1. Update Project-Scoped Rules
+- **Target File**: `.agents/AGENTS.md`
+- **Action**: Append the new rule block at the end of the file.
+- **Content to Append**:
+  ```markdown
+  
+  ## Strict Context Isolation & Skill Fidelity (No Cross-Talk)
+  - **No Cross-Talk / Memory Leakage**: You are strictly forbidden from reading, scanning, or referencing logs, transcripts, artifacts, or files belonging to other projects, folders, or conversation IDs (such as `3dgs-ion`, `3dgs-phoenix`, or other network models) stored under the App Data Directory (`~/.gemini/antigravity/brain/`). You must execute tasks strictly based on the inputs and schema files present in the *active* workspace.
+  - **Literal Skill Execution (No Summarization)**: When adopting a skill, you must read the skill's instructions in full and adhere to them literally. You are strictly forbidden from summarizing, truncating, or using abbreviated interpretations of instructions.
+  ```
 
-### 2. Update Agent System Skill Copy
-- **Target File**: `.agents/skills/feature-driven-implementation/SKILL.md`
-- **Action**: In line 42, replace the stale instruction with the same native GitHub template onboarding instructions.
-  - **Before**: `Ensure that the downstream workspace has been bootstrapped using the upstream-only \`bootstrap_downstream.py\` script. Note that this is an upstream-only tool and must be executed from the upstream repository directory (\`<upstream_workspace_path>\`) targeting the downstream workspace path BEFORE the downstream agent begins work (use the \`--no-domain\` flag with the bootstrap script if implementing a different project domain).`
-  - **After**: `Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow: 'gh repo create <new_app_name> --template gintatkinson/digital-pipeline-repo --public --clone'. This creates a fresh repository on GitHub and clones it locally BEFORE the downstream agent begins work.`
-
-### 3. Update Implementation Plan
+### 2. Update Implementation Plan
 - **Target File**: `implementation_plan.md`
-- **Action**: Document the current implementation plan for this branch/task.
-
-### 4. Solution Walkthrough Document
-- **Target File**: `docs/designs/feat-fix-onboarding-instructions.md`
-- **Action**: Create the walkthrough document detailing the changes to the feature skill onboarding instructions and their rationales.
+- **Action**: Overwrite this file with the active implementation plan for this branch.
 
 ## Verification Plan
 
 ### Step 1: Git Diff Check
-- Run `git diff` to verify that only the expected replacement edits are present in both `SKILL.md` files.
+- Run `git diff` to verify that only the expected replacement edits are present in `.agents/AGENTS.md` and `implementation_plan.md`.
 
-### Step 2: Walkthrough Check
-- Verify that `docs/designs/feat-fix-onboarding-instructions.md` exists and contains the correct details.
-
-### Step 3: Push and Sync Check
+### Step 2: Push and Sync Check
 - Commit and push the changes to origin on the active branch.
-- Verify that `git diff origin/fix/stale-bootstrap-references` is empty.
-
+- Verify that `git diff origin/fix/strict-context-isolation-rules` is empty.
