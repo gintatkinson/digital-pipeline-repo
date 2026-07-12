@@ -162,7 +162,107 @@ class DatabaseInitializer {
     }
   }
 
-  /// Inserts sample data (disabled).
+  /// Inserts sample data.
   static Future<void> _seed(Database db) async {
+    final details = ['Detail_A', 'Detail_B', 'Detail_C'];
+    for (final d in details) {
+      await db.insert('type_definitions', {
+        'type_name': d,
+        'display_name': d.replaceAll('_', ' '),
+        'icon_name': 'widgets',
+      });
+
+      final attrBatch = db.batch();
+      for (int i = 1; i <= 50; i++) {
+        attrBatch.insert('type_attributes', {
+          'type_name': d,
+          'attr_key': 'field_$i',
+          'label': 'Field $i',
+          'attr_type': 'string',
+          'section_label': 'General',
+          'section_order': 0,
+          'is_required': 0,
+        });
+      }
+      await attrBatch.commit(noResult: true);
+    }
+
+    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    final int maxMasters = 5; // Scaled down to keep DB size small
+    for (int chunkStart = 0; chunkStart < maxMasters; chunkStart += 50) {
+      final chunkEnd = (chunkStart + 50) > maxMasters ? maxMasters : (chunkStart + 50);
+      final batch = db.batch();
+
+      for (int i = chunkStart; i < chunkEnd; i++) {
+        final m = 'Master_${i + 1}';
+        _addNodeToBatch(batch, m, null, details, isRoot: true);
+
+        for (int c = 1; c <= 5; c++) {
+          final child = '${m}_Child_$c';
+          _addNodeToBatch(batch, child, m, details, isRoot: false);
+
+          for (int g = 1; g <= 2; g++) {
+            final gc = '${child}_Grandchild_$g';
+            _addNodeToBatch(batch, gc, child, details, isRoot: false);
+          }
+        }
+      }
+
+      await batch.commit(noResult: true);
+    }
+  }
+
+  static void _addNodeToBatch(Batch batch, String node, String? parent, List<String> details, {required bool isRoot}) {
+    batch.insert('type_definitions', {
+      'type_name': node,
+      'display_name': node.replaceAll('_', ' '),
+      'icon_name': 'insert_drive_file',
+    });
+
+    for (final d in details) {
+      batch.insert('type_relations', {
+        'parent_type_name': node,
+        'relation_name': 'contains',
+        'child_type_name': d,
+        'child_label': d.replaceAll('_', ' '),
+      });
+    }
+
+    for (int i = 1; i <= 50; i++) {
+      batch.insert('type_attributes', {
+        'type_name': node,
+        'attr_key': 'field_$i',
+        'label': 'Field $i',
+        'attr_type': 'string',
+        'section_label': 'General',
+        'section_order': 0,
+        'is_required': 0,
+      });
+    }
+
+    final propertiesMap = {
+      for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j'
+    };
+    batch.insert('properties', {
+      'node_id': node,
+      'parent_node_id': parent,
+      'data_json': jsonEncode(propertiesMap),
+    });
+
+    for (final d in details) {
+      for (int k = 1; k <= 5; k++) {
+        final instId = 'inst_${node}_${d}_$k';
+        final instanceMap = {
+          for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${node}_${d}_${k}_field_$j'
+        };
+        batch.insert('instances', {
+          'id': instId,
+          'parent_node_id': node,
+          'type_name': d,
+          'data_json': jsonEncode(instanceMap),
+        });
+      }
+    }
   }
 }
+
