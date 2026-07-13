@@ -78,4 +78,4 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 
 ## Mermaid Block Closing & Code Fence Integrity
 - Every Mermaid diagram or code block MUST be strictly and explicitly closed with matching closing fences (e.g. ```` ``` ```` on a new line). Leaking Mermaid blocks or stray/unclosed code fences are strictly forbidden as they cause parser failures in downstream validation tools.
-
+- Curly braces `{}` are strictly prohibited inside Mermaid class diagram member/attribute lines. Use standard parentheses `()` or notes instead to prevent rendering parser failures.

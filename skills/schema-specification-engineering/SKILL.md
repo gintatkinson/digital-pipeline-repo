@@ -50,7 +50,7 @@ For each cohesive functional feature group identified during the decomposition (
      - *Choice/Case Representation*: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
      - *UML Standard Primitive Types*: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of format-specific or custom types.
      - *Visibility & Multiplicity*: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
-     - *UML Constraints*: Schema-level constraints must map to formal UML `{constraint}` elements or structured notes.
+     - *UML Constraints*: Schema-level constraints must map to standard text notes or separate tables. Curly braces '{}' inside class member lines are strictly prohibited due to Mermaid parse conflicts (they crash GitHub and Mermaid CLI renderers). Use parentheses '(default: earth)' or simple brackets '[default: earth]' if constraints must be inline.
      - *Multiplicity Bracket Rendering*: Note that unquoted brackets `[0..1]` inside Mermaid class bodies may cause rendering failures in some engines (GitHub, Mermaid CLI). Represent multiplicity on relationship lines instead.
      - *Double-Declaration Redundancy*: Do NOT list object-typed attributes inside the class body if they are already represented as named relationship lines.
    - **Interface Requirements:** Every feature spec MUST explicitly include a `## Interface Requirements` section divided into dynamic structured sub-sections based on the `interface_type` (defined in frontmatter as `ui`, `api`, or `m2m`):
@@ -192,7 +192,7 @@ For each cohesive functional feature group identified during the decomposition (
          }
          class FeatureClassifier {
              +String primaryAttribute [1]
-             -Boolean optionalAttribute [0..1] {constraintText}
+              -Boolean optionalAttribute [0..1] (constraintText)
              +Integer listAttribute [0..*]
              +doSomething(param : String) : Boolean [1]
          }
