@@ -32,6 +32,7 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 12. **Two-Stage Review:** After each micro-task's implementation, two reviews MUST occur in order: (1) **Spec Compliance Review** — does the code match the approved plan and RFC/spec requirements? (2) **Code Quality Review** — is the code well-structured, typed, tested, and maintainable? Both must pass before proceeding to the next task.
 13. **Verification-Before-Completion:** Before declaring any task, micro-task, or feature complete, the agent MUST provide concrete proof of correctness (raw test output, build output, or explicit file-content verification). Assertions like "it works" or "tests pass" without pasted evidence are forbidden.
 14. **Inter-Task Code Review:** After each micro-task, diff the changes against the approved plan. Log deviations. Critical deviations block progress until resolved with the user.
+15. **Subagent Research & Write Delegation:** The coordinator is strictly required to delegate all framework/dependency research tasks (Step 1.5) to a dedicated research subagent, and all codebase/specification micro-task write operations (Step 3) to dedicated implementer subagents.
 
 ---
 
@@ -46,7 +47,7 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 
 ### Step 1.5: Tech Stack Research (Optional)
 
-If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or new platform capabilities:
+If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or new platform capabilities, the coordinator MUST dispatch a **Research Subagent** (role: `Codebase Researcher`) using the `invoke_subagent` tool to investigate the codebase and target dependencies. The research subagent will follow these steps:
 
 1. **Identify research targets:** What specific APIs, libraries, or patterns does this feature require?
 2. **Check versions:** Verify the installed/pinned versions of relevant dependencies. Note any breaking changes between the project's current version and the latest.
@@ -88,6 +89,8 @@ Execution follows a **per-task subagent dispatch loop**. The coordinator reads t
 For each micro-task in sequence:
 
 **A. Dispatch Implementer (Fresh Context)**
+
+The coordinator agent is strictly locked from using modifying tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) directly, and must delegate all write operations to a micro-task implementer subagent.
 
 The implementer receives ONLY:
 - The micro-task text (exact scope, target files, expected changes)
@@ -174,7 +177,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 
 ### Step 4: Verification & Testing
 1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties.
-2. Run local tests or build checks using the command runners specified in the platform profile.
+2. **Full Compilation Build:** Run local tests and run a full compilation build of the entire application (e.g. `flutter build` or `npm run build` as specified by the platform profile) to ensure it compiles without errors and is completely ready to run.
 3. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.
 4. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands, scripts, or interface interactions to execute, what inputs to feed, and what specific output (e.g., payload, log entry, UI state change, database record) to inspect to verify correctness.
 5. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):**
