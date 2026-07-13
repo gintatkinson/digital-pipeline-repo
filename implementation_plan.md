@@ -1,26 +1,34 @@
-# Remove All Mock Seeding and Layout Mocks
+# Implementation Plan: Fix Tooling Bug in reconcile_backlog.py
 
-We will remove all hardcoded mock data and sample database generation logic from the baseline project workspace.
+We will update the dependency tracking checklist filter in `skills/spec-orchestrator/scripts/reconcile_backlog.py` to correctly skip plain checkboxes without issue reference prefixes and unresolved placeholder identifiers.
 
 ## Proposed Changes
 
-### Configuration and Initializer
+### spec-orchestrator scripts
 
-#### [MODIFY] [database_initializer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/database_initializer.dart)
-- Disable mock seeding by changing the default parameter of `DatabaseInitializer.create(..., bool seed = false)`.
-- Make `_seed(db)` and `_addNodeToBatch` no-ops or remove mock items.
+#### [MODIFY] [reconcile_backlog.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/scripts/reconcile_backlog.py)
 
-#### [MODIFY] [logical-layout.json](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/assets/logical-layout.json)
-- Clear the hardcoded mock items in the `"hierarchy"` array, setting it to `[]` under `HierarchyTreeSelector`.
+- Locate the function `update_checklist_in_file` around line 153.
+- Replace the legacy digit/prefix check:
+```python
+        if dep_num_str.isdigit() and not prefix:
+            continue
+```
+- With the robust filters:
+```python
+        # 1. Skip plain markdown checkboxes that have no issue reference prefix
+        if not prefix:
+            continue
+
+        # 2. Skip unresolved template placeholders
+        if dep_num_str in ("IssueID", "EpicIssueID", "StoryIssueID", "FeatureIssueID", "UseCaseIssueID", "StoryID", "N/A"):
+            continue
+```
 
 ## Verification Plan
 
-### Automated Tests
-- Regenerate the SQLite database asset to apply the mock-free schema:
+### Compilation Check
+- Run the python compilation command to verify no syntax errors:
   ```bash
-  dart run app_flutter/lib/domain/database_initializer.dart
-  ```
-- Run the Flutter tests to verify that the app initializes cleanly without mock data:
-  ```bash
-  flutter test app_flutter/
+  python3 -m py_compile skills/spec-orchestrator/scripts/reconcile_backlog.py
   ```

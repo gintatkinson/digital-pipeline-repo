@@ -150,7 +150,12 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             prefix = match_tuple[2] if len(match_tuple) > 2 else ''
             dep_num_str = match_tuple[3] if len(match_tuple) > 3 else match_tuple[-1]
 
-        if dep_num_str.isdigit() and not prefix:
+        # 1. Skip plain markdown checkboxes that have no issue reference prefix
+        if not prefix:
+            continue
+
+        # 2. Skip unresolved template placeholders
+        if dep_num_str in ("IssueID", "EpicIssueID", "StoryIssueID", "FeatureIssueID", "UseCaseIssueID", "StoryID", "N/A"):
             continue
         has_deps = True
         dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
