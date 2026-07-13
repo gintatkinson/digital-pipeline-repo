@@ -133,40 +133,28 @@ Copy the pipeline directories and (optionally) the application templates into yo
 **For Stable Version (`master`):**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
-
-# Optionally copy the application template for your target platform:
-# For Flutter:
 cp -RP ./.tmp-pipeline/app_flutter ./
-# For React:
-cp -RP ./.tmp-pipeline/web_react ./
-
 rm -rf ./.tmp-pipeline
 ```
 
 **For Refactored Version (`refactor`):**
 ```bash
 git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
-
-# Optionally copy the application template for your target platform:
-# For Flutter:
 cp -RP ./.tmp-pipeline/app_flutter ./
-# For React:
-cp -RP ./.tmp-pipeline/web_react ./
-
 rm -rf ./.tmp-pipeline
 ```
 
@@ -225,9 +213,7 @@ Or if you want to verify the workspace structure prior to implementing the domai
 python3 scripts/verify_downstream_baseline.py --no-domain
 ```
 
-* **Auto-Detection**: The script dynamically auto-detects the platform (Flutter if it detects `pubspec.yaml`, React if it detects `package.json`). If both are present, both check suites are executed in sequence.
-* **React Verification**: Asserts the presence of core React template files (`package.json`, `tsconfig.json` / `jsconfig.json`, `src/main.tsx` / `src/index.tsx`, and the domain validation file `src/domain/validation.ts` unless `--no-domain` is specified). Runs dependencies resolution and verifies compilation/packaging via `npm run build` (skipped under `--no-domain`).
-* **Flutter Verification**: Asserts the presence of core Flutter template files (`pubspec.yaml`, `analysis_options.yaml`, `lib/main.dart`, and the database integration files `lib/domain/repository_resolver.dart` / `lib/domain/validation.dart` unless `--no-domain` is specified). Runs dependencies resolution (`flutter pub get`), static analysis (excluding fatal warning/info blocks), and the full automated test suite (skipped under `--no-domain`).
+* **Verification Checks**: Asserts the presence of core Flutter template files (`pubspec.yaml`, `analysis_options.yaml`, `lib/main.dart`, and the database integration files `lib/domain/repository_resolver.dart` / `lib/domain/validation.dart` unless `--no-domain` is specified). Runs dependencies resolution (`flutter pub get`), static analysis (excluding fatal warning/info blocks), and the full automated test suite (skipped under `--no-domain`).
 
 ---
 
@@ -265,12 +251,12 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 **Prerequisites:**
 - AI agent framework capable of reading `.md` skill files.
-- The target implementation profile configured (e.g. `.pipeline/profiles/react.md`).
+- The target implementation profile configured (e.g. `.pipeline/profiles/flutter.md`).
 - For Firestore target profiles, the local Firestore database emulator must be running (start via: `npx firebase-tools emulators:start --only firestore`).
 
 > **Feature Implementation Prompt:**
 >
-> "Adopt the feature driven implementation skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
+> "Adopt the feature driven implementation skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform flutter.
 >
 > Execute the full delivery workflow with TDD execution discipline:
 >
