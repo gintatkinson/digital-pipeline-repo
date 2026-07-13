@@ -137,7 +137,12 @@ stateDiagram-v2
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)
 Normative Specification: [Normative Specification](link-to-specification)
-```
+
+> [!WARNING]
+> **Mermaid Block Closing Constraints & Code Fence Integrity:**
+> - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
+> - Ensure there are no stray backticks or unmatched code fences in the document.
+
 
 ## Step 5: Zero-Fault Backlog Synchronization
 1. Commit and push the Markdown files to the remote repository.

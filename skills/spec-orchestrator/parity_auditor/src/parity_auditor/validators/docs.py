@@ -81,5 +81,28 @@ class DocsValidator(IValidator):
                 for pattern, desc in leak_checks:
                     if re.search(pattern, content, re.IGNORECASE):
                         errors.append(f"Backlog specification '{rel_path}' contains standard/platform leak: '{desc}'. Tier 1 documents must be purely functional and platform-independent.")
+
+            # Code block integrity check (Mermaid block leakage & stray fences)
+            lines = content.splitlines()
+            in_code_block = False
+            code_block_start = 0
+            is_mermaid_block = False
+            for idx, line in enumerate(lines, 1):
+                stripped = line.strip()
+                if stripped.startswith("```"):
+                    if in_code_block:
+                        in_code_block = False
+                        is_mermaid_block = False
+                    else:
+                        in_code_block = True
+                        code_block_start = idx
+                        is_mermaid_block = stripped.startswith("```mermaid")
+                elif in_code_block and is_mermaid_block:
+                    if stripped.startswith("#"):
+                        errors.append(f"Specification '{rel_path}' contains a markdown heading '{stripped}' inside an unclosed Mermaid block starting at line {code_block_start}. All diagrams must be closed with '```' on a new line.")
+                        in_code_block = False
+                        is_mermaid_block = False
+            if in_code_block:
+                errors.append(f"Specification '{rel_path}' has an unclosed code block (or stray code fence) starting at line {code_block_start}.")
                         
         return errors

@@ -223,13 +223,18 @@ For each cohesive functional feature group identified during the decomposition (
    [Raw normative specification context paragraphs]
 
    ## 4. Source References
-   [Source references links]
+   Structural Schema: [Target Schema File](link-to-schema)
+   Normative Specification: [Normative Specification](link-to-specification)
 
    ## 5. Logical UI & Layout Bindings
    - **Target LUI Component:** [e.g. PropertyGrid, TopologyMap, DensityTable, ConsoleLogger]
    - **Target Layout Container ID:** [Specify the container ID from logical-layout.json]
    - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json]
-   ```
+
+   > [!WARNING]
+   > **Mermaid Block Closing Constraints & Code Fence Integrity:**
+    > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
+    > - Ensure there are no stray backticks or unmatched code fences in the document.
 
 3. **Source References Block (CRITICAL):**
    - At the bottom of every feature markdown file, you MUST append a `## 4. Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:

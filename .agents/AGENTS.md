@@ -71,3 +71,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 
 ## Hidden Folder Direct Path Access Constraint
 - The `.pipeline` directory is hidden and generic glob tools (like ripgrep or glob patterns) may exclude it. You MUST read `.pipeline/constitution.md` and `.pipeline/profiles/` by their direct paths rather than relying on search or glob detection.
+
+## Mermaid Block Closing & Code Fence Integrity
+- Every Mermaid diagram or code block MUST be strictly and explicitly closed with matching closing fences (e.g. ```` ``` ```` on a new line). Leaking Mermaid blocks or stray/unclosed code fences are strictly forbidden as they cause parser failures in downstream validation tools.
+
