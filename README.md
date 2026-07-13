@@ -146,6 +146,7 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/app_flutter ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 * **For React Projects:**
@@ -160,6 +161,7 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 **For Refactored Version (`refactor`):**
@@ -176,6 +178,7 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/app_flutter ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 * **For React Projects:**
@@ -190,6 +193,7 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.

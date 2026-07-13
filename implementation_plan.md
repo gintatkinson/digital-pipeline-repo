@@ -1,27 +1,34 @@
-# Implementation Plan: Implement Logical UI Validator
+# Implement Automated Git Hooks Enforcement
 
-Implement the `LogicalUiValidator` validation checks and integrate it into the `parity_auditor` CLI.
+## Goal Description
+To transition project rules from "soft constraints" to "hard blockers," we will implement a Git hook installer. This will force agents to pass the linter and compilation verifications before they are allowed to commit or push changes.
+
+We will create a script `scripts/setup_git_hooks.py` that writes a pre-commit hook (running `verify_model_coverage.py --spec-only`) and a pre-push hook (running `verify_downstream_baseline.py`). We will update the project's quick setup commands in `README.md` to mandate running this hook installer.
 
 ## Proposed Changes
 
-### [CREATE] [skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/logical_ui_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/logical_ui_validator.py)
-- Create the file implementing the `LogicalUiValidator` validation checks.
-- Load `logical-layout.json` from `.pipeline/logical-ui/logical-layout.json` (or look under `app_flutter/assets/logical-layout.json` or fallback).
-- Traverse the JSON layout structurally to extract all valid component types and container IDs.
-- Scan feature files in `docs/features/` to extract `Target LUI Component` and `Target Layout Container ID` from `## 5. Logical UI & Layout Bindings`.
-- Validate that components and container IDs (if not `N/A`) exist in the allowed list or `logical-layout.json`.
-- Implement geodetic coordinate visual component mapping check.
+### [scripts]
 
-### [MODIFY] [skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py)
-- Import `LogicalUiValidator` from `.validators.logical_ui_validator`.
-- Instantiate and run `logical_ui_validator` in `_main_impl`.
-- Append `logical_ui_errors` to the final `all_errors` list.
+#### [NEW] [setup_git_hooks.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/setup_git_hooks.py)
+* Create a script that writes executable Git hook scripts to `.git/hooks/pre-commit` and `.git/hooks/pre-push` inside the repository.
 
-### [MODIFY] [tests/test_linter_reliability.py](file:///Users/perkunas/jail/digital-pipeline-repo/tests/test_linter_reliability.py)
-- Add a test function `test_logical_ui_validator` to verify the functionality of `LogicalUiValidator` under various conditions.
+### [docs/operations]
+
+#### [MODIFY] [README.md](file:///Users/perkunas/jail/digital-pipeline-repo/README.md)
+* Update the quick setup instruction blocks to include `python3 scripts/setup_git_hooks.py` immediately after copying the files.
+
+---
 
 ## Verification Plan
-- Run the downstream verifier check:
-  ```bash
-  python3 scripts/verify_downstream_baseline.py app_flutter
-  ```
+
+### Automated Checks
+1. Execute the git hook installer script locally:
+   ```bash
+   python3 scripts/setup_git_hooks.py
+   ```
+2. Verify that the `.git/hooks/pre-commit` and `.git/hooks/pre-push` files are created and marked as executable.
+3. Test downstream verification:
+   ```bash
+   python3 scripts/verify_downstream_baseline.py app_flutter
+   ```
+4. Verify `git diff origin/main` is clean after committing and pushing.
