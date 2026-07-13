@@ -15,6 +15,7 @@
 - If you are implementing a feature and no implementation profile exists for the target platform, HALT and ask the human to create one.
 - If a proposed change conflicts with any constitution document, HALT and escalate to the human.
 - Specification workers/modules MUST NOT read implementation profiles — they operate on functional specs only.
+- The `.pipeline` directory is a hidden directory and generic glob tools may exclude it. You MUST read `.pipeline/constitution.md` and `.pipeline/profiles/` directly by their explicit paths.
 
 ## Why
 

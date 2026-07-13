@@ -69,3 +69,5 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 - **Strict Subagent Tool Locking**: Spawned subagents must only execute tools that fall within their explicit domain (e.g., spec subagents do not run build/test commands or modify code, and implementation subagents do not edit high-level specifications).
 - **Subagent Cleanup**: The coordinator MUST immediately terminate any spawned subagents using the `manage_subagents` tool once the subagent's task is completed and the work is integrated. Subagents must never be left in an idle or dormant state.
 
+## Hidden Folder Direct Path Access Constraint
+- The `.pipeline` directory is hidden and generic glob tools (like ripgrep or glob patterns) may exclude it. You MUST read `.pipeline/constitution.md` and `.pipeline/profiles/` by their direct paths rather than relying on search or glob detection.
