@@ -192,9 +192,10 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
    > **DO NOT USE THE FEATURE INDEX NUMBER** in the solution filename if the tracker issue number is different. The solution filename MUST strictly use the tracker issue number (e.g., `feat-<Issue_Number>-solution.md`).
    >
    > **ZERO-TRUST COLLISION CHECK:** Before updating or creating this file, search the repository and history for the target filename to check its existing content. If it exists, read it first and append/merge the new changes rather than overwriting. If there is a filename mismatch or conflict, alert the user and resolve the naming conflict immediately.
-3. Commit and push the solution document using the configured commit command template.
-4. Close the feature issue on the active issue tracker provider, embedding a comment pointing to the committed solution document, dynamically constructing the URL using `meta.upstream_repository` from configuration.
-5. Update the local parent Epic checklist:
+3. **Backlog Reconciliation**: Run the backlog reconciliation script to synchronize all checklists, updated spec bodies (such as fixed Mermaid diagrams), and issue states back to GitHub: python3 skills/spec-orchestrator/scripts/reconcile_backlog.py
+4. Commit and push the solution document using the configured commit command template.
+5. Close the feature issue on the active issue tracker provider, embedding a comment pointing to the committed solution document, dynamically constructing the URL using `meta.upstream_repository` from configuration.
+6. Update the local parent Epic checklist:
    - Mark the completed feature as completed (`[x]`).
    - Commit and push the updated Epic checklist file.
 

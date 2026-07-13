@@ -79,3 +79,6 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 ## Mermaid Block Closing & Code Fence Integrity
 - Every Mermaid diagram or code block MUST be strictly and explicitly closed with matching closing fences (e.g. ```` ``` ```` on a new line). Leaking Mermaid blocks or stray/unclosed code fences are strictly forbidden as they cause parser failures in downstream validation tools.
 - Curly braces `{}` are strictly prohibited inside Mermaid class diagram member/attribute lines. Use standard parentheses `()` or notes instead to prevent rendering parser failures.
+
+## Backlog Reconciliation Mandate
+- Before finalizing any implementation branch commit, merge, or pull request, the agent MUST execute the backlog reconciliation script (`reconcile_backlog.py`) to synchronize all local specification updates, checklists, and fixed diagrams back to the GitHub issue tracker.
