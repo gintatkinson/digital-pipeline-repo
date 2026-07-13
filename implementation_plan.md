@@ -1,24 +1,36 @@
-# Implementation Plan: Role Boundary Lock Rule
+# Implementation Plan: Add --spec-only Flag and Warning for Specification Phases
 
-We will create the new rule file `rules/role-boundary-lock.md`, append it to `.agents/AGENTS.md`, and add it to `README.md`.
+Modify files to add the `--spec-only` flag to model coverage verification commands during specification phases, and add a warning explaining its mandatory nature.
 
 ## Proposed Changes
 
-### Rules and Agent Configurations
+### Skill Instructions
 
-#### [CREATE] [rules/role-boundary-lock.md](file:///Users/perkunas/jail/digital-pipeline-repo/rules/role-boundary-lock.md)
-- Create a new rule file containing strict role-based tool locking rules for specification and implementation phases.
+#### [MODIFY] [skills/spec-orchestrator/SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/SKILL.md)
+- Modify the command around line 94 to:
+  ```bash
+  ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
+  ```
+- Add a warning block explaining that the `--spec-only` flag is mandatory for specification phases to prevent checking implementation coverage.
 
-#### [MODIFY] [.agents/AGENTS.md](file:///Users/perkunas/jail/digital-pipeline-repo/.agents/AGENTS.md)
-- Append a new section `## Role Boundary Lock` at the end of the file.
+### Wiki Documentation
 
-#### [MODIFY] [README.md](file:///Users/perkunas/jail/digital-pipeline-repo/README.md)
-- Add a row for `role-boundary-lock` in the "Always-Loaded Governance Rules" table.
+#### [MODIFY] [wiki/Pipeline-1-Specification-Engineering.md](file:///Users/perkunas/jail/digital-pipeline-repo/wiki/Pipeline-1-Specification-Engineering.md)
+- Modify the command around line 87 to:
+  ```bash
+  ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
+  ```
+
+#### [MODIFY] [wiki/Workflows.md](file:///Users/perkunas/jail/digital-pipeline-repo/wiki/Workflows.md)
+- Modify the command at lines 60 and 137 to:
+  ```bash
+  ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
+  ```
 
 ## Verification Plan
 
-### Downstream Verifier
-- Run:
+### Automated Downstream Verification
+- Run downstream verifier check:
   ```bash
   python3 scripts/verify_downstream_baseline.py app_flutter
   ```

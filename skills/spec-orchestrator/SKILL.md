@@ -91,9 +91,12 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
    ```
 2. **Trigger Model Coverage & UML Conformance Verification**: Run the automated UML compliance and coverage linter tool:
    ```bash
-   ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir]
+   ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
    ```
    If `schema_dir` and `features_dir` are omitted, the script defaults to `$SCHEMA_DIR` / `$FEATURES_DIR` environment variables, or `<repo_root>/schema` (or the configured schema directory) and `<repo_root>/docs/features`.
+
+   > [!WARNING]
+   > The `--spec-only` flag is mandatory during specification phases to prevent the verifier from checking implementation coverage (i.e. verifying that features are implemented in codebase source directories such as `app_flutter/` or `web_react/`).
 3. **YANG Compilation (conditional)**: If `.yang` files are present in the schema directory, run the YANG-to-LUI compiler to generate the UI layout:
    ```bash
    python3 scripts/compile_yang.py --input schema/model.yang --output app_flutter/assets/logical-layout.json

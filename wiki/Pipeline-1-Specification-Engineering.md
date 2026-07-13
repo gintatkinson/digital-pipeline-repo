@@ -84,7 +84,7 @@ Responsibilities:
 
 **UML coverage verification script:**
 ```bash
-./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir]
+./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
 ```
 
 Responsibilities:

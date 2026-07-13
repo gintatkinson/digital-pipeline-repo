@@ -57,7 +57,7 @@ Adopt the spec-usecase-engineering skill. The normative spec is at [path]. Draft
 **Phase 4 — Reconciliation and coverage:**
 ```bash
 ./skills/spec-orchestrator/scripts/reconcile_backlog.py
-./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir]
+./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
 ```
 
 ## Implementing a Feature
@@ -134,7 +134,7 @@ What it does:
 ## Running UML Coverage Verification
 
 ```bash
-./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir]
+./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
 ```
 
 What it does:
