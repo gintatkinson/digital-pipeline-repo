@@ -126,18 +126,7 @@ The pipeline requires Python 3, the configured tracker CLI, and git. Python scri
 
 ---
 
-### Installation Option 1: Native GitHub Template (Recommended)
-
-To create a new project workspace directly from the template repository on GitHub's servers:
-
-1. Use the GitHub CLI to create the repository on GitHub from the template and clone it locally:
-   ```bash
-   gh repo create my-new-app --template gintatkinson/digital-pipeline-repo --public --clone
-   ```
-
----
-
-### Installation Option 2: Direct Copy (Simplest)
+### Direct Copy Installation
 
 Copy the pipeline directories and (optionally) the application templates into your project repository.
 
@@ -185,70 +174,14 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 
 ---
 
-### Installation Option 3: Git Submodule (Versioned, Updatable)
-
-Add the pipeline as a Git submodule so your project tracks a specific version and can pull updates.
-
-**For Stable Version (`master`):**
-```bash
-git submodule add https://github.com/<owner>/<template-repo>.git .pipeline-skills
-```
-
-**For Refactored Version (`refactor`):**
-```bash
-git submodule add -b refactor https://github.com/<owner>/<template-repo>.git .pipeline-skills
-```
-
-To update to the latest version of the submodule:
-```bash
-git submodule update --remote .pipeline-skills
-git add .pipeline-skills && git commit -m "chore: update pipeline skills"
-```
-
-#### Submodule Path Configuration
-
-When using the Git Submodule method, the skills and rules directories are nested inside `.pipeline-skills/`. You must create a `skills.json` file at your project root to register these paths for automatic agent discovery:
-
-```json
-{
-  "entries": [
-    { "path": ".pipeline-skills/skills" }
-  ]
-}
-```
-
-For workspace-scoped rules, update your agent configuration to point to `.pipeline-skills/rules/` instead of `./rules/`.
-
----
-
-### Installation Option 4: Tessl Registry (Managed Distribution)
-
-Use Tessl for version-locked, team-wide distribution with automated rule injection and quality evaluation. See the [Tessl Integration](#tessl-integration-skill-registry--evaluation) section below for full details.
-
-**For Stable Version (`master`):**
-```bash
-tessl init --agent gemini --agent claude-code --agent cursor
-tessl install github:gintatkinson/digital-pipeline-repo
-```
-
-**For Refactored Version (`refactor`):**
-```bash
-tessl init --agent gemini --agent claude-code --agent cursor
-tessl install github:gintatkinson/digital-pipeline-repo#refactor
-```
-
 ### Setup for Google Antigravity / Gemini CLI
 
-After installing the pipeline via any method above, configure Gemini to load the skills and rules:
+After copying the pipeline, configure Gemini to load the skills and rules:
 
 1. **Point Gemini at the skills directory.** In your Gemini CLI session or Antigravity project config, reference the skill files:
 
    ```
-   # If using direct copy or submodule:
    Read the files in ./skills/ and ./rules/ directories.
-
-   # If using Tessl:
-   Tessl auto-injects rules. Skills are loaded via MCP or the .tessl/ directory.
    ```
 
 2. **AGENTS.md (recommended).** Create an `AGENTS.md` file in your project root that tells Gemini (and any other agent) where to find the pipeline:
@@ -258,8 +191,8 @@ After installing the pipeline via any method above, configure Gemini to load the
 
    ## Pipeline Skills
    This project uses the Digital Systems Engineering Pipeline.
-   - Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/` or `.pipeline-skills/skills/`)
-   - Rules: read all files in the configured rules directory (e.g., `rules/` or `.pipeline-skills/rules/`) -- these are mandatory constraints that apply to every task
+   - Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/`)
+   - Rules: read all files in the configured rules directory (e.g., `rules/`) -- these are mandatory constraints that apply to every task
    - Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
    - Implementation profiles: read the implementation profile (e.g. `<pipeline_dir>/profiles/<platform>.md`) before implementing features
    ```
@@ -269,24 +202,13 @@ After installing the pipeline via any method above, configure Gemini to load the
 ### Setup for Claude Code
 
 ```bash
-# If using Tessl (auto-configures CLAUDE.md and MCP):
-tessl init --agent claude-code
-tessl install github:gintatkinson/digital-pipeline-repo
-
-# If using direct copy, add to CLAUDE.md:
+# Add to CLAUDE.md:
 echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
 ```
 
 ### Setup for Cursor / Windsurf / Cascade
 
-```bash
-# If using Tessl (auto-configures .cursor/rules/):
-tessl init --agent cursor
-tessl install github:gintatkinson/digital-pipeline-repo
-
-# If using direct copy, create .cursor/rules/pipeline.mdc or .windsurf/rules/pipeline.md
-# referencing the skills/ and rules/ directories.
-```
+Create `.cursor/rules/pipeline.mdc` or `.windsurf/rules/pipeline.md` referencing the `skills/` and `rules/` directories.
 
 ---
 
