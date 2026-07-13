@@ -210,6 +210,25 @@ echo "Read all SKILL.md files in skills/ and all rule files in rules/ before sta
 
 Create `.cursor/rules/pipeline.mdc` or `.windsurf/rules/pipeline.md` referencing the `skills/` and `rules/` directories.
 
+### Downstream Baseline Verification
+
+The verification script (`scripts/verify_downstream_baseline.py`) acts as a post-implementation compliance gate. It is **not** run manually on install when nothing has been implemented yet. Instead, it is run after the **Feature Implementation Agent** runs its implementation loop (or in CI/CD pull request gates) to verify that the generated code conforms to the Project Constitution.
+
+#### Running the Verification Gate
+
+To verify that the project is in a conforming state, run from the project root:
+```bash
+python3 scripts/verify_downstream_baseline.py
+```
+Or if you want to verify the workspace structure prior to implementing the domain model and validation rules:
+```bash
+python3 scripts/verify_downstream_baseline.py --no-domain
+```
+
+* **Auto-Detection**: The script dynamically auto-detects the platform (Flutter if it detects `pubspec.yaml`, React if it detects `package.json`). If both are present, both check suites are executed in sequence.
+* **React Verification**: Asserts the presence of core React template files (`package.json`, `tsconfig.json` / `jsconfig.json`, `src/main.tsx` / `src/index.tsx`, and the domain validation file `src/domain/validation.ts` unless `--no-domain` is specified). Runs dependencies resolution and verifies compilation/packaging via `npm run build` (skipped under `--no-domain`).
+* **Flutter Verification**: Asserts the presence of core Flutter template files (`pubspec.yaml`, `analysis_options.yaml`, `lib/main.dart`, and the database integration files `lib/domain/repository_resolver.dart` / `lib/domain/validation.dart` unless `--no-domain` is specified). Runs dependencies resolution (`flutter pub get`), static analysis (excluding fatal warning/info blocks), and the full automated test suite (skipped under `--no-domain`).
+
 ---
 
 ## Supported Runtimes
@@ -256,7 +275,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > Execute the full delivery workflow with TDD execution discipline:
 >
 > 0. Pre-Execution Seeding & Rules Verification:
->    - Ensure the downstream workspace is correctly initialized using the native GitHub Template or one of the manual installation methods.
+>    - Ensure the downstream workspace is correctly initialized using the Direct Copy Installation method.
 >    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`), specifically Section 4.5 (Downstream Conformance Gates) and Section 5 (Forbidden Practices - do NOT delete or bypass the layout splitters, timeline scrubber, or focus-loss property grid).
 >    - Adhere to the Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in final DI).
 >
@@ -271,30 +290,14 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > 5. Execute via subagent-driven TDD loop (RED-GREEN-REFACTOR per task).
 > 6. Two-stage review after each task (spec compliance, then code quality).
 > 7. Verification Proof:
->    - Run the compliance engine: `python3 scripts/verify_downstream_baseline.py [react | flutter] <destination_path>`.
+>    - Run the compliance engine: `python3 scripts/verify_downstream_baseline.py`.
 >    - Provide the raw test/build output of this script as proof of conformance.
 > 8. Provide step-by-step human manual testing instructions.
 > 9. Deliver the cumulative solution walkthrough and close the issue upon human approval."
 
 ---
 
-## Downstream Baseline Compliance
 
-To enforce consistent architecture, layout controls, and validation gates across downstream repositories, the pipeline includes automation scripts for compliance verification.
-
-### Running Compliance Verification Gates
-To verify that a downstream workspace adheres to the Project Constitution (including mandated types and passing compilation/tests) run:
-```bash
-python3 scripts/verify_downstream_baseline.py [react | flutter] <destination_path>
-```
-Or to skip checking the domain model files (`types.ts`/`types.dart`) and type compatibility checks:
-```bash
-python3 scripts/verify_downstream_baseline.py --no-domain [react | flutter] <destination_path>
-```
-* **React Checks**: Asserts presence of core React baseline files (excludes `types.ts` if `--no-domain` is specified), checks for mandated domain classes in `types.ts` (skipped if `--no-domain` is specified), and verifies compilation/packaging via `npm run build`.
-* **Flutter Checks**: Asserts presence of core Flutter baseline files (excludes `types.dart` if `--no-domain` is specified), checks for mandated domain classes in `types.dart` (skipped if `--no-domain` is specified), and runs full diagnostics and test suite via `flutter analyze && flutter test`.
-
----
 
 ## Expected Outputs
 
