@@ -1,34 +1,24 @@
-# Implementation Plan: Fix Tooling Bug in reconcile_backlog.py
+# Implementation Plan: Role Boundary Lock Rule
 
-We will update the dependency tracking checklist filter in `skills/spec-orchestrator/scripts/reconcile_backlog.py` to correctly skip plain checkboxes without issue reference prefixes and unresolved placeholder identifiers.
+We will create the new rule file `rules/role-boundary-lock.md`, append it to `.agents/AGENTS.md`, and add it to `README.md`.
 
 ## Proposed Changes
 
-### spec-orchestrator scripts
+### Rules and Agent Configurations
 
-#### [MODIFY] [reconcile_backlog.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/scripts/reconcile_backlog.py)
+#### [CREATE] [rules/role-boundary-lock.md](file:///Users/perkunas/jail/digital-pipeline-repo/rules/role-boundary-lock.md)
+- Create a new rule file containing strict role-based tool locking rules for specification and implementation phases.
 
-- Locate the function `update_checklist_in_file` around line 153.
-- Replace the legacy digit/prefix check:
-```python
-        if dep_num_str.isdigit() and not prefix:
-            continue
-```
-- With the robust filters:
-```python
-        # 1. Skip plain markdown checkboxes that have no issue reference prefix
-        if not prefix:
-            continue
+#### [MODIFY] [.agents/AGENTS.md](file:///Users/perkunas/jail/digital-pipeline-repo/.agents/AGENTS.md)
+- Append a new section `## Role Boundary Lock` at the end of the file.
 
-        # 2. Skip unresolved template placeholders
-        if dep_num_str in ("IssueID", "EpicIssueID", "StoryIssueID", "FeatureIssueID", "UseCaseIssueID", "StoryID", "N/A"):
-            continue
-```
+#### [MODIFY] [README.md](file:///Users/perkunas/jail/digital-pipeline-repo/README.md)
+- Add a row for `role-boundary-lock` in the "Always-Loaded Governance Rules" table.
 
 ## Verification Plan
 
-### Compilation Check
-- Run the python compilation command to verify no syntax errors:
+### Downstream Verifier
+- Run:
   ```bash
-  python3 -m py_compile skills/spec-orchestrator/scripts/reconcile_backlog.py
+  python3 scripts/verify_downstream_baseline.py app_flutter
   ```

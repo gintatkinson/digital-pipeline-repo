@@ -111,6 +111,8 @@ In addition to skills (loaded on-demand), this pipeline includes **rules** — c
 | **`no-browser-automation`** | No ad-hoc browser scripts. Manual verification or project E2E framework only. |
 | **`tracker-source-of-truth`** | Use the issue tracker's CLI tool resolved from configuration to query issue state. |
 | **`platform-independence`** | Specs must be functional. No framework names in features, stories, or use cases. |
+| **`role-boundary-lock`** | Enforce strict role boundaries between specification and implementation phases. |
+
 
 These rules live in the rules directory (e.g. `rules/`) and are packaged into the Tessl plugin alongside skills. Without Tessl, agents can read them directly from the configured rules directory.
 
