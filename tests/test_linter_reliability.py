@@ -340,4 +340,91 @@ graph TB
     extend_errors = [e for e in errors if "extend arrow" in e]
     assert not extend_errors, f"Expected no extend arrow errors, but got: {extend_errors}"
 
+def test_logical_ui_validator(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    
+    # 1. Create a dummy logical-layout.json in .pipeline/logical-ui/
+    layout_dir = ws_dir / ".pipeline" / "logical-ui"
+    os.makedirs(layout_dir, exist_ok=True)
+    layout_data = {
+        "layout": {
+            "root_container": {
+                "type": "SidebarLayout",
+                "id": "main_shell",
+                "children": [
+                    {
+                        "type": "CustomTopologyView",
+                        "id": "my_topology_pane"
+                    }
+                ]
+            }
+        }
+    }
+    with open(layout_dir / "logical-layout.json", "w", encoding="utf-8") as f:
+        json.dump(layout_data, f)
+        
+    # 2. Write valid feature file
+    features_dir = ws_dir / "docs" / "features"
+    os.makedirs(features_dir, exist_ok=True)
+    
+    with open(features_dir / "feat-valid.md", "w", encoding="utf-8") as f:
+        f.write("""---
+title: "Valid Feature"
+type: "feature"
+---
+# Valid Feature
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: CustomTopologyView
+- **Target Layout Container ID**: my_topology_pane
+""")
+        
+    # 3. Write feature file with invalid component/container
+    with open(features_dir / "feat-invalid.md", "w", encoding="utf-8") as f:
+        f.write("""---
+title: "Invalid Feature"
+type: "feature"
+---
+# Invalid Feature
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: NonExistentView
+- **Target Layout Container ID**: non_existent_pane
+""")
+
+    # 4. Write feature file with coordinate keywords and N/A component
+    with open(features_dir / "feat-coord-invalid.md", "w", encoding="utf-8") as f:
+        f.write("""---
+title: "Coordinate Invalid Feature"
+type: "feature"
+---
+# Coordinate Invalid Feature
+
+We track latitude and longitude coordinates.
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: N/A
+- **Target Layout Container ID**: N/A
+""")
+
+    repo = WorkspaceRepository(str(ws_dir))
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    validator = LogicalUiValidator()
+    errors = validator.validate(repo)
+    
+    # Assert errors for feat-invalid.md (both invalid component and invalid container)
+    invalid_comp_err = [e for e in errors if "feat-invalid.md" in e and "specifies invalid component type" in e]
+    invalid_container_err = [e for e in errors if "feat-invalid.md" in e and "specifies invalid container ID" in e]
+    assert len(invalid_comp_err) == 1
+    assert len(invalid_container_err) == 1
+    
+    # Assert coordinate errors for feat-coord-invalid.md
+    coord_err = [e for e in errors if "feat-coord-invalid.md" in e and "contains geodetic/coordinate concepts but" in e]
+    assert len(coord_err) == 1
+    
+    # Assert no errors for feat-valid.md
+    valid_err = [e for e in errors if "feat-valid.md" in e]
+    assert len(valid_err) == 0
+
+
 

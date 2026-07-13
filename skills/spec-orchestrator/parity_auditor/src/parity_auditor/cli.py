@@ -25,6 +25,7 @@ from .validators.sync_validator import SyncValidator
 from .validators.schema_mapping_validator import SchemaMappingValidator
 from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
+from .validators.logical_ui_validator import LogicalUiValidator
 from .utils.diagnostics import serialize_diagnostics
 
 def get_open_feature_issues() -> list:
@@ -604,8 +605,19 @@ def _main_impl():
         else:
             print("Success: Test completeness checks passed.")
         
+    print("\n=== Logical UI Validation ===")
+    logical_ui_validator = LogicalUiValidator()
+    logical_ui_errors = logical_ui_validator.validate(repo, features_dir=features_dir)
+    if logical_ui_errors:
+        print("[!] Logical UI Violations Identified:")
+        for err in logical_ui_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Logical UI checks passed.")
+        
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (logical_ui_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
