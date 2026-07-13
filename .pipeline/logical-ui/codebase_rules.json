@@ -233,5 +233,29 @@
       "t": "position/time_index",
       "trajectory": "position/vector"
     }
+  },
+  "layout_rules": {
+    "details_tabs": [
+      {
+        "type": "TableView",
+        "id": "components_table",
+        "props": { "label": "token:layout.labels.components" }
+      },
+      {
+        "type": "TableView",
+        "id": "relation_a_table",
+        "props": { "label": "token:layout.labels.relation_a" }
+      },
+      {
+        "type": "TableView",
+        "id": "relation_b_table",
+        "props": { "label": "token:layout.labels.relation_b" }
+      },
+      {
+        "type": "PropertyGrid",
+        "id": "properties_view",
+        "props": { "label": "token:layout.labels.properties" }
+      }
+    ]
   }
 }
