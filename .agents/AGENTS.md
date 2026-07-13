@@ -74,6 +74,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 
 ## Role Boundary Lock (Specification & Implementation)
 - **Coordinator Direct Writing Lock**: The coordinator agent is strictly forbidden from directly writing or modifying target functional specifications (Epics, Features, User Stories, Use Cases) or codebase source files. All file writes and updates MUST be delegated to spawned subagents.
+- **Specification Worker Subagent Mandate**: The coordinator MUST dispatch isolated Worker subagents for Phase 1, Phase 2, and Phase 3 specification orchestration tasks to isolate context and prevent token exhaustion.
 - **Specification Phase Boundary**: Spec workers and specification subagents are strictly forbidden from reading, writing, or referencing implementation profiles, implementation plans, or target source code files. They must operate strictly within logical, functional, and platform-independent boundaries.
 - **Implementation Phase Boundary**: Implementation subagents and micro-task implementers are strictly forbidden from generating or directly modifying upstream specification files (Epics, Features, User Stories, Use Cases) unless explicitly authorized via a synchronized backlog reconciliation task.
 - **Strict Subagent Tool Locking**: Spawned subagents must only execute tools that fall within their explicit domain (e.g., spec subagents do not run build/test commands or modify code, and implementation subagents do not edit high-level specifications).
