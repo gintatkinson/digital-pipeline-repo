@@ -144,11 +144,12 @@ Copy the pipeline directories and (optionally) the application templates into yo
 **For Stable Version (`master`):**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./app_flutter ./web_react
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
+cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 
 # Optionally copy the application template for your target platform:
@@ -163,11 +164,12 @@ rm -rf ./.tmp-pipeline
 **For Refactored Version (`refactor`):**
 ```bash
 git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./app_flutter ./web_react
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
+cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 
 # Optionally copy the application template for your target platform:
