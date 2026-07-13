@@ -188,6 +188,7 @@ cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp ./.tmp-pipeline/requirements.txt ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 Refactored version:
@@ -200,6 +201,7 @@ cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp ./.tmp-pipeline/requirements.txt ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 ### Option 3: Git Submodule
