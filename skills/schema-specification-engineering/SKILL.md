@@ -126,8 +126,8 @@ For each cohesive functional feature group identified during the decomposition (
     classDiagram
         class SubsystemComponent {
             <<component>>
-            +providedInterface() : Boolean [1]
-            +requiredInterface() : String [1]
+            +Boolean providedInterface()
+            +String requiredInterface()
         }
     ```
 
@@ -143,7 +143,7 @@ For each cohesive functional feature group identified during the decomposition (
         }
         class FeatureClassifier2 {
             +Integer attributeThree [0..*]
-            +operationOne(input : String) : Boolean [1]
+            +Boolean operationOne(String input)
         }
         SubsystemComponent *-- FeatureClassifier1
         SubsystemComponent *-- FeatureClassifier2
@@ -194,7 +194,7 @@ For each cohesive functional feature group identified during the decomposition (
              +String primaryAttribute [1]
               -Boolean optionalAttribute [0..1] (constraintText)
              +Integer listAttribute [0..*]
-             +doSomething(param : String) : Boolean [1]
+             +Boolean doSomething(String param)
          }
          ParentContainer *-- FeatureClassifier
      ```

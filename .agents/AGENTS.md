@@ -86,3 +86,6 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 
 ## Backlog Reconciliation Mandate
 - Before finalizing any implementation branch commit, merge, or pull request, the agent MUST execute the backlog reconciliation script (`reconcile_backlog.py`) to synchronize all local specification updates, checklists, and fixed diagrams back to the GitHub issue tracker.
+
+## Mermaid Class Diagram Syntax Rules
+- **Mermaid Class Diagram Syntax Rules**: Colons are strictly prohibited inside Mermaid class member strings (e.g., do not use `+methodName() : ReturnType` or `+methodName(arg : Type)`), as secondary colons confuse the parser and break rendering. Use standard spacing instead (e.g., `+ReturnType methodName(Type arg)`).
