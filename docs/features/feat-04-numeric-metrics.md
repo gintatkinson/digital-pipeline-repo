@@ -28,11 +28,11 @@ classDiagram
     }
     class Gauge32 {
         +Integer value [1]
-        +setValue(val : Integer) void
+        +void setValue(Integer val)
     }
     class Gauge64 {
         +Integer value [1]
-        +setValue(val : Integer) void
+        +void setValue(Integer val)
     }
     class Timeticks {
         +Integer value [1]

@@ -20,12 +20,12 @@ Details the AST check rules preventing infinite rendering loop triggers and the 
 classDiagram
     class EventEchoGuard {
         +Boolean isProcessingProgrammaticChange
-        +onUserInteraction(event: UserEvent) void
-        +onProgrammaticUpdate(data: TelemetryData) void
+        +void onUserInteraction(UserEvent event)
+        +void onProgrammaticUpdate(TelemetryData data)
     }
     class RepaintBoundaryManager {
-        +wrapWithRepaintBoundary(component: Component) RepaintBoundary
-        +updateCSSVariablesDirectly(element: DOMElement, width: int) void
+        +RepaintBoundary wrapWithRepaintBoundary(Component component)
+        +void updateCSSVariablesDirectly(DOMElement element, int width)
     }
     EventEchoGuard --> RepaintBoundaryManager : isolates updates
 ```

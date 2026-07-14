@@ -21,14 +21,14 @@ classDiagram
     class TelemetryWorker {
         +String gNmiEndpoint
         +List~TelemetryPacket~ batchBuffer
-        +connectgNMI() void
-        +unpackProtobuf(payload: ByteData) TelemetryPacket
-        +deduplicateUpdates() List~TelemetryPacket~
-        +dispatchBatch() void
+        +void connectgNMI()
+        +TelemetryPacket unpackProtobuf(ByteData payload)
+        +List~TelemetryPacket~ deduplicateUpdates()
+        +void dispatchBatch()
     }
     class MainThreadBroker {
-        +receiveBatch(batch: List~TelemetryPacket~) void
-        +applyToStore(store: StateStore) void
+        +void receiveBatch(List~TelemetryPacket~ batch)
+        +void applyToStore(StateStore store)
     }
     TelemetryWorker --> MainThreadBroker : posts message (JSON delta batch)
 ```

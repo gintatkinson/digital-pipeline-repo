@@ -13,26 +13,26 @@ issue_id: 44
 ```mermaid
 classDiagram
     class PersistenceBootstrap {
-        +initialize(config: Config)
-        +connectEmulator(host: String, port: Integer)
+        +initialize(Config config)
+        +connectEmulator(String host, Integer port)
     }
     class AbstractRepository {
         <<interface>>
-        +fetchNodes() List
-        +saveNode(node: Node)
+        +List fetchNodes()
+        +saveNode(Node node)
     }
     class FirestoreRepositoryAdapter {
         +db: FirestoreInstance
-        +fetchNodes() List
-        +saveNode(node: Node)
+        +List fetchNodes()
+        +saveNode(Node node)
     }
     class SeedingManager {
         +purgeDatabase()
-        +seedBaselineRecords(records: List)
+        +seedBaselineRecords(List records)
     }
     class ComplianceValidator {
-        +validateSchema(schemaPath: String) Boolean
-        +verifyLiveConnection() Boolean
+        +Boolean validateSchema(String schemaPath)
+        +Boolean verifyLiveConnection()
     }
 
     FirestoreRepositoryAdapter ..|> AbstractRepository : realizes

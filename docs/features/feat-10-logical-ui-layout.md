@@ -15,10 +15,10 @@ classDiagram
     class Layout {
         +String activeView [1]
         +Integer splitterHeight [1]
-        +onViewChange(view: String) [1]
+        +onViewChange(String view)
     }
     class HierarchyTreeSelector {
-        +onNodeSelect(nodeId: String) [1]
+        +onNodeSelect(String nodeId)
         +handleKeyboardNavigation() [1]
     }
     class ResizableSplitter {

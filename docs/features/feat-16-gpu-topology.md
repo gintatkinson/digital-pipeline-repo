@@ -21,15 +21,15 @@ classDiagram
     class TopologyCanvas {
         +CanvasElement canvas
         +WebGPURenderer renderer
-        +initializeGPUDevice() void
+        +void initializeGPUDevice()
     }
     class WebGPURenderer {
         +GPUDevice device
         +GPUBuffer nodeBuffer
         +GPUBuffer edgeBuffer
         +GPUComputePipeline physicsPipeline
-        +runPhysicsPass() void
-        +renderScene() void
+        +void runPhysicsPass()
+        +void renderScene()
     }
     TopologyCanvas *-- WebGPURenderer : delegates
 ```

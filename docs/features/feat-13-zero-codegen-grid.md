@@ -22,7 +22,7 @@ classDiagram
         +List~AttributeDefinition~ attributes
         +Map~String, dynamic~ initialValues
         +Function onSave
-        +didUpdateWidget() void
+        +void didUpdateWidget()
     }
     class AttributeDefinition {
         +String key
@@ -36,12 +36,12 @@ classDiagram
         +num maxValue
     }
     class FormFieldFactory {
-        +buildWidget(config: AttributeDefinition, value: dynamic) FormFieldWidget
+        +FormFieldWidget buildWidget(AttributeDefinition config, dynamic value)
     }
     class FormFieldWidget {
         +AttributeDefinition config
         +dynamic value
-        +validate() Boolean
+        +Boolean validate()
     }
     PropertyGrid *-- FormFieldFactory : uses
     FormFieldFactory --> FormFieldWidget : instantiates

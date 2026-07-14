@@ -19,11 +19,11 @@ Details the DevOps compilation pipeline parsing OpenConfig YANG schemas into pla
 ```mermaid
 classDiagram
     class YangCompiler {
-        +parseYangFile(filePath: String) AST
-        +walkAST(node: ASTNode) List~AttributeDefinition~
-        +generateAbsoluteXPath(node: ASTNode) String
-        +mapYangType(yangType: String) String
-        +writeLuiJson(outputPath: String) void
+        +AST parseYangFile(String filePath)
+        +List~AttributeDefinition~ walkAST(ASTNode node)
+        +String generateAbsoluteXPath(ASTNode node)
+        +String mapYangType(String yangType)
+        +void writeLuiJson(String outputPath)
     }
     class AttributeDefinition {
         +String key

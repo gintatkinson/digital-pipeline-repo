@@ -21,10 +21,10 @@ classDiagram
         +IngestionWorkflow workflow [1]
     }
     class IngestionWorkflow {
-        +parseIssueBody(issueJson : String) : String [1]
-        +writeReproCase(snippet : String, filename : String) : void
-        +runRegressionTests() : Boolean [1]
-        +closeIssue(issueId : String) : void
+        +String parseIssueBody(String issueJson)
+        +void writeReproCase(String snippet, String filename)
+        +Boolean runRegressionTests()
+        +void closeIssue(String issueId)
     }
     IngestionSubsystem *-- IngestionWorkflow
 ```

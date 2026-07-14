@@ -16,8 +16,8 @@ classDiagram
     }
     class CoverageVerifier {
         +Real requiredCoverage [1]
-        +runCoverageAudit() Real [1]
-        +validateProfileScoping() Boolean [1]
+        +Real runCoverageAudit()
+        +Boolean validateProfileScoping()
     }
     CoverageGateSubsystem *-- CoverageVerifier
 ```

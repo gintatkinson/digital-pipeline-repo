@@ -77,7 +77,7 @@ The UML class diagram template models features as standard classifiers with attr
 classDiagram
     class FeatureClassifier {
         +String primaryAttribute [1]
-        +doSomething(param : String) : Boolean [1]
+        +Boolean doSomething(String param)
     }
 ```
 
@@ -102,11 +102,11 @@ classDiagram
     }
     class LocationServiceProxy {
         <<service>>
-        +validateLocation(loc : LocationDTO) : Promise~Boolean~ [1]
+        +Promise~Boolean~ validateLocation(LocationDTO loc)
     }
     class BackgroundLocationService {
         <<worker>>
-        +validateLocation(loc : LocationDTO) : Boolean [1]
+        +Boolean validateLocation(LocationDTO loc)
     }
     LocationServiceProxy --> LocationDTO : transfers
     BackgroundLocationService --> LocationDTO : processes

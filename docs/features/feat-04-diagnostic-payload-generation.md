@@ -29,8 +29,8 @@ classDiagram
         +String traceback [1]
         +String targetFile [1]
         +String snippetContent [1]
-        +logFailure(error : String, context : String) : void
-        +serializePayload() : String [1]
+        +void logFailure(String error, String context)
+        +String serializePayload()
     }
     ToolingSubsystem *-- DiagnosticLogger
 ```

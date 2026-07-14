@@ -18,7 +18,7 @@ classDiagram
         +String epicId [1]
         +String featureId [1]
         +String linkageJustification [1]
-        +validateLinkage() Boolean [1]
+        +Boolean validateLinkage()
     }
     EpicLinkageSubsystem *-- EpicMapper
 ```

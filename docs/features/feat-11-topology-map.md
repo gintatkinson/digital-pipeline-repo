@@ -14,19 +14,19 @@ issue_id: 11
 classDiagram
     class TopologyMap {
         +String activeFocusedNode [1]
-        +onNodeSelect(nodeId: String) [1]
-        +updateCoordinateMapping(mapping: String) [1]
+        +onNodeSelect(String nodeId)
+        +updateCoordinateMapping(String mapping)
     }
     class PlaybackController {
         +Real currentTimeIndex [1]
         +Real playbackSpeedMultiplier [1]
         +Boolean isPlaying [1]
-        +setPlayhead(timeIndex: Real) [1]
-        +togglePlayback() [1]
+        +setPlayhead(Real timeIndex)
+        +togglePlayback()
     }
     class CanvasRenderer {
         +String renderContextType [1]
-        +drawViewport() [1]
+        +drawViewport()
     }
 
     TopologyMap *-- PlaybackController : integrates [1]
