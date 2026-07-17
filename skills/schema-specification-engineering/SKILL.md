@@ -56,6 +56,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
 2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass ONLY the schema nodes and properties for this specific feature group. The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
+   - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
    - **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns).
    - **Exhaustive Constraint Parsing:** For EVERY attribute within the grouped feature, analyze and record all structural constraints:
      - conditional clauses

@@ -74,19 +74,37 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 ## Phase 1: Structural Extraction (Worker A)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `Structural Spec Worker`) with the `schema-specification-engineering` skill and the path to the target structural schema files, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `Structural Spec Worker` subagent parses the schema and identifies all Epics and Features. It dispatches a fresh context-isolated subagent for each Feature/Epic to draft its specification. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. It registers Features first, then injects their Issue IDs into the Epic checklists, registers Epics, and commits/pushes the changes.
-3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and verifies its commit and output by running `git diff origin/<branch>`.
+3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
+   a. Queries the `git diff` to identify the paths of all newly generated files.
+   b. Runs a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format, and compliance tables).
+   c. Runs the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
+      ```bash
+      ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
+      ```
 4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --limit 1000 --state all --json number,title,state,labels`) to verify the new Epics and Features exist and are properly interlinked. Do not proceed to Phase 2 until the structural foundation is verified.
 
 ## Phase 2 `[P]`: Behavioral Extraction - User Stories (Worker B)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `Behavioral Spec Worker`) with the `spec-user-story-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `Behavioral Spec Worker` subagent parses operational scenarios and identifies required User Stories (including calculations and transitions). It dispatches a fresh context-isolated subagent for each User Story to write its specification file. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. The subagent then registers them with the issue tracker and commits/pushes the changes.
-3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and verifies its commit and output by running `git diff origin/<branch>`.
+3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
+   a. Queries the `git diff` to identify the paths of all newly generated files.
+   b. Runs a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format, and compliance tables).
+   c. Runs the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
+      ```bash
+      ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
+      ```
 4. **Validation Gate**: Verify that the `user-story` issues have been created in GitHub and that their tasklists successfully render the intersecting `#IssueID`s generated during Phase 1.
 
 ## Phase 3 `[P]`: System Interaction Extraction - UML Use Cases (Worker C)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `System Interaction Spec Worker`) with the `spec-usecase-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `System Interaction Spec Worker` subagent identifies required System Use Cases and dispatches a fresh context-isolated subagent for each Use Case. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. The subagent registers the completed Use Cases, cross-links them to stories and features, and commits/pushes the changes.
-3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and verifies its commit and output by running `git diff origin/<branch>`.
+3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
+   a. Queries the `git diff` to identify the paths of all newly generated files.
+   b. Runs a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format, and compliance tables).
+   c. Runs the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
+      ```bash
+      ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
+      ```
 4. **Validation Gate**: Verify that the `use-case` issues have been created in GitHub and that the Realization Matrix successfully links back to User Stories and Features.
 
 > **`[P]` Note:** Phases 2 and 3 are marked parallel-capable because Worker C queries GitHub for User Story Issue IDs (created by Worker B) via `gh issue list`. If both are dispatched simultaneously, Worker C will find the User Story issues as soon as Worker B creates them. On single-agent runtimes, execute Phase 2 first, then Phase 3.

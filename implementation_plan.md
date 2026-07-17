@@ -1,41 +1,39 @@
-# Implementation Plan: Integrate Intermediate Validation Loops in Specification Engineering Skills
+# Implementation Plan: Hardening Updates in Specification Engineering Skills
 
-This plan details the updates to enforce a mandatory local validation gate using the `verify_model_coverage.py` script across all specification extraction phases.
+This plan details the updates to harden specification engineering processes and validation gates.
 
 ## Proposed Changes
 
-### [skills/spec-orchestrator]
+### 1. Update `skills/spec-orchestrator/SKILL.md`
+- **Target File**: [skills/spec-orchestrator/SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/SKILL.md)
+- **Change**: Under Phase 1, Phase 2, and Phase 3, update Step 3 ("Wait & Verify") to add instructions for the Coordinator to:
+  a. Query the git diff to identify the generated file paths.
+  b. Run a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format).
+  c. Run the linter locally over the newly added files to double-check that the validation gate is fully satisfied.
 
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/SKILL.md)
-* In Phase 1, Phase 2, and Phase 3, add the requirement for the worker subagents to run the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) before committing, pushing, or creating issues.
-* Mandate fixing all validation errors until the linter passes with exit code 0.
+### 2. Update `skills/schema-specification-engineering/SKILL.md`
+- **Target File**: [skills/schema-specification-engineering/SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
+- **Change**: Under Step 2 (Isolated Feature Extraction), sub-section "3. Execution within Subagent Context", insert the mandatory rule:
+  - "Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes."
 
-### [skills/schema-specification-engineering]
+### 3. Update `skills/spec-user-story-engineering/SKILL.md`
+- **Target File**: [skills/spec-user-story-engineering/SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-user-story-engineering/SKILL.md)
+- **Change**: Under Step 2 (Isolated User Story Modeling), sub-section "3. Execution within Subagent Context", insert the mandatory rule:
+  - "Before writing the file, you MUST output a structured compliance table checking for lifeline aliasing (e.g. 'actorName : Classifier'), open return arrows ('-->'), return value assignment signatures (no method call format), and Given-When-Then BDD scenarios."
 
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
-* Insert a new section `## Step 5: Local Validation & Backlog Synchronization` at line 271 (before tracker label bootstrapping).
-* Define Step 1 as a mandatory local validation gate using `./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`.
-* Require parsing errors, correcting generated epic and feature files, and re-running until the linter passes.
-* Adjust numbering of subsequent steps (Tracker Label Bootstrapping, Duplicate Detection, etc.) to follow this first step.
-
-### [skills/spec-user-story-engineering]
-
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-user-story-engineering/SKILL.md)
-* Under `## Step 5: Zero-Fault Backlog Synchronization`, modify step 1 to enforce the mandatory validation gate (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and correction loop before committing or pushing user stories.
-
-### [skills/spec-usecase-engineering]
-
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-usecase-engineering/SKILL.md)
-* Under `## Step 5: Zero-Fault Backlog Synchronization`, modify step 1 to enforce the mandatory validation gate (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and correction loop before committing or pushing use cases.
+### 4. Update `skills/spec-usecase-engineering/SKILL.md`
+- **Target File**: [skills/spec-usecase-engineering/SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-usecase-engineering/SKILL.md)
+- **Change**: Under Step 2 (Isolated Use Case Modeling), sub-section "3. Execution within Subagent Context", insert the mandatory rule:
+  - "Before writing the file, you MUST output a structured compliance table checking for system boundary subgraphs, external actors, and complete realization matrices."
 
 ---
 
 ## Verification Plan
 
 ### Automated Verification
-* Run the verification command:
+- Run the verification script locally to ensure compliance:
   ```bash
   python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
   ```
-* Ensure it returns an exit code of 0.
-* Inspect `git diff` to verify only the requested changes have been made.
+- Verify the exit code is 0.
+- Perform a final `git diff` review to verify the accuracy and surgical nature of all modifications.

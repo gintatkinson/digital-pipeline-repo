@@ -43,6 +43,7 @@ In addition to standard deployment scenarios, you MUST scan the specification an
 1. **Identify Scenarios & Triggers:** Analyze the specification chapters and structural schemas to determine all required deployment scenarios, calculations/derivations, and temporal/state lifecycles. Compile the list of target User Stories to be engineered.
 2. **Dispatch User Story Subagent:** For each identified User Story, invoke a **new, fresh subagent with an isolated context**. Pass ONLY the specific operational text, relevant schema definitions, related Feature specs, and the User Story template. The subagent must have no visibility or knowledge of other User Stories.
 3. **Execution within Subagent Context:**
+   - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for lifeline aliasing (e.g. 'actorName : Classifier'), open return arrows ('-->'), return value assignment signatures (no method call format), and Given-When-Then BDD scenarios.
    - **Behavioral Modeling:** Model the scenario as a formal User Story integrated with OOA/OOD principles:
      - Identify the Actor/Role (the object or entity initiating the action).
      - Formulate the core scenario using strict BDD syntax mapped to object interactions (`Given`/`When`/`Then` or `As a`/`I want to`/`So that`).
