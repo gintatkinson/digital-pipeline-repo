@@ -137,7 +137,11 @@ Normative Specification: [Normative Specification](link-to-specification)
 
 
 ## Step 5: Zero-Fault Backlog Synchronization
-1. Commit and push the Markdown files to the remote repository.
+1. **Mandatory Local Validation Gate:** Before committing, pushing, or creating issues in the backlog, the subagent MUST execute the local validation check:
+   ```bash
+   ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs
+   ```
+   If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Use Case markdown files, and re-run the linter until it passes with exit code 0. Once the linter passes, commit and push the Markdown files to the remote repository.
 2. Verify the `use-case` label exists in the tracker repository, bootstrapping it if necessary.
 3. **Duplicate Detection:** Before creating, query the active tracker provider for all existing use case issues to check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
 4. Register the Use Case issue natively with the active tracker provider.

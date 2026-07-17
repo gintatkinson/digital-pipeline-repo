@@ -269,6 +269,14 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - The specific target layout container ID in `logical-layout.json`.
      - The data source bindings matching `logical-layout.json`.
 
+## Step 5: Local Validation & Backlog Synchronization
+
+1. **Mandatory Local Validation Gate:** Before committing, pushing, or creating issues in the backlog, the subagent MUST execute the local validation check:
+   ```bash
+   ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs
+   ```
+   If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Feature and Epic markdown files, and re-run the linter until it passes with exit code 0.
+
 2. **Tracker Label Bootstrapping:** Invoke the issue tracker's label bootstrap interface (e.g. creating "epic" and "feature" labels in the configured provider).
 
 3. **Duplicate Detection (Idempotency Check):**
