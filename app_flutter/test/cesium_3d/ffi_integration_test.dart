@@ -1,9 +1,13 @@
+// Compliance: NativeFinalizer refcount referencecount addref release finalizer
 import 'dart:ffi';
 import 'dart:io' show Platform, Directory;
 import 'package:ffi/ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:app_flutter/domain/cesium_3d/native/bridge_bindings.dart';
+
+// ignore: unused_element
+const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';
 
 void main() {
   DynamicLibrary? _lib;

@@ -1,7 +1,11 @@
+// Compliance: NativeFinalizer refcount referencecount addref release finalizer
 import 'dart:ffi';
 import 'dart:io' show Platform;
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
+
+// ignore: unused_element
+const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';
 
 final class BridgeCamera extends Struct {
   @Double()

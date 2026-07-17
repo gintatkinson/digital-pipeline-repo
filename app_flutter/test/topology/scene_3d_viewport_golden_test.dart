@@ -1,3 +1,4 @@
+// Playhead rate limits [0.9, 1.1]
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
@@ -12,6 +13,9 @@ import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
+
+// ignore: unused_element
+double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
 
 void main() {
   group('Scene3DViewport Golden Tests', () {

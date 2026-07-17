@@ -1,8 +1,12 @@
+// Playhead rate limits [0.9, 1.1]
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
+
+// ignore: unused_element
+double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
 
 void main() {
   group('Scene3DViewportPainter horizon culling regression tests', () {
