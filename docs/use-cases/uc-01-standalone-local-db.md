@@ -70,7 +70,10 @@ App is launched in standalone offline mode. Persistence is handled locally via S
 
 ## 8. Realization Matrix
 ### Required Features
-- [ ] #44 - [Downstream Baseline Feature](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (Realizes property grid offline persistence baseline)
+- [ ] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies property grid offline persistence baseline)
+
+### Required User Stories
+- [ ] #0 - Standalone database bootstrap ([us-01-standalone-bootstrap](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-01-standalone-bootstrap.md)) (Verifies standalone bootstrap capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`

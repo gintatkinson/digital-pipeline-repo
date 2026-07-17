@@ -5,6 +5,7 @@ interface_type: "ui"
 generation_mode: "subagent"
 spec_source: "Project Constitution"
 issue_id: 11
+target-lui-component: "TopologyMap"
 ---
 
 # Feature 11: Multi-Dimensional GPGPU Topology Canvas
@@ -80,6 +81,10 @@ classDiagram
 - **Then** the canvas viewport redraws the nodes at their projected coordinates at time index 2.5.
 
 ---
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: TopologyMap
+- **Target Layout Container ID**: topology_pane
 
 ## Source References
 - **Project Constitution**: [constitution.md:L105-112](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L105-L112) (Section 1.11 Multi-Dimensional Canvas Compliance)

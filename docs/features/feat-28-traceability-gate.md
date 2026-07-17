@@ -16,8 +16,8 @@ classDiagram
     }
     class TraceabilityVerifier {
         +Boolean enforceUmlConstraints [1]
-        +Boolean verifyTraceabilityMatrix()
-        +Boolean checkDocCompleteness()
+        +Boolean[1] verifyTraceabilityMatrix(String matrixPath)
+        +Boolean[1] checkDocCompleteness(String docPath)
     }
     TraceabilityGateSubsystem *-- TraceabilityVerifier
 ```

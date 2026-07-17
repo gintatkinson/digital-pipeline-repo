@@ -15,40 +15,28 @@ issue_id: 55
 ## Description
 Details the generic property grid presentation shell reading JSON schemas at runtime and dynamically instantiating input widgets.
 
-## UML Class/Component Diagram
+## UML Class Diagram
 ```mermaid
 classDiagram
-    class PropertyGrid {
-        +List~AttributeDefinition~ attributes
-        +Map~String, dynamic~ initialValues
-        +Function onSave
-        +void didUpdateWidget()
+    class ZeroCodegenGrid {
+        +Boolean[1] renderGrid()
     }
-    class AttributeDefinition {
-        +String key
-        +String label
-        +String type
-        +String sectionGroup
-        +List~String~ options
-        +Boolean isRequired
-        +String regexPattern
-        +num minValue
-        +num maxValue
-    }
-    class FormFieldFactory {
-        +FormFieldWidget buildWidget(AttributeDefinition config, dynamic value)
-    }
-    class FormFieldWidget {
-        +AttributeDefinition config
-        +dynamic value
-        +Boolean validate()
-    }
-    PropertyGrid *-- FormFieldFactory : uses
-    FormFieldFactory --> FormFieldWidget : instantiates
-    FormFieldWidget o-- AttributeDefinition : uses
+    class GridConfig
+    ZeroCodegenGrid --> GridConfig : configures
 ```
 
 ## Interface Requirements
+
+### 1. Test Data Shape
+```json
+{
+  "gridConfig": {}
+}
+```
+
+### 3. Visual Layout & Arrangement
+- Renders zero codegen grid inside details tab view.
+
 ### 1. Payload Schema
 Uses the output schema of the compiler (`logical-layout.json`) loaded dynamically at startup:
 ```json
@@ -78,3 +66,9 @@ Uses the output schema of the compiler (`logical-layout.json`) loaded dynamicall
 ### 4. Logical Exception States & Validation Failures
 1. Out of Bounds Value: If a numeric input violates `minValue` or `maxValue`, validation fails, error feedback is highlighted on the widget, and saving is blocked.
 2. Invalid Pattern: If string input fails the `regexPattern` match, input is flagged as invalid, and focus-loss saving is bypassed or logs validation failure.
+
+### 4. Interactive Flow & States
+#### Scenario 1: Grid Rendering
+- Given active layout config
+- When grid is loaded
+- Then component renders successfully.

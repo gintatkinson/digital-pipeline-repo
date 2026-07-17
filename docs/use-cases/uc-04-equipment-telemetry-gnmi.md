@@ -70,5 +70,8 @@ Deployments utilize gNMI Protobuf streams over HTTP/2 transport to capture high-
 
 ## 8. Realization Matrix
 ### Required Features
-- [ ] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (Defines class topologies and validation gates for adapters, including ComplianceValidator)
-- [ ] [Persistence Architecture Blueprint](docs/designs/persistence-architecture-blueprint.md) (Specifies gNMI/Protobuf repository adapter structure and Option 4 telemetry configuration)
+- [ ] #44 - Feature 44: Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies class topologies and validation gates for adapters)
+- [ ] Persistence Architecture Blueprint ([blueprint](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md)) (Verifies gNMI/Protobuf repository adapter structure)
+
+### Required User Stories
+- [ ] #0 - Telemetry streaming ([us-04-streaming](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-04-streaming.md)) (Verifies telemetry streaming capability)

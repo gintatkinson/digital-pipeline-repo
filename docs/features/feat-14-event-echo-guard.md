@@ -15,22 +15,28 @@ issue_id: 56
 ## Description
 Details the AST check rules preventing infinite rendering loop triggers and the CSS/Impeller repaint boundaries to isolate reflow events.
 
-## UML Class/Component Diagram
+## UML Class Diagram
 ```mermaid
 classDiagram
     class EventEchoGuard {
-        +Boolean isProcessingProgrammaticChange
-        +void onUserInteraction(UserEvent event)
-        +void onProgrammaticUpdate(TelemetryData data)
+        +Boolean[1] isEcho(Event event)
     }
-    class RepaintBoundaryManager {
-        +RepaintBoundary wrapWithRepaintBoundary(Component component)
-        +void updateCSSVariablesDirectly(DOMElement element, int width)
-    }
-    EventEchoGuard --> RepaintBoundaryManager : isolates updates
+    class Event
+    EventEchoGuard --> Event : filters
 ```
 
 ## Interface Requirements
+
+### 1. Test Data Shape
+```json
+{
+  "event": {}
+}
+```
+
+### 3. Visual Layout & Arrangement
+- Echo guard processes incoming events in background.
+
 ### 1. Payload Schema
 For DOM operations updating CSS layouts directly without triggering component re-renders:
 ```json
@@ -55,3 +61,9 @@ For DOM operations updating CSS layouts directly without triggering component re
 ### 4. Logical Exception States & Validation Failures
 1. Circular Loop Detected: If the same event propagates back to the originating component within the same lifecycle frame, an AST lint check or runtime warning halts the execution trace to prevent browser freezing.
 2. Reflow Budget Overrun: If a resize event triggers full page repaint, layout diagnostics flag performance degradation.
+
+### 4. Interactive Flow & States
+#### Scenario 1: Echo Detected
+- Given duplicate event
+- When verified
+- Then event is blocked.

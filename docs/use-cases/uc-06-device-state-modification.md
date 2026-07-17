@@ -49,9 +49,10 @@ Operator modifies an input property value in the PropertyGrid and shifts keyboar
 graph TD
     subgraph "System Boundary"
         UC([Device State Modification and Remote XPath Validation])
+        DB([DB])
     end
     Operator((Operator/Engineer)) --- UC
-    UC --- DB[(Local SQLite/File DB)]
+    UC --- DB
     UC --- NE((Network Equipment gNMI Endpoint))
 ```
 
@@ -77,8 +78,11 @@ Ensures focus-loss auto-saving maps cleanly to gNMI SetRequests via absolute YAN
 
 ## 8. Realization Matrix
 ### Required Features
-- [ ] #44 - [Downstream Baseline Feature](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (Provides local SQLite persistence adapters)
-- [ ] #55 - [Zero Code-Gen Dynamic PropertyGrid Adapter](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-13-zero-codegen-grid.md) (Implements focus-loss listeners and local auto-saving)
+- [ ] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies local SQLite persistence adapters)
+- [ ] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies implementation of focus-loss listeners and local auto-saving)
+
+### Required User Stories
+- [ ] #0 - Device state modifications ([us-06-device-state](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-06-device-state.md)) (Verifies device state modification capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`

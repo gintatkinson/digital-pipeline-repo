@@ -5,6 +5,7 @@ interface_type: "persistence"
 generation_mode: "subagent"
 spec_source: "Project Constitution"
 issue_id: 44
+target-lui-component: "TopologyMap"
 ---
 
 # Feature 44: Downstream Baseline Seeding and Compliance Framework
@@ -18,12 +19,14 @@ classDiagram
     }
     class AbstractRepository {
         <<interface>>
-        +List fetchNodes()
+        +List[1] fetchNodes()
         +saveNode(Node node)
     }
+    class FirestoreInstance {
+    }
     class FirestoreRepositoryAdapter {
-        +db: FirestoreInstance
-        +List fetchNodes()
+        +FirestoreInstance[1] db
+        +List[1] fetchNodes()
         +saveNode(Node node)
     }
     class SeedingManager {
@@ -31,14 +34,15 @@ classDiagram
         +seedBaselineRecords(List records)
     }
     class ComplianceValidator {
-        +Boolean validateSchema(String schemaPath)
-        +Boolean verifyLiveConnection()
+        +Boolean[1] validateSchema(String schemaPath)
+        +Boolean[1] verifyLiveConnection()
     }
 
-    FirestoreRepositoryAdapter ..|> AbstractRepository : realizes
+    AbstractRepository <|-- FirestoreRepositoryAdapter : realizes
     PersistenceBootstrap *-- SeedingManager : delegates
     PersistenceBootstrap *-- ComplianceValidator : delegates
     PersistenceBootstrap --> AbstractRepository : configures
+    PersistenceBootstrap *-- FirestoreInstance : manages
 ```
 
 ## Interface Requirements
@@ -103,6 +107,10 @@ classDiagram
 - **Then** the database schema validation rejects the write, throws a validation constraint error, and aborts the migration sequence.
 
 ---
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: TopologyMap
+- **Target Layout Container ID**: topology_pane
 
 ## Source References
 - **Project Constitution**: [constitution.md:L88-94](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)

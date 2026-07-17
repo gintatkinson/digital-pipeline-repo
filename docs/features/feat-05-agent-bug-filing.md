@@ -24,7 +24,7 @@ classDiagram
         +String downstreamRepoUrl [1]
         +String activeBranch [1]
         +Boolean allowUpstreamReporting [1]
-        +String detectDiagnosticPayload()
+        +Boolean[1] detectDiagnosticPayload(DiagnosticPayload payload)
         +void fileUpstreamBug(String payloadFile)
     }
     AgentSubsystem *-- ExecutionAgent

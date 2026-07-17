@@ -5,6 +5,7 @@ interface_type: "config"
 generation_mode: "subagent"
 spec_source: "docs/designs/persistence-architecture-blueprint.md"
 issue_id: 54
+target-lui-component: "TopologyMap"
 ---
 
 # Feature: YANG-to-JSON Build-Time Schema Compiler
@@ -15,31 +16,24 @@ issue_id: 54
 ## Description
 Details the DevOps compilation pipeline parsing OpenConfig YANG schemas into platform-agnostic JSON schemas mapping types, lists, leaves, ranges, and patterns with absolute XPaths as keys.
 
-## UML Class/Component Diagram
+## UML Class Diagram
 ```mermaid
 classDiagram
     class YangCompiler {
-        +AST parseYangFile(String filePath)
-        +List~AttributeDefinition~ walkAST(ASTNode node)
-        +String generateAbsoluteXPath(ASTNode node)
-        +String mapYangType(String yangType)
-        +void writeLuiJson(String outputPath)
+        +Boolean[1] compileYang(String filepath)
     }
-    class AttributeDefinition {
-        +String key
-        +String label
-        +String type
-        +String sectionGroup
-        +List~String~ options
-        +Boolean isRequired
-        +String regexPattern
-        +num minValue
-        +num maxValue
-    }
-    YangCompiler --> AttributeDefinition : generates
+    class YangModel
+    YangCompiler --> YangModel : compiles
 ```
 
 ## Interface Requirements
+
+### 1. Test Data Shape
+```json
+{
+  "yangFile": "ietf-geo-location.yang"
+}
+```
 ### 1. Payload Schema
 The output JSON schema (`logical-layout.json`) is structured as a collection of AttributeDefinitions:
 ```json
@@ -70,3 +64,13 @@ The output JSON schema (`logical-layout.json`) is structured as a collection of 
 ### 4. Logical Exception States & Validation Failures
 1. YANG Syntax Error: If the source `.yang` file contains semantic or syntactic errors, the compiler prints compilation diagnostics to stdout and exits with code 1, halting the build.
 2. Duplicate XPath: If two leaves resolve to the same absolute XPath, the compiler flags a duplication exception and aborts.
+
+### 4. Interactive Flow & States
+#### Scenario 1: Successful Compilation
+- Given a valid YANG file path
+- When compiled
+- Then output is generated successfully.
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: TopologyMap
+- **Target Layout Container ID**: topology_pane
