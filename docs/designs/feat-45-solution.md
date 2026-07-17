@@ -28,9 +28,9 @@ The following table maps the logical UML model elements of the decompiler to the
 
 | UML Element | Realization Tag | File Path | Properties & Realized Behavior |
 | :--- | :--- | :--- | :--- |
-| `YangDecompiler` | `@realizes UML::YangDecompiler` | [compile_yang.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/compile_yang.py) | Entry point for parsing and decomposing YANG files into specifications. |
-| `DecompositionEngine` | `@realizes UML::DecompositionEngine` | [compile_yang.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/compile_yang.py) | Evaluates structural weight, determines subtree splitting, and enforces Epic-to-Feature boundaries. |
-| `SharedTypeRegistry` | `@realizes UML::SharedTypeRegistry` | [compile_yang.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/compile_yang.py) | Tracks and catalogs utility typedefs and identities, preventing duplicate type specification generation. |
+| `YangDecompiler` | `@realizes UML::YangDecompiler` | [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md) | Standard parser logic adopted by the LLM subagent to ingest and categorize YANG schemas. |
+| `DecompositionEngine` | `@realizes UML::DecompositionEngine` | [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md) | Core heuristic engine evaluating Bounded Contexts, Structural Weight calculations, and Epic-to-Feature boundaries. |
+| `SharedTypeRegistry` | `@realizes UML::SharedTypeRegistry` | [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md) | Cataloging protocol for helper/utility data types, ensuring metadata reuse without backlog inflation. |
 
 ---
 

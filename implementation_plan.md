@@ -1,34 +1,34 @@
-# Implement Automated Git Hooks Enforcement
+# Update Schema Specification Engineering Heuristics and Solution Design Mapping
+
+This implementation plan details the updates to integrate new heuristics into the decompiler/feature extraction process description and align the Code Realization Table in the solution design document.
 
 ## Goal Description
-To transition project rules from "soft constraints" to "hard blockers," we will implement a Git hook installer. This will force agents to pass the linter and compilation verifications before they are allowed to commit or push changes.
-
-We will create a script `scripts/setup_git_hooks.py` that writes a pre-commit hook (running `verify_model_coverage.py --spec-only`) and a pre-push hook (running `verify_downstream_baseline.py`). We will update the project's quick setup commands in `README.md` to mandate running this hook installer.
+1. Update `skills/schema-specification-engineering/SKILL.md` to include:
+   - Module categorization (Utility vs. Functional).
+   - Complexity-based bounded context (Epic) splitting criteria.
+   - Structural weight (SW) heuristics and splitting rules for Features.
+2. Update `docs/designs/feat-45-solution.md`'s Code Realization Table to map `YangDecompiler`, `DecompositionEngine`, and `SharedTypeRegistry` to `SKILL.md` instead of `compile_yang.py`.
+3. Verify the changes using the spec verification script.
 
 ## Proposed Changes
 
-### [scripts]
+### [skills/schema-specification-engineering]
 
-#### [NEW] [setup_git_hooks.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/setup_git_hooks.py)
-* Create a script that writes executable Git hook scripts to `.git/hooks/pre-commit` and `.git/hooks/pre-push` inside the repository.
+#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
+* Update Step 1 and Step 2 of the decomposition and feature extraction steps to integrate the new heuristics for Module Categorization, Bounded Context determination, and Structural Weight Heuristics for Feature Boundaries.
 
-### [docs/operations]
+### [docs/designs]
 
-#### [MODIFY] [README.md](file:///Users/perkunas/jail/digital-pipeline-repo/README.md)
-* Update the quick setup instruction blocks to include `python3 scripts/setup_git_hooks.py` immediately after copying the files.
+#### [MODIFY] [feat-45-solution.md](file:///Users/perkunas/jail/digital-pipeline-repo/docs/designs/feat-45-solution.md)
+* Update the Code Realization Table in Section 2 to map the UML classes to `SKILL.md` instead of `compile_yang.py`.
 
 ---
 
 ## Verification Plan
 
 ### Automated Checks
-1. Execute the git hook installer script locally:
+1. Execute the spec verification script to confirm correctness:
    ```bash
-   python3 scripts/setup_git_hooks.py
+   python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
    ```
-2. Verify that the `.git/hooks/pre-commit` and `.git/hooks/pre-push` files are created and marked as executable.
-3. Test downstream verification:
-   ```bash
-   python3 scripts/verify_downstream_baseline.py app_flutter
-   ```
-4. Verify `git diff origin/main` is clean after committing and pushing.
+2. Verify that the output returns clean status (exit code 0).

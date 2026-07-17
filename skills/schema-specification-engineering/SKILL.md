@@ -25,10 +25,17 @@ Use this as the single canonical workflow for translating structural schemas and
 ## Step 1: Forensic Audit & Module Decomposition
 
 1. **Parse the Schema:** Read the primary structural schema file and its imports.
-2. **Identify Top-Level Trees:** Decompose the high-level structural attributes (e.g., system configuration, users, orders) into discrete logical groupings.
-3. **Dispatch Epic Subagents:** For each high-level structure/subsystem identified:
+2. **Categorize the Module (Utility vs. Functional)**:
+   - Identify if the module contains only type helpers (`typedef`, `identity`, `grouping` definitions without concrete `container` or `list` data nodes).
+   - If it is a **utility module** (e.g., `ietf-yang-types`), do NOT generate any Epics or Features. Catalog its types into a Shared Type Registry to be referenced as shared DataTypes/UML Primitives by other functional modules.
+   - If it contains concrete data nodes (`config true/false`), classify it as a **functional module** and proceed to decomposition.
+3. **Determine Bounded Context (Epic) Boundaries**:
+   - Do NOT use a rigid "one schema file = one Epic" rule.
+   - If a functional module is small (total leaf count <= 40 and depth <= 3), map it to exactly **1 Epic**.
+   - If a functional module is massive (leaf count > 40 or depth > 3), partition the schema graph by major top-level subtrees. Create **1 Epic per partition** representing a logical Bounded Context / Subsystem.
+4. **Dispatch Epic Subagents:** For each identified Bounded Context/Subsystem Epic:
    - Invoke a **new, fresh subagent with an isolated context**.
-   - Pass only the specific high-level schema nodes/attributes for this subsystem, and the Epic template. Do not pass other subsystems' context.
+   - Pass only the specific schema nodes/attributes for this subsystem, and the Epic template.
    - The subagent drafts the Epic markdown file (e.g., `docs/epics/epic-01-name.md`) containing:
      - An overarching **System-Level UML Class Diagram** illustrating the subsystem's classes and their relationships.
      - A **UML Component** representing the subsystem, specifying its provided/required interfaces and operations.
@@ -36,9 +43,19 @@ Use this as the single canonical workflow for translating structural schemas and
 
 ## Step 2: Isolated Feature Extraction (Subagent Dispatch Loop)
 
-For each cohesive functional feature group identified during the decomposition (e.g., a "User Profile" containing `first-name`, `last-name`):
-1. **Dispatch Feature Subagent:** Invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass ONLY the schema nodes and properties for this specific feature group, along with the relevant normative specification text. The subagent must have no visibility into other features.
-2. **Execution within Subagent Context:**
+For each Bounded Context, partition its subtree into cohesive functional feature groups:
+1. **Apply Structural Weight Heuristics for Feature Boundaries**:
+   - For any candidate subtree node N, compute its **Structural Weight (SW)**:
+     $$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L_{immediate}(C)$$
+     where $L_{immediate}(X)$ is the count of leaf and leaf-list nodes directly under node X, excluding any nested list elements.
+   - If $SW(N) <= 20$ and has no nested lists, group all nodes under N into **1 Feature**.
+   - If $SW(N) > 20$ or has nested lists, partition it:
+     - *Sibling lists*: Split each list into its own Feature.
+     - *Nested lists*: Split nested lists with >= 5 leaves into child Features.
+     - *Complex container*: Split the container by its immediate child containers.
+   - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
+2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass ONLY the schema nodes and properties for this specific feature group. The subagent must have no visibility into other features.
+3. **Execution within Subagent Context:**
    - **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns).
    - **Exhaustive Constraint Parsing:** For EVERY attribute within the grouped feature, analyze and record all structural constraints:
      - conditional clauses
