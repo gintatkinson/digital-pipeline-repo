@@ -132,6 +132,119 @@ void main() {
       expect(latitudes, isNot(contains(unclampedSouth)));
     });
 
+    test('[Bug #40] Tile mesh must have sufficient subdivisions to prevent flat seams at tile boundaries', () {
+      for (int z = 0; z <= 12; z++) {
+        final subs = GlobeTileRenderer.subdivisionsForTesting(z);
+        expect(subs, greaterThanOrEqualTo(8),
+            reason: 'At zoom $z (tile width ${(360.0 / (1 << z)).toStringAsFixed(2)}°), '
+                'need >=8 subdivisions to prevent visible flat seams; got $subs');
+        // Ensure we don't exceed the cap (performance guard)
+        expect(subs, lessThanOrEqualTo(32));
+      }
+    });
+
+    group('Issue #46 — LOD masking (ocean tile seam / z-fighting fix)', () {
+      Future<ui.Image> _testImage(int w, int h) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+        canvas.drawRect(
+          ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
+          ui.Paint()..color = const ui.Color(0xFF000000),
+        );
+        final picture = recorder.endRecording();
+        return picture.toImage(w, h);
+      }
+
+      test('hasHigherZoomOverlay correctly identifies parent-child overlay', () async {
+        final img = await _testImage(1, 1);
+        final fetcher = TileFetcher()..disable();
+        final renderer = GlobeTileRenderer(fetcher: fetcher);
+
+        // Inject a zoom-6 tile at (0,0)
+        renderer.injectTileForTesting(const TileCoord(zoom: 6, x: 0, y: 0), img);
+
+        // Zoom-6 tile has NO higher-zoom overlay (no tile above zoom 6)
+        expect(
+          renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 6, x: 0, y: 0)),
+          isFalse,
+        );
+
+        // Now inject its parent at zoom 2
+        renderer.injectTileForTesting(const TileCoord(zoom: 2, x: 0, y: 0), img);
+
+        // Zoom-2 tile (0,0) HAS a higher-zoom overlay — zoom-6/0/0 is its child
+        expect(
+          renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 2, x: 0, y: 0)),
+          isTrue,
+          reason: 'Zoom-2 tile (0,0) should be masked by zoom-6 child (0,0)',
+        );
+
+        // Zoom-2 tile (3,3) has NO higher-zoom overlay — no child loaded for it
+        expect(
+          renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 2, x: 3, y: 3)),
+          isFalse,
+          reason: 'Zoom-2 tile (3,3) should not be masked — no child loaded',
+        );
+      });
+
+      test('renderTiles skips tiles with higher-zoom overlays', () async {
+        final img = await _testImage(1, 1);
+        final fetcher = TileFetcher();
+        final renderer = GlobeTileRenderer(fetcher: fetcher);
+
+        // Inject tiles: zoom-2 tile (0,0), its child zoom-6 tile (0,0),
+        // and a non-overlapping zoom-2 tile (3,3)
+        renderer.injectTileForTesting(const TileCoord(zoom: 2, x: 0, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 6, x: 0, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 2, x: 3, y: 3), img);
+
+        int tilesDrawn = 0;
+        renderer.onDrawVerticesForTesting = (_, __) {
+          tilesDrawn++;
+        };
+
+        final canvas = ui.Canvas(ui.PictureRecorder());
+        final camera = VirtualCamera(
+          latitude: 0.0,
+          longitude: 0.0,
+          altitude: 500000.0,
+          heading: 0.0,
+          pitch: 0.0,
+          roll: 0.0,
+        );
+
+        renderer.renderTiles(
+          canvas,
+          camera,
+          const ui.Size(800, 600),
+          ui.Offset.zero,
+          1000.0,
+          (lat, lng) => ProjectedPoint(ui.Offset.zero, 1.0),
+        );
+
+        // We injected 3 tiles. Zoom-2 (0,0) should be skipped (child exists).
+        // Zoom-6 (0,0) and zoom-2 (3,3) should be drawn. That's 2 tiles.
+        expect(tilesDrawn, equals(2),
+            reason: 'Only 2 tiles should be drawn — zoom-2 (0,0) masked by child');
+      });
+
+      test('no false masking when tiles are at same zoom', () async {
+        final img = await _testImage(1, 1);
+        final fetcher = TileFetcher()..disable();
+        final renderer = GlobeTileRenderer(fetcher: fetcher);
+
+        // Two tiles at the same zoom should not mask each other
+        renderer.injectTileForTesting(const TileCoord(zoom: 4, x: 0, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 4, x: 1, y: 0), img);
+
+        expect(
+          renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 4, x: 0, y: 0)),
+          isFalse,
+          reason: 'Sibling tiles at the same zoom should not mask each other',
+        );
+      });
+    });
+
     test('Test 4 (Scenario 5 - Cache budget safety)', () {
       final fetcher = TileFetcher()..disable();
       final renderer = GlobeTileRenderer(fetcher: fetcher);

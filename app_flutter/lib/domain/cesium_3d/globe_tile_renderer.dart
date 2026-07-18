@@ -66,6 +66,18 @@ class GlobeTileRenderer {
   /// Whether the underlying [TileFetcher] is enabled.
   bool get isEnabled => _fetcher.isEnabled();
 
+  /// Returns true if a higher-zoom tile is loaded whose geographic bounds
+  /// fall within [tile]'s area.
+  @visibleForTesting
+  bool hasHigherZoomOverlayForTesting(TileCoord tile) {
+    return _hasHigherZoomOverlay(tile);
+  }
+
+  @visibleForTesting
+  void injectTileForTesting(TileCoord coord, ui.Image image) {
+    _loadedImages[coord.key] = image;
+  }
+
   /// Switches to [provider] and clears all locally cached images and
   /// pending fetches so that new imagery is loaded.
   void setProvider(ImageryProvider provider) {
@@ -318,14 +330,16 @@ class GlobeTileRenderer {
       final y = int.tryParse(parts[2]) ?? -1;
       if (z < 0 || x < 0 || y < 0) continue;
 
+      // LOD masking: skip this tile if a higher-zoom child tile is loaded.
+      if (_hasHigherZoomOverlay(TileCoord(zoom: z, x: x, y: y))) continue;
+
       // Geographic bounds for this tile.
       final double latN = _tile2lat(y.toDouble(), z);
       final double latS = _tile2lat((y + 1).toDouble(), z);
       final double lonW = _tile2lon(x, z);
       final double lonE = _tile2lon(x + 1, z);
 
-      final double tileWidthDeg = 360.0 / math.pow(2, z);
-      final int subdivisions = (tileWidthDeg / 5.0).ceil().clamp(4, 32);
+      final int subdivisions = subdivisionsForTesting(z);
       final List<ui.Offset> positions = [];
       final List<ui.Offset> textureCoordinates = [];
       final List<double> zs = [];
@@ -416,6 +430,25 @@ class GlobeTileRenderer {
     }
   }
 
+  /// Returns true if [_loadedImages] contains a tile at a higher zoom level
+  /// whose Web Mercator parent at [tile]'s zoom matches [tile].
+  ///
+  /// Tile (z, x, y) is a parent of (z', x', y') when z' > z and
+  /// `x' >> (z' - z) == x` and `y' >> (z' - z) == y`.
+  bool _hasHigherZoomOverlay(TileCoord tile) {
+    for (final key in _loadedImages.keys) {
+      final parts = key.split('/');
+      if (parts.length != 3) continue;
+      final otherZ = int.tryParse(parts[0]) ?? -1;
+      final otherX = int.tryParse(parts[1]) ?? -1;
+      final otherY = int.tryParse(parts[2]) ?? -1;
+      if (otherZ <= tile.zoom) continue;
+      final int dz = otherZ - tile.zoom;
+      if ((otherX >> dz) == tile.x && (otherY >> dz) == tile.y) return true;
+    }
+    return false;
+  }
+
   double _min4(double a, double b, double c, double d) {
     double m = a;
     if (b < m) m = b;
@@ -440,6 +473,12 @@ class GlobeTileRenderer {
   @visibleForTesting
   TileCoord latLngToTileForTesting(double lat, double lng, int zoom) {
     return _latLngToTile(lat, lng, zoom);
+  }
+
+  @visibleForTesting
+  static int subdivisionsForTesting(int zoom) {
+    final double tileWidthDeg = 360.0 / math.pow(2, zoom);
+    return (tileWidthDeg / 3.0).ceil().clamp(8, 32);
   }
 
   @visibleForTesting
