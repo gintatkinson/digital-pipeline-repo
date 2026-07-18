@@ -130,17 +130,25 @@ void main() {
 
     Future<void> waitForTilesToLoad() async {
       final state = tester.state(find.byType(Scene3DViewport)) as Scene3DViewportState;
+      int stableTicks = 0;
+      int lastCount = -1;
       int attempts = 0;
-      while (attempts < 50) {
+      while (attempts < 100) {
         final int count = state.tileRenderer?.loadedImagesCount ?? 0;
-        if (count > 0) {
+        if (count >= 4 && count == lastCount) {
+          stableTicks++;
+        } else {
+          stableTicks = 0;
+        }
+        lastCount = count;
+        if (stableTicks >= 5) {
           break;
         }
         await Future<void>.delayed(const Duration(milliseconds: 100));
         await tester.pump();
         attempts++;
       }
-      expect(state.tileRenderer?.loadedImagesCount, greaterThan(0), reason: 'Tiles should be loaded in the tile renderer cache');
+      expect(state.tileRenderer?.loadedImagesCount, greaterThanOrEqualTo(4), reason: 'At least 4 tiles should be loaded');
     }
 
     await tester.pumpWidget(
@@ -199,6 +207,7 @@ void main() {
     final double postFlyLng = controller.current.longitude;
     expect(postFlyLat, isNot(equals(initialLat)), reason: 'Latitude should update after fly-to');
     expect(postFlyLng, isNot(equals(initialLng)), reason: 'Longitude should update after fly-to');
+    await waitForTilesToLoad();
     await takeScreenshot('camera_fly_to_node');
 
     // Drag (Pan gesture)
@@ -219,6 +228,7 @@ void main() {
 
     final double postRotateHeading = controller.current.heading;
     expect(postRotateHeading, isNot(equals(initialHeading)), reason: 'Heading should change after rotate gesture');
+    await waitForTilesToLoad();
     await takeScreenshot('camera_gesture_rotated');
   });
 }
