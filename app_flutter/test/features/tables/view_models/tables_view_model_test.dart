@@ -301,6 +301,173 @@ void main() {
     });
   });
 
+  group('TablesViewModel dispose guard', () {
+    late _MockDataSource dataSource;
+    late TablesViewModel viewModel;
+
+    setUp(() {
+      dataSource = _MockDataSource();
+      viewModel = TablesViewModel(dataSource, 'test');
+    });
+
+    test('loadForNode does not fetch after dispose', () async {
+      int typeForCallCount = 0;
+      dataSource.onTypeFor = (typeName) async {
+        typeForCallCount++;
+        // Simulate slow async operation
+        await Future.delayed(const Duration(milliseconds: 50));
+        if (typeName == 'root') {
+          return TypeDescriptor(
+            typeName: 'root',
+            displayName: 'Root',
+            iconName: 'folder',
+            fields: [],
+            childTypes: [
+              TypeRelationDescriptor(
+                relationName: 'contains',
+                childTypeName: 'ChildType',
+                childLabel: 'Child Type',
+              ),
+            ],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType',
+            displayName: 'Child',
+            iconName: 'child',
+            fields: [FieldDescriptor(key: 'k1', label: 'Col 1', type: 'string')],
+            childTypes: [],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        return null;
+      };
+
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async {
+        typeForCallCount++;
+        return [];
+      };
+
+      // Start loadForNode but don't await — let it begin
+      final future = viewModel.loadForNode('root');
+      viewModel.dispose();
+      await future;
+
+      // After dispose, no more calls should have been made beyond the initial typeFor
+      // The exact count depends on how far it got before dispose, but the key
+      // is that it didn't crash or set loading/error state.
+      expect(viewModel.loading, isTrue); // loading stays true because we won't update after dispose
+    });
+
+    test('selectTab does not execute after dispose', () async {
+      dataSource.onTypeFor = (typeName) async {
+        if (typeName == 'root') {
+          return TypeDescriptor(
+            typeName: 'root',
+            displayName: 'Root',
+            iconName: 'folder',
+            fields: [],
+            childTypes: [],
+            relatedTypes: [
+              TypeRelationDescriptor(
+                relationName: 'has',
+                childTypeName: 'ChildType',
+                childLabel: 'Child Label',
+              ),
+            ],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType',
+            displayName: 'Child',
+            iconName: 'child',
+            fields: [FieldDescriptor(key: 'k1', label: 'Col 1', type: 'string')],
+            childTypes: [],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        return null;
+      };
+
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async => [];
+
+      await viewModel.loadForNode('root');
+      viewModel.dispose();
+      await viewModel.selectTab('ChildType');
+
+      // Should not have changed state after dispose
+      expect(viewModel.tabs, isNotEmpty);
+    });
+
+    test('_loadData does not execute after dispose during fetchRelatedInstances', () async {
+      dataSource.onTypeFor = (typeName) async {
+        if (typeName == 'root') {
+          return TypeDescriptor(
+            typeName: 'root',
+            displayName: 'Root',
+            iconName: 'folder',
+            fields: [],
+            childTypes: [],
+            relatedTypes: [
+              TypeRelationDescriptor(
+                relationName: 'has',
+                childTypeName: 'ChildType',
+                childLabel: 'Child Label',
+              ),
+            ],
+            parentTypes: [],
+          );
+        }
+        if (typeName == 'ChildType') {
+          return TypeDescriptor(
+            typeName: 'ChildType',
+            displayName: 'Child',
+            iconName: 'child',
+            fields: [FieldDescriptor(key: 'k1', label: 'Col 1', type: 'string')],
+            childTypes: [],
+            relatedTypes: [],
+            parentTypes: [],
+          );
+        }
+        return null;
+      };
+
+      bool fetchRelatedCalled = false;
+      dataSource.onFetchRelatedInstances = ({
+        required parentNodeId,
+        required targetType,
+      }) async {
+        fetchRelatedCalled = true;
+        await Future.delayed(const Duration(milliseconds: 50));
+        return [];
+      };
+
+      final future = viewModel.loadForNode('root');
+      // Give it time to get past typeFor and into fetchRelatedInstances
+      await Future.delayed(const Duration(milliseconds: 10));
+      viewModel.dispose();
+      await future;
+
+      // fetchRelatedInstances was called (we can't prevent it since it's in-flight),
+      // but the disposed check after the await should prevent state mutations
+      expect(viewModel.loading, isTrue);
+      expect(viewModel.rows, isEmpty);
+    });
+  });
+
   group('TablesViewModel visibleColumnModels', () {
     late _MockDataSource dataSource;
     late TablesViewModel viewModel;

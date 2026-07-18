@@ -117,6 +117,7 @@ class TablesViewModel extends ChangeNotifier {
   /// (tabs remain empty). Stale responses (superseded by a newer call) are
   /// silently dropped via the [_requestId] counter.
   Future<void> loadForNode(String nodeId) async {
+    if (_disposed) return;
     final requestId = ++_requestId;
     _activeView = nodeId;
     _tabs = [];
@@ -131,24 +132,14 @@ class TablesViewModel extends ChangeNotifier {
 
     try {
       final typeDescriptor = await _dataSource.typeFor(nodeId);
-      if (typeDescriptor == null) {
-        _loading = false;
-        notifyListeners();
-        return;
-      }
-      if (requestId != _requestId) return;
+      if (_disposed || typeDescriptor == null || requestId != _requestId) return;
 
       final List<TabDescriptor> tabs = [];
 
       // 1. Child types (hierarchy containment)
       for (final ct in typeDescriptor.childTypes) {
         final childDesc = await _dataSource.typeFor(ct.childTypeName);
-        if (childDesc == null) {
-          _loading = false;
-          notifyListeners();
-          return;
-        }
-        if (requestId != _requestId) return;
+        if (_disposed || childDesc == null || requestId != _requestId) return;
         tabs.add(TabDescriptor(
           id: ct.childTypeName,
           label: ct.childLabel,
@@ -159,12 +150,7 @@ class TablesViewModel extends ChangeNotifier {
       // 2. Related types (events, alarms, etc.)
       for (final rt in typeDescriptor.relatedTypes) {
         final relDesc = await _dataSource.typeFor(rt.childTypeName);
-        if (relDesc == null) {
-          _loading = false;
-          notifyListeners();
-          return;
-        }
-        if (requestId != _requestId) return;
+        if (_disposed || relDesc == null || requestId != _requestId) return;
         tabs.add(TabDescriptor(
           id: rt.childTypeName,
           label: rt.childLabel,
@@ -172,7 +158,7 @@ class TablesViewModel extends ChangeNotifier {
         ));
       }
 
-      if (requestId != _requestId) return;
+      if (_disposed || requestId != _requestId) return;
 
       _tabs = tabs;
       if (tabs.isNotEmpty) {
@@ -187,7 +173,7 @@ class TablesViewModel extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e, st) {
-      if (requestId != _requestId) return;
+      if (_disposed || requestId != _requestId) return;
       _error = 'Failed to load table data';
       _rows = [];
       _headers = [];
@@ -206,6 +192,7 @@ class TablesViewModel extends ChangeNotifier {
   /// When the node no longer has the tab referenced by [tabId], callers should
   /// guard usage or call [loadForNode] first to refresh the tab list.
   Future<void> selectTab(String tabId) async {
+    if (_disposed) return;
     if (!_tabs.any((t) => t.id == tabId)) return;
     final tab = _tabs.firstWhere((t) => t.id == tabId);
     _selectedTabId = tabId;
@@ -217,6 +204,7 @@ class TablesViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadData(TabDescriptor tab, int requestId) async {
+    if (_disposed || requestId != _requestId) return;
     try {
       _headers = tab.type.fields.map(ColumnModel.fromFieldDescriptor).toList();
       _columnModels = tab.type.fields.map(ColumnModel.fromFieldDescriptor).toList();
@@ -230,7 +218,7 @@ class TablesViewModel extends ChangeNotifier {
           parentNodeId: _activeView,
           targetType: tab.type,
         );
-        if (requestId != _requestId) return;
+        if (_disposed || requestId != _requestId) return;
         _cache[cacheKey] = records;
       }
 
@@ -238,13 +226,13 @@ class TablesViewModel extends ChangeNotifier {
         return tab.type.fields.map((f) => record.attributes[f.key]?.toString() ?? '').toList();
       }).toList();
 
-      if (requestId != _requestId) return;
+      if (_disposed || requestId != _requestId) return;
 
       _rows = rows;
       _loading = false;
       notifyListeners();
     } catch (e, st) {
-      if (requestId != _requestId) return;
+      if (_disposed || requestId != _requestId) return;
       _error = 'Failed to load table data';
       _rows = [];
       _headers = [];
@@ -256,10 +244,12 @@ class TablesViewModel extends ChangeNotifier {
   }
 
   void _setupPropertiesSubscription(String nodeId) {
+    if (_disposed) return;
     _propertiesSubscription?.cancel();
     bool isFirst = true;
     _propertiesSubscription = _dataSource.watchProperties(nodeId).listen(
       (data) {
+        if (_disposed) return;
         if (isFirst) {
           isFirst = false;
           return;
