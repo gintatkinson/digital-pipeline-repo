@@ -1,8 +1,8 @@
-# Handoff Implementation Plan: visual/gesture verification and performance profiling
+# Handoff Implementation Plan: Recursive Debugging Protocol
 
-This plan serves as the immediate entry point for the new conversation to execute the TDD verification lifecycle for visual gestural correctness and automated performance profiling of the 3D globe.
+This plan executes the systematic verification and resolution of Defects A, B, C, and D (Issues #41, #40, #39, #38) using the **`debug-protocol`** 8-step recursive bug loop.
 
-## Goal Description
+## 1. Goal Description
 1. Create the new visual/gestural integration test `app_flutter/integration_test/camera_gestures_navigation_test.dart` containing exhaustive tests for camera flight, panning, HUD updating, and rotation.
 2. Run BOTH `camera_gestures_navigation_test.dart` (visual/gestural) and `node_iteration_test.dart` (performance profiling/leak detection) on the current `main` branch to verify they **fail** (RED phase).
 3. Merge `origin/feat/backprop-flutter-source-changes` containing the fixes.
@@ -12,218 +12,67 @@ This plan serves as the immediate entry point for the new conversation to execut
 
 ---
 
-## Defects Addressed
+## 2. Defects Addressed
 
-### A. Viewport Paint Overdraw/Bleeding
-- **Defect**: The 3D globe and line drawings bleed outside the viewport boundaries, rendering on top of the divider and properties panel.
-- **Target File**: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
-- **Required Fix**: Add `canvas.clipRect(Offset.zero & size);` at the very beginning of the `paint` method in `Scene3DViewportPainter` to restrict all drawing operations to the viewport layout bounds.
+### A. Viewport Paint Overdraw/Bleeding (Issue #41)
+* **Problem**: In scene_3d_viewport.dart, custom painter elements bleed outside the viewport boundaries during resize/zoom reflows.
+* **Fix**: Apply a strict clip rect to constrain painting within the layout dimensions.
+* **Target File**: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
 
-### B. Flat Seams Patchwork & Brightness/Color Discontinuity
-- **Defect**: Tile boundaries show straight rectangular seam lines instead of curving along the globe, along with stark brightness/color mismatches.
-- **Target File**: `app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart`
-- **Required Fix**: Modify the subdivisions logic in `GlobeTileRenderer.renderTiles` (around L327) to use a high subdivisions count of `16` for all visible tiles. This increases mesh vertex density, warping boundaries along the sphere. Additionally, adjust the base planet sphere colors in `Scene3DViewportPainter.paint` (L1653) to blend with the satellite map.
+### B. Flat Seams Patchwork & Color Discontinuity (Issue #40)
+* **Problem**: Low mesh subdivision logic in globe_tile_renderer.dart renders flat edges on tile seams and creates sharp color mismatches.
+* **Fix**: Increase boundary grid subdivisions to 16 and smooth edge transitions.
+* **Target File**: `app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart`
 
-### C. Database Node Coordinate Collision
-- **Defect**: All non-root nodes are hardcoded to the exact same coordinates and sea-level height, causing them to overlap completely.
-- **Target File**: `app_flutter/lib/domain/database_initializer.dart`
-- **Required Fix**: Replace the hardcoded New York coordinates for non-root nodes (L247) with an index-distributed offset (e.g. `40.7128 + nodeIndex * 0.05`) to spread them out geographically and vertically.
+### C. Database Node Coordinate Collision (Issue #39)
+* **Problem**: Root nodes share identical seeder coordinates in database_initializer.dart, causing them to render on top of each other.
+* **Fix**: Calculate dynamic coordinate offsets for root nodes during database seeding.
+* **Target File**: `app_flutter/lib/domain/database_initializer.dart`
 
-### D. Stuck Loading Spinner
-- **Defect**: An infinite progress indicator spins when loading tables.
-- **Target Files**: `app_flutter/lib/features/tables/view_models/tables_view_model.dart` and `app_flutter/lib/features/tables/tabbed_container.dart`
-- **Required Fix**: Ensure the `loading` flag is correctly set to false on configuration load errors or empty datasets.
-
----
-
-## Proposed Changes
-
-### [app_flutter/integration_test]
-
-#### [NEW] [camera_gestures_navigation_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart)
-Write this test file containing the following widget test setup:
-
-```dart
-import 'dart:convert';
-import 'package:integration_test/integration_test.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-
-import 'package:app_flutter/main.dart' as app_main;
-import 'package:app_flutter/app/app.dart';
-import 'package:app_flutter/core/theme/theme_controller.dart';
-import 'package:app_flutter/core/theme/theme_service.dart';
-import 'package:app_flutter/core/theme/text_scaler.dart';
-import 'package:app_flutter/core/string_resources.dart';
-import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
-import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
-import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
-import 'package:app_flutter/domain/database_initializer.dart';
-
-void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
-  testWidgets('Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation', (WidgetTester tester) async {
-    tester.binding.setSurfaceSize(const Size(1280, 800));
-    addTearDown(() {
-      tester.binding.setSurfaceSize(null);
-    });
-
-    await StringResources.load();
-
-    final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true);
-    addTearDown(() async {
-      await db.close();
-    });
-
-    final dataSource = SqliteDataSource(db);
-
-    final themeController = ThemeController(SharedPreferencesThemeService());
-    await themeController.loadSettings();
-
-    final textScalerController = TextScalerController();
-    await textScalerController.load();
-
-    app_main.globalThemeController = themeController;
-    app_main.globalTextScalerController = textScalerController;
-
-    Future<void> settle(WidgetTester t) async {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      await t.pump();
-      for (int i = 0; i < 50; i++) {
-        if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
-          break;
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        await t.pump();
-      }
-    }
-
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          Provider<DataSource>.value(value: dataSource),
-          ChangeNotifierProvider<ThemeController>.value(value: themeController),
-          ChangeNotifierProvider<TextScalerController>.value(value: textScalerController),
-        ],
-        child: const MyApp(),
-      ),
-    );
-
-    await settle(tester);
-
-    int attempts = 0;
-    while (attempts < 20 && find.byKey(const Key('node_Master_1')).evaluate().isEmpty) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      await tester.pump();
-      attempts++;
-    }
-
-    expect(find.byKey(const Key('node_Master_1')), findsOneWidget, reason: 'Sidebar tree should contain Master_1');
-
-    // Ensure 3D globe is active
-    final toggle3dButton = find.byKey(const Key('toggle_3d'));
-    if (toggle3dButton.evaluate().isNotEmpty) {
-      await tester.ensureVisible(toggle3dButton);
-      await tester.tap(toggle3dButton);
-      await settle(tester);
-    }
-
-    expect(find.byType(Scene3DViewport), findsOneWidget, reason: '3D viewport should be mounted');
-    await settle(tester);
-
-    // Capture initial state screenshot
-    await binding.takeScreenshot('camera_initial_hud');
-
-    final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
-    final CameraController controller = state.cameraController as CameraController;
-    final double initialLat = controller.current.latitude;
-    final double initialLng = controller.current.longitude;
-
-    // Double-tap sidebar node (fly to node)
-    final nodeFinder = find.byKey(const Key('node_Region_1_1'));
-    await tester.ensureVisible(nodeFinder);
-    await tester.tap(nodeFinder);
-    await tester.pump();
-    await tester.tap(nodeFinder); // Double click simulation
-    await settle(tester);
-
-    // Verify fly-to-node updates coordinates
-    final double postFlyLat = controller.current.latitude;
-    final double postFlyLng = controller.current.longitude;
-    expect(postFlyLat, isNot(equals(initialLat)), reason: 'Latitude should update after fly-to');
-    expect(postFlyLng, isNot(equals(initialLng)), reason: 'Longitude should update after fly-to');
-    await binding.takeScreenshot('camera_fly_to_node');
-
-    // Drag (Pan gesture)
-    final viewport = find.byKey(const Key('scene_3d_viewport_container'));
-    await tester.drag(viewport, const Offset(-50.0, 0.0));
-    await settle(tester);
-
-    final double postDragLng = controller.current.longitude;
-    expect(postDragLng, isNot(equals(postFlyLng)), reason: 'Longitude should change after pan drag gesture');
-
-    // Ctrl+Drag (Rotate gesture)
-    final double initialHeading = controller.current.heading;
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-    await tester.drag(viewport, const Offset(-100.0, 0.0));
-    await tester.pump();
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-    await settle(tester);
-
-    final double postRotateHeading = controller.current.heading;
-    expect(postRotateHeading, isNot(equals(initialHeading)), reason: 'Heading should change after rotate gesture');
-    await binding.takeScreenshot('camera_gesture_rotated');
-  });
-}
-```
+### D. Stuck Loading Spinner (Issue #38)
+* **Problem**: Empty/failed datasets do not terminate the view model's loading state in tabbed_container.dart and tables_view_model.dart, leaving the loading spinner active indefinitely.
+* **Fix**: Force the loading state to complete and notify listeners in error/empty code paths.
+* **Target Files**: `app_flutter/lib/features/tables/view_models/tables_view_model.dart` and `app_flutter/lib/features/tables/tabbed_container.dart`
 
 ---
 
-## Verification & Execution Protocol
+## 3. Detailed Execution Matrix (Who, What, Where, When, and How)
 
-> [!IMPORTANT]
-> To execute 100% unattended without prompting the user, the next coordinator MUST:
-> 1. Dispatch an `execution-worker` subagent (using the existing defined subagent class).
-> 2. Prefix all shell commands with the `env` keyword (e.g. `env SCREENSHOT_DIR=...`), as `env` is a globally pre-authorized prefix, whereas environment variable assignments without `env` (e.g. `SCREENSHOT_DIR=...`) trigger the interactive security prompts.
+| Phase | Step | Action | Executing Role | Target Path / Command | Skill / Subagent Used |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Pre-flight** | **0.1** | Verify permissions table for unattended execution. | Coordinator | `list_permissions` | **[debug-protocol](skills/debug-protocol/SKILL.md)** |
+| **Reproduction** | **1** | Write visual test and run both tests to capture failure logs (RED Phase). | **Reproduction Subagent** | [camera_gestures_navigation_test.dart](app_flutter/integration_test/camera_gestures_navigation_test.dart) / `flutter drive` | **[debug-protocol: Step 1 (Reproduction)](skills/debug-protocol/SKILL.md)** & **[execution-worker](skills/execution-worker/SKILL.md)** |
+| **Hypothesis** | **2** | Analyze failures and generate ranked hypotheses. | **Hypothesis Subagent** | Analyze viewport/seeder code & error logs | **[debug-protocol: Step 2 (Hypothesis)](skills/debug-protocol/SKILL.md)** |
+| **Investigation** | **3** | Binary-search and trace data flow from seeder to canvas. | **Investigation Subagent** | View model/viewport file analysis | **[debug-protocol: Step 3 (Investigation)](skills/debug-protocol/SKILL.md)** |
+| **Evidence** | **4** | Compile logs, stack traces, and evidence dossier. | **Evidence Subagent** | Dossier compilation | **[debug-protocol: Step 4 (Evidence)](skills/debug-protocol/SKILL.md)** |
+| **Root Cause** | **5** | Apply "5 Whys" to isolate root cause for all 4 defects. | **Root Cause Subagent** | Root cause analysis output | **[debug-protocol: Step 5 (Root Cause)](skills/debug-protocol/SKILL.md)** |
+| **Fix** | **6** | Merge upstream fixes branch and rebuild packages graph. | **Fix Subagent** | `git merge origin/feat/backprop-flutter-source-changes` / `flutter pub get` | **[debug-protocol: Step 6 (Fix)](skills/debug-protocol/SKILL.md)** |
+| **Verification** | **7** | Re-run integration tests directly to verify passing states (GREEN Phase). | **Verification Subagent** | `flutter drive` runs & linter audits | **[debug-protocol: Step 7 (Verification)](skills/debug-protocol/SKILL.md)** |
+| **Sync & Close** | **7.1**| Reconcile issue checklists back to tracker, commit/push, and close defects. | Coordinator | `reconcile_backlog.py` / `git push` | **[spec-orchestrator](skills/spec-orchestrator/SKILL.md)** & **[project-constitution](skills/project-constitution/SKILL.md)** |
+| **Loop Decision**| **8** | Assess loop closure or restart if any regression is found. | Coordinator | Final evaluation | **[debug-protocol: Step 8 (Loop)](skills/debug-protocol/SKILL.md)** |
 
-### Step 1: Execute TDD RED Phase (Confirm Failure)
-Run the commands:
-1. `mkdir -p ../screenshots`
-2. Run visual integration test (must fail):
-   ```bash
-   env SCREENSHOT_DIR=../screenshots flutter drive --driver=test_driver/integration_test.dart --target=integration_test/camera_gestures_navigation_test.dart -d macos
-   ```
-3. Run performance regression test (must fail):
-   ```bash
-   env BENCHMARK_PATH=../benchmark_results.jsonl flutter drive --driver=test_driver/integration_test.dart --target=integration_test/node_iteration_test.dart -d macos
-   ```
+---
 
-### Step 2: Merge Fixes
-Run commands:
-1. `git merge origin/feat/backprop-flutter-source-changes`
-2. `cd app_flutter && flutter pub get`
+## 4. Autonomous Loop Mechanics (How it Executes Unattended)
+* **Start**: User types **`PROCEED`**.
+* **Transition Sequence**:
+  * Coordinator defines and spawns the `Reproduction Subagent` (Step 1) and ends turn.
+  * Once the subagent finishes writing the test and running the RED tests, the system wakes the Coordinator up. Coordinator reads its report, spawns the `Hypothesis Subagent` (Step 2) and ends turn.
+  * Repeat this sequence through each subagent step (Hypothesis -> Investigation -> Evidence -> Root Cause -> Fix -> Verification).
+  * No user input will be requested during these transitions.
+* **Pre-Flight Clearance**: All command prefixes (`git`, `gh`, `flutter`, `env`, `mkdir`) and the workspace path are pre-authorized on the active permissions table, preventing system prompts.
 
-### Step 3: Execute TDD GREEN Phase (Confirm Success)
-Run commands:
-1. Run visual test (must pass and save screenshots):
-   ```bash
-   env SCREENSHOT_DIR=../screenshots flutter drive --driver=test_driver/integration_test.dart --target=integration_test/camera_gestures_navigation_test.dart -d macos
-   ```
-2. Run performance/memory stress test (must pass and log metrics):
-   ```bash
-   env BENCHMARK_PATH=../benchmark_results.jsonl flutter drive --driver=test_driver/integration_test.dart --target=integration_test/node_iteration_test.dart -d macos
-   ```
+---
 
-### Step 4: Verification & Release
-1. Run linter checks: `python3 skills/spec-orchestrator/scripts/verify_model_coverage.py`
-2. Sync backlog: `python3 skills/spec-orchestrator/scripts/reconcile_backlog.py`
-3. Commit and push:
-   ```bash
-   git add . && git commit -m "test: implement camera visual test and resolve backprop merge" && git push origin main
-   ```
-4. Output verified screenshots list and performance metrics logs from `benchmark_results.jsonl`.
+## 5. Verification Plan
+
+### Automated Verification
+* Visual and performance tests must execute with exit code 0.
+* Spec coverage linter and backlog reconciliation scripts must pass with exit code 0.
+
+### Manual Verification
+* **Screenshots**: Verify that the following files are populated in `../screenshots/`:
+  * `camera_initial_hud.png`
+  * `camera_fly_to_node.png`
+  * `camera_gesture_rotated.png`
+* **Performance Logs**: Verify that 10 new JSON log lines are appended to [benchmark_results.jsonl](benchmark_results.jsonl).

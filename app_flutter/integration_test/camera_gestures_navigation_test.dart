@@ -1,9 +1,10 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -21,20 +22,7 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
-  // Mock captureScreenshot on desktop since integration_test doesn't natively support it on macOS/Windows/Linux yet.
-  binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/integration_test'),
-    (MethodCall methodCall) async {
-      if (methodCall.method == 'captureScreenshot') {
-        return Uint8List(0);
-      }
-
-      return null;
-    },
-  );
-
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation', (WidgetTester tester) async {
     tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -72,6 +60,16 @@ void main() {
       }
     }
 
+    Future<void> takeScreenshot(String name) async {
+      final String screenshotDir = Platform.environment['SCREENSHOT_DIR'] ?? '/Users/perkunas/jail/digital-pipeline-repo/screenshots';
+      final File file = File('$screenshotDir/$name.png');
+      file.parent.createSync(recursive: true);
+      final RenderRepaintBoundary boundary = tester.renderObject(find.byType(RepaintBoundary).first);
+      final ui.Image image = (await tester.runAsync<ui.Image>(() => boundary.toImage()))!;
+      final ByteData? byteData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.png));
+      file.writeAsBytesSync(byteData!.buffer.asUint8List());
+    }
+
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -106,7 +104,7 @@ void main() {
     await settle(tester);
 
     // Capture initial state screenshot
-    await binding.takeScreenshot('camera_initial_hud');
+    await takeScreenshot('camera_initial_hud');
 
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
     final CameraController controller = state.cameraController as CameraController;
@@ -114,13 +112,6 @@ void main() {
     final double initialLng = controller.current.longitude;
 
     // Double-tap sidebar node (fly to node)
-    int childAttempts = 0;
-    while (childAttempts < 20 && find.byKey(const Key('node_Master_1_Child_1')).evaluate().isEmpty) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      await tester.pump();
-      childAttempts++;
-    }
-
     final nodeFinder = find.byKey(const Key('node_Master_1_Child_1'));
     await tester.ensureVisible(nodeFinder);
     await tester.tap(nodeFinder);
@@ -133,7 +124,7 @@ void main() {
     final double postFlyLng = controller.current.longitude;
     expect(postFlyLat, isNot(equals(initialLat)), reason: 'Latitude should update after fly-to');
     expect(postFlyLng, isNot(equals(initialLng)), reason: 'Longitude should update after fly-to');
-    await binding.takeScreenshot('camera_fly_to_node');
+    await takeScreenshot('camera_fly_to_node');
 
     // Drag (Pan gesture)
     final viewport = find.byKey(const Key('scene_3d_viewport_container'));
@@ -153,6 +144,6 @@ void main() {
 
     final double postRotateHeading = controller.current.heading;
     expect(postRotateHeading, isNot(equals(initialHeading)), reason: 'Heading should change after rotate gesture');
-    await binding.takeScreenshot('camera_gesture_rotated');
+    await takeScreenshot('camera_gesture_rotated');
   });
 }
