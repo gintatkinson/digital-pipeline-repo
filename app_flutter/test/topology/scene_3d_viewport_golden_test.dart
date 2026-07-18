@@ -109,7 +109,6 @@ void main() {
         ],
         links: const [],
       );
-
       await tester.runAsync(() async {
         await tester.pumpWidget(
           MaterialApp(
@@ -133,6 +132,7 @@ void main() {
         matchesGoldenFile('goldens/exaggerated_fuji_node.png'),
       );
     });
+
 
     testWidgets('Visual Test 3 - Forward/Backward Projection Inversion Culling', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(800, 600);
