@@ -13,6 +13,35 @@ import '../utils/fake_recording_canvas.dart';
 double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
 
 void main() {
+  group('Issue #41: Viewport painting overdraw and canvas bleeding', () {
+    test('paint calls clipRect with the full viewport size to prevent canvas bleeding', () {
+      final camera = VirtualCamera.clamped(
+        latitude: 35.0, longitude: 138.0, altitude: 2000000.0,
+        heading: 0, pitch: -90, roll: 0,
+      );
+      final painter = Scene3DViewportPainter(
+        camera: camera,
+        activeStyle: 'dark',
+        astronomicalBody: 'Earth',
+        elevationActive: false,
+        showDevices: false,
+        showLinks: false,
+        showLabels: false,
+        showDropLines: false,
+        userRotationX: 0.0,
+        userTilt: 0.0,
+        zoomScale: 1.0,
+        verticalExaggeration: 1.0,
+      );
+
+      final canvas = FakeRecordingCanvas();
+      const Size viewportSize = Size(800, 600);
+      painter.paint(canvas, viewportSize);
+
+      expect(canvas.clipRects.length, greaterThanOrEqualTo(1));
+      expect(canvas.clipRects.first, equals(Offset.zero & viewportSize));
+    });
+  });
   group('Scene3DViewportPainter horizon culling regression tests', () {
     const double R = 6378137.0;
 

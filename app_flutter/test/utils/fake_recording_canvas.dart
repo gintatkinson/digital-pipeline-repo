@@ -5,6 +5,7 @@ class FakeRecordingCanvas extends Fake implements Canvas {
   final List<(Paragraph, Offset)> paragraphs = [];
   final List<(Offset, double)> circles = [];
   final List<List<Offset>> points = [];
+  final List<Rect> clipRects = [];
 
   @override
   void drawParagraph(Paragraph paragraph, Offset offset) {
@@ -22,7 +23,9 @@ class FakeRecordingCanvas extends Fake implements Canvas {
   }
 
   @override
-  void clipRect(Rect rect, {ClipOp clipOp = ClipOp.intersect, bool doAntiAlias = true}) {}
+  void clipRect(Rect rect, {ClipOp clipOp = ClipOp.intersect, bool doAntiAlias = true}) {
+    clipRects.add(rect);
+  }
   @override
   void drawPath(Path path, Paint paint) {}
   @override
