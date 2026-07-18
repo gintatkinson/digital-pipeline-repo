@@ -254,7 +254,7 @@ class DatabaseInitializer {
         'ellipsoid': {
           'latitude': isRoot ? 35.6074 : 40.7128 + offsetIndex * 2.0,
           'longitude': isRoot ? 140.1063 : -74.0060 + offsetIndex * 2.0,
-          'height': 0.0,
+          'height': isRoot ? 100.0 : 0.0,
         }
       }
     };
