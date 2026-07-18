@@ -1,62 +1,61 @@
-# Implementation Plan: Refactor Basemap Configuration
+# Implementation Plan: Refactor Visual Test Verification
 
-This plan covers the dynamic configuration of basemaps in the application. Hardcoded URLs in `TileFetcher` will be moved to `app_flutter/assets/persistence-config.json` and loaded during application/test startup.
+This plan addresses the test suite blindspot where integration tests pass blindly without verifying that the 3D globe and tiles are actually rendered on screen. We will refactor the test suite to assert tile cache state, add a dynamic wait loop, and perform a pixel-level color variance check on screenshots. We will also add unit tests verifying the projection math for space, surface, and altitude.
 
 ## 1. Goal Description
-1. Modify `app_flutter/lib/domain/cesium_3d/tile_fetcher.dart` to support dynamic loading of tile URLs using URL templates.
-2. Move hardcoded endpoints (OSM, ArcGIS, CartoDB) into `app_flutter/assets/persistence-config.json`.
-3. Update `app_flutter/lib/domain/repository_resolver.dart` to read `basemaps` config from `persistence-config.json` at startup and pass it to `TileFetcher`.
-4. Update unit tests in `app_flutter/test/cesium_3d/tile_fetcher_test.dart` to verify dynamic loading and URL construction.
-5. Run tests to verify the changes.
-
----
+Refactor the integration test `camera_gestures_navigation_test.dart` to:
+1. Wait dynamically for tiles to load and decode.
+2. Assert that the tile cache is populated.
+3. Compute standard deviation of pixel color values on screenshots to detect blank rendering.
+4. Verify through TDD RED-GREEN verification that the test fails when tiles do not render, and passes when they do.
+5. Verify that tiles are rendered correctly in space, on the surface, and in altitude (incorporating elevation and vertical exaggeration offsets) by adding unit tests.
+6. Open up the topology view by increasing the overall screen size in the integration test to 1920x1080.
 
 ## 2. Target Files & Proposed Changes
 
-### A. [app_flutter/assets/persistence-config.json](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/assets/persistence-config.json)
-Update the configuration JSON to include a `basemaps` key containing the URL templates for each provider:
-```json
-{
-  "repository_type": "sqlite",
-  "basemaps": {
-    "openStreetMap": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "arcGisSatellite": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    "cartoDark": "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-    "cartoLight": "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-  }
-}
-```
+### [globe_tile_renderer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart)
+* Add a public getter for testing:
+  ```dart
+  @visibleForTesting
+  int get loadedImagesCount => _loadedImages.length;
+  ```
 
-### B. [app_flutter/lib/domain/cesium_3d/tile_fetcher.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/tile_fetcher.dart)
-- Define a static map `_basemapTemplates` to hold the URL templates.
-- Add a static method `static void configure(Map<String, dynamic> configs)` to populate `_basemapTemplates`.
-- Replace the hardcoded switch-case in `TileFetcher.urlFor` to construct the URL dynamically from `_basemapTemplates` by replacing `{x}`, `{y}`, `{z}`.
-- Provide a default static initializer or fallbacks in `TileFetcher` so that if configure is not called (or template is missing), it has safe default URLs (matching the original ones) or fails gracefully.
-  *Note:* To comply fully with "Move hardcoded basemap endpoints (OSM, ArcGIS, CartoDB) to 'app_flutter/assets/persistence-config.json' and read them at startup", the hardcoded endpoints will NOT be the primary static values inside `tile_fetcher.dart`. We will load them from the config. To ensure tests and app always initialize correctly, they will be read at startup, or tests will explicitly configure them.
+### [camera_gestures_navigation_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart)
+1. **Dynamic Tile Loaded Await**:
+   * Add a helper method `waitForTilesToLoad(WidgetTester tester, Scene3DViewportState state)` that polls `state.tileRenderer?.loadedImagesCount` and waits (up to a timeout, e.g. 5 seconds) until it is greater than zero.
+2. **Pixel Color Variance Assertion**:
+   * Implement a standard deviation check (`stdDev`) on the raw PNG bytes returned from the screenshot.
+   * Decode PNG bytes using `ui.instantiateImageCodec` and convert to raw RGBA bytes using `toByteData(format: ui.ImageByteFormat.rawRgba)`.
+   * Extract R, G, B color values and calculate their standard deviation.
+   * Assert that the standard deviation is greater than 15.0 to verify that a blank, solid-color screen is not rendered.
+3. **Screenshot Verification wrapper**:
+   * Modify the screenshot method to perform the standard deviation check.
+4. **Increase Surface/Screen Size**:
+   * Change `tester.binding.setSurfaceSize(const Size(1280, 800))` to `const Size(1920, 1080)` to open up the topology view.
 
-### C. [app_flutter/lib/domain/repository_resolver.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/repository_resolver.dart)
-- In `RepositoryResolver.resolve`, always read the configuration file (even if `dataSourceType` is provided) so we can parse the `basemaps` key.
-- If `basemaps` key exists in the loaded configuration, call `TileFetcher.configure(...)`.
-
-### D. [app_flutter/test/cesium_3d/tile_fetcher_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/cesium_3d/tile_fetcher_test.dart)
-- In `setUp` or `setUpAll`, configure `TileFetcher` with either mock URL templates or the actual ones from `assets/persistence-config.json` so that the synchronous `TileFetcher.urlFor` tests continue to function.
+### [globe_tile_renderer_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/cesium_3d/globe_tile_renderer_test.dart)
+* Add a new test case: `Scenario 8 - Tile projection verification: space, surface, and altitude with elevation and exaggeration`.
+* Assert space height projection, surface height projection with elevation, and vertical exaggeration scaling. Use absolute camera altitudes (e.g. `6378137.0 + 50000.0`) to avoid WGS84 horizon culling.
 
 ---
 
-## 3. Detailed Execution Matrix
+## 3. Verification Plan
 
-| Step | Action | Target Path / Command |
-| :--- | :--- | :--- |
-| **1** | Update `persistence-config.json` with the basemap URL templates. | [persistence-config.json](app_flutter/assets/persistence-config.json) |
-| **2** | Modify `tile_fetcher.dart` to support configuring templates and building URLs dynamically. | [tile_fetcher.dart](app_flutter/lib/domain/cesium_3d/tile_fetcher.dart) |
-| **3** | Update `repository_resolver.dart` to load and pass the config to `TileFetcher`. | [repository_resolver.dart](app_flutter/lib/domain/repository_resolver.dart) |
-| **4** | Update `tile_fetcher_test.dart` to configure templates in setup. | [tile_fetcher_test.dart](app_flutter/test/cesium_3d/tile_fetcher_test.dart) |
-| **5** | Run the unit tests and integration tests to verify correctness. | `flutter test` / `flutter drive` |
+### TDD RED Phase (Failing Test)
+1. Set `TileFetcher.urlOverride` to an invalid or empty value (or clear/disable the tile fetcher) inside the test.
+2. Run the drive test:
+   ```bash
+   env SCREENSHOT_DIR=/Users/perkunas/jail/digital-pipeline-repo/screenshots flutter drive --driver=test_driver/integration_test.dart --target=integration_test/camera_gestures_navigation_test.dart -d macos
+   ```
+3. Verify that the test fails due to the standard deviation assertion (blank screen). (COMPLETED: Verified in task-60 logs).
 
----
+### TDD GREEN Phase (Passing Test)
+1. Restore the correct tile URL override configuration so that tiles load successfully.
+2. Run the drive test again.
+3. Verify that the test successfully passes, proving that both the loading wait loop and standard deviation check work correctly.
 
-## 4. Verification Plan
-
-### Automated Verification
-- Run unit tests: `flutter test test/cesium_3d/tile_fetcher_test.dart`
-- Run all tests to check for regression: `flutter test`
+### Unit Tests Verification
+1. Run all cesium_3d unit tests to verify the new projection assertions:
+   ```bash
+   flutter test test/cesium_3d/globe_tile_renderer_test.dart
+   ```

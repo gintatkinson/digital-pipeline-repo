@@ -66,6 +66,9 @@ class GlobeTileRenderer {
   /// Whether the underlying [TileFetcher] is enabled.
   bool get isEnabled => _fetcher.isEnabled();
 
+  @visibleForTesting
+  int get loadedImagesCount => _loadedImages.length;
+
   /// Returns true if a higher-zoom tile is loaded whose geographic bounds
   /// fall within [tile]'s area.
   @visibleForTesting

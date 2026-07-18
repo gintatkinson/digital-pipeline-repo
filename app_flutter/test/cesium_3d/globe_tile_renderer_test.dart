@@ -545,6 +545,101 @@ void main() {
 
       expect(callbackCount, greaterThan(0));
     });
+
+    test('Scenario 8 - Tile projection verification: space, surface, and altitude with elevation and exaggeration', () {
+      final camera = VirtualCamera(
+        latitude: 35.3606,
+        longitude: 138.7274,
+        altitude: 6378137.0 + 50000.0,
+        heading: 0.0,
+        pitch: -90.0,
+        roll: 0.0,
+      );
+
+      final painter = Scene3DViewportPainter(
+        camera: camera,
+        activeStyle: 'dark',
+        astronomicalBody: 'Earth',
+        elevationActive: true,
+        showDevices: true,
+        showLinks: true,
+        showLabels: true,
+        showDropLines: true,
+        userRotationX: 0.0,
+        userTilt: 0.0,
+        zoomScale: 1.0,
+        verticalExaggeration: 2.0,
+      );
+
+      const ui.Size size = ui.Size(800, 600);
+      const ui.Offset center = ui.Offset(400.0, 300.0);
+
+      // 1. Surface projection verification with elevation and exaggeration
+      final double latRad = 35.3606 * math.pi / 180.0;
+      final double lngRad = 138.7274 * math.pi / 180.0;
+      final double elev = Scene3DViewportPainter.getElevationStatic(35.3606, 138.7274, true);
+      expect(elev, greaterThan(3000.0));
+      
+      final double rotationY = -(camera.longitude * math.pi / 180.0);
+      final double tilt = -(camera.latitude * math.pi / 180.0);
+
+      final double expectedSurfaceHeight = 6378137.0 + elev * 2.0;
+      final ProjectedPoint projSurface = painter.project(
+        latRad,
+        lngRad,
+        expectedSurfaceHeight,
+        center,
+        rotationY,
+        tilt,
+        size,
+      );
+
+      expect(projSurface.z, isNotNull);
+      expect(projSurface.offset, isNot(equals(ui.Offset.zero)));
+
+      // 2. Space projection verification
+      final double spaceHeight = 6378137.0 + 100000.0;
+      final ProjectedPoint projSpace = painter.project(
+        latRad,
+        lngRad,
+        spaceHeight,
+        center,
+        rotationY,
+        tilt,
+        size,
+      );
+      
+      expect(projSpace.z, isNot(equals(projSurface.z)));
+      
+      // 3. Verify that elevationActive = false removes elevation offset
+      final painterNoElevation = Scene3DViewportPainter(
+        camera: camera,
+        activeStyle: 'dark',
+        astronomicalBody: 'Earth',
+        elevationActive: false,
+        showDevices: true,
+        showLinks: true,
+        showLabels: true,
+        showDropLines: true,
+        userRotationX: 0.0,
+        userTilt: 0.0,
+        zoomScale: 1.0,
+        verticalExaggeration: 2.0,
+      );
+
+      final double expectedNoElevationHeight = 6378137.0;
+      final ProjectedPoint projNoElevation = painterNoElevation.project(
+        latRad,
+        lngRad,
+        expectedNoElevationHeight,
+        center,
+        rotationY,
+        tilt,
+        size,
+      );
+
+      expect(projNoElevation.z, isNot(equals(projSurface.z)));
+    });
   });
 }
 

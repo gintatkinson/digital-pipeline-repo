@@ -21,20 +21,27 @@ import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/domain/cesium_3d/globe_tile_renderer.dart';
+import 'dart:math' as math;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation', (WidgetTester tester) async {
-    tester.binding.setSurfaceSize(const Size(1280, 800));
+    tester.binding.setSurfaceSize(const Size(1920, 1080));
     addTearDown(() {
       tester.binding.setSurfaceSize(null);
       TileFetcher.urlOverride = null;
     });
 
     // Set local tile file override to verify tile rendering visually
-    final String currentDir = Directory.current.path;
-    final File localTile = File('$currentDir/test/topology/goldens/exaggerated_fuji_node.png');
+    File localTile = File('${Directory.current.path}/test/topology/goldens/exaggerated_fuji_node.png');
+    if (!localTile.existsSync()) {
+      localTile = File('${Directory.current.path}/app_flutter/test/topology/goldens/exaggerated_fuji_node.png');
+    }
+    if (!localTile.existsSync()) {
+      localTile = File('/Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/topology/goldens/exaggerated_fuji_node.png');
+    }
     if (localTile.existsSync()) {
       TileFetcher.urlOverride = 'file://${localTile.absolute.path}';
     }
@@ -69,6 +76,43 @@ void main() {
       }
     }
 
+    Future<double> calculateStdDev(Uint8List pngBytes) async {
+      final double? result = await tester.runAsync<double>(() async {
+        final ui.Codec codec = await ui.instantiateImageCodec(pngBytes);
+        final ui.FrameInfo frame = await codec.getNextFrame();
+        final ui.Image decodedImage = frame.image;
+        final ByteData? rawRgba = await decodedImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+        if (rawRgba == null) return 0.0;
+        final Uint8List rgbaBytes = rawRgba.buffer.asUint8List();
+        
+        double sum = 0.0;
+        int count = 0;
+        for (int i = 0; i < rgbaBytes.length; i += 16) {
+          final double r = rgbaBytes[i].toDouble();
+          final double g = rgbaBytes[i + 1].toDouble();
+          final double b = rgbaBytes[i + 2].toDouble();
+          final double gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          sum += gray;
+          count++;
+        }
+        if (count == 0) return 0.0;
+        final double mean = sum / count;
+        
+        double sumSquaredDiff = 0.0;
+        for (int i = 0; i < rgbaBytes.length; i += 16) {
+          final double r = rgbaBytes[i].toDouble();
+          final double g = rgbaBytes[i + 1].toDouble();
+          final double b = rgbaBytes[i + 2].toDouble();
+          final double gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          final double diff = gray - mean;
+          sumSquaredDiff += diff * diff;
+        }
+        final double variance = sumSquaredDiff / count;
+        return math.sqrt(variance);
+      });
+      return result ?? 0.0;
+    }
+
     Future<void> takeScreenshot(String name) async {
       final String screenshotDir = Platform.environment['SCREENSHOT_DIR'] ?? '/Users/perkunas/jail/digital-pipeline-repo/screenshots';
       final File file = File('$screenshotDir/$name.png');
@@ -76,7 +120,27 @@ void main() {
       final RenderRepaintBoundary boundary = tester.renderObject(find.byType(RepaintBoundary).first);
       final ui.Image image = (await tester.runAsync<ui.Image>(() => boundary.toImage()))!;
       final ByteData? byteData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.png));
-      file.writeAsBytesSync(byteData!.buffer.asUint8List());
+      final Uint8List pngBytes = byteData!.buffer.asUint8List();
+      
+      final double stdDev = await calculateStdDev(pngBytes);
+      expect(stdDev, greaterThan(15.0), reason: 'Standard deviation $stdDev is not greater than 15.0; screen is likely blank/solid-color');
+      
+      file.writeAsBytesSync(pngBytes);
+    }
+
+    Future<void> waitForTilesToLoad() async {
+      final state = tester.state(find.byType(Scene3DViewport)) as Scene3DViewportState;
+      int attempts = 0;
+      while (attempts < 50) {
+        final int count = state.tileRenderer?.loadedImagesCount ?? 0;
+        if (count > 0) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await tester.pump();
+        attempts++;
+      }
+      expect(state.tileRenderer?.loadedImagesCount, greaterThan(0), reason: 'Tiles should be loaded in the tile renderer cache');
     }
 
     await tester.pumpWidget(
@@ -111,6 +175,8 @@ void main() {
 
     expect(find.byType(Scene3DViewport), findsOneWidget, reason: '3D viewport should be mounted');
     await settle(tester);
+
+    await waitForTilesToLoad();
 
     // Capture initial state screenshot
     await takeScreenshot('camera_initial_hud');
