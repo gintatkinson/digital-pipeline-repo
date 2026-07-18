@@ -19,3 +19,5 @@ The goal is to fix severe performance bottlenecks in `Scene3DViewportState` and 
 - Verify the build passes cleanly.
 - (If necessary) Run any flutter integration or unit tests covering this area.
 
+## 4. Fix Missing Parenthesis
+- **app_flutter/lib/features/topology/scene_3d_viewport.dart**: Add missing closing parenthesis for `Positioned` after the `ListenableBuilder` block. Then run `flutter analyze`.

@@ -624,24 +624,27 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                 left: 16,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6), // <-- Replaces the expensive blur effect
-                      borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0x33FFFFFF), // fine borders
-                          width: 1.0,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x1F000000),
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
+                  child: ListenableBuilder(
+                    listenable: _cameraController,
+                    builder: (context, _) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6), // <-- Replaces the expensive blur effect
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0x33FFFFFF), // fine borders
+                            width: 1.0,
                           ),
-                        ],
-                      ),
-                      child: Column(
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x1F000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -722,9 +725,11 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                           ),
                         ],
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
+              ),
+            ),
             if (!_showCameraStats)
               Positioned(
                 top: 16,
