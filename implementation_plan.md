@@ -12,6 +12,30 @@ This plan serves as the immediate entry point for the new conversation to execut
 
 ---
 
+## Defects Addressed
+
+### A. Viewport Paint Overdraw/Bleeding
+- **Defect**: The 3D globe and line drawings bleed outside the viewport boundaries, rendering on top of the divider and properties panel.
+- **Target File**: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
+- **Required Fix**: Add `canvas.clipRect(Offset.zero & size);` at the very beginning of the `paint` method in `Scene3DViewportPainter` to restrict all drawing operations to the viewport layout bounds.
+
+### B. Flat Seams Patchwork & Brightness/Color Discontinuity
+- **Defect**: Tile boundaries show straight rectangular seam lines instead of curving along the globe, along with stark brightness/color mismatches.
+- **Target File**: `app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart`
+- **Required Fix**: Modify the subdivisions logic in `GlobeTileRenderer.renderTiles` (around L327) to use a high subdivisions count of `16` for all visible tiles. This increases mesh vertex density, warping boundaries along the sphere. Additionally, adjust the base planet sphere colors in `Scene3DViewportPainter.paint` (L1653) to blend with the satellite map.
+
+### C. Database Node Coordinate Collision
+- **Defect**: All non-root nodes are hardcoded to the exact same coordinates and sea-level height, causing them to overlap completely.
+- **Target File**: `app_flutter/lib/domain/database_initializer.dart`
+- **Required Fix**: Replace the hardcoded New York coordinates for non-root nodes (L247) with an index-distributed offset (e.g. `40.7128 + nodeIndex * 0.05`) to spread them out geographically and vertically.
+
+### D. Stuck Loading Spinner
+- **Defect**: An infinite progress indicator spins when loading tables.
+- **Target Files**: `app_flutter/lib/features/tables/view_models/tables_view_model.dart` and `app_flutter/lib/features/tables/tabbed_container.dart`
+- **Required Fix**: Ensure the `loading` flag is correctly set to false on configuration load errors or empty datasets.
+
+---
+
 ## Proposed Changes
 
 ### [app_flutter/integration_test]
