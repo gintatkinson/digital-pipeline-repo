@@ -9,13 +9,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:app_flutter/main.dart' as app_main;
-import 'package:app_flutter/core/theme/widgets/settings_panel.dart';
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
+import 'package:app_flutter/core/theme/widgets/settings_panel.dart';
 
 final File benchmarkLogFile = File(
   Platform.environment['BENCHMARK_PATH'] ??
-  '${Directory.current.parent.path}/benchmark_results.jsonl',
+  '/Users/perkunas/jail/digital-pipeline-repo/benchmark_results.jsonl',
 );
 
 Future<VmService?> _connectToVmService() async {
@@ -81,6 +81,18 @@ List<String> _flattenNodes(List<TreeNode> nodes) {
 
 final List<String> allNodeIds = _flattenNodes(defaultTreeData);
 
+Future<void> _settle(WidgetTester t) async {
+  await Future<void>.delayed(const Duration(milliseconds: 50));
+  await t.pump();
+  for (int i = 0; i < 50; i++) {
+    if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+      break;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await t.pump();
+  }
+}
+
 Future<void> _editTextFields(
     WidgetTester tester, List<String> values) async {
   final textFields = find.byType(TextField);
@@ -98,9 +110,9 @@ Future<void> _editTextFields(
 Future<void> _changeSettingsViaUI(
     WidgetTester tester, ThemeMode themeMode, double textScale) async {
   await tester.ensureVisible(find.byKey(const Key('sidebar_settings_button')));
-  await tester.pumpAndSettle();
+  await _settle(tester);
   await tester.tap(find.byKey(const Key('sidebar_settings_button')));
-  await tester.pumpAndSettle();
+  await _settle(tester);
 
   final IconData themeIcon;
   switch (themeMode) {
@@ -112,23 +124,26 @@ Future<void> _changeSettingsViaUI(
       themeIcon = Icons.settings_brightness;
   }
   await tester.tap(find.byIcon(themeIcon).last);
-  await tester.pumpAndSettle();
+  await _settle(tester);
 
   final slider = find.byKey(const Key('settings_text_scale_slider'));
+  await tester.ensureVisible(slider);
+  await _settle(tester);
+
   final rect = tester.getRect(slider);
   const double min = 0.7;
   const double max = 1.5;
   final double fraction = (textScale - min) / (max - min);
-  final double targetX = rect.left + fraction * rect.width;
-  await tester.timedDrag(
-    slider,
-    Offset(targetX - rect.center.dx, 0),
-    const Duration(milliseconds: 200),
-  );
-  await tester.pumpAndSettle();
+  // Sliders have internal padding for the track. In Material, it is 24.0 dp.
+  const double trackPadding = 24.0;
+  final double trackWidth = rect.width - (2 * trackPadding);
+  final double targetX = rect.left + trackPadding + (fraction * trackWidth);
+  await tester.tapAt(Offset(targetX, rect.center.dy));
+  await _settle(tester);
 
-  await tester.tap(find.byType(ModalBarrier).last);
-  await tester.pumpAndSettle();
+  // Close the bottom sheet reliably by popping the navigator
+  Navigator.pop(tester.element(find.byType(SettingsPanel)));
+  await _settle(tester);
 }
 
 void main() {
@@ -142,7 +157,7 @@ void main() {
     tester.binding.setSurfaceSize(const Size(1000, 800));
 
     await app_main.main();
-    await tester.pumpAndSettle(const Duration(seconds: 15));
+    await _settle(tester);
     int attempts = 0;
     while (attempts < 20 && find.byKey(Key('node_${allNodeIds.first}')).evaluate().isEmpty) {
       await tester.pump(const Duration(milliseconds: 500));
@@ -155,7 +170,7 @@ void main() {
 
         await tester.ensureVisible(find.byKey(Key('node_$nodeId')));
         await tester.tap(find.byKey(Key('node_$nodeId')));
-        await tester.pumpAndSettle();
+        await _settle(tester);
 
         await _editTextFields(tester, [
           'Node-$nodeIdx-$cycle',
@@ -164,7 +179,7 @@ void main() {
       }
     }
 
-    await tester.pumpAndSettle(const Duration(seconds: 5));
+    await _settle(tester);
   });
 
   testWidgets('Stress test: cycle theme + text size between each full 20-node pass',
@@ -175,7 +190,7 @@ void main() {
     tester.binding.setSurfaceSize(const Size(1000, 800));
 
     await app_main.main();
-    await tester.pumpAndSettle(const Duration(seconds: 15));
+    await _settle(tester);
     int attempts = 0;
     while (attempts < 20 && find.byKey(Key('node_${allNodeIds.first}')).evaluate().isEmpty) {
       await tester.pump(const Duration(milliseconds: 500));
@@ -225,7 +240,7 @@ void main() {
             crashAction = 'tap';
             await tester.ensureVisible(find.byKey(Key('node_$nodeId')));
             await tester.tap(find.byKey(Key('node_$nodeId')));
-            await tester.pumpAndSettle();
+            await _settle(tester);
 
             crashAction = 'edit_fields';
             await _editTextFields(tester, [
@@ -355,7 +370,7 @@ void main() {
 
         passCount++;
 
-        await tester.pumpAndSettle(const Duration(seconds: 1));
+        await _settle(tester);
       }
     });
   });

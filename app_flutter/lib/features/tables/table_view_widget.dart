@@ -81,7 +81,13 @@ class _TableViewWidgetState extends State<TableViewWidget> {
     sortedRows.sort((a, b) {
       final aVal = absIdx < a.length ? a[absIdx] : '';
       final bVal = absIdx < b.length ? b[absIdx] : '';
-      return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
+      final aNum = double.tryParse(aVal);
+      final bNum = double.tryParse(bVal);
+      if (aNum != null && bNum != null) {
+        return _sortAscending ? aNum.compareTo(bNum) : bNum.compareTo(aNum);
+      } else {
+        return _sortAscending ? aVal.compareTo(bVal) : bVal.compareTo(aVal);
+      }
     });
 
     _cachedSortedRows = sortedRows;

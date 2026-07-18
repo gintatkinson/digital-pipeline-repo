@@ -131,14 +131,24 @@ class TablesViewModel extends ChangeNotifier {
 
     try {
       final typeDescriptor = await _dataSource.typeFor(nodeId);
-      if (typeDescriptor == null || requestId != _requestId) return;
+      if (typeDescriptor == null) {
+        _loading = false;
+        notifyListeners();
+        return;
+      }
+      if (requestId != _requestId) return;
 
       final List<TabDescriptor> tabs = [];
 
       // 1. Child types (hierarchy containment)
       for (final ct in typeDescriptor.childTypes) {
         final childDesc = await _dataSource.typeFor(ct.childTypeName);
-        if (childDesc == null || requestId != _requestId) return;
+        if (childDesc == null) {
+          _loading = false;
+          notifyListeners();
+          return;
+        }
+        if (requestId != _requestId) return;
         tabs.add(TabDescriptor(
           id: ct.childTypeName,
           label: ct.childLabel,
@@ -149,7 +159,12 @@ class TablesViewModel extends ChangeNotifier {
       // 2. Related types (events, alarms, etc.)
       for (final rt in typeDescriptor.relatedTypes) {
         final relDesc = await _dataSource.typeFor(rt.childTypeName);
-        if (relDesc == null || requestId != _requestId) return;
+        if (relDesc == null) {
+          _loading = false;
+          notifyListeners();
+          return;
+        }
+        if (requestId != _requestId) return;
         tabs.add(TabDescriptor(
           id: rt.childTypeName,
           label: rt.childLabel,

@@ -592,23 +592,26 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                     _cameraController.zoomInteractive(event.scrollDelta.dy);
                   }
                 },
-                child: CustomPaint(
-                  painter: Scene3DViewportPainter(
-                    camera: _cameraController.current,
-                    activeStyle: _activeStyle,
-                    astronomicalBody: _astronomicalBody,
-                    elevationActive: _elevationActive,
-                    showDevices: _showDevices,
-                    showLinks: _showLinks,
-                    showLabels: _showLabels,
-                    showDropLines: _showDropLines,
-                    topologyData: widget.topologyData,
-                    userRotationX: 0.0,
-                    userTilt: 0.0,
-                    zoomScale: zoomScale,
-                    tileRenderer: _tileRenderer,
-                    imageryProvider: _providerForStyle(_activeStyle),
-                    verticalExaggeration: widget.verticalExaggeration,
+                child: RepaintBoundary(
+                  key: const Key('scene_3d_viewport_boundary'),
+                  child: CustomPaint(
+                    painter: Scene3DViewportPainter(
+                      camera: _cameraController.current,
+                      activeStyle: _activeStyle,
+                      astronomicalBody: _astronomicalBody,
+                      elevationActive: _elevationActive,
+                      showDevices: _showDevices,
+                      showLinks: _showLinks,
+                      showLabels: _showLabels,
+                      showDropLines: _showDropLines,
+                      topologyData: widget.topologyData,
+                      userRotationX: 0.0,
+                      userTilt: 0.0,
+                      zoomScale: zoomScale,
+                      tileRenderer: _tileRenderer,
+                      imageryProvider: _providerForStyle(_activeStyle),
+                      verticalExaggeration: widget.verticalExaggeration,
+                    ),
                   ),
                 ),
               ),
@@ -1052,6 +1055,7 @@ class Scene3DViewportState extends State<Scene3DViewport> {
 class Scene3DViewportPainter extends CustomPainter {
   static final Map<String, double> _nodeElevationCache = {};
   static final Map<String, String> _cacheKeyStringCache = {};
+  static final List<Rect> drawnLabelRects = [];
 
   final VirtualCamera camera;
   final String activeStyle;
@@ -1536,6 +1540,8 @@ class Scene3DViewportPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.clipRect(Offset.zero & size);
+    drawnLabelRects.clear();
     // Shift center to the left to give space to the config overlay sidebar
     final Offset center = Offset(size.width * 0.45, size.height * 0.5);
 
@@ -1947,6 +1953,9 @@ class Scene3DViewportPainter extends CustomPainter {
         }
       }
       final proj = project(lat, currentLng, finalHeight, center, rotationAngle, tilt, size);
+      if (node.id == 'Master_1') {
+        print("DEBUG Master_1: type=$type, finalHeight=$finalHeight, proj.z=${proj.z}, proj.offset=${proj.offset}");
+      }
       
       if (proj.z >= 0) {
         allProjectedNodes[id] = proj;
@@ -1997,19 +2006,45 @@ class Scene3DViewportPainter extends CustomPainter {
               ),
             );
             final Offset textPos = proj.offset + const Offset(8, -4);
-            final RRect capsuleRRect = RRect.fromRectAndRadius(
-              Rect.fromLTWH(
-                textPos.dx - 6,
-                textPos.dy - 3,
-                textPainter.width + 12,
-                textPainter.height + 6,
-              ),
-              const Radius.circular(8),
+            final Rect outerRect = Rect.fromLTWH(
+              textPos.dx - 6,
+              textPos.dy - 3,
+              textPainter.width + 12,
+              textPainter.height + 6,
             );
-            _labelBorderPaint.color = textColor.withOpacity(0.4);
-            canvas.drawRRect(capsuleRRect, _labelBgPaint);
-            canvas.drawRRect(capsuleRRect, _labelBorderPaint);
-            textPainter.paint(canvas, textPos);
+
+            bool overlapsMoreThan10 = false;
+            final double area1 = outerRect.width * outerRect.height;
+            for (final Rect existing in drawnLabelRects) {
+              final double left = math.max(outerRect.left, existing.left);
+              final double right = math.min(outerRect.right, existing.right);
+              final double top = math.max(outerRect.top, existing.top);
+              final double bottom = math.min(outerRect.bottom, existing.bottom);
+              final double intersectWidth = right - left;
+              final double intersectHeight = bottom - top;
+              if (intersectWidth > 0 && intersectHeight > 0) {
+                final double intersectArea = intersectWidth * intersectHeight;
+                final double area2 = existing.width * existing.height;
+                final double overlapPercent1 = area1 > 0 ? intersectArea / area1 : 0.0;
+                final double overlapPercent2 = area2 > 0 ? intersectArea / area2 : 0.0;
+                if (overlapPercent1 > 0.10 || overlapPercent2 > 0.10) {
+                  overlapsMoreThan10 = true;
+                  break;
+                }
+              }
+            }
+
+            if (!overlapsMoreThan10) {
+              drawnLabelRects.add(outerRect);
+              final RRect capsuleRRect = RRect.fromRectAndRadius(
+                outerRect,
+                const Radius.circular(8),
+              );
+              _labelBorderPaint.color = textColor.withOpacity(0.4);
+              canvas.drawRRect(capsuleRRect, _labelBgPaint);
+              canvas.drawRRect(capsuleRRect, _labelBorderPaint);
+              textPainter.paint(canvas, textPos);
+            }
           }
         }
       }
@@ -2109,7 +2144,8 @@ class Scene3DViewportPainter extends CustomPainter {
         oldDelegate.zoomScale != zoomScale ||
         oldDelegate.tileRenderer != tileRenderer ||
         oldDelegate.imageryProvider != imageryProvider ||
-        oldDelegate.verticalExaggeration != verticalExaggeration;
+        oldDelegate.verticalExaggeration != verticalExaggeration ||
+        oldDelegate.topologyData != topologyData;
   }
 }
 

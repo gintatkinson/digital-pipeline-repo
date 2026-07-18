@@ -814,6 +814,9 @@ class _FakeCanvas extends Fake implements Canvas {
   final List<List<Offset>> points = [];
 
   @override
+  void clipRect(Rect rect, {ClipOp clipOp = ClipOp.intersect, bool doAntiAlias = true}) {}
+
+  @override
   void drawCircle(Offset center, double radius, Paint paint) {
     circles.add((center, radius));
   }

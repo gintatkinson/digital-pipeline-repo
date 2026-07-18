@@ -240,12 +240,14 @@ class DatabaseInitializer {
       });
     }
 
+    final int nodeHash = node.hashCode.abs();
+    final double offsetIndex = (nodeHash % 100) / 100.0;
     final propertiesMap = {
       for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j',
       'location': {
         'ellipsoid': {
-          'latitude': isRoot ? 35.6074 : 40.7128,
-          'longitude': isRoot ? 140.1063 : -74.0060,
+          'latitude': isRoot ? 35.6074 : 40.7128 + offsetIndex * 2.0,
+          'longitude': isRoot ? 140.1063 : -74.0060 + offsetIndex * 2.0,
           'height': 0.0,
         }
       }

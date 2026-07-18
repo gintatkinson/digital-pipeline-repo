@@ -25,6 +25,8 @@ import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
 /// takes its minimum and the trailing pane fills the remainder (which
 /// may be smaller than [splitMinFirstPaneSize]).
 class TopographicalView extends StatefulWidget {
+  static final GlobalKey<_TopographicalViewState> globalKey = GlobalKey<_TopographicalViewState>();
+
   final String currentView;
   final ValueChanged<String> onViewSelected;
   final Widget? child;
@@ -101,7 +103,7 @@ class _TopographicalViewState extends State<TopographicalView> {
   @override
   void didUpdateWidget(covariant TopographicalView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentView != widget.currentView) {
+    if (oldWidget.currentView != widget.currentView || oldWidget.topologyData != widget.topologyData) {
       setState(() {
         _lastCurrentView = widget.currentView;
         _cachedCamera = _calculateCameraForView(widget.currentView);
@@ -169,9 +171,11 @@ class _TopographicalViewState extends State<TopographicalView> {
             topologyData: widget.topologyData,
             onCameraChanged: (newCamera) {
               if (!mounted) return;
-              setState(() {
-                _cachedCamera = newCamera;
-              });
+              if (widget.currentView == _lastCurrentView) {
+                setState(() {
+                  _cachedCamera = newCamera;
+                });
+              }
             },
           )
         : TopologyMap(

@@ -163,6 +163,7 @@ class ComponentFactory {
         final treeData = treeViewModel?.treeData ?? [];
         final panelOpacity = context.watch<ThemeController>().panelOpacity;
         return TopographicalView(
+          key: TopographicalView.globalKey,
           currentView: currentView,
           onViewSelected: onViewSelected,
           child: Container(

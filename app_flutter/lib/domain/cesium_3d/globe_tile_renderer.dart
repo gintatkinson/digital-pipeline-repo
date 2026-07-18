@@ -324,7 +324,8 @@ class GlobeTileRenderer {
       final double lonW = _tile2lon(x, z);
       final double lonE = _tile2lon(x + 1, z);
 
-      final int subdivisions = (z == 0) ? 16 : ((z == 1) ? 12 : ((z == 2) ? 8 : 4));
+      final double tileWidthDeg = 360.0 / math.pow(2, z);
+      final int subdivisions = (tileWidthDeg / 5.0).ceil().clamp(4, 32);
       final List<ui.Offset> positions = [];
       final List<ui.Offset> textureCoordinates = [];
       final List<double> zs = [];
@@ -364,9 +365,8 @@ class GlobeTileRenderer {
           final int i3 = i2 + 1;
 
           // Triangle 1: (i0, i1, i2)
-          final bool anyBehind1 = zs[i0] <= -100.0 || zs[i1] <= -100.0 || zs[i2] <= -100.0;
           final bool allCulled1 = zs[i0] < -0.5 && zs[i1] < -0.5 && zs[i2] < -0.5;
-          if (anyBehind1 || allCulled1) {
+          if (allCulled1) {
             // Discard
           } else {
             indices.add(i0);
@@ -375,9 +375,8 @@ class GlobeTileRenderer {
           }
 
           // Triangle 2: (i1, i3, i2)
-          final bool anyBehind2 = zs[i1] <= -100.0 || zs[i3] <= -100.0 || zs[i2] <= -100.0;
           final bool allCulled2 = zs[i1] < -0.5 && zs[i3] < -0.5 && zs[i2] < -0.5;
-          if (anyBehind2 || allCulled2) {
+          if (allCulled2) {
             // Discard
           } else {
             indices.add(i1);

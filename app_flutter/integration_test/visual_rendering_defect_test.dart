@@ -20,6 +20,8 @@ import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
+import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
+import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -63,8 +65,8 @@ void main() {
         final File file = File('/Users/perkunas/jail/digital-pipeline-repo/screenshots/failure_stuck_spinner.png');
         file.parent.createSync(recursive: true);
         final boundary = tester.renderObject<RenderRepaintBoundary>(find.byType(RepaintBoundary).first);
-        final image = await boundary.toImage();
-        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        final ui.Image image = (await tester.runAsync<ui.Image>(() => boundary.toImage()))!;
+        final ByteData? byteData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.png));
         file.writeAsBytesSync(byteData!.buffer.asUint8List());
         fail('Spinner stuck after 5 seconds');
       }
@@ -101,8 +103,8 @@ void main() {
       final File file = File('/Users/perkunas/jail/digital-pipeline-repo/screenshots/failure_duplicate_viewports.png');
       file.parent.createSync(recursive: true);
       final boundary = tester.renderObject<RenderRepaintBoundary>(find.byType(RepaintBoundary).first);
-      final image = await boundary.toImage();
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final ui.Image image = (await tester.runAsync<ui.Image>(() => boundary.toImage()))!;
+      final ByteData? byteData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.png));
       file.writeAsBytesSync(byteData!.buffer.asUint8List());
       fail('Expected exactly 1 Scene3DViewport');
     }
@@ -112,15 +114,31 @@ void main() {
       await tester.pump();
     }
     
+    final viewportFinder = find.byType(Scene3DViewport);
+    final Scene3DViewport viewportWidget = tester.widget(viewportFinder);
+    print("TEST DEBUG: viewport topologyData nodes count: ${viewportWidget.topologyData?.nodes.length}");
+
+    final state = tester.state(viewportFinder) as dynamic;
+    final CameraController controller = state.cameraController as CameraController;
+    controller.updateCamera(VirtualCamera(
+      latitude: 35.6074,
+      longitude: 140.1063,
+      altitude: 2096002.56,
+      heading: 0.0,
+      pitch: -89.9,
+      roll: 0.0,
+    ));
+    await settle(tester);
+
     final RenderRepaintBoundary boundary = tester.renderObject(find.byKey(const Key('scene_3d_viewport_boundary')));
-    final ui.Image image = await boundary.toImage();
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final ui.Image image = (await tester.runAsync<ui.Image>(() => boundary.toImage()))!;
+    final ByteData? byteData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.rawRgba));
     final Uint8List pixels = byteData!.buffer.asUint8List();
     
     Future<void> captureFailure(String name) async {
       final File file = File('/Users/perkunas/jail/digital-pipeline-repo/screenshots/$name.png');
       file.parent.createSync(recursive: true);
-      final pngData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.png));
       file.writeAsBytesSync(pngData!.buffer.asUint8List());
     }
 

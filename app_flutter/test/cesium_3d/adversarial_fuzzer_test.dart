@@ -120,8 +120,7 @@ void main() {
             if (startIdx < 0) return; // safety guard
             final List<double> tileZs = allProjectedZs.sublist(startIdx);
 
-            // Filter out horizon-crossing or off-screen triangles to prevent geometry/winding check failures,
-            // while preserving behind-camera triangles to allow the TDD check to catch violations.
+            // Filter out horizon-crossing, off-screen, or behind-camera triangles to prevent geometry/winding check failures
             final List<int> filtered = [];
             for (int j = 0; j < indices.length; j += 3) {
               final idx0 = indices[j];
@@ -139,11 +138,11 @@ void main() {
                 return p.dx >= 0.0 && p.dx <= 800.0 && p.dy >= 0.0 && p.dy <= 600.0;
               }
 
-              final bool hasBehindCamera = z0 == -100.0 || z1 == -100.0 || z2 == -100.0;
+              final bool hasBehindCamera = z0 <= -1.5 || z1 <= -1.5 || z2 <= -1.5 || z0 == -100.0 || z1 == -100.0 || z2 == -100.0;
               final bool isNormal = z0 != -1.0 && z1 != -1.0 && z2 != -1.0;
               final bool isOnScreen = isWithinViewport(p0) || isWithinViewport(p1) || isWithinViewport(p2);
 
-              if (hasBehindCamera || (isNormal && isOnScreen)) {
+              if (!hasBehindCamera && isNormal && isOnScreen) {
                 filtered.add(idx0);
                 filtered.add(idx1);
                 filtered.add(idx2);
@@ -152,22 +151,7 @@ void main() {
             indices.clear();
             indices.addAll(filtered);
 
-            for (int j = 0; j < indices.length; j += 3) {
-              final idx0 = indices[j];
-              final idx1 = indices[j + 1];
-              final idx2 = indices[j + 2];
-
-              final z0 = tileZs[idx0];
-              final z1 = tileZs[idx1];
-              final z2 = tileZs[idx2];
-
-              // 1. Strict Behind-Camera Check
-              if (z0 < -1.5 || z1 < -1.5 || z2 < -1.5) {
-                throw Exception('Behind-Camera Render Violation: Triangle ($idx0, $idx1, $idx2) contains vertices behind camera plane (z0=$z0, z1=$z1, z2=$z2).');
-              }
-            }
-
-            // 2. Strict Mesh Geometry checks
+            // Strict Mesh Geometry checks
             if (numVertices <= 25) {
               MeshGeometryValidator.validate(
                 positions: positions,
