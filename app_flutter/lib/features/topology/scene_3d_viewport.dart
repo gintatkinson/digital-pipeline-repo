@@ -1806,16 +1806,8 @@ class Scene3DViewportPainter extends CustomPainter {
     }
 
     // 7. Space, Ground, and Underwater Node Layouts (Dynamic DB-Backed)
-    List<TopologyNode> nodes = [];
-    List<TopologyLink> links = [];
-
-    if (topologyData == null || topologyData!.nodes.isEmpty) {
-      nodes = [];
-      links = [];
-    } else {
-      nodes = topologyData!.nodes;
-      links = topologyData!.links;
-    }
+    List<TopologyNode> nodes = topologyData?.nodes ?? [];
+    List<TopologyLink> links = topologyData?.links ?? [];
 
     final Map<String, int> coordinateLabelCounts = {};
     final Map<String, ProjectedPoint> allProjectedNodes = {};
