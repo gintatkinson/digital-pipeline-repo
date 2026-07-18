@@ -65,6 +65,84 @@
         "$value": "high-density",
         "$type": "string"
       }
+    },
+    "elevation": {
+      "app-bar": {
+        "$value": "4px",
+        "$type": "dimension"
+      },
+      "bottom-app-bar": {
+        "$value": "8px",
+        "$type": "dimension"
+      },
+      "popup-menu": {
+        "$value": "8px",
+        "$type": "dimension"
+      },
+      "dialog": {
+        "$value": "24px",
+        "$type": "dimension"
+      },
+      "app-bar-scrolled-under": {
+        "$value": "4px",
+        "$type": "dimension"
+      },
+      "drawer": {
+        "$value": "16px",
+        "$type": "dimension"
+      },
+      "bottom-sheet": {
+        "$value": "10px",
+        "$type": "dimension"
+      },
+      "bottom-sheet-modal": {
+        "$value": "20px",
+        "$type": "dimension"
+      },
+      "bottom-navigation-bar": {
+        "$value": "8px",
+        "$type": "dimension"
+      },
+      "menu": {
+        "$value": "8px",
+        "$type": "dimension"
+      },
+      "menu-bar": {
+        "$value": "1px",
+        "$type": "dimension"
+      },
+      "navigation-bar": {
+        "$value": "0px",
+        "$type": "dimension"
+      }
+    },
+    "radius": {
+      "default": {
+        "$value": "4px",
+        "$type": "dimension"
+      },
+      "chip": {
+        "$value": "20px",
+        "$type": "dimension"
+      },
+      "tooltip": {
+        "$value": "4px",
+        "$type": "dimension"
+      },
+      "menu-bar": {
+        "$value": "0px",
+        "$type": "dimension"
+      }
+    },
+    "padding": {
+      "list-tile-horizontal": {
+        "$value": "16px",
+        "$type": "dimension"
+      },
+      "list-tile-vertical": {
+        "$value": "4px",
+        "$type": "dimension"
+      }
     }
   },
   "alias": {
@@ -127,6 +205,84 @@
         "$value": "{global.typography.scale}",
         "$type": "string"
       }
+    },
+    "elevation": {
+      "app-bar": {
+        "$value": "{global.elevation.app-bar}",
+        "$type": "dimension"
+      },
+      "bottom-app-bar": {
+        "$value": "{global.elevation.bottom-app-bar}",
+        "$type": "dimension"
+      },
+      "popup-menu": {
+        "$value": "{global.elevation.popup-menu}",
+        "$type": "dimension"
+      },
+      "dialog": {
+        "$value": "{global.elevation.dialog}",
+        "$type": "dimension"
+      },
+      "app-bar-scrolled-under": {
+        "$value": "{global.elevation.app-bar-scrolled-under}",
+        "$type": "dimension"
+      },
+      "drawer": {
+        "$value": "{global.elevation.drawer}",
+        "$type": "dimension"
+      },
+      "bottom-sheet": {
+        "$value": "{global.elevation.bottom-sheet}",
+        "$type": "dimension"
+      },
+      "bottom-sheet-modal": {
+        "$value": "{global.elevation.bottom-sheet-modal}",
+        "$type": "dimension"
+      },
+      "bottom-navigation-bar": {
+        "$value": "{global.elevation.bottom-navigation-bar}",
+        "$type": "dimension"
+      },
+      "menu": {
+        "$value": "{global.elevation.menu}",
+        "$type": "dimension"
+      },
+      "menu-bar": {
+        "$value": "{global.elevation.menu-bar}",
+        "$type": "dimension"
+      },
+      "navigation-bar": {
+        "$value": "{global.elevation.navigation-bar}",
+        "$type": "dimension"
+      }
+    },
+    "radius": {
+      "default": {
+        "$value": "{global.radius.default}",
+        "$type": "dimension"
+      },
+      "chip": {
+        "$value": "{global.radius.chip}",
+        "$type": "dimension"
+      },
+      "tooltip": {
+        "$value": "{global.radius.tooltip}",
+        "$type": "dimension"
+      },
+      "menu-bar": {
+        "$value": "{global.radius.menu-bar}",
+        "$type": "dimension"
+      }
+    },
+    "padding": {
+      "list-tile-horizontal": {
+        "$value": "{global.padding.list-tile-horizontal}",
+        "$type": "dimension"
+      },
+      "list-tile-vertical": {
+        "$value": "{global.padding.list-tile-vertical}",
+        "$type": "dimension"
+      }
     }
   },
   "component": {
@@ -139,6 +295,18 @@
     "splitter": {
       "min-pane-size": {
         "$value": "{alias.spacing.layout-min-pane-size}",
+        "$type": "dimension"
+      },
+      "divider-size": {
+        "$value": "{alias.spacing.sm}",
+        "$type": "dimension"
+      },
+      "grip-width": {
+        "$value": "2px",
+        "$type": "dimension"
+      },
+      "grip-height": {
+        "$value": "40px",
         "$type": "dimension"
       }
     },

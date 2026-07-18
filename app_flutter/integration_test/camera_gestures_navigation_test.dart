@@ -20,6 +20,7 @@ import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +29,15 @@ void main() {
     tester.binding.setSurfaceSize(const Size(1280, 800));
     addTearDown(() {
       tester.binding.setSurfaceSize(null);
+      TileFetcher.urlOverride = null;
     });
+
+    // Set local tile file override to verify tile rendering visually
+    final String currentDir = Directory.current.path;
+    final File localTile = File('$currentDir/test/topology/goldens/exaggerated_fuji_node.png');
+    if (localTile.existsSync()) {
+      TileFetcher.urlOverride = 'file://${localTile.absolute.path}';
+    }
 
     await StringResources.load();
 

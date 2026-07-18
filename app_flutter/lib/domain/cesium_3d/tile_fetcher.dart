@@ -80,6 +80,19 @@ class TileCache {
 /// once disabled every subsequent [fetchTile] returns `null` immediately
 /// without touching the network.
 class TileFetcher {
+  static final Map<ImageryProvider, String> _basemapTemplates = {};
+
+  /// Configures the fetcher with basemap URL templates from configuration.
+  static void configure(Map<String, dynamic> configs) {
+    _basemapTemplates.clear();
+    for (final provider in ImageryProvider.values) {
+      final key = provider.name;
+      if (configs.containsKey(key)) {
+        _basemapTemplates[provider] = configs[key] as String;
+      }
+    }
+  }
+
   bool _enabled = AppConfig.mapImageryEnabled;
 
   final HttpClient _client = HttpClient()
@@ -118,16 +131,14 @@ class TileFetcher {
   /// This method is public so that integration tests can verify URL
   /// construction without making actual network calls.
   static String urlFor(ImageryProvider provider, int z, int x, int y) {
-    switch (provider) {
-      case ImageryProvider.openStreetMap:
-        return 'https://tile.openstreetmap.org/$z/$x/$y.png';
-      case ImageryProvider.arcGisSatellite:
-        return 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$z/$y/$x';
-      case ImageryProvider.cartoDark:
-        return 'https://basemaps.cartocdn.com/dark_all/$z/$x/$y.png';
-      case ImageryProvider.cartoLight:
-        return 'https://basemaps.cartocdn.com/light_all/$z/$x/$y.png';
+    final template = _basemapTemplates[provider];
+    if (template == null) {
+      throw StateError('Basemap URL template for ${provider.name} is not configured.');
     }
+    return template
+        .replaceAll('{z}', z.toString())
+        .replaceAll('{x}', x.toString())
+        .replaceAll('{y}', y.toString());
   }
 
   String _urlFor(ImageryProvider provider, int z, int x, int y) {

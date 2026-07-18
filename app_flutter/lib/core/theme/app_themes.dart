@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
@@ -131,6 +134,111 @@ class AppThemes {
     ),
   ];
 
+  static Map<String, dynamic> _tokens = {};
+
+  static void _ensureLoaded() {
+    if (_tokens.isNotEmpty) return;
+    try {
+      final file = File('assets/design-tokens.json');
+      if (file.existsSync()) {
+        final jsonStr = file.readAsStringSync();
+        _tokens = jsonDecode(jsonStr) as Map<String, dynamic>;
+        return;
+      }
+    } catch (_) {}
+    try {
+      final file = File('app_flutter/assets/design-tokens.json');
+      if (file.existsSync()) {
+        final jsonStr = file.readAsStringSync();
+        _tokens = jsonDecode(jsonStr) as Map<String, dynamic>;
+        return;
+      }
+    } catch (_) {}
+  }
+
+  static Future<void> load() async {
+    try {
+      final jsonStr = await rootBundle.loadString('assets/design-tokens.json');
+      _tokens = jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (e) {
+      _ensureLoaded();
+    }
+  }
+
+  static void loadFromJson(String json) {
+    _tokens = jsonDecode(json) as Map<String, dynamic>;
+  }
+
+  static dynamic resolveValue(dynamic value) {
+    if (value is! String) return value;
+    final match = RegExp(r'^\{(.+)\}$').firstMatch(value);
+    if (match == null) return value;
+    final path = match.group(1)!.split('.');
+    dynamic current = _tokens;
+    for (final part in path) {
+      if (current is Map && current.containsKey(part)) {
+        current = current[part];
+      } else {
+        return value;
+      }
+    }
+    if (current is Map && current.containsKey('\$value')) {
+      return resolveValue(current['\$value']);
+    }
+    return current;
+  }
+
+  static dynamic _resolvePath(String path) {
+    final parts = path.split('.');
+    dynamic current = _tokens;
+    for (final part in parts) {
+      if (current is Map && current.containsKey(part)) {
+        current = current[part];
+      } else {
+        return null;
+      }
+    }
+    if (current is Map && current.containsKey('\$value')) {
+      return resolveValue(current['\$value']);
+    }
+    return current;
+  }
+
+  static double parseDimension(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    final s = value.toString().trim();
+    if (s.endsWith('px')) {
+      return double.tryParse(s.substring(0, s.length - 2)) ?? 0.0;
+    }
+    return double.tryParse(s) ?? 0.0;
+  }
+
+  static double getDimension(String path, [double defaultValue = 0.0]) {
+    _ensureLoaded();
+    final val = _resolvePath(path);
+    if (val == null) return defaultValue;
+    return parseDimension(val);
+  }
+
+  static String? getString(String path) {
+    _ensureLoaded();
+    final val = _resolvePath(path);
+    return val?.toString();
+  }
+
+  static String? getFontFamily() {
+    return getString('alias.typography.font-family') ?? getString('global.typography.font-family');
+  }
+
+  static VisualDensity getVisualDensity() {
+    final scale = getString('alias.typography.scale') ?? getString('global.typography.scale');
+    if (scale == 'high-density' || scale == 'compact') {
+      return VisualDensity.compact;
+    }
+    return FlexColorScheme.comfortablePlatformDensity;
+  }
+
   /// Builds a light [ThemeData] from an optional custom scheme.
   ///
   /// When [custom] is null the first scheme (Greys) is used. Does not
@@ -139,14 +247,15 @@ class AppThemes {
     final data = custom ?? customSchemes[0];
     return FlexThemeData.light(
       colors: data.light,
+      fontFamily: getFontFamily(),
       appBarStyle: FlexAppBarStyle.primary,
-      appBarElevation: 4.0,
+      appBarElevation: getDimension('alias.elevation.app-bar', 4.0),
       tabBarStyle: FlexTabBarStyle.forBackground,
-      bottomAppBarElevation: 8.0,
+      bottomAppBarElevation: getDimension('alias.elevation.bottom-app-bar', 8.0),
       surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
       blendLevel: 7,
       subThemesData: _subThemes(inputAlpha: 13),
-      visualDensity: FlexColorScheme.comfortablePlatformDensity,
+      visualDensity: getVisualDensity(),
       cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
       useMaterial3: true,
     );
@@ -160,14 +269,15 @@ class AppThemes {
     final data = custom ?? customSchemes[0];
     return FlexThemeData.dark(
       colors: data.dark,
+      fontFamily: getFontFamily(),
       appBarStyle: FlexAppBarStyle.material,
-      appBarElevation: 4.0,
+      appBarElevation: getDimension('alias.elevation.app-bar', 4.0),
       tabBarStyle: FlexTabBarStyle.forBackground,
-      bottomAppBarElevation: 8.0,
+      bottomAppBarElevation: getDimension('alias.elevation.bottom-app-bar', 8.0),
       surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
       blendLevel: 13,
       subThemesData: _subThemes(inputAlpha: 20),
-      visualDensity: FlexColorScheme.comfortablePlatformDensity,
+      visualDensity: getVisualDensity(),
       cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
       useMaterial3: true,
     );
@@ -182,7 +292,7 @@ class AppThemes {
     useM2StyleDividerInM3: true,
     adaptiveElevationShadowsBack: FlexAdaptive.all(),
     adaptiveAppBarScrollUnderOff: FlexAdaptive.all(),
-    defaultRadius: 4.0,
+    defaultRadius: getDimension('alias.radius.default', 4.0),
     elevatedButtonSchemeColor: SchemeColor.onPrimary,
     elevatedButtonSecondarySchemeColor: SchemeColor.primary,
     inputDecoratorSchemeColor: SchemeColor.onSurface,
@@ -190,36 +300,41 @@ class AppThemes {
     inputDecoratorBackgroundAlpha: inputAlpha,
     inputDecoratorBorderSchemeColor: SchemeColor.primary,
     inputDecoratorBorderType: FlexInputBorderType.outline,
-    listTileContentPadding: EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
-    listTileMinVerticalPadding: 4.0,
+    listTileContentPadding: EdgeInsetsDirectional.fromSTEB(
+      getDimension('alias.padding.list-tile-horizontal', 16.0),
+      0,
+      getDimension('alias.padding.list-tile-horizontal', 16.0),
+      0,
+    ),
+    listTileMinVerticalPadding: getDimension('alias.padding.list-tile-vertical', 4.0),
     fabUseShape: true,
     fabAlwaysCircular: true,
     fabSchemeColor: SchemeColor.secondary,
     chipSchemeColor: SchemeColor.primary,
-    chipRadius: 20.0,
-    popupMenuElevation: 8.0,
+    chipRadius: getDimension('alias.radius.chip', 20.0),
+    popupMenuElevation: getDimension('alias.elevation.popup-menu', 8.0),
     alignedDropdown: true,
-    tooltipRadius: 4,
-    dialogElevation: 24.0,
+    tooltipRadius: getDimension('alias.radius.tooltip', 4.0),
+    dialogElevation: getDimension('alias.elevation.dialog', 24.0),
     datePickerHeaderBackgroundSchemeColor: SchemeColor.primary,
     snackBarBackgroundSchemeColor: SchemeColor.inverseSurface,
-    appBarScrolledUnderElevation: 4.0,
+    appBarScrolledUnderElevation: getDimension('alias.elevation.app-bar-scrolled-under', 4.0),
     tabBarIndicatorSize: TabBarIndicatorSize.tab,
     tabBarIndicatorWeight: 2,
     tabBarIndicatorTopRadius: 0,
     tabBarDividerColor: const Color(0x00000000),
-    drawerElevation: 16.0,
+    drawerElevation: getDimension('alias.elevation.drawer', 16.0),
     drawerWidth: 280.0,
-    bottomSheetElevation: 10.0,
-    bottomSheetModalElevation: 20.0,
+    bottomSheetElevation: getDimension('alias.elevation.bottom-sheet', 10.0),
+    bottomSheetModalElevation: getDimension('alias.elevation.bottom-sheet-modal', 20.0),
     bottomNavigationBarSelectedLabelSchemeColor: SchemeColor.primary,
     bottomNavigationBarMutedUnselectedLabel: true,
     bottomNavigationBarSelectedIconSchemeColor: SchemeColor.primary,
     bottomNavigationBarMutedUnselectedIcon: true,
-    bottomNavigationBarElevation: 8.0,
-    menuElevation: 8.0,
-    menuBarRadius: 0.0,
-    menuBarElevation: 1.0,
+    bottomNavigationBarElevation: getDimension('alias.elevation.bottom-navigation-bar', 8.0),
+    menuElevation: getDimension('alias.elevation.menu', 8.0),
+    menuBarRadius: getDimension('alias.radius.menu-bar', 0.0),
+    menuBarElevation: getDimension('alias.elevation.menu-bar', 1.0),
     navigationBarSelectedLabelSchemeColor: SchemeColor.onSurface,
     navigationBarUnselectedLabelSchemeColor: SchemeColor.onSurface,
     navigationBarMutedUnselectedLabel: true,
@@ -228,7 +343,7 @@ class AppThemes {
     navigationBarMutedUnselectedIcon: true,
     navigationBarIndicatorSchemeColor: SchemeColor.secondary,
     navigationBarBackgroundSchemeColor: SchemeColor.surfaceContainer,
-    navigationBarElevation: 0.0,
+    navigationBarElevation: getDimension('alias.elevation.navigation-bar', 0.0),
     navigationRailSelectedLabelSchemeColor: SchemeColor.onSurface,
     navigationRailUnselectedLabelSchemeColor: SchemeColor.onSurface,
     navigationRailMutedUnselectedLabel: true,

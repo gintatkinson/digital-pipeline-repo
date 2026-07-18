@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
+import 'package:app_flutter/core/theme/app_themes.dart';
 
 /// A resizable split pane that lays out [leading] and [trailing] widgets
 /// along [direction] with a draggable divider.
@@ -34,7 +35,7 @@ class SplitWorkspace extends StatefulWidget {
   /// [direction] is [Axis.vertical] this is its height. The divider
   /// background uses [Theme.dividerColor] and is inset by 1 px borders on
   /// both sides. Defaults to 8.0.
-  final double dividerSize;
+  final double? dividerSize;
 
   /// Width of the inner drag-grip rectangle in logical pixels.
   ///
@@ -42,7 +43,7 @@ class SplitWorkspace extends StatefulWidget {
   /// theme's icon color at 30% opacity. When [direction] is [Axis.horizontal]
   /// this value is used as the grip's width; for [Axis.vertical] it becomes
   /// the grip's height (the orientation is swapped). Defaults to 2.0.
-  final double gripWidth;
+  final double? gripWidth;
 
   /// Height of the inner drag-grip rectangle in logical pixels.
   ///
@@ -50,7 +51,7 @@ class SplitWorkspace extends StatefulWidget {
   /// theme's icon color at 30% opacity. When [direction] is [Axis.horizontal]
   /// this value is used as the grip's height; for [Axis.vertical] it becomes
   /// the grip's width (the orientation is swapped). Defaults to 40.0.
-  final double gripHeight;
+  final double? gripHeight;
   final Key? splitterKey;
   final ValueChanged<double>? onDrag;
 
@@ -63,9 +64,9 @@ class SplitWorkspace extends StatefulWidget {
     required this.direction,
     required this.minFirstPaneSize,
     required this.initialRatio,
-    this.dividerSize = 8.0,
-    this.gripWidth = 2.0,
-    this.gripHeight = 40.0,
+    this.dividerSize,
+    this.gripWidth,
+    this.gripHeight,
     this.splitterKey,
     this.onDrag,
     this.paintLeadingOnTop = false,
@@ -82,6 +83,10 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
   @override
   Widget build(BuildContext context) {
     final panelOpacity = context.watch<ThemeController>().panelOpacity;
+    final resolvedDividerSize = widget.dividerSize ?? AppThemes.getDimension('component.splitter.divider-size', 8.0);
+    final resolvedGripWidth = widget.gripWidth ?? AppThemes.getDimension('component.splitter.grip-width', 2.0);
+    final resolvedGripHeight = widget.gripHeight ?? AppThemes.getDimension('component.splitter.grip-height', 40.0);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalSize = widget.direction == Axis.horizontal
@@ -93,7 +98,7 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
           _initialized = true;
         }
 
-        final maxPossibleFirstPane = (totalSize - widget.dividerSize).clamp(0, totalSize).toDouble();
+        final maxPossibleFirstPane = (totalSize - resolvedDividerSize).clamp(0, totalSize).toDouble();
         final safeMinFirstPane = math.min(widget.minFirstPaneSize, maxPossibleFirstPane);
 
         final clampedFirstPane = _firstPaneSize.clamp(
@@ -128,8 +133,8 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
                 ? SystemMouseCursors.resizeLeftRight
                 : SystemMouseCursors.resizeUpDown,
             child: Container(
-              width: isHorizontal ? widget.dividerSize : double.infinity,
-              height: isHorizontal ? double.infinity : widget.dividerSize,
+              width: isHorizontal ? resolvedDividerSize : double.infinity,
+              height: isHorizontal ? double.infinity : resolvedDividerSize,
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor.withOpacity(panelOpacity),
                 border: isHorizontal
@@ -156,8 +161,8 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
               ),
               child: Center(
                 child: Container(
-                  width: isHorizontal ? widget.gripWidth : widget.gripHeight,
-                  height: isHorizontal ? widget.gripHeight : widget.gripWidth,
+                  width: isHorizontal ? resolvedGripWidth : resolvedGripHeight,
+                  height: isHorizontal ? resolvedGripHeight : resolvedGripWidth,
                   color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3) ??
                       Theme.of(context).dividerColor,
                 ),
@@ -177,8 +182,8 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
           right: isHorizontal ? null : 0,
           top: isHorizontal ? 0 : clampedFirstPane,
           bottom: isHorizontal ? 0 : null,
-          width: isHorizontal ? widget.dividerSize : null,
-          height: isHorizontal ? null : widget.dividerSize,
+          width: isHorizontal ? resolvedDividerSize : null,
+          height: isHorizontal ? null : resolvedDividerSize,
           child: RepaintBoundary(child: splitter),
         );
 
@@ -193,16 +198,16 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
         );
 
         final double? trailingWidth = isHorizontal
-            ? math.max(0.0, totalSize - clampedFirstPane - widget.dividerSize)
+            ? math.max(0.0, totalSize - clampedFirstPane - resolvedDividerSize)
             : null;
         final double? trailingHeight = isHorizontal
             ? null
-            : math.max(0.0, totalSize - clampedFirstPane - widget.dividerSize);
+            : math.max(0.0, totalSize - clampedFirstPane - resolvedDividerSize);
 
         final trailingWidget = Positioned(
-          left: isHorizontal ? clampedFirstPane + widget.dividerSize : 0,
+          left: isHorizontal ? clampedFirstPane + resolvedDividerSize : 0,
           right: isHorizontal ? null : 0,
-          top: isHorizontal ? 0 : clampedFirstPane + widget.dividerSize,
+          top: isHorizontal ? 0 : clampedFirstPane + resolvedDividerSize,
           bottom: isHorizontal ? 0 : null,
           width: trailingWidth,
           height: trailingHeight,

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -10,6 +11,21 @@ void main() {
 
     setUp(() {
       fetcher = TileFetcher();
+      final configFile = File('assets/persistence-config.json');
+      if (configFile.existsSync()) {
+        final configJson = configFile.readAsStringSync();
+        final config = jsonDecode(configJson) as Map<String, dynamic>;
+        if (config['basemaps'] != null) {
+          TileFetcher.configure(config['basemaps'] as Map<String, dynamic>);
+        }
+      } else {
+        TileFetcher.configure({
+          'openStreetMap': 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'arcGisSatellite': 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          'cartoDark': 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+          'cartoLight': 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        });
+      }
     });
 
     test('is enabled by default when MAP_IMAGERY_ENABLED is unset', () {

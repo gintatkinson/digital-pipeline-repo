@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
+import 'package:app_flutter/core/theme/app_themes.dart';
 
 /// A single segment in the breadcrumbs navigation bar.
 ///
@@ -123,7 +124,9 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
       if (i > 0) {
         children.add(
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: EdgeInsets.symmetric(
+              horizontal: AppThemes.getDimension('alias.spacing.sm', 8.0),
+            ),
             child: Text(
               '/',
               style: Theme.of(context).textTheme.bodyMedium,

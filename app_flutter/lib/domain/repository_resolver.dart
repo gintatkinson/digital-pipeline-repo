@@ -11,6 +11,7 @@ import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'database_initializer.dart';
 import 'package:flutter/foundation.dart';
+import 'cesium_3d/tile_fetcher.dart';
 
 
 /// Resolves the data-access backend at app startup.
@@ -73,17 +74,19 @@ class RepositoryResolver {
     }
     _isResolving = true;
     try {
-      String type = dataSourceType ?? 'sqlite';
+      // Always try reading from config file to load basemaps and resolve repository type
+      final path = configPath ?? _defaultConfig;
+      Map<String, dynamic>? config;
+      try {
+        final configJson = await rootBundle.loadString(path);
+        config = jsonDecode(configJson) as Map<String, dynamic>;
+      } catch (_) {}
 
-      // If no explicit type, try reading from config file
-      if (dataSourceType == null) {
-        final path = configPath ?? _defaultConfig;
-        try {
-          final configJson = await rootBundle.loadString(path);
-          final config = jsonDecode(configJson) as Map<String, dynamic>;
-          type = config['repository_type'] as String? ?? 'sqlite';
-        } catch (_) {}
+      if (config != null && config['basemaps'] != null) {
+        TileFetcher.configure(config['basemaps'] as Map<String, dynamic>);
       }
+
+      String type = dataSourceType ?? config?['repository_type'] as String? ?? 'sqlite';
 
       await _lastResolved?.dispose();
       final DataSource resolved;
