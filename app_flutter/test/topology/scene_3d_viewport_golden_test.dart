@@ -1,5 +1,4 @@
 // Playhead rate limits [0.9, 1.1]
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -20,19 +19,12 @@ double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
 
 void main() {
   group('Scene3DViewport Golden Tests', () {
-    late HttpServer server;
-    setUp(() async {
-      server = await HttpServer.bind('127.0.0.1', 0);
-      TileFetcher.urlOverride = 'http://127.0.0.1:${server.port}';
-      server.listen((HttpRequest request) async {
-        request.response.statusCode = HttpStatus.internalServerError;
-        await request.response.close();
-      });
+    setUp(() {
+      TileFetcher.urlOverride = 'file:///nonexistent/tile.png';
     });
 
     tearDown(() {
       TileFetcher.urlOverride = null;
-      server.close();
     });
 
     testWidgets('Visual Test 1 - Stars and Sphere View', (WidgetTester tester) async {
@@ -599,7 +591,8 @@ void main() {
       final double latRad = 35.3606 * math.pi / 180.0;
       final double lngRad = 138.7274 * math.pi / 180.0;
       final double terrainElev = Scene3DViewportPainter.getElevationStatic(35.3606, 138.7274, true);
-      final double expectedHeight = 6378137.0 + terrainElev * 2.0 + 100.0;
+      final double relativeAlt = 100.0 - terrainElev;
+      final double expectedHeight = 6378137.0 + terrainElev * 2.0 + relativeAlt;
 
       final Size size = tester.getSize(find.byType(Scene3DViewport));
       final Offset center = Offset(size.width * 0.45, size.height * 0.5);
@@ -793,7 +786,7 @@ void main() {
 
       final double expectedSpaceHeight = 6378137.0 + 50000.0;
       final double terrainElev = painter.getElevation(35.3606, 138.7274);
-      final double expectedGroundHeight = 6378137.0 + terrainElev * 10.0 + 1000.0;
+      final double expectedGroundHeight = 6378137.0 + terrainElev * 10.0 + (1000.0 - terrainElev);
 
       expect(heights, contains(closeTo(expectedSpaceHeight, 1e-4)));
       expect(heights, contains(closeTo(expectedGroundHeight, 1e-4)));

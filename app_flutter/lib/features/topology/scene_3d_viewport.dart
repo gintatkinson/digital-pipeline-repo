@@ -99,7 +99,10 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     } else {
       if (_elevationActive) {
         final double terrainElev = Scene3DViewportPainter.getElevationStatic(latitude, longitude, _elevationActive);
-        finalHeight = 6378137.0 + terrainElev * widget.verticalExaggeration + altitude;
+        final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND'
+            ? altitude
+            : altitude - terrainElev;
+        finalHeight = 6378137.0 + terrainElev * widget.verticalExaggeration + relativeAlt;
       } else {
         finalHeight = 6378137.0 + altitude;
       }
@@ -1876,7 +1879,10 @@ class Scene3DViewportPainter extends CustomPainter {
             () => '$id-${latDeg.toStringAsFixed(6)}-${lngDeg.toStringAsFixed(6)}-$astronomicalBody-$elevationActive',
           );
           final double terrainElev = _nodeElevationCache.putIfAbsent(cacheKey, () => getElevation(latDeg, lngDeg));
-          finalHeight = 6378137.0 + terrainElev * verticalExaggeration + alt;
+          final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND'
+              ? alt
+              : alt - terrainElev;
+          finalHeight = 6378137.0 + terrainElev * verticalExaggeration + relativeAlt;
         } else {
           finalHeight = 6378137.0 + alt;
         }

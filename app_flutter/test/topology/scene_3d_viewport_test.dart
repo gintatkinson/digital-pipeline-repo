@@ -294,6 +294,85 @@ void main() {
     });
   });
 
+  group('Issue #47: Ground Nodes Floating on Exaggerated Terrain', () {
+    test('Node with no heightRef and absolute altitude stays on surface with 80x exaggeration', () {
+      const double R = 6378137.0;
+      const double fujiLat = 35.3606;
+      const double fujiLng = 138.7274;
+      const double fujiElev = 3776.0;
+      const double vExag = 80.0;
+
+      final camera = VirtualCamera.clamped(
+        latitude: 35.0, longitude: 138.0, altitude: 2000000.0,
+        heading: 0, pitch: -90, roll: 0,
+      );
+
+      // Two co-located nodes at Fuji summit:
+      // Node A: RELATIVE_TO_GROUND, alt=0 → sits directly on surface
+      // Node B: no heightRef (geometric fallback → ground), alt=terrainElev → should also be on surface
+      // Bug: Node B's altitude (absolute) is added on top of exaggerated terrain, floating 3776m above
+      final topologyData = TopologyData(
+        coordinateMapping: const {},
+        nodes: [
+          const TopologyNode(
+            id: 'fuji-relative',
+            label: 'FujiR',
+            position: TopologyNodePosition(dim0: fujiLng, dim1: fujiLat, dim2: 0.0, timeIndex: 0, vector: []),
+            status: 'Active',
+            rawProperties: {'heightReference': 'RELATIVE_TO_GROUND'},
+          ),
+          const TopologyNode(
+            id: 'fuji-absolute',
+            label: 'FujiA',
+            position: TopologyNodePosition(dim0: fujiLng, dim1: fujiLat, dim2: fujiElev, timeIndex: 0, vector: []),
+            status: 'Active',
+            rawProperties: {},
+          ),
+        ],
+        links: const [],
+      );
+
+      final painter = Scene3DViewportPainter(
+        camera: camera,
+        activeStyle: 'dark',
+        astronomicalBody: 'Earth',
+        elevationActive: true,
+        showDevices: true,
+        showLinks: false,
+        showLabels: true,
+        showDropLines: false,
+        userRotationX: 0.0, userTilt: 0.0, zoomScale: 1.0,
+        verticalExaggeration: vExag,
+        topologyData: topologyData,
+      );
+
+      final canvas = FakeRecordingCanvas();
+      painter.paint(canvas, const Size(800, 600));
+
+      // Ground nodes are drawn via drawPoints (not drawCircle).
+      // With the bug, fuji-absolute floats 3776m above the surface → different projected positions.
+      // Check that both ground nodes have identical projected screen-space positions.
+      expect(canvas.points.length, greaterThanOrEqualTo(1),
+        reason: 'Ground nodes should produce drawPoints calls');
+
+      // Find the drawPoints call that contains exactly 2 ground nodes at Fuji
+      List<Offset> fujiGroundOffsets = <Offset>[];
+      for (final pointList in canvas.points) {
+        if (pointList.length == 2) {
+          fujiGroundOffsets = pointList;
+          break;
+        }
+      }
+
+      expect(fujiGroundOffsets.length, equals(2),
+        reason: 'Two co-located Fuji ground nodes should be drawn together');
+      expect(fujiGroundOffsets[0].dx, closeTo(fujiGroundOffsets[1].dx, 1e-6),
+        reason: 'X offset identical — nodes must sit on same surface, no floating');
+      expect(fujiGroundOffsets[0].dy, closeTo(fujiGroundOffsets[1].dy, 1e-6),
+        reason: 'Y offset identical — nodes must sit on same surface, no floating');
+    });
+  });
+
   group('Feature 03: Co-located Node Labels Stacked Offsets', () {
     test('Co-located nodes do not get discarded and stack their labels vertically', () {
       final camera = VirtualCamera.clamped(latitude: 35.0, longitude: 138.0, altitude: 2000000.0, heading: 0, pitch: -90, roll: 0);
