@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:app_flutter/domain/cesium_3d/cesium_engine.dart';
 import 'package:app_flutter/domain/cesium_3d/globe_tile_renderer.dart';
 import 'package:app_flutter/domain/cesium_3d/projected_point.dart';
@@ -42,7 +43,7 @@ class Scene3DViewport extends StatefulWidget {
   State<Scene3DViewport> createState() => Scene3DViewportState();
 }
 
-class Scene3DViewportState extends State<Scene3DViewport> {
+class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProviderStateMixin {
   late CameraController _cameraController;
 
   @visibleForTesting
@@ -154,7 +155,7 @@ class Scene3DViewportState extends State<Scene3DViewport> {
   bool _showMapConfig = true;
 
   GlobeTileRenderer? _tileRenderer;
-  Timer? _flyTimer;
+  Ticker? _flyTicker;
 
   ImageryProvider _providerForStyle(String style) {
     switch (style) {
@@ -174,6 +175,13 @@ class Scene3DViewportState extends State<Scene3DViewport> {
   @override
   void initState() {
     super.initState();
+    _flyTicker = createTicker((_) {
+      final done = _cameraController.tick();
+      if (done) {
+        _flyTicker?.stop();
+      }
+    });
+
     final rawCamInit = widget.camera;
     final absCamInit = rawCamInit.altitude < 6378137.0 ? VirtualCamera.raw(
       latitude: rawCamInit.latitude,
@@ -232,7 +240,7 @@ class Scene3DViewportState extends State<Scene3DViewport> {
 
   @override
   void dispose() {
-    _flyTimer?.cancel();
+    _flyTicker?.dispose();
     _globeFocusNode.dispose();
     _cameraController.removeListener(_onCameraChangedInside);
     _cameraController.dispose();
@@ -546,14 +554,8 @@ class Scene3DViewportState extends State<Scene3DViewport> {
   
           _cameraController.flyTo(targetCam);
   
-          _flyTimer?.cancel();
-          _flyTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
-            final done = _cameraController.tick();
-            if (done) {
-              timer.cancel();
-              _flyTimer = null;
-            }
-          });
+          _flyTicker?.stop();
+          _flyTicker?.start();
         },
         child: Stack(
       key: const Key('scene_3d_viewport_container'),
