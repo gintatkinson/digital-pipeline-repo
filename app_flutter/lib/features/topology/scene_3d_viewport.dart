@@ -1810,75 +1810,8 @@ class Scene3DViewportPainter extends CustomPainter {
     List<TopologyLink> links = [];
 
     if (topologyData == null || topologyData!.nodes.isEmpty) {
-      nodes = [
-        const TopologyNode(
-          id: 'sat-1',
-          label: 'sat-1',
-          position: TopologyNodePosition(dim0: 135.0, dim1: 15.0, dim2: 35786000.0, timeIndex: 0, vector: []),
-          status: 'Active',
-          rawProperties: {'type': 'SATELLITE'},
-        ),
-        const TopologyNode(
-          id: 'sat-2',
-          label: 'sat-2',
-          position: TopologyNodePosition(dim0: 142.0, dim1: -25.0, dim2: 20200000.0, timeIndex: 0, vector: []),
-          status: 'Active',
-          rawProperties: {'type': 'SATELLITE'},
-        ),
-        const TopologyNode(
-          id: 'sat-3',
-          label: 'sat-3',
-          position: TopologyNodePosition(dim0: 128.0, dim1: 40.0, dim2: 500000.0, timeIndex: 0, vector: []),
-          status: 'Active',
-          rawProperties: {'type': 'SATELLITE'},
-        ),
-        const TopologyNode(
-          id: 'sat-4',
-          label: 'sat-4',
-          position: TopologyNodePosition(dim0: 148.0, dim1: -5.0, dim2: 600000.0, timeIndex: 0, vector: []),
-          status: 'Active',
-          rawProperties: {'type': 'SATELLITE'},
-        ),
-        const TopologyNode(
-          id: 'GS-Tokyo',
-          label: 'GS-Tokyo',
-          position: TopologyNodePosition(dim0: 139.6, dim1: 35.6, dim2: 50.0, timeIndex: 0, vector: []),
-          status: 'Active',
-        ),
-        const TopologyNode(
-          id: 'GS-Sapporo',
-          label: 'GS-Sapporo',
-          position: TopologyNodePosition(dim0: 141.3, dim1: 43.0, dim2: 25.0, timeIndex: 0, vector: []),
-          status: 'Active',
-        ),
-        const TopologyNode(
-          id: 'GS-Fukuoka',
-          label: 'GS-Fukuoka',
-          position: TopologyNodePosition(dim0: 130.4, dim1: 33.6, dim2: 12.0, timeIndex: 0, vector: []),
-          status: 'Active',
-        ),
-        const TopologyNode(
-          id: 'UW-SubCable1',
-          label: 'UW-SubCable1',
-          position: TopologyNodePosition(dim0: 137.0, dim1: 34.0, dim2: -5.0, timeIndex: 0, vector: []),
-          status: 'Active',
-        ),
-        const TopologyNode(
-          id: 'UW-SubCable2',
-          label: 'UW-SubCable2',
-          position: TopologyNodePosition(dim0: 133.0, dim1: 32.0, dim2: -10.0, timeIndex: 0, vector: []),
-          status: 'Active',
-        ),
-      ];
-      links = [
-        const TopologyLink(source: 'sat-1', target: 'GS-Tokyo', type: 'depends_on'),
-        const TopologyLink(source: 'sat-2', target: 'GS-Sapporo', type: 'depends_on'),
-        const TopologyLink(source: 'sat-3', target: 'GS-Fukuoka', type: 'depends_on'),
-        const TopologyLink(source: 'sat-4', target: 'GS-Tokyo', type: 'depends_on'),
-        const TopologyLink(source: 'sat-4', target: 'UW-SubCable1', type: 'depends_on'),
-        const TopologyLink(source: 'GS-Tokyo', target: 'UW-SubCable1', type: 'depends_on'),
-        const TopologyLink(source: 'UW-SubCable1', target: 'UW-SubCable2', type: 'depends_on'),
-      ];
+      nodes = [];
+      links = [];
     } else {
       nodes = topologyData!.nodes;
       links = topologyData!.links;
