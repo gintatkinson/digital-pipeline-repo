@@ -13,6 +13,7 @@ import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
+import '../utils/fake_recording_canvas.dart';
 
 // ignore: unused_element
 double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
@@ -388,7 +389,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = _FakeCanvas();
+      final canvas = FakeRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
 
       // Assert geocentric heights
@@ -676,7 +677,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = _FakeCanvas();
+      final canvas = FakeRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
 
       expect(painter.capturedHeights['meteor_group'], isNotNull);
@@ -789,7 +790,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = _FakeCanvas();
+      final canvas = FakeRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
 
       expect(painter.capturedHeights['fuji_group'], isNotNull);
@@ -808,48 +809,6 @@ void main() {
 
 const double PointALatRad = 35.18 * math.pi / 180.0;
 const double PointALngRad = 136.90 * math.pi / 180.0;
-
-class _FakeCanvas extends Fake implements Canvas {
-  final List<(Offset, double)> circles = [];
-  final List<List<Offset>> points = [];
-
-  @override
-  void clipRect(Rect rect, {ClipOp clipOp = ClipOp.intersect, bool doAntiAlias = true}) {}
-
-  @override
-  void drawCircle(Offset center, double radius, Paint paint) {
-    circles.add((center, radius));
-  }
-
-  @override
-  void drawPoints(PointMode pointMode, List<Offset> pointsList, Paint paint) {
-    points.add(List.from(pointsList));
-  }
-
-  @override
-  void drawParagraph(Paragraph paragraph, Offset offset) {}
-
-  @override
-  void drawPath(Path path, Paint paint) {}
-
-  @override
-  void drawLine(Offset p1, Offset p2, Paint paint) {}
-
-  @override
-  void drawRRect(RRect rrect, Paint paint) {}
-
-  @override
-  void save() {}
-
-  @override
-  void translate(double dx, double dy) {}
-
-  @override
-  void rotate(double radians) {}
-
-  @override
-  void restore() {}
-}
 
 class _TestViewportPainter extends Scene3DViewportPainter {
   final Map<String, List<double>> capturedHeights = {};

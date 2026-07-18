@@ -6,38 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
+import '../utils/fake_recording_canvas.dart';
 
-class _FakeCanvas extends Fake implements Canvas {
-  final List<(Paragraph, Offset)> paragraphs = [];
-  
-  @override
-  void drawParagraph(Paragraph paragraph, Offset offset) {
-    paragraphs.add((paragraph, offset));
-  }
-  
-  @override
-  void clipRect(Rect rect, {ClipOp clipOp = ClipOp.intersect, bool doAntiAlias = true}) {}
-  @override
-  void drawCircle(Offset center, double radius, Paint paint) {}
-  @override
-  void drawPoints(PointMode pointMode, List<Offset> points, Paint paint) {}
-  @override
-  void drawPath(Path path, Paint paint) {}
-  @override
-  void drawLine(Offset p1, Offset p2, Paint paint) {}
-  @override
-  void drawRRect(RRect rrect, Paint paint) {}
-  @override
-  void save() {}
-  @override
-  void restore() {}
-  @override
-  void translate(double dx, double dy) {}
-  @override
-  void rotate(double radians) {}
-  @override
-  void scale(double sx, [double? sy]) {}
-}
 
 // ignore: unused_element
 double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
@@ -335,7 +305,7 @@ void main() {
         topologyData: topologyData,
       );
       
-      final canvas = _FakeCanvas();
+      final canvas = FakeRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
       
       // In RED phase, the second label should be discarded due to label collision (length == 1).
