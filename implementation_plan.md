@@ -21,3 +21,8 @@ The goal is to fix severe performance bottlenecks in `Scene3DViewportState` and 
 
 ## 4. Fix Missing Parenthesis
 - **app_flutter/lib/features/topology/scene_3d_viewport.dart**: Add missing closing parenthesis for `Positioned` after the `ListenableBuilder` block. Then run `flutter analyze`.
+
+## 5. Fuji Node Label Collision & Database Hierarchy Fix
+- **app_flutter/lib/features/topology/scene_3d_viewport.dart**: Track coordinates in `paint(Canvas canvas, Size size)` by adding `final Map<String, int> coordinateLabelCounts = {};` and applying an offset `Offset(8, -4 + count * 16.0)` to text nodes sharing the same coordinate block (`latDeg`, `lngDeg`).
+- **app_flutter/lib/domain/database_initializer.dart**: In `create()`, execute a SQL UPDATE right before returning `db` to set `parent_node_id = 'L0 (Optical)'` for `node_id = 'node-SD_CH'` if it is missing or empty.
+- Run tests (`flutter test test/topology/scene_3d_viewport_test.dart` and `scene_3d_viewport_golden_test.dart --update-goldens`) and `flutter analyze` inside `app_flutter`.

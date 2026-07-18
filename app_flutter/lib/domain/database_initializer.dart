@@ -155,6 +155,12 @@ class DatabaseInitializer {
         }
       }
 
+      await db.execute('''
+        UPDATE properties 
+        SET parent_node_id = 'L0 (Optical)' 
+        WHERE node_id = 'node-SD_CH' AND (parent_node_id IS NULL OR parent_node_id = '');
+      ''');
+
       return db;
     } catch (e) {
       await db.close();

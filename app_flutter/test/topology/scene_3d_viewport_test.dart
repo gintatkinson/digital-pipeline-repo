@@ -1,9 +1,43 @@
 // Playhead rate limits [0.9, 1.1]
+import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
+import 'package:app_flutter/features/topology/topology_map.dart';
+
+class _FakeCanvas extends Fake implements Canvas {
+  final List<(Paragraph, Offset)> paragraphs = [];
+  
+  @override
+  void drawParagraph(Paragraph paragraph, Offset offset) {
+    paragraphs.add((paragraph, offset));
+  }
+  
+  @override
+  void clipRect(Rect rect, {ClipOp clipOp = ClipOp.intersect, bool doAntiAlias = true}) {}
+  @override
+  void drawCircle(Offset center, double radius, Paint paint) {}
+  @override
+  void drawPoints(PointMode pointMode, List<Offset> points, Paint paint) {}
+  @override
+  void drawPath(Path path, Paint paint) {}
+  @override
+  void drawLine(Offset p1, Offset p2, Paint paint) {}
+  @override
+  void drawRRect(RRect rrect, Paint paint) {}
+  @override
+  void save() {}
+  @override
+  void restore() {}
+  @override
+  void translate(double dx, double dy) {}
+  @override
+  void rotate(double radians) {}
+  @override
+  void scale(double sx, [double? sy]) {}
+}
 
 // ignore: unused_element
 double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
@@ -258,6 +292,57 @@ void main() {
 
       // Outside range
       expect(painterActive.getElevation(0.0, 0.0), 0.0);
+    });
+  });
+
+  group('Feature 03: Co-located Node Labels Stacked Offsets', () {
+    test('Co-located nodes do not get discarded and stack their labels vertically', () {
+      final camera = VirtualCamera.clamped(latitude: 35.0, longitude: 138.0, altitude: 2000000.0, heading: 0, pitch: -90, roll: 0);
+      final topologyData = TopologyData(
+        coordinateMapping: const {},
+        nodes: [
+          const TopologyNode(
+            id: 'node-1',
+            label: 'Label 1',
+            position: TopologyNodePosition(dim0: 138.7274, dim1: 35.3606, dim2: 3776.0, timeIndex: 0, vector: []),
+            status: 'Active',
+            rawProperties: {},
+          ),
+          const TopologyNode(
+            id: 'node-2',
+            label: 'Label 2',
+            position: TopologyNodePosition(dim0: 138.7274, dim1: 35.3606, dim2: 3776.0, timeIndex: 0, vector: []),
+            status: 'Active',
+            rawProperties: {},
+          ),
+        ],
+        links: const [],
+      );
+      
+      final painter = Scene3DViewportPainter(
+        camera: camera,
+        activeStyle: 'dark',
+        astronomicalBody: 'Earth',
+        elevationActive: false,
+        showDevices: true,
+        showLinks: true,
+        showLabels: true,
+        showDropLines: false,
+        userRotationX: 0.0,
+        userTilt: 0.0,
+        zoomScale: 1.0,
+        verticalExaggeration: 1.0,
+        topologyData: topologyData,
+      );
+      
+      final canvas = _FakeCanvas();
+      painter.paint(canvas, const Size(800, 600));
+      
+      // In RED phase, the second label should be discarded due to label collision (length == 1).
+      // In GREEN phase, both labels should be painted (length == 2) and have different vertical offsets.
+      expect(canvas.paragraphs.length, equals(2));
+      expect(canvas.paragraphs[0].$2.dx, equals(canvas.paragraphs[1].$2.dx));
+      expect(canvas.paragraphs[0].$2.dy, isNot(equals(canvas.paragraphs[1].$2.dy)));
     });
   });
 }

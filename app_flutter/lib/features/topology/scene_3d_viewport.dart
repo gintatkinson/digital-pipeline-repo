@@ -1884,6 +1884,7 @@ class Scene3DViewportPainter extends CustomPainter {
       links = topologyData!.links;
     }
 
+    final Map<String, int> coordinateLabelCounts = {};
     final Map<String, ProjectedPoint> allProjectedNodes = {};
     final List<Offset> groundGlowPoints = [];
     final List<Offset> groundPoints = [];
@@ -2006,7 +2007,11 @@ class Scene3DViewportPainter extends CustomPainter {
                 fontFamily: 'monospace',
               ),
             );
-            final Offset textPos = proj.offset + const Offset(8, -4);
+            final String coordKey = '${latDeg.toStringAsFixed(5)}_${lngDeg.toStringAsFixed(5)}';
+            final int count = coordinateLabelCounts[coordKey] ?? 0;
+            coordinateLabelCounts[coordKey] = count + 1;
+
+            final Offset textPos = proj.offset + Offset(8, -4 + count * 16.0);
             final Rect outerRect = Rect.fromLTWH(
               textPos.dx - 6,
               textPos.dy - 3,
