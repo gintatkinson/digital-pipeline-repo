@@ -402,6 +402,105 @@ void main() {
       });
   });
 
+  group('Issue #44: Stale fly-to does not overwrite camera after view change', () {
+    VirtualCamera _makeCamera(double lat, double lng) {
+      return VirtualCamera(
+        latitude: lat,
+        longitude: lng,
+        altitude: 500.0,
+        heading: 0.0,
+        pitch: -45.0,
+        roll: 0.0,
+      );
+    }
+
+    Future<CameraController> _pumpScene3DViewport(
+      WidgetTester tester, {
+      required VirtualCamera camera,
+      TopologyData? topologyData,
+    }) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Scene3DViewport(
+              camera: camera,
+              topologyData: topologyData ?? _topologyData,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
+      return state.cameraController as CameraController;
+    }
+
+    testWidgets(
+      'Camera preserved when fly-to animation interrupted by external camera update',
+      (WidgetTester tester) async {
+        final cameraA = _makeCamera(35.0, 140.0);
+        final controller = await _pumpScene3DViewport(tester, camera: cameraA);
+
+        // Initial camera at view A
+        expect(controller.current.latitude, closeTo(35.0, 0.1));
+        expect(controller.current.longitude, closeTo(140.0, 0.1));
+
+        // Simulate double-tap to start fly-to animation
+        final gestureDetectorFinder = find.descendant(
+          of: find.byType(Scene3DViewport),
+          matching: find.byType(GestureDetector),
+        ).first;
+        final gestureDetector = tester.widget<GestureDetector>(gestureDetectorFinder);
+        gestureDetector.onDoubleTapDown!(TapDownDetails(globalPosition: const Offset(400, 300)));
+
+        // Let the fly-to progress partway
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // The fallback fly-to target has same lat/lng but lower altitude.
+        // Verify altitude is changing.
+        expect(controller.current.altitude, lessThan(6378137.0 + 500.0),
+            reason: 'Fly-to should have started descending from initial altitude');
+        expect(controller.current.altitude, greaterThan(3189318.0),
+            reason: 'Fly-to should not have reached target altitude yet');
+
+        // External camera update: rebuild with a new camera (simulating view change)
+        final cameraB = _makeCamera(50.0, -75.0);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Scene3DViewport(
+                camera: cameraB,
+                topologyData: _topologyData,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Camera should now be at the externally-set position
+        expect(controller.current.latitude, closeTo(50.0, 0.1),
+            reason: 'Camera should have jumped to B position after external update');
+        expect(controller.current.longitude, closeTo(-75.0, 0.1),
+            reason: 'Camera should have jumped to B position after external update');
+
+        // Pump more frames - the old fly-ticker should NOT move the camera
+        for (int i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+          expect(controller.current.latitude, closeTo(50.0, 0.1),
+              reason: 'Camera should NOT drift from B position at frame $i');
+          expect(controller.current.longitude, closeTo(-75.0, 0.1),
+              reason: 'Camera should NOT drift from B position at frame $i');
+        }
+      });
+  });
+
   group('_resolveCamera coordinate resolution', () {
     testWidgets(
       'resolves camera from topology node coordinates via resolveCoordinate',
