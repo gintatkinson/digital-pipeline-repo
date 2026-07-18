@@ -1,12 +1,21 @@
-# Implementation Plan: File Correctness Bug for Scene 3D Viewport
+# Implementation Plan: Flutter 3D Rendering Performance Fixes
 
-## Proposed Changes
-1. **Dispatch Subagent for Code Audit**:
-   - Dispatch a subagent using `invoke_subagent` (Type: `self`, Role: `Adversarial Code Auditor`) to execute the `adversarial-code-auditor` skill.
-   - The subagent will read the skill protocol and file a correctly formatted bug report for `app_flutter/lib/features/topology/scene_3d_viewport.dart:1539-1550`.
-   - The subagent will use the user-provided details (5 Whys, Correctness Analysis, Proposed Correction, etc.) to construct the report.
-   - The subagent will file the issue using `gh issue create --body-file /tmp/gh_body.md` with the title `[AUDIT] [scene_3d_viewport.dart]: Viewport painting overdraw and canvas bleeding`.
+## 1. Overview
+The goal is to fix severe performance bottlenecks in `Scene3DViewportState` and `Scene3DViewportPainter` by updating star allocation, removing unnecessary CPU rebuilds/overdraw, and implementing an LRU cache for `TextPainter`.
 
-## Verification
-- The subagent will verify the output format internally based on the skill's Step D.
-- The subagent will return the created GitHub issue URL.
+## 2. Changes
+- **app_flutter/lib/features/topology/scene_3d_viewport.dart**:
+  - In `Scene3DViewportState`, remove `setState({})` from `_onCameraChangedInside`.
+  - In `Scene3DViewportState.build()`, remove `repaint: _cameraController` from the `CustomPaint` instantiation and instead pass it as `repaint: _cameraController` to the `Scene3DViewportPainter` constructor.
+  - Remove `BackdropFilter` widgets in the HUD and replace them with `Container(decoration: BoxDecoration(color: Colors.black.withOpacity(0.6)))`.
+  - In `Scene3DViewportPainter`:
+    - Add `final Listenable? repaint;` field.
+    - Add `this.repaint,` as an optional parameter to the constructor.
+    - Forward it to the super constructor via `super(repaint: repaint)` in the initializer list.
+    - Add `static final List<(double, double, double, double)> _stars = ...` block for star positions and update `paint()` to iterate over `_stars` instead of recreating random values every frame.
+  - In `_TextPainterCache`, update `getOrCreate` to implement a true LRU cache by removing and re-inserting the cache entry on hit.
+
+## 3. Verification
+- Verify the build passes cleanly.
+- (If necessary) Run any flutter integration or unit tests covering this area.
+

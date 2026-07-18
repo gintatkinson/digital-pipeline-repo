@@ -207,7 +207,6 @@ class Scene3DViewportState extends State<Scene3DViewport> {
 
   void _onCameraChangedInside() {
     if (mounted && !_isUpdatingWidget) {
-      setState(() {});
       widget.onCameraChanged?.call(_cameraController.current);
     }
   }
@@ -596,6 +595,7 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                   key: const Key('scene_3d_viewport_boundary'),
                   child: CustomPaint(
                     painter: Scene3DViewportPainter(
+                      repaint: _cameraController,
                       camera: _cameraController.current,
                       activeStyle: _activeStyle,
                       astronomicalBody: _astronomicalBody,
@@ -624,13 +624,11 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                 left: 16,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0x990A0E1A), // semi-transparent
-                        borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6), // <-- Replaces the expensive blur effect
+                      borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: const Color(0x33FFFFFF), // fine borders
                           width: 1.0,
@@ -727,22 +725,19 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                     ),
                   ),
                 ),
-              ),
             if (!_showCameraStats)
               Positioned(
                 top: 16,
                 left: 16,
                 child: ClipOval(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0x990A0E1A),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0x33FFFFFF), width: 1.0),
-                      ),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0x33FFFFFF), width: 1.0),
+                    ),
                       child: IconButton(
                         key: const Key('expand_camera_stats_button'),
                         icon: const Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF00E5FF)),
@@ -752,7 +747,6 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                     ),
                   ),
                 ),
-              ),
             
             // Right HUD: Map Configuration Panel (Right Sidebar overlay)
             if (_showMapConfig)
@@ -762,16 +756,14 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                 bottom: 16,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      width: 280,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0x990A0E1A), // dark translucent background
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0x3300E5FF), // fine cyan border
+                  child: Container(
+                    width: 280,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6), // <-- Replaces the expensive blur effect
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0x3300E5FF), // fine cyan border
                           width: 1.0,
                         ),
                       ),
@@ -1019,22 +1011,19 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                     ),
                   ),
                 ),
-              ),
             if (!_showMapConfig)
               Positioned(
                 top: 16,
                 right: 16,
                 child: ClipOval(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0x990A0E1A),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0x3300E5FF), width: 1.0),
-                      ),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0x3300E5FF), width: 1.0),
+                    ),
                       child: IconButton(
                         key: const Key('expand_map_config_button'),
                         icon: const Icon(Icons.settings, size: 18, color: Color(0xFF00E5FF)),
@@ -1044,7 +1033,6 @@ class Scene3DViewportState extends State<Scene3DViewport> {
                     ),
                   ),
                 ),
-              ),
           ],
         ),
       ),
@@ -1056,6 +1044,16 @@ class Scene3DViewportPainter extends CustomPainter {
   static final Map<String, double> _nodeElevationCache = {};
   static final Map<String, String> _cacheKeyStringCache = {};
   static final List<Rect> drawnLabelRects = [];
+
+  static final List<(double, double, double, double)> _stars = () {
+    final rand = math.Random(42);
+    return List.generate(100, (_) => (
+      rand.nextDouble(),             // x fraction
+      rand.nextDouble(),             // y fraction
+      rand.nextDouble() * 1.5 + 0.5, // radius
+      rand.nextDouble() * 0.7 + 0.3, // opacity
+    ));
+  }();
 
   final VirtualCamera camera;
   final String activeStyle;
@@ -1072,6 +1070,7 @@ class Scene3DViewportPainter extends CustomPainter {
   final GlobeTileRenderer? tileRenderer;
   final ImageryProvider imageryProvider;
   final double verticalExaggeration;
+  final Listenable? repaint;
 
   Scene3DViewportPainter({
     required VirtualCamera camera,
@@ -1089,6 +1088,7 @@ class Scene3DViewportPainter extends CustomPainter {
     this.tileRenderer,
     this.imageryProvider = ImageryProvider.arcGisSatellite,
     required this.verticalExaggeration,
+    this.repaint,
   }) : camera = camera.altitude < 6378137.0 ? VirtualCamera.raw(
          latitude: camera.latitude,
          longitude: camera.longitude,
@@ -1096,7 +1096,8 @@ class Scene3DViewportPainter extends CustomPainter {
          heading: camera.heading,
          pitch: camera.pitch,
          roll: camera.roll,
-       ) : camera;
+       ) : camera,
+       super(repaint: repaint);
 
   // Reusable paints to avoid per-iteration allocations in the hot 60fps rendering path.
   late final Paint _starPaint = Paint()..style = PaintingStyle.fill;
@@ -1571,14 +1572,9 @@ class Scene3DViewportPainter extends CustomPainter {
     }
 
     // 1. Draw Starry Space Background (~100 stars)
-    final math.Random rand = math.Random(42);
-    for (int i = 0; i < 100; i++) {
-      final double rxVal = rand.nextDouble() * size.width;
-      final double ryVal = rand.nextDouble() * size.height;
-      final double rSize = rand.nextDouble() * 1.5 + 0.5;
-      final double rOpacity = rand.nextDouble() * 0.7 + 0.3;
-      _starPaint.color = Color.fromRGBO(255, 255, 255, rOpacity);
-      canvas.drawCircle(Offset(rxVal, ryVal), rSize, _starPaint);
+    for (final (xf, yf, sz, op) in _stars) {
+      _starPaint.color = Color.fromRGBO(255, 255, 255, op);
+      canvas.drawCircle(Offset(xf * size.width, yf * size.height), sz, _starPaint);
     }
 
     // 2. Astronomical Body customization (corona, atmospheric glows)
@@ -2192,20 +2188,27 @@ class _TextPainterCache {
 
   static TextPainter getOrCreate(String text, Color color, TextStyle baseStyle) {
     final key = _TextPainterKey(text, color);
-    final existing = _cache[key];
-    if (existing != null) return existing;
-
-    if (_cache.length >= _maxEntries) {
-      _cache.remove(_cache.keys.first);
+    
+    // LRU Touch: Remove and re-insert to mark as Most Recently Used
+    final existing = _cache.remove(key); 
+    if (existing != null) {
+      _cache[key] = existing;
+      return existing;
     }
+    
+    // Evict Least Recently Used (first item in LinkedHashMap)
+    if (_cache.length >= _maxEntries) {
+      _cache.remove(_cache.keys.first); 
+    }
+    
     final painter = TextPainter(
       text: TextSpan(
         text: text,
         style: baseStyle.copyWith(color: color),
       ),
       textDirection: TextDirection.ltr,
-    );
-    painter.layout();
+    )..layout();
+    
     _cache[key] = painter;
     return painter;
   }
