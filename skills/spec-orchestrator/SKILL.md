@@ -75,9 +75,9 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `Structural Spec Worker`) with the `schema-specification-engineering` skill and the path to the target structural schema files, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `Structural Spec Worker` subagent parses the schema and identifies all Epics and Features. It dispatches a fresh context-isolated subagent for each Feature/Epic to draft its specification. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. It registers Features first, then injects their Issue IDs into the Epic checklists, registers Epics, and commits/pushes the changes.
 3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
-   a. Queries the `git diff` to identify the paths of all newly generated files.
-   b. Runs a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format, and compliance tables).
-   c. Runs the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
+   a. Query the `git diff` to identify the generated file paths.
+   b. Run a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format).
+   c. Run the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
       ```bash
       ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
       ```
@@ -87,9 +87,9 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `Behavioral Spec Worker`) with the `spec-user-story-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `Behavioral Spec Worker` subagent parses operational scenarios and identifies required User Stories (including calculations and transitions). It dispatches a fresh context-isolated subagent for each User Story to write its specification file. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. The subagent then registers them with the issue tracker and commits/pushes the changes.
 3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
-   a. Queries the `git diff` to identify the paths of all newly generated files.
-   b. Runs a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format, and compliance tables).
-   c. Runs the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
+   a. Query the `git diff` to identify the generated file paths.
+   b. Run a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format).
+   c. Run the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
       ```bash
       ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
       ```
@@ -99,9 +99,9 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `System Interaction Spec Worker`) with the `spec-usecase-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `System Interaction Spec Worker` subagent identifies required System Use Cases and dispatches a fresh context-isolated subagent for each Use Case. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. The subagent registers the completed Use Cases, cross-links them to stories and features, and commits/pushes the changes.
 3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
-   a. Queries the `git diff` to identify the paths of all newly generated files.
-   b. Runs a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format, and compliance tables).
-   c. Runs the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
+   a. Query the `git diff` to identify the generated file paths.
+   b. Run a file read check (`view_file`) on a random sample (at least 1-2 files) of the newly generated files to verify formatting compliance (such as BDD syntax, UML diagrams format).
+   c. Run the linter locally over the newly added files to double-check that the validation gate is fully satisfied:
       ```bash
       ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
       ```
