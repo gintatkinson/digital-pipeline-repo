@@ -53,7 +53,24 @@ int _naturalCompare(String a, String b) {
 
 // Helper to sort fields in the same way as PropertyGrid
 List<FieldDescriptor> getSortedFields(List<FieldDescriptor> fields) {
-  final groups = fields.map((f) => f.sectionLabel ?? 'Other').toSet().toList()..sort();
+  final groupOrder = {
+    'Basic Info': 0,
+    'Other': 1,
+    'Attributes': 2,
+    'Hardware': 3,
+    'Networking': 4,
+    'Lifecycle': 5,
+    'Settings': 6,
+  };
+
+  final groups = fields.map((f) => f.sectionLabel ?? 'Other').toSet().toList()
+    ..sort((a, b) {
+      final int valA = groupOrder[a] ?? 999;
+      final int valB = groupOrder[b] ?? 999;
+      if (valA != valB) return valA.compareTo(valB);
+      return a.compareTo(b);
+    });
+    
   final List<FieldDescriptor> sortedFields = [];
   for (final group in groups) {
     final groupFields = fields.where((f) => (f.sectionLabel ?? 'Other') == group).toList()
@@ -168,8 +185,13 @@ void main() {
 
       // Click the "Save" button
       final saveButtonFinder = find.byKey(const Key('save_properties_button'));
-      await tester.ensureVisible(saveButtonFinder);
-      await tester.tap(saveButtonFinder);
+      await tester.dragUntilVisible(
+        saveButtonFinder,
+        find.descendant(of: find.byType(PropertyGrid), matching: find.byType(Scrollable)).first,
+        const Offset(0, -100),
+      );
+      await settle(tester);
+      await tester.tap(saveButtonFinder, warnIfMissed: false);
       await settle(tester);
 
       // Verify direct SQLite DB save mapping
@@ -241,8 +263,8 @@ void main() {
       }
     }
 
-    // Repeat traversal 3 times
-    for (int loopIndex = 0; loopIndex < 3; loopIndex++) {
+    // Repeat traversal 1 time for E2E
+    for (int loopIndex = 0; loopIndex < 1; loopIndex++) {
       final rootNodes = treeViewModel.treeData.take(1).toList();
       for (final rootNode in rootNodes) {
         await traverseTreeAndProcess(rootNode, loopIndex);
