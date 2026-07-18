@@ -13,3 +13,12 @@ scratch/
 *define*.json
 config.json
 benchmark_results.jsonl
+
+# Node dependencies & build artifacts
+node_modules/
+package-lock.json
+dist/
+build/
+.dart_tool/
+.pub/
+.flutter-plugins*
