@@ -329,7 +329,7 @@ class FirebaseDataSource implements DataSource {
       if (parentType != null) {
         for (final relation in parentType.childTypes) {
           final childTypeName = relation.childTypeName;
-          if (const ['Detail_A', 'Detail_B', 'Detail_C'].contains(childTypeName)) {
+          if (const ['components', 'relation_a', 'relation_b'].contains(childTypeName)) {
             continue;
           }
           if (childIdsInProperties.contains(childTypeName)) {

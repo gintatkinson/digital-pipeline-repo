@@ -170,11 +170,16 @@ class DatabaseInitializer {
 
   /// Inserts sample data.
   static Future<void> _seed(Database db) async {
-    final details = ['Detail_A', 'Detail_B', 'Detail_C'];
+    final details = ['components', 'relation_a', 'relation_b'];
+    final displayNames = {
+      'components': 'Components',
+      'relation_a': 'Relation A',
+      'relation_b': 'Relation B',
+    };
     for (final d in details) {
       await db.insert('type_definitions', {
         'type_name': d,
-        'display_name': d.replaceAll('_', ' '),
+        'display_name': displayNames[d] ?? d,
         'icon_name': 'widgets',
       });
 
@@ -193,7 +198,6 @@ class DatabaseInitializer {
       await attrBatch.commit(noResult: true);
     }
 
-    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
     final int maxMasters = 5; // Scaled down to keep DB size small
     for (int chunkStart = 0; chunkStart < maxMasters; chunkStart += 50) {
       final chunkEnd = (chunkStart + 50) > maxMasters ? maxMasters : (chunkStart + 50);
@@ -201,15 +205,34 @@ class DatabaseInitializer {
 
       for (int i = chunkStart; i < chunkEnd; i++) {
         final m = 'Master_${i + 1}';
-        _addNodeToBatch(batch, m, null, details, isRoot: true);
+        final int rootHash = m.hashCode.abs();
+        final double rootLat = 35.6074 + ((rootHash % 90) + 10) / 2000.0 * (rootHash.isEven ? 1 : -1);
+        final double rootLon = 140.1063 + ((rootHash % 90) + 10) / 2000.0 * (rootHash.isOdd ? 1 : -1);
+        const double rootHeight = 100.0;
+
+        _addNodeToBatch(batch, m, null, details, lat: rootLat, lon: rootLon, height: rootHeight);
 
         for (int c = 1; c <= 5; c++) {
           final child = '${m}_Child_$c';
-          _addNodeToBatch(batch, child, m, details, isRoot: false);
+          final int childHash = child.hashCode.abs();
+          final double offsetLat = ((childHash % 90) + 10) / 2000.0;
+          final double offsetLon = ((childHash % 90) + 10) / 2000.0;
+          final double childLat = rootLat + (childHash.isEven ? offsetLat : -offsetLat);
+          final double childLon = rootLon + (childHash.isOdd ? offsetLon : -offsetLon);
+          const double childHeight = 0.0;
+
+          _addNodeToBatch(batch, child, m, details, lat: childLat, lon: childLon, height: childHeight);
 
           for (int g = 1; g <= 2; g++) {
             final gc = '${child}_Grandchild_$g';
-            _addNodeToBatch(batch, gc, child, details, isRoot: false);
+            final int gcHash = gc.hashCode.abs();
+            final double gcOffsetLat = ((gcHash % 90) + 10) / 2000.0;
+            final double gcOffsetLon = ((gcHash % 90) + 10) / 2000.0;
+            final double gcLat = childLat + (gcHash.isEven ? gcOffsetLat : -gcOffsetLat);
+            final double gcLon = childLon + (gcHash.isOdd ? gcOffsetLon : -gcOffsetLon);
+            const double gcHeight = 0.0;
+
+            _addNodeToBatch(batch, gc, child, details, lat: gcLat, lon: gcLon, height: gcHeight);
           }
         }
       }
@@ -218,7 +241,15 @@ class DatabaseInitializer {
     }
   }
 
-  static void _addNodeToBatch(Batch batch, String node, String? parent, List<String> details, {required bool isRoot}) {
+  static void _addNodeToBatch(
+    Batch batch,
+    String node,
+    String? parent,
+    List<String> details, {
+    required double lat,
+    required double lon,
+    required double height,
+  }) {
     batch.insert('type_definitions', {
       'type_name': node,
       'display_name': node.replaceAll('_', ' '),
@@ -230,7 +261,7 @@ class DatabaseInitializer {
         'parent_type_name': node,
         'relation_name': 'contains',
         'child_type_name': d,
-        'child_label': d.replaceAll('_', ' '),
+        'child_label': d == 'components' ? 'Components' : d.replaceAll('_', ' ').split(' ').map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join(' '),
       });
     }
 
@@ -246,15 +277,13 @@ class DatabaseInitializer {
       });
     }
 
-    final int nodeHash = node.hashCode.abs();
-    final double offsetIndex = (nodeHash % 100) / 100.0;
     final propertiesMap = {
       for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j',
       'location': {
         'ellipsoid': {
-          'latitude': isRoot ? 35.6074 : 40.7128 + offsetIndex * 2.0,
-          'longitude': isRoot ? 140.1063 : -74.0060 + offsetIndex * 2.0,
-          'height': isRoot ? 100.0 : 0.0,
+          'latitude': lat,
+          'longitude': lon,
+          'height': height,
         }
       }
     };

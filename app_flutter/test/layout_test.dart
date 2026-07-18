@@ -77,11 +77,16 @@ Future<Database> createTestDatabase() async {
     'data_json': '{}',
   });
 
-  final details = ['Detail_A', 'Detail_B', 'Detail_C'];
+  final details = ['components', 'relation_a', 'relation_b'];
+  final displayNames = {
+    'components': 'Components',
+    'relation_a': 'Relation A',
+    'relation_b': 'Relation B',
+  };
   for (final d in details) {
     await db.insert('type_definitions', {
       'type_name': d,
-      'display_name': d.replaceAll('_', ' '),
+      'display_name': displayNames[d] ?? d,
       'icon_name': 'widgets',
     });
     await db.insert('type_attributes', {
@@ -97,7 +102,7 @@ Future<Database> createTestDatabase() async {
       'parent_type_name': 'Master_1',
       'relation_name': 'contains',
       'child_type_name': d,
-      'child_label': d.replaceAll('_', ' '),
+      'child_label': displayNames[d] ?? d,
     });
     await db.insert('instances', {
       'id': 'inst_Master_1_${d}_1',
@@ -199,7 +204,7 @@ void main() {
 
       expect(find.text(AppConfig.title), findsNWidgets(2));
       expect(find.text('Active View: root'), findsOneWidget);
-      expect(find.byKey(const Key('Detail_A-table')), findsNothing);
+      expect(find.byKey(const Key('components-table')), findsNothing);
 
       await tester.pumpWidget(Container());
       await settle(tester);
@@ -229,29 +234,29 @@ void main() {
       );
       await settle(tester);
 
-      // Detail_A table is displayed initially
-      expect(find.byKey(const Key('Detail_A-table')), findsOneWidget);
-      expect(find.byKey(const Key('Detail_B-table')), findsNothing);
+      // components table is displayed initially
+      expect(find.byKey(const Key('components-table')), findsOneWidget);
+      expect(find.byKey(const Key('relation_a-table')), findsNothing);
 
-      // Tap Detail B tab
-      await tester.tap(find.widgetWithText(Tab, 'Detail B'));
+      // Tap Relation A tab
+      await tester.tap(find.widgetWithText(Tab, 'Relation A'));
       for (int i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('Detail_A-table')), findsNothing);
-      expect(find.byKey(const Key('Detail_B-table')), findsOneWidget);
+      expect(find.byKey(const Key('components-table')), findsNothing);
+      expect(find.byKey(const Key('relation_a-table')), findsOneWidget);
 
-      // Tap Detail C tab
-      await tester.tap(find.widgetWithText(Tab, 'Detail C'));
+      // Tap Relation B tab
+      await tester.tap(find.widgetWithText(Tab, 'Relation B'));
       for (int i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('Detail_B-table')), findsNothing);
-      expect(find.byKey(const Key('Detail_C-table')), findsOneWidget);
+      expect(find.byKey(const Key('relation_a-table')), findsNothing);
+      expect(find.byKey(const Key('relation_b-table')), findsOneWidget);
 
       await tester.pumpWidget(Container());
       await settle(tester);
