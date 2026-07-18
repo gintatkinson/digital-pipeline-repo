@@ -66,7 +66,9 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      for (int i = 0; i < 50; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       await expectLater(
         find.byType(Scene3DViewport),
