@@ -21,32 +21,18 @@ double _clampPlayheadRate(double r) => r.clamp(0.9, 1.1);
 void main() {
   group('Scene3DViewport Golden Tests', () {
     late HttpServer server;
-
     setUp(() async {
       server = await HttpServer.bind('127.0.0.1', 0);
       TileFetcher.urlOverride = 'http://127.0.0.1:${server.port}';
       server.listen((HttpRequest request) async {
-        try {
-          File file = File('test/topology/goldens/exaggerated_fuji_node.png');
-          if (!file.existsSync()) {
-            file = File('${Directory.current.path}/test/topology/goldens/exaggerated_fuji_node.png');
-          }
-          final bytes = await file.readAsBytes();
-          request.response
-            ..headers.contentType = ContentType('image', 'png')
-            ..statusCode = HttpStatus.ok;
-          request.response.add(bytes);
-        } catch (e) {
-          request.response.statusCode = HttpStatus.internalServerError;
-        } finally {
-          await request.response.close();
-        }
+        request.response.statusCode = HttpStatus.internalServerError;
+        await request.response.close();
       });
     });
 
-    tearDown(() async {
+    tearDown(() {
       TileFetcher.urlOverride = null;
-      await server.close(force: true);
+      server.close();
     });
 
     testWidgets('Visual Test 1 - Stars and Sphere View', (WidgetTester tester) async {
@@ -124,16 +110,22 @@ void main() {
         links: const [],
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Scene3DViewport(
-              camera: camera,
-              topologyData: topologyData,
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Scene3DViewport(
+                camera: camera,
+                topologyData: topologyData,
+              ),
             ),
           ),
-        ),
-      );
+        );
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
+      });
       await tester.pumpAndSettle();
 
       await expectLater(

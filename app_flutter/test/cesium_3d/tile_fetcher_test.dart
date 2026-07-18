@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
@@ -65,6 +66,30 @@ void main() {
       expect(fetcher.cacheLength, 0);
       fetcher.clearCache();
       expect(fetcher.cacheLength, 0);
+    });
+
+    test('supports file:// scheme via urlOverride', () async {
+      final tempDir = await Directory.systemTemp.createTemp('tile_fetcher_test');
+      final providerDir = Directory('${tempDir.path}/${ImageryProvider.openStreetMap.name}/1/2');
+      await providerDir.create(recursive: true);
+      final tileFile = File('${providerDir.path}/3.png');
+      final dummyBytes = Uint8List.fromList([0, 1, 2, 3, 4]);
+      await tileFile.writeAsBytes(dummyBytes);
+
+      TileFetcher.urlOverride = 'file://${tempDir.path}';
+      
+      final result = await fetcher.fetchTile(
+        ImageryProvider.openStreetMap,
+        1,
+        2,
+        3,
+      );
+      
+      expect(result, isNotNull);
+      expect(result, equals(dummyBytes));
+      
+      TileFetcher.urlOverride = null;
+      await tempDir.delete(recursive: true);
     });
   });
 

@@ -154,10 +154,23 @@ class TileFetcher {
     if (cached != null) return cached;
 
     try {
-      final String url = urlOverride != null
-          ? '$urlOverride/${provider.name}/$z/$x/$y.png'
-          : _urlFor(provider, z, x, y);
+      final String url = (urlOverride != null && urlOverride!.endsWith('.png'))
+          ? urlOverride!
+          : (urlOverride != null
+              ? '$urlOverride/${provider.name}/$z/$x/$y.png'
+              : _urlFor(provider, z, x, y));
       final uri = Uri.parse(url);
+
+      if (uri.scheme == 'file') {
+        final file = File(uri.toFilePath());
+        if (await file.exists()) {
+          final data = await file.readAsBytes();
+          _cache.put(key, data);
+          return data;
+        }
+        return null;
+      }
+
       final request = await _client.getUrl(uri);
       final response = await request.close();
       if (response.statusCode == 200) {
