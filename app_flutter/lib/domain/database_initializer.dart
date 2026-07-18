@@ -241,7 +241,14 @@ class DatabaseInitializer {
     }
 
     final propertiesMap = {
-      for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j'
+      for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j',
+      'location': {
+        'ellipsoid': {
+          'latitude': isRoot ? 35.6074 : 40.7128,
+          'longitude': isRoot ? 140.1063 : -74.0060,
+          'height': 0.0,
+        }
+      }
     };
     batch.insert('properties', {
       'node_id': node,

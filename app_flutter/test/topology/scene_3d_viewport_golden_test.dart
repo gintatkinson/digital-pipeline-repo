@@ -22,13 +22,13 @@ void main() {
     late HttpServer server;
 
     setUp(() async {
-      server = await HttpServer.bind('localhost', 0);
-      TileFetcher.urlOverride = 'http://localhost:${server.port}';
+      server = await HttpServer.bind('127.0.0.1', 0);
+      TileFetcher.urlOverride = 'http://127.0.0.1:${server.port}';
       server.listen((HttpRequest request) async {
         try {
           File file = File('test/topology/goldens/exaggerated_fuji_node.png');
           if (!file.existsSync()) {
-            file = File('/Users/perkunas/jail/3dgs-ion/app_flutter/test/topology/goldens/exaggerated_fuji_node.png');
+            file = File('${Directory.current.path}/test/topology/goldens/exaggerated_fuji_node.png');
           }
           final bytes = await file.readAsBytes();
           request.response

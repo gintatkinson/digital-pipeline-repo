@@ -114,6 +114,7 @@ class _TopographicalViewState extends State<TopographicalView> {
     double longitude;
 
     TopologyNode? activeNode;
+    print("TopographicalView: topologyData has ${widget.topologyData.nodes.length} nodes");
     for (final node in widget.topologyData.nodes) {
       if (node.id == viewId) {
         activeNode = node;
@@ -124,6 +125,7 @@ class _TopographicalViewState extends State<TopographicalView> {
     if (activeNode != null) {
       final double latVal = activeNode.resolveCoordinate('y', widget.topologyData.coordinateMapping);
       final double lngVal = activeNode.resolveCoordinate('x', widget.topologyData.coordinateMapping);
+      print("TopographicalView: resolved $viewId to lat=$latVal, lng=$lngVal");
       if (latVal == 0.0 && lngVal == 0.0) {
         latitude = 35.6074;
         longitude = 140.1063;
@@ -132,6 +134,7 @@ class _TopographicalViewState extends State<TopographicalView> {
         longitude = lngVal;
       }
     } else {
+      print("TopographicalView: $viewId not found in topologyData");
       latitude = 35.6074;
       longitude = 140.1063;
     }
@@ -139,6 +142,7 @@ class _TopographicalViewState extends State<TopographicalView> {
     latitude = latitude.clamp(-90.0, 90.0);
     longitude = longitude.clamp(-180.0, 180.0);
 
+    print("TopographicalView: final camera lat=$latitude, lng=$longitude");
     return VirtualCamera(
       latitude: latitude,
       longitude: longitude,

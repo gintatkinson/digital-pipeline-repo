@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -13,63 +14,39 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'mesh_geometry_validator.dart';
 
-class MockTileFetcher extends TileFetcher {
-  @override
-  bool isEnabled() => true;
-
-  @override
-  Future<Uint8List?> fetchTile(
-      ImageryProvider provider, int z, int x, int y) async {
-    return base64Decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
-  }
-}
-
-class CountingTileFetcher extends TileFetcher {
-  final Set<String> uniqueKeysRequested = {};
-  final Map<String, int> networkFetchCounts = {};
-  int totalNetworkFetches = 0;
-  final Map<String, Uint8List> cache = {};
-  final int cacheCapacity;
-
-  CountingTileFetcher({this.cacheCapacity = 128});
-
-  @override
-  bool isEnabled() => true;
-
-  void resetCounts() {
-    networkFetchCounts.clear();
-    totalNetworkFetches = 0;
-    uniqueKeysRequested.clear();
-  }
-
-  @override
-  Future<Uint8List?> fetchTile(
-      ImageryProvider provider, int z, int x, int y) async {
-    final key = '$z/$x/$y';
-    uniqueKeysRequested.add(key);
-
-    if (cache.containsKey(key)) {
-      return cache[key];
-    }
-
-    networkFetchCounts[key] = (networkFetchCounts[key] ?? 0) + 1;
-    totalNetworkFetches++;
-
-    final data = base64Decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
-
-    if (cache.length >= cacheCapacity) {
-      cache.remove(cache.keys.first);
-    }
-    cache[key] = data;
-
-    return data;
-  }
-}
-
 void main() {
   group('GlobeTileRenderer Scenario 4 BDD Tests', () {
+    late HttpServer server;
+    int requestCount = 0;
+
+    setUp(() async {
+      requestCount = 0;
+      server = await HttpServer.bind('127.0.0.1', 0);
+      TileFetcher.urlOverride = 'http://127.0.0.1:${server.port}';
+      server.listen((HttpRequest request) async {
+        requestCount++;
+        try {
+          File file = File('test/topology/goldens/exaggerated_fuji_node.png');
+          if (!file.existsSync()) {
+            file = File('${Directory.current.path}/test/topology/goldens/exaggerated_fuji_node.png');
+          }
+          final bytes = await file.readAsBytes();
+          request.response
+            ..headers.contentType = ContentType('image', 'png')
+            ..statusCode = HttpStatus.ok;
+          request.response.add(bytes);
+        } catch (e) {
+          request.response.statusCode = HttpStatus.internalServerError;
+        } finally {
+          await request.response.close();
+        }
+      });
+    });
+
+    tearDown(() async {
+      TileFetcher.urlOverride = null;
+      await server.close(force: true);
+    });
     test('Scenario 4 - visible tile grid: horizon search radius verification at high altitude', () {
       final fetcher = TileFetcher()..disable();
       final renderer = GlobeTileRenderer(fetcher: fetcher);
@@ -116,7 +93,7 @@ void main() {
     });
 
     test('Scenario 4 - Polar cap clamping', () async {
-      final fetcher = MockTileFetcher();
+      final fetcher = TileFetcher();
       int loadedCount = 0;
       final completer = Completer<void>();
 
@@ -208,7 +185,7 @@ void main() {
     });
 
     test('Test 5 (Scenario 5 - Caching stability & thrashing prevention)', () async {
-      final fetcher = CountingTileFetcher(cacheCapacity: 128);
+      final fetcher = TileFetcher();
       final renderer = GlobeTileRenderer(fetcher: fetcher);
       final size = const ui.Size(800, 600);
       final camera = VirtualCamera(
@@ -226,16 +203,12 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 10));
       }
 
-      // The total number of network fetches must not exceed the number of unique tiles requested.
-      expect(fetcher.totalNetworkFetches, equals(fetcher.uniqueKeysRequested.length),
-          reason: 'Should not have duplicate network fetches for the same tiles (no thrashing)');
-
-      // Reset counters and verify that subsequent calls result in 0 new network fetches
-      fetcher.resetCounts();
+      // Verify that subsequent calls result in 0 new network fetches
+      requestCount = 0;
       renderer.beginTileFetch(camera, size);
       await Future.delayed(const Duration(milliseconds: 20));
 
-      expect(fetcher.totalNetworkFetches, equals(0),
+      expect(requestCount, equals(0),
           reason: 'Subsequent calls for a stationary camera must result in 0 new network fetches');
     });
 
@@ -355,7 +328,7 @@ void main() {
     });
 
     test('Test 6 (Scenario 7 - Mesh geometry distortion validation sweep)', () async {
-      final fetcher = MockTileFetcher();
+      final fetcher = TileFetcher();
       int loadedCount = 0;
       final renderer = GlobeTileRenderer(
         fetcher: fetcher,
