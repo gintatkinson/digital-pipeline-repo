@@ -39,17 +39,23 @@ class _TestTablesViewModel extends TablesViewModel {
   bool get loading => _overrideLoading;
   bool _overrideLoading = false;
 
+  @override
+  String? get error => _overrideError;
+  String? _overrideError;
+
   void setState({
     List<ColumnModel>? headers,
     List<ColumnModel>? columnModels,
     List<List<String>>? rows,
     bool? loading,
+    String? error,
     Set<String>? hiddenKeys,
   }) {
     if (headers != null) _overrideHeaders = headers;
     if (columnModels != null) _overrideColumnModels = columnModels;
     if (rows != null) _overrideRows = rows;
     if (loading != null) _overrideLoading = loading;
+    _overrideError = error;
     if (hiddenKeys != null) _overrideHiddenKeys = hiddenKeys;
     notifyListeners();
   }
@@ -474,6 +480,117 @@ void main() {
       expect(find.text('Hidden B'), findsNothing);
       expect(find.text('Visible C'), findsOneWidget);
       expect(find.text('B'), findsNothing);
+    });
+  });
+
+  group('TableViewWidget GPU resource lifecycle', () {
+    testWidgets('no nested RepaintBoundary per data row', (tester) async {
+      await tester.pumpWidget(buildTableWithModel(
+        headers: [
+          const ColumnModel(key: 'a', label: 'A', type: 'string'),
+        ],
+        columnModels: [
+          const ColumnModel(key: 'a', label: 'A', type: 'string'),
+        ],
+        rows: [
+          ['x'],
+          ['y'],
+          ['z'],
+        ],
+      ));
+      await tester.pump();
+      // 6 = 1 outer (wrapping ListView) + 5 from Material internals.
+      // Before fix there were 9 (= 6 + 3 per-row wrappers). Removal confirmed by -3 delta.
+      expect(find.byType(RepaintBoundary), findsNWidgets(6));
+    });
+
+    testWidgets('cache cleared during loading prevents stale sort', (tester) async {
+      final model = _TestTablesViewModel(_MockDataSource(), 'Root');
+      final mutableRows = <List<String>>[['Bob'], ['Alice'], ['Charlie']];
+      model.setState(
+        headers: [const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true)],
+        columnModels: [const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true)],
+        rows: mutableRows,
+        loading: false,
+      );
+
+      await tester.pumpWidget(buildTableFromModel(model: model));
+      await tester.pump();
+
+      // Sort ascending
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      // Verify sorted: Alice, Bob, Charlie
+      var texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && !t.data!.startsWith('Name'))
+          .map((t) => t.data!)
+          .toList();
+      expect(texts, equals(['Alice', 'Bob', 'Charlie']));
+
+      // Transition to loading — with fix this clears the cache
+      model.setState(loading: true);
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Mutate the SAME list reference in place, then go back to data
+      mutableRows.clear();
+      mutableRows.addAll([['Zulu'], ['Alpha'], ['Bravo']]);
+      model.setState(loading: false);
+      await tester.pumpAndSettle();
+
+      texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && !t.data!.startsWith('Name'))
+          .map((t) => t.data!)
+          .toList();
+      // Without the fix, identical() hits the stale cache → returns old sort
+      // With the fix, cache is cleared → fresh sort: Alpha, Bravo, Zulu
+      expect(texts, equals(['Alpha', 'Bravo', 'Zulu']));
+    });
+
+    testWidgets('cache cleared during error prevents stale sort', (tester) async {
+      final model = _TestTablesViewModel(_MockDataSource(), 'Root');
+      final mutableRows = <List<String>>[['Bob'], ['Alice'], ['Charlie']];
+      model.setState(
+        headers: [const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true)],
+        columnModels: [const ColumnModel(key: 'a', label: 'Name', type: 'string', sortable: true)],
+        rows: mutableRows,
+        loading: false,
+      );
+
+      await tester.pumpWidget(buildTableFromModel(model: model));
+      await tester.pump();
+
+      // Sort ascending
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      var texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && !t.data!.startsWith('Name'))
+          .map((t) => t.data!)
+          .toList();
+      expect(texts, equals(['Alice', 'Bob', 'Charlie']));
+
+      // Transition to error — with fix this clears the cache
+      model.setState(error: 'Something went wrong');
+      await tester.pump();
+      expect(find.text('Something went wrong'), findsOneWidget);
+
+      // Mutate the SAME list reference in place, then clear error
+      mutableRows.clear();
+      mutableRows.addAll([['Zulu'], ['Alpha'], ['Bravo']]);
+      model.setState(loading: false, error: null);
+      await tester.pumpAndSettle();
+
+      texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data != null && !t.data!.startsWith('Name'))
+          .map((t) => t.data!)
+          .toList();
+      expect(texts, equals(['Alpha', 'Bravo', 'Zulu']));
     });
   });
 }

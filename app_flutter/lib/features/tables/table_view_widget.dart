@@ -94,15 +94,25 @@ class _TableViewWidgetState extends State<TableViewWidget> {
     return sortedRows;
   }
 
+  void _clearCache() {
+    _cachedSourceRows = null;
+    _cachedHeaders = null;
+    _cachedSortedRows = null;
+    _cachedSortColumnIndex = null;
+    _cachedSortAscending = null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TablesViewModel>();
 
     if (viewModel.loading) {
+      _clearCache();
       return const Center(child: CircularProgressIndicator());
     }
 
     if (viewModel.error != null) {
+      _clearCache();
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -344,28 +354,26 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Container(
-        constraints: BoxConstraints(
-          minHeight: dataRowMinHeight,
-        ),
-        color: index.isEven ? null : Colors.black.withOpacity(0.03),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(columnModels.length, (i) {
-            final cellIdx = headerIndices[columnModels[i].key];
-            final cellValue = cellIdx != null && cellIdx < cells.length ? cells[cellIdx] : '';
-            return _DataCell(
-              value: cellValue,
-              columnModel: columnModels[i],
-              colWidth: colWidth,
-              horizontalMargin: horizontalMargin,
-              columnSpacing: columnSpacing,
-              isFirst: i == 0,
-              isLast: i == columnModels.length - 1,
-            );
-          }),
-        ),
+    return Container(
+      constraints: BoxConstraints(
+        minHeight: dataRowMinHeight,
+      ),
+      color: index.isEven ? null : Colors.black.withOpacity(0.03),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(columnModels.length, (i) {
+          final cellIdx = headerIndices[columnModels[i].key];
+          final cellValue = cellIdx != null && cellIdx < cells.length ? cells[cellIdx] : '';
+          return _DataCell(
+            value: cellValue,
+            columnModel: columnModels[i],
+            colWidth: colWidth,
+            horizontalMargin: horizontalMargin,
+            columnSpacing: columnSpacing,
+            isFirst: i == 0,
+            isLast: i == columnModels.length - 1,
+          );
+        }),
       ),
     );
   }
