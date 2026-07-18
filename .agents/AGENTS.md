@@ -89,3 +89,10 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 
 ## Mermaid Class Diagram Syntax Rules
 - **Mermaid Class Diagram Syntax Rules**: Colons are strictly prohibited inside Mermaid class member strings (e.g., do not use `+methodName() : ReturnType` or `+methodName(arg : Type)`), as secondary colons confuse the parser and break rendering. Use standard spacing instead (e.g., `+ReturnType methodName(Type arg)`).
+
+## Strict Verification & Parametric Assumption Prevention Rules
+- **No Parametric Assertions**: You are strictly forbidden from asserting the state of the workspace, build status, files, or permissions based on parametric memory or assumptions. Every verification statement must be backed by running a specific tool (such as `git status`, `list_permissions`, `list_dir`) and citing the output.
+- **Parametric Explanations Banned**: If explaining why an operation failed, you must cite concrete logs, line numbers, or command errors from your active context. Guessing or explaining via general training assumptions is prohibited.
+- **TDD RED-GREEN Gate Enforcement**: You must execute a failing integration/unit test (RED phase), document the failure, apply the codebase merge/remediation, and run the passing test (GREEN phase) to verify completeness.
+- **Subagent Permission Pre-Verification**: Before launching any subagent to execute tasks, you must verify that all required command prefixes, environment modifiers, and file scopes are fully pre-authorized on the active permissions table to guarantee 100% unattended background execution.
+
