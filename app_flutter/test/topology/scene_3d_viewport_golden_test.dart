@@ -80,7 +80,10 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Wait specifically for images to decode rather than just UI settlement
+      for (int i = 0; i < 50; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       await expectLater(
         find.byType(Scene3DViewport),
@@ -134,7 +137,10 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Wait specifically for images to decode rather than just UI settlement
+      for (int i = 0; i < 50; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       await expectLater(
         find.byType(Scene3DViewport),
