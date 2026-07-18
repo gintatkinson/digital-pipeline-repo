@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -13,6 +14,25 @@ void main() {
   });
 
   group('DatabaseInitializer spatial seeding', () {
+    test('regenerate assets database', () async {
+      final dbPath = 'assets/properties_db.db';
+      final file = File(dbPath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+      final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
+      await db.close();
+
+      final gzFile = File('assets/properties_db.db.gz');
+      if (await gzFile.exists()) {
+        await gzFile.delete();
+      }
+      final bytes = await file.readAsBytes();
+      final gzipped = gzip.encode(bytes);
+      await gzFile.writeAsBytes(gzipped);
+      expect(await gzFile.exists(), isTrue);
+    });
+
     test('seeded root nodes have height=100.0 and non-root have height=0.0', () async {
       final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true);
 

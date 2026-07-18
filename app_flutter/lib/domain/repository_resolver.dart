@@ -68,7 +68,7 @@ class RepositoryResolver {
     if (_isResolving) {
       if (_lastResolved != null) return _lastResolved!;
       while (_isResolving) {
-        await Future.delayed(const Duration(milliseconds: 50));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
       }
       if (_lastResolved != null) return _lastResolved!;
     }

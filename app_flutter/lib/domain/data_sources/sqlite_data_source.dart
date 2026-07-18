@@ -275,7 +275,7 @@ class SqliteDataSource implements DataSource {
           FROM type_relations r
           LEFT JOIN type_definitions td ON r.child_type_name = td.type_name
           WHERE r.parent_type_name = ? AND r.relation_name = 'contains'
-            AND r.child_type_name NOT IN ('components', 'relation_a', 'relation_b')
+            AND r.child_type_name NOT IN ('Components', 'Relation_A', 'Relation_B')
             AND r.child_type_name NOT IN (SELECT node_id FROM properties WHERE parent_node_id = ?)
             AND r.child_type_name IN (SELECT type_name FROM instances WHERE parent_node_id = ?)
         )

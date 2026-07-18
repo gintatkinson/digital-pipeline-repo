@@ -111,6 +111,7 @@ class TileFetcher {
     _enabled = false;
   }
 
+  /// Disposes resources by closing the HTTP client and clearing the tile cache.
   void dispose() {
     _client.close(force: true);
     _cache.clear();
@@ -145,6 +146,7 @@ class TileFetcher {
     return urlFor(provider, z, x, y);
   }
 
+  /// Optional base URL override (such as a local directory file:// path) for loading tiles in testing or offline scenarios.
   static String? urlOverride;
 
   /// Fetches the tile image bytes for [provider] at zoom [z] and tile
@@ -191,7 +193,7 @@ class TileFetcher {
         _cache.put(key, data);
         return data;
       }
-      await response.drain();
+      await response.drain<void>();
     } catch (_) {
       // Swallow — return null on any failure.
     }

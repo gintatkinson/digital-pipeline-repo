@@ -77,11 +77,11 @@ Future<Database> createTestDatabase() async {
     'data_json': '{}',
   });
 
-  final details = ['components', 'relation_a', 'relation_b'];
+  final details = ['Components', 'Relation_A', 'Relation_B'];
   final displayNames = {
-    'components': 'Components',
-    'relation_a': 'Relation A',
-    'relation_b': 'Relation B',
+    'Components': 'Components',
+    'Relation_A': 'Relation A',
+    'Relation_B': 'Relation B',
   };
   for (final d in details) {
     await db.insert('type_definitions', {
@@ -204,7 +204,7 @@ void main() {
 
       expect(find.text(AppConfig.title), findsNWidgets(2));
       expect(find.text('Active View: root'), findsOneWidget);
-      expect(find.byKey(const Key('components-table')), findsNothing);
+      expect(find.byKey(const Key('Components-table')), findsNothing);
 
       await tester.pumpWidget(Container());
       await settle(tester);
@@ -234,9 +234,9 @@ void main() {
       );
       await settle(tester);
 
-      // components table is displayed initially
-      expect(find.byKey(const Key('components-table')), findsOneWidget);
-      expect(find.byKey(const Key('relation_a-table')), findsNothing);
+      // Components table is displayed initially
+      expect(find.byKey(const Key('Components-table')), findsOneWidget);
+      expect(find.byKey(const Key('Relation_A-table')), findsNothing);
 
       // Tap Relation A tab
       await tester.tap(find.widgetWithText(Tab, 'Relation A'));
@@ -245,8 +245,8 @@ void main() {
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('components-table')), findsNothing);
-      expect(find.byKey(const Key('relation_a-table')), findsOneWidget);
+      expect(find.byKey(const Key('Components-table')), findsNothing);
+      expect(find.byKey(const Key('Relation_A-table')), findsOneWidget);
 
       // Tap Relation B tab
       await tester.tap(find.widgetWithText(Tab, 'Relation B'));
@@ -255,8 +255,18 @@ void main() {
       }
       await settle(tester);
 
-      expect(find.byKey(const Key('relation_a-table')), findsNothing);
-      expect(find.byKey(const Key('relation_b-table')), findsOneWidget);
+      expect(find.byKey(const Key('Relation_A-table')), findsNothing);
+      expect(find.byKey(const Key('Relation_B-table')), findsOneWidget);
+
+      // Tap Sub Items tab
+      await tester.tap(find.widgetWithText(Tab, 'Sub Items'));
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await settle(tester);
+
+      expect(find.byKey(const Key('Relation_B-table')), findsNothing);
+      expect(find.byKey(const Key('SubItem-table')), findsOneWidget);
 
       await tester.pumpWidget(Container());
       await settle(tester);

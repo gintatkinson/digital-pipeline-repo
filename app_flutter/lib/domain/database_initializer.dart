@@ -170,11 +170,11 @@ class DatabaseInitializer {
 
   /// Inserts sample data.
   static Future<void> _seed(Database db) async {
-    final details = ['components', 'relation_a', 'relation_b'];
+    final details = ['Components', 'Relation_A', 'Relation_B'];
     final displayNames = {
-      'components': 'Components',
-      'relation_a': 'Relation A',
-      'relation_b': 'Relation B',
+      'Components': 'Components',
+      'Relation_A': 'Relation A',
+      'Relation_B': 'Relation B',
     };
     for (final d in details) {
       await db.insert('type_definitions', {
@@ -261,7 +261,7 @@ class DatabaseInitializer {
         'parent_type_name': node,
         'relation_name': 'contains',
         'child_type_name': d,
-        'child_label': d == 'components' ? 'Components' : d.replaceAll('_', ' ').split(' ').map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join(' '),
+        'child_label': d == 'Components' ? 'Components' : d.replaceAll('_', ' ').split(' ').map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join(' '),
       });
     }
 
