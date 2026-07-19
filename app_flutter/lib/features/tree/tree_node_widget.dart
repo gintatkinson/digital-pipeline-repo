@@ -51,7 +51,7 @@ class TreeNodeWidget extends StatelessWidget {
     final nodeKeyValue = context.select<TreeViewModel, GlobalKey?>(
       (vm) => vm.nodeKey(node.id),
     );
-    final isParent = node.children != null;
+    final isParent = node.children != null && node.children!.isNotEmpty;
 
     IconData icon;
     if (isParent) {
