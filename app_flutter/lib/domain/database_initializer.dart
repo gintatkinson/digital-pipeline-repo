@@ -206,8 +206,8 @@ class DatabaseInitializer {
       for (int i = chunkStart; i < chunkEnd; i++) {
         final m = 'Master_${i + 1}';
         final int rootHash = m.hashCode.abs();
-        final double rootLat = 35.6074 + ((rootHash % 90) + 10) / 2000.0 * (rootHash.isEven ? 1 : -1);
-        final double rootLon = 140.1063 + ((rootHash % 90) + 10) / 2000.0 * (rootHash.isOdd ? 1 : -1);
+        final double rootLat = 35.6074 + ((rootHash % 10007) + 1) / 200000.0 * (rootHash.isEven ? 1 : -1);
+        final double rootLon = 140.1063 + ((rootHash % 10007) + 1) / 200000.0 * ((rootHash ~/ 2).isEven ? 1 : -1);
         const double rootHeight = 100.0;
 
         _addNodeToBatch(batch, m, null, details, lat: rootLat, lon: rootLon, height: rootHeight);
@@ -215,10 +215,10 @@ class DatabaseInitializer {
         for (int c = 1; c <= 5; c++) {
           final child = '${m}_Child_$c';
           final int childHash = child.hashCode.abs();
-          final double offsetLat = ((childHash % 90) + 10) / 2000.0;
-          final double offsetLon = ((childHash % 90) + 10) / 2000.0;
+          final double offsetLat = ((childHash % 10007) + 1) / 200000.0;
+          final double offsetLon = ((childHash % 10007) + 1) / 200000.0;
           final double childLat = rootLat + (childHash.isEven ? offsetLat : -offsetLat);
-          final double childLon = rootLon + (childHash.isOdd ? offsetLon : -offsetLon);
+          final double childLon = rootLon + ((childHash ~/ 2).isEven ? offsetLon : -offsetLon);
           const double childHeight = 0.0;
 
           _addNodeToBatch(batch, child, m, details, lat: childLat, lon: childLon, height: childHeight);
@@ -226,10 +226,10 @@ class DatabaseInitializer {
           for (int g = 1; g <= 2; g++) {
             final gc = '${child}_Grandchild_$g';
             final int gcHash = gc.hashCode.abs();
-            final double gcOffsetLat = ((gcHash % 90) + 10) / 2000.0;
-            final double gcOffsetLon = ((gcHash % 90) + 10) / 2000.0;
+            final double gcOffsetLat = ((gcHash % 10007) + 1) / 200000.0;
+            final double gcOffsetLon = ((gcHash % 10007) + 1) / 200000.0;
             final double gcLat = childLat + (gcHash.isEven ? gcOffsetLat : -gcOffsetLat);
-            final double gcLon = childLon + (gcHash.isOdd ? gcOffsetLon : -gcOffsetLon);
+            final double gcLon = childLon + ((gcHash ~/ 2).isEven ? gcOffsetLon : -gcOffsetLon);
             const double gcHeight = 0.0;
 
             _addNodeToBatch(batch, gc, child, details, lat: gcLat, lon: gcLon, height: gcHeight);

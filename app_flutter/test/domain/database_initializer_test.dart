@@ -75,8 +75,54 @@ void main() {
         coords.add('$lat,$lon,$height');
       }
 
-      expect(coords.length, greaterThan(1),
-          reason: 'Expected non-identical coordinates but all $coords are the same');
+      expect(coords.length, rows.length,
+          reason: 'Expected all ${rows.length} nodes to have unique coordinates but only ${coords.length} are distinct');
+
+      await db.close();
+    });
+
+    test('non-root coordinate offsets populate all 4 quadrants', () async {
+      final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true);
+
+      final rows = await db.query('properties');
+      final Map<String, (double, double)> rootCoords = {};
+      final List<(String, double, double)> nonRootCoords = [];
+
+      for (final row in rows) {
+        final nodeId = row['node_id'] as String;
+        final data = jsonDecode(row['data_json'] as String) as Map<String, dynamic>;
+        final location = data['location'] as Map<String, dynamic>;
+        final ellipsoid = location['ellipsoid'] as Map<String, dynamic>;
+        final lat = (ellipsoid['latitude'] as num).toDouble();
+        final lon = (ellipsoid['longitude'] as num).toDouble();
+        final height = (ellipsoid['height'] as num).toDouble();
+
+        if (height == 100.0) {
+          rootCoords[nodeId] = (lat, lon);
+        } else {
+          nonRootCoords.add((nodeId, lat, lon));
+        }
+      }
+
+      expect(rootCoords.isNotEmpty, isTrue);
+      expect(nonRootCoords.isNotEmpty, isTrue);
+
+      final Set<String> quadrantsHit = {};
+      for (final (nodeId, lat, lon) in nonRootCoords) {
+        final rootId = nodeId.split('_Child_').first;
+        final root = rootCoords[rootId];
+        if (root == null) continue;
+        final (rootLat, rootLon) = root;
+
+        final latSign = lat > rootLat ? '+' : (lat < rootLat ? '-' : '0');
+        final lonSign = lon > rootLon ? '+' : (lon < rootLon ? '-' : '0');
+        if (latSign != '0' && lonSign != '0') {
+          quadrantsHit.add('$latSign$lonSign');
+        }
+      }
+
+      expect(quadrantsHit, containsAll(['++', '+-', '-+', '--']),
+          reason: 'Expected nodes in all 4 quadrants but found ${quadrantsHit.length}: $quadrantsHit');
 
       await db.close();
     });
