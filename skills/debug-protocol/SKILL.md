@@ -56,7 +56,13 @@ Dispatch a subagent to: Distinguish root cause from symptoms. Apply "5 whys" to 
 Dispatch a subagent to: Design and implement the minimal fix. Consider side effects. Add regression tests. Document the fix. Stage, commit, and push all changes to the remote repository. Update the GitHub issue with root cause and fix details. Return fix summary and issue URL.
 
 ## Step 7 — Verification Subagent
-Dispatch a subagent to: Confirm bug is fixed using original reproduction steps. Test edge cases. Verify no regressions (test suite must pass). Once verified, comment on and close the GitHub issue to mark it as resolved. Return pass/fail result.
+Dispatch a subagent to:
+1. Confirm bug is fixed using original reproduction steps from Step 1.
+2. Grep the fix location (FILE_LOCATION from issue body) and confirm the fix code is present.
+3. Run the full test suite and paste raw terminal output.
+4. Show `git diff` of the fix commit to confirm only expected changes.
+5. If all three proofs pass, comment on the GitHub issue with the evidence and close it.
+Return: grep output, raw test output, git diff output. Do NOT return a pass/fail summary without evidence.
 
 ## Step 8 — Loop Decision
 If Step 7 failed, return to Step 1. Do NOT give up after one or two failed hypotheses. If stuck, reconsider assumptions.
@@ -85,5 +91,5 @@ On completion of the current bug, query the repository for the next unresolved b
 - [ ] Step 4 subagent dispatched and reported
 - [ ] Step 5 subagent dispatched and reported
 - [ ] Step 6 subagent dispatched, fix applied, changes committed and pushed, issue updated
-- [ ] Step 7 subagent dispatched, tests pass, issue closed
+- [ ] Step 7: Verification subagent dispatched, three proofs validated, issue closed with mechanical proof
 - [ ] Loop closed (bug fixed) or loop restarted (bug persists)

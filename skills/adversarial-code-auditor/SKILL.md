@@ -30,6 +30,7 @@ Subagent receives: file path, pillar name, mode, repo name. Subagent reads this 
 | Resource Lifecycle | Missing dispose(), cache eviction, sync I/O on UI thread, GC churn, socket leaks, HTTP timeouts, GPU overdraw |
 | Concurrency | ChangeNotifier post-disposal, async races, state mutation in build(), re-entrant async, missing _disposed, TOCTOU |
 | Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
+| Semantic Traceability | Test assertions mapped to defect invariants from issue body. Tests that pass without exercising the reported symptom. Tests whose assertions don't match the invariants violated. |
 
 ### 1.4 Severity
 
@@ -64,7 +65,7 @@ Every finding MUST produce output matching this skeleton character-for-character
 ## 1. Context and References
 
 * **File**: `[path]:[line-line]`
-* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity]
+* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity | Semantic Traceability]
 * **Symptom**: [description]
 
 ## 2. Root Cause Analysis (5 Whys)

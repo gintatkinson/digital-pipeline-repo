@@ -1,35 +1,76 @@
-# Implementation Plan: Refactor Visual Test Verification
+# Detailed Engineering Implementation Plan: Debug Protocol and Adversarial Auditor Fixes
 
-This plan addresses the test suite blindspot where integration tests pass blindly without verifying that the 3D globe and tiles are actually rendered on screen. We will refactor the test suite to assert tile cache state, add a dynamic wait loop, and perform a pixel-level color variance check on screenshots. We will also add unit tests verifying the projection math for space, surface, and altitude.
-
-## 1. Goal Description
-Refactor the integration test `camera_gestures_navigation_test.dart` to:
-1. Ensure the 3D globe has tiles fully rendered by waiting for the tile renderer's cache to load all visible tiles (waiting for the image count to reach a stable state, e.g. at least 4 loaded tiles and no count increases for 500ms).
-2. Call the wait loop `waitForTilesToLoad()` **before every single screenshot** (initial HUD, fly-to-node, and rotated globe) instead of only the first one.
-3. Compute standard deviation of pixel color values on screenshots to detect blank rendering.
-4. Verify through TDD RED-GREEN verification that the test fails when tiles do not render, and passes when they do.
-5. Verify that tiles are rendered correctly in space, on the surface, and in altitude (incorporating elevation and vertical exaggeration offsets) by adding unit tests.
-6. Open up the topology view by increasing the overall screen size in the integration test to 1920x1080.
-
-## 2. Target Files & Proposed Changes
-
-### [camera_gestures_navigation_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart)
-* **Refactor `waitForTilesToLoad`**:
-  Update the method to wait until `loadedImagesCount >= 4` and has stabilized (remaining constant for 5 consecutive frames/500ms).
-* **Inject Await in All Stages**:
-  Add `await waitForTilesToLoad()` before:
-  - `takeScreenshot('camera_initial_hud')`
-  - `takeScreenshot('camera_fly_to_node')`
-  - `takeScreenshot('camera_gesture_rotated')`
+This implementation plan resolves GitHub Issues #56 and #57 by enforcing a strict mechanical proof gate for issue closure in `debug-protocol` and adding the "Semantic Traceability" pillar to `adversarial-code-auditor`.
 
 ---
 
-## 3. Verification Plan
+## 1. Target Files & Code Diffs
 
-### TDD RED Phase (Failing Test)
-1. Configure an invalid template inside the integration test or disable the tile fetcher.
-2. Run the drive test and verify failure.
+### Component: Debug Protocol (Recursive Debugging Loop)
 
-### TDD GREEN Phase (Passing Test)
-1. Run the drive test.
-2. Verify that the test successfully passes and captures all three screenshots with tiles fully rendered.
+#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/debug-protocol/SKILL.md)
+
+##### Change 1: Enforce Three-Proof Gate in Step 7 (L58-59)
+Modify Step 7 instructions to require fix presence grep check, raw test output, and git diff verification:
+```markdown
+<<<<
+## Step 7 — Verification Subagent
+Dispatch a subagent to: Confirm bug is fixed using original reproduction steps. Test edge cases. Verify no regressions (test suite must pass). Once verified, comment on and close the GitHub issue to mark it as resolved. Return pass/fail result.
+====
+## Step 7 — Verification Subagent
+Dispatch a subagent to:
+1. Confirm bug is fixed using original reproduction steps from Step 1.
+2. Grep the fix location (FILE_LOCATION from issue body) and confirm the fix code is present.
+3. Run the full test suite and paste raw terminal output.
+4. Show `git diff` of the fix commit to confirm only expected changes.
+5. If all three proofs pass, comment on the GitHub issue with the evidence and close it.
+Return: grep output, raw test output, git diff output. Do NOT return a pass/fail summary without evidence.
+>>>>
+```
+
+##### Change 2: Update Checklist Item for Step 7 (L88)
+Update the verification checklist item to reflect the three-proof validation:
+```markdown
+<<<<
+- [ ] Step 7 subagent dispatched, tests pass, issue closed
+====
+- [ ] Step 7: Verification subagent dispatched, three proofs validated, issue closed with mechanical proof
+>>>>
+```
+
+---
+
+### Component: Adversarial Code Auditor
+
+#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/adversarial-code-auditor/SKILL.md)
+
+##### Change 1: Add Semantic Traceability to Pillars Table (L27-32)
+Insert the new "Semantic Traceability" pillar to enforce defect-to-test mapping:
+```markdown
+<<<<
+| Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
+====
+| Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
+| Semantic Traceability | Test assertions mapped to defect invariants from issue body. Tests that pass without exercising the reported symptom. Tests whose assertions don't match the invariants violated. |
+>>>>
+```
+
+##### Change 2: Include Semantic Traceability in Skeleton Output (L67)
+Update the pillar selection placeholder options in Section 2 skeleton:
+```markdown
+<<<<
+* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity]
+====
+* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity | Semantic Traceability]
+>>>>
+```
+
+---
+
+## 2. Verification Plan
+
+### Automated Verification
+* Verify that the markdown files render correctly without broken formatting or unclosed code blocks.
+
+### Manual Verification
+* Coordinator inspects the updated skills to confirm the three-proof gate and the fifth audit pillar are correctly documented.
