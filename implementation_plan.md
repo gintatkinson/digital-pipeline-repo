@@ -1,76 +1,24 @@
-# Detailed Engineering Implementation Plan: Debug Protocol and Adversarial Auditor Fixes
+# Implementation Plan: Filing Upstream Linter Defects on GitHub
 
-This implementation plan resolves GitHub Issues #56 and #57 by enforcing a strict mechanical proof gate for issue closure in `debug-protocol` and adding the "Semantic Traceability" pillar to `adversarial-code-auditor`.
-
----
-
-## 1. Target Files & Code Diffs
-
-### Component: Debug Protocol (Recursive Debugging Loop)
-
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/debug-protocol/SKILL.md)
-
-##### Change 1: Enforce Three-Proof Gate in Step 7 (L58-59)
-Modify Step 7 instructions to require fix presence grep check, raw test output, and git diff verification:
-```markdown
-<<<<
-## Step 7 — Verification Subagent
-Dispatch a subagent to: Confirm bug is fixed using original reproduction steps. Test edge cases. Verify no regressions (test suite must pass). Once verified, comment on and close the GitHub issue to mark it as resolved. Return pass/fail result.
-====
-## Step 7 — Verification Subagent
-Dispatch a subagent to:
-1. Confirm bug is fixed using original reproduction steps from Step 1.
-2. Grep the fix location (FILE_LOCATION from issue body) and confirm the fix code is present.
-3. Run the full test suite and paste raw terminal output.
-4. Show `git diff` of the fix commit to confirm only expected changes.
-5. If all three proofs pass, comment on the GitHub issue with the evidence and close it.
-Return: grep output, raw test output, git diff output. Do NOT return a pass/fail summary without evidence.
->>>>
-```
-
-##### Change 2: Update Checklist Item for Step 7 (L88)
-Update the verification checklist item to reflect the three-proof validation:
-```markdown
-<<<<
-- [ ] Step 7 subagent dispatched, tests pass, issue closed
-====
-- [ ] Step 7: Verification subagent dispatched, three proofs validated, issue closed with mechanical proof
->>>>
-```
+This plan outlines the creation of 6 individual GitHub issues to track the linter defects identified in the `parity_auditor` package, conforming to the **Upstream Tooling Bug Reporting** mandate.
 
 ---
 
-### Component: Adversarial Code Auditor
+## 1. Proposed Actions
 
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/adversarial-code-auditor/SKILL.md)
+We will run the `gh` CLI command to create 6 new bug issues with detailed bodies, including 5 Whys analysis, symptom descriptions, correctness analysis, UML diagrams, and proposed corrections.
 
-##### Change 1: Add Semantic Traceability to Pillars Table (L27-32)
-Insert the new "Semantic Traceability" pillar to enforce defect-to-test mapping:
-```markdown
-<<<<
-| Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
-====
-| Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
-| Semantic Traceability | Test assertions mapped to defect invariants from issue body. Tests that pass without exercising the reported symptom. Tests whose assertions don't match the invariants violated. |
->>>>
-```
-
-##### Change 2: Include Semantic Traceability in Skeleton Output (L67)
-Update the pillar selection placeholder options in Section 2 skeleton:
-```markdown
-<<<<
-* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity]
-====
-* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity | Semantic Traceability]
->>>>
-```
+### target issues to file:
+1. **`[EPIC-LNT-01]`**: Programmatic `validate()` ignores `epics_dir` argument in `uml.py`.
+2. **`[EPIC-LNT-02]`**: CLI bypasses Epic validation if `features` list is empty in `cli.py`.
+3. **`[LNT-UML-01]`**: Mermaid parser fails to extract multiplicity inside type-bound definitions (e.g. `+Type[mult] name`) in `mermaid.py`.
+4. **`[LNT-UML-02]`**: Return validator requires multiplicity on `void` or single returns in `uml.py`.
+5. **`[LNT-UML-03]`**: Codebase coverage checks use naive substring matching, causing false positives on common words in `cli.py`.
+6. **`[LNT-UML-04]`**: Link and diagram validation checks run on raw markdown content instead of extracted mermaid blocks in `uml.py`.
 
 ---
 
 ## 2. Verification Plan
 
 ### Automated Verification
-* Verify that the markdown files render correctly without broken formatting or unclosed code blocks.
-
-### Manual Verification
-* Coordinator inspects the updated skills to confirm the three-proof gate and the fifth audit pillar are correctly documented.
+* Verify that the issues are successfully created by running `gh issue list --limit 10` and confirming the new issue numbers are returned.
