@@ -49,6 +49,7 @@ class Scene3DViewport extends StatefulWidget {
 
 class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProviderStateMixin {
   late CameraController _cameraController;
+  TreeViewModel? _treeViewModel;
 
   @visibleForTesting
   CameraController get cameraController => _cameraController;
@@ -223,13 +224,17 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     _globeFocusNode.addListener(() {
       if (mounted) setState(() {});
     });
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final treeViewModel = context.read<TreeViewModel?>();
-        treeViewModel?.addListener(_onTreeViewModelChangeInsideViewport);
-      }
-    });
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final model = context.watch<TreeViewModel?>();
+    if (model != _treeViewModel) {
+      _treeViewModel?.removeListener(_onTreeViewModelChangeInsideViewport);
+      _treeViewModel = model;
+      _treeViewModel?.addListener(_onTreeViewModelChangeInsideViewport);
+    }
   }
 
   void _onCameraChangedInside() {
@@ -259,9 +264,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
 
   @override
   void dispose() {
-    try {
-      context.read<TreeViewModel?>()?.removeListener(_onTreeViewModelChangeInsideViewport);
-    } catch (_) {}
+    _treeViewModel?.removeListener(_onTreeViewModelChangeInsideViewport);
     _flyTicker?.dispose();
     _globeFocusNode.dispose();
     _cameraController.removeListener(_onCameraChangedInside);
@@ -271,7 +274,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   }
 
   void _onTreeViewModelChangeInsideViewport() {
-    final treeViewModel = context.read<TreeViewModel?>();
+    final treeViewModel = _treeViewModel;
     if (treeViewModel != null && treeViewModel.flightTarget != null) {
       final targetNodeId = treeViewModel.flightTarget!;
       treeViewModel.clearFlightTarget();
