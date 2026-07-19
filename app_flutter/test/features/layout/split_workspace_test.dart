@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/features/layout/split_workspace.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
+import 'package:app_flutter/core/theme/theme_service.dart' show SharedPreferencesThemeService;
 
 void main() {
   testWidgets('SplitWorkspace deferred resizing sets state correctly', (WidgetTester tester) async {
@@ -10,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController()),
+          ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController(SharedPreferencesThemeService())),
         ],
         child: MaterialApp(
           home: Scaffold(
