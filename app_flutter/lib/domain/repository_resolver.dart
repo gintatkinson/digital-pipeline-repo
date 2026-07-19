@@ -194,7 +194,7 @@ class RepositoryResolver {
             bytes.lengthInBytes,
           );
           if (assetPath.endsWith('.gz')) {
-            decodedBytes = await compute(gzip.decode, decodedBytes);
+            decodedBytes = gzip.decode(decodedBytes);
           }
           await dbFile.writeAsBytes(decodedBytes);
         } catch (e) {

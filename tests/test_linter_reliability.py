@@ -426,5 +426,66 @@ We track latitude and longitude coordinates.
     valid_err = [e for e in errors if "feat-valid.md" in e]
     assert len(valid_err) == 0
 
+def test_programmatic_epics_dir_override(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    repo = WorkspaceRepository(str(ws_dir))
+    custom_epics_dir = tmp_path / "custom_epics"
+    os.makedirs(custom_epics_dir, exist_ok=True)
+    with open(custom_epics_dir / "epic_valid.md", "w", encoding="utf-8") as f:
+        f.write("# Epic 1\n\n## UML Diagrams\n```mermaid\nclassDiagram\nclass CustomClass {}\n```\n")
+        
+    from parity_auditor.validators.uml import UmlValidator
+    validator = UmlValidator()
+    global_classes = validator.build_global_classes(repo, os.path.join(ws_dir, "docs/features"), str(custom_epics_dir))
+    assert "CustomClass" in global_classes
+
+def test_unbracketed_return_multiplicity(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    repo = WorkspaceRepository(str(ws_dir))
+    features_dir = ws_dir / "docs" / "features"
+    os.makedirs(features_dir, exist_ok=True)
+    with open(features_dir / "feat-methods.md", "w", encoding="utf-8") as f:
+        f.write("# Feature: Methods\n## UML Diagrams\n```mermaid\nclassDiagram\n    class MyService {\n        +void doWork()\n        +Node fetchNode()\n    }\n```\n")
+    from parity_auditor.validators.uml import UmlValidator
+    validator = UmlValidator()
+    errors = validator.validate(repo, epics_dir=str(ws_dir / "docs/epics"))
+    mult_errors = [e for e in errors if "missing a multiplicity" in e]
+    assert not mult_errors, f"Expected no multiplicity errors on unbracketed returns, but got: {mult_errors}"
+
+def test_common_word_coverage_context(tmp_path, base_config):
+    schemas = {
+        "user.yang": "\n        module user {\n            container User {\n                leaf id { type string; }\n                leaf name { type string; }\n            }\n        }\n        "
+    }
+    flutter_files_invalid = {
+        "widgets/user_card.dart": "// This is comment containing id and name"
+    }
+    ws_dir_invalid = setup_workspace(tmp_path / "invalid", base_config, schemas=schemas, flutter_files=flutter_files_invalid)
+    repo_invalid = WorkspaceRepository(str(ws_dir_invalid))
+    validator = SchemaMappingValidator()
+    errors_invalid = validator.validate(repo_invalid)
+    assert any("id" in err or "name" in err for err in errors_invalid)
+
+    flutter_files_valid = {
+        "widgets/user_card.dart": "class User { final String id; final String name; User({required this.id, required this.name}); }"
+    }
+    ws_dir_valid = setup_workspace(tmp_path / "valid", base_config, schemas=schemas, flutter_files=flutter_files_valid)
+    repo_valid = WorkspaceRepository(str(ws_dir_valid))
+    errors_valid = validator.validate(repo_valid)
+    assert not errors_valid, f"Expected no errors, but got: {errors_valid}"
+
+def test_mermaid_prose_dotted_link(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    repo = WorkspaceRepository(str(ws_dir))
+    features_dir = ws_dir / "docs" / "features"
+    os.makedirs(features_dir, exist_ok=True)
+    with open(features_dir / "feat-prose.md", "w", encoding="utf-8") as f:
+        f.write("# Feature: Prose\nPlease refer to this: A ..> B for description.\n\n## UML Diagrams\n```mermaid\nclassDiagram\n    class A\n    class B\n    A ..> B : dependency\n```\n")
+    from parity_auditor.validators.uml import UmlValidator
+    validator = UmlValidator()
+    errors = validator.validate(repo, epics_dir=str(ws_dir / "docs/epics"))
+    link_errors = [e for e in errors if "dotted link" in e]
+    assert not link_errors, f"Expected no link errors from prose, but got: {link_errors}"
+
+
 
 
