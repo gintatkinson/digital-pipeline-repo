@@ -83,10 +83,18 @@ class _SidebarTreeState extends State<SidebarTree> {
                     viewModel.handleArrowUp();
                     return KeyEventResult.handled;
                   }
-                  if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+                  if (key == LogicalKeyboardKey.space) {
                     final currentId = viewModel.currentView;
                     if (currentId != null) {
                       viewModel.selectView(currentId);
+                    }
+                    return KeyEventResult.handled;
+                  }
+                  if (key == LogicalKeyboardKey.enter) {
+                    final currentId = viewModel.currentView;
+                    if (currentId != null) {
+                      viewModel.selectView(currentId);
+                      viewModel.triggerFlight(currentId);
                     }
                     return KeyEventResult.handled;
                   }

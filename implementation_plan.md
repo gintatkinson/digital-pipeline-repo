@@ -1,65 +1,158 @@
-# Implementation Plan: Fix Incorrect LOD Masking in Globe Tile Renderer
+# Implementation Plan: Keyboard Enter-Flight Shortcut and Acceptance Tests
 
-This plan details the steps to file the defect issue, apply the code correction to comment out incorrect LOD masking, rebuild the macOS release, package it, run backlog reconciliation, and push the branch.
+This plan details the steps to implement the Enter-Flight keyboard shortcut in the sidebar tree, add verification test assertions, build the production app, package it, run backlog reconciliation, commit and push the changes.
 
 ## 1. Proposed Changes
 
-### Component: Upstream Defect Reporting
-* **Action**: Create a temporary file `scratch/render_issue.md` containing the defect details, and run the `gh` command to file the issue on the repository.
-* **Target File**: `scratch/render_issue.md` (temporary)
-
-### Component: Globe Tile Renderer Code Correction
-* **Action**: Comment out the LOD masking check so parent tiles are always drawn as a base layer and child tiles are drawn on top using Painter's Algorithm.
-* **Target File**: `app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart`
+### Component: Sidebar Tree Focus KeyEvent Handling
+* **Action**: Split the key event handling in the `Focus` widget inside `SidebarTree` so that the space key only selects the node, while the enter key both selects the node and triggers the camera flight.
+* **Target File**: `app_flutter/lib/features/tree/sidebar_tree.dart`
 * **Changes**:
 ```diff
-      // LOD masking: skip this tile if a higher-zoom child tile is loaded.
--      if (_hasHigherZoomOverlay(TileCoord(zoom: z, x: x, y: y))) continue;
-+      // if (_hasHigherZoomOverlay(TileCoord(zoom: z, x: x, y: y))) continue;
+-                  if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+-                    final currentId = viewModel.currentView;
+-                    if (currentId != null) {
+-                      viewModel.selectView(currentId);
+-                    }
+-                    return KeyEventResult.handled;
+-                  }
++                  if (key == LogicalKeyboardKey.space) {
++                    final currentId = viewModel.currentView;
++                    if (currentId != null) {
++                      viewModel.selectView(currentId);
++                    }
++                    return KeyEventResult.handled;
++                  }
++                  if (key == LogicalKeyboardKey.enter) {
++                    final currentId = viewModel.currentView;
++                    if (currentId != null) {
++                      viewModel.selectView(currentId);
++                      viewModel.triggerFlight(currentId);
++                    }
++                    return KeyEventResult.handled;
++                  }
+```
+
+### Component: Integration / Acceptance Tests
+* **Action**: Add a new test case to `double_click_fly_acceptance_test.dart` to simulate focusing the sidebar tree, navigating using arrow keys, and pressing `LogicalKeyboardKey.enter` to verify that both node selection and camera flight are successfully triggered.
+* **Target File**: `app_flutter/test/topology/double_click_fly_acceptance_test.dart`
+* **Changes**: Add the following test case inside the main `group`:
+```dart
+    testWidgets(
+      'Key event with LogicalKeyboardKey.enter simulated on sidebar tree focus node triggers selection and camera flight',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1200, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MultiProvider(
+              providers: [
+                Provider<DataSource>.value(value: fakeDataSource),
+                ChangeNotifierProvider<ThemeController>.value(
+                  value: ThemeController(FakeThemeService()),
+                ),
+              ],
+              child: MaterialApp(
+                home: Scaffold(
+                  body: Layout(
+                    activeView: 'NodeA',
+                    layoutConfig: testLayoutConfig,
+                  ),
+                ),
+              ),
+            ),
+          );
+          await settle(tester);
+
+          // Verify initial state
+          final CameraController controller = findCameraController(tester);
+          expect(controller.current.latitude, 35.6);
+          expect(controller.current.longitude, 139.7);
+          expect(controller.isFlying, isFalse);
+
+          // Focus the tree's focusNode by tapping the sidebar node A
+          final nodeAFinder = find.byKey(const Key('node_NodeA'));
+          expect(nodeAFinder, findsOneWidget);
+          await tester.tap(nodeAFinder);
+          await settle(tester);
+
+          // Verify selection is still Node A
+          final treeViewModel = tester.element(find.byType(TopographicalView)).read<TreeViewModel>();
+          expect(treeViewModel.currentView, 'NodeA');
+
+          // Press ArrowDown to change focused/selected view to NodeB
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+          await settle(tester);
+          expect(treeViewModel.currentView, 'NodeB');
+          expect(controller.isFlying, isFalse);
+
+          // Press Enter key to trigger flight
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await settle(tester);
+
+          // Verify that camera flight starts
+          expect(controller.isFlying, isTrue, reason: 'Enter key should trigger flight');
+
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(controller.current.latitude, greaterThan(35.6));
+          expect(controller.current.longitude, isNot(139.7));
+
+          await tester.pumpAndSettle();
+          expect(controller.isFlying, isFalse);
+          expect(controller.current.latitude, 40.7);
+          expect(controller.current.longitude, -74.0);
+        });
+      },
+    );
 ```
 
 ---
 
 ## 2. Execution & Verification Steps
 
-### Step 1: Create Defect Description File
-Write character-for-character contents to `scratch/render_issue.md`.
+### Step 1: Apply Code Changes
+* Modify `app_flutter/lib/features/tree/sidebar_tree.dart`.
+* Modify `app_flutter/test/topology/double_click_fly_acceptance_test.dart`.
 
-### Step 2: File Defect on GitHub
-Run the command:
-```bash
-gh issue create --repo gintatkinson/digital-pipeline-repo --title "[AUDIT] [globe_tile_renderer.dart]: Map tile sectors and wedges are missing due to incorrect LOD masking [GLOBE-LNT-01]" --label "bug" --body-file scratch/render_issue.md
-```
+### Step 2: Run Unit and Integration Tests
+Run `flutter test` inside the `app_flutter` directory to verify tests pass successfully (Green Phase).
 
-### Step 3: Apply Code Correction
-Edit `app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart` and comment out line 337.
-
-### Step 4: Rebuild the Production Release
+### Step 3: Build macOS Production Release
 Run the command inside `app_flutter` directory:
 ```bash
 flutter build macos --release
 ```
 
-### Step 5: Repackage the Distributable Zip
-Run the command inside `app_flutter/build/macos/Build/Products/Release/` directory:
+### Step 4: Package App
+Run the zip command in `app_flutter/build/macos/Build/Products/Release/`:
 ```bash
 zip -r -y ../../../../../app_flutter_release.zip app_flutter.app
 ```
 
-### Step 6: Stage, Commit, Reconcile, and Push
-1. Stage the file: `git add app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart`
-2. Commit: `git commit -m "fix: comment out broken LOD masking in globe_tile_renderer.dart"`
-3. Run reconciliation: `python3 skills/spec-orchestrator/scripts/reconcile_backlog.py`
-4. Push to origin: `git push origin feat/58-63-linter-fixes`
-
-### Step 7: Launch the Updated App
-Run the command inside `app_flutter/build/macos/Build/Products/Release/` directory:
+### Step 5: Stage and Commit Changes
+Run git commands:
 ```bash
-open app_flutter.app
+git add app_flutter/lib/features/tree/sidebar_tree.dart app_flutter/test/topology/double_click_fly_acceptance_test.dart
+git commit -m "feat: implement enter-flight keyboard shortcut and verify with acceptance test"
 ```
 
-### Step 8: Clean Up Temporary Files
-Remove the temporary issue file:
+### Step 6: Backlog Reconciliation
+Run backlog reconciliation script:
 ```bash
-rm -f scratch/render_issue.md
+python3 skills/spec-orchestrator/scripts/reconcile_backlog.py
+```
+
+### Step 7: Push and Launch
+* Push changes:
+```bash
+git push origin feat/58-63-linter-fixes
+```
+* Launch the updated app:
+```bash
+open app_flutter/build/macos/Build/Products/Release/app_flutter.app
 ```

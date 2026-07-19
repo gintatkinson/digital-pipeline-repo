@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
@@ -339,6 +340,78 @@ void main() {
               reason: 'Camera should have arrived at Node B latitude');
           expect(controller.current.longitude, -74.0,
               reason: 'Camera should have arrived at Node B longitude');
+        });
+      },
+    );
+
+    testWidgets(
+      'Key event with LogicalKeyboardKey.enter simulated on sidebar tree focus node triggers selection and camera flight',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1200, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MultiProvider(
+              providers: [
+                Provider<DataSource>.value(value: fakeDataSource),
+                ChangeNotifierProvider<ThemeController>.value(
+                  value: ThemeController(FakeThemeService()),
+                ),
+              ],
+              child: MaterialApp(
+                home: Scaffold(
+                  body: Layout(
+                    activeView: 'NodeA',
+                    layoutConfig: testLayoutConfig,
+                  ),
+                ),
+              ),
+            ),
+          );
+          await settle(tester);
+
+          // Verify initial state
+          final CameraController controller = findCameraController(tester);
+          expect(controller.current.latitude, 35.6);
+          expect(controller.current.longitude, 139.7);
+          expect(controller.isFlying, isFalse);
+
+          // Focus the tree's focusNode by tapping the sidebar node A
+          final nodeAFinder = find.byKey(const Key('node_NodeA'));
+          expect(nodeAFinder, findsOneWidget);
+          await tester.tap(nodeAFinder);
+          await settle(tester);
+
+          // Verify selection is still Node A
+          final treeViewModel = tester.element(find.byType(TopographicalView)).read<TreeViewModel>();
+          expect(treeViewModel.currentView, 'NodeA');
+
+          // Press ArrowDown to change focused/selected view to NodeB
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+          await settle(tester);
+          expect(treeViewModel.currentView, 'NodeB');
+          expect(controller.isFlying, isFalse);
+
+          // Press Enter key to trigger flight
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await settle(tester);
+
+          // Verify that camera flight starts
+          expect(controller.isFlying, isTrue, reason: 'Enter key should trigger flight');
+
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(controller.current.latitude, greaterThan(35.6));
+          expect(controller.current.longitude, isNot(139.7));
+
+          await tester.pumpAndSettle();
+          expect(controller.isFlying, isFalse);
+          expect(controller.current.latitude, 40.7);
+          expect(controller.current.longitude, -74.0);
         });
       },
     );
