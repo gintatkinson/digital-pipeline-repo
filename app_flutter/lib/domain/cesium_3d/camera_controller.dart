@@ -10,6 +10,10 @@ class CameraController extends ChangeNotifier {
   VirtualCamera? _startCamera;
   VirtualCamera? _targetCamera;
   DateTime _animationStart = DateTime(0);
+  Duration _flightDuration = const Duration(milliseconds: 500);
+
+  @visibleForTesting
+  Duration get flightDurationForTesting => _flightDuration;
 
   static const double dragSensitivity = 0.15;
   static const double scrollSensitivity = 0.5;
@@ -68,7 +72,32 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static double _normalizeRadDiff(double diff) {
+    if (diff.isNaN || !diff.isFinite) return 0.0;
+    double wrapped = (diff + math.pi) % (2 * math.pi);
+    if (wrapped < 0.0) wrapped += 2 * math.pi;
+    return wrapped - math.pi;
+  }
+
+  static double _computeAngularDistance(VirtualCamera a, VirtualCamera b) {
+    final double lat1 = a.latitude * math.pi / 180.0;
+    final double lat2 = b.latitude * math.pi / 180.0;
+    final double lon1 = a.longitude * math.pi / 180.0;
+    final double lon2 = b.longitude * math.pi / 180.0;
+
+    final double dLat = lat2 - lat1;
+    final double dLon = _normalizeRadDiff(lon2 - lon1);
+
+    final double sinDLat2 = math.sin(dLat / 2);
+    final double sinDLon2 = math.sin(dLon / 2);
+    final double val = sinDLat2 * sinDLat2 + math.cos(lat1) * math.cos(lat2) * sinDLon2 * sinDLon2;
+    return 2 * math.asin(math.sqrt(val.clamp(0.0, 1.0)));
+  }
+
   void flyTo(VirtualCamera target) {
+    final double angularDistance = _computeAngularDistance(_camera, target);
+    final double ms = 500.0 + (angularDistance / math.pi) * 1300.0;
+    _flightDuration = Duration(milliseconds: ms.round());
     _startCamera = _camera;
     _targetCamera = target;
     _animationStart = clock.now();
@@ -77,9 +106,8 @@ class CameraController extends ChangeNotifier {
   bool tick() {
     if (_startCamera == null || _targetCamera == null) return true;
     final elapsed = clock.now().difference(_animationStart);
-    final duration = const Duration(milliseconds: 500);
     final progress =
-        (elapsed.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+        (elapsed.inMilliseconds / _flightDuration.inMilliseconds).clamp(0.0, 1.0);
     final t = _easeInOutCubic(progress);
     _camera = _lerpCamera(_startCamera!, _targetCamera!, t);
     notifyListeners();
@@ -98,10 +126,15 @@ class CameraController extends ChangeNotifier {
   }
 
   static VirtualCamera _lerpCamera(VirtualCamera a, VirtualCamera b, double t) {
+    final double distance = _computeAngularDistance(a, b);
+    final double maxBoost = (distance / math.pi) * 5000000.0;
+    final double baseAltitude = a.altitude + (b.altitude - a.altitude) * t;
+    final double boostedAltitude = baseAltitude + math.sin(t * math.pi) * maxBoost;
+
     return VirtualCamera.clamped(
       latitude: a.latitude + (b.latitude - a.latitude) * t,
       longitude: _interpolateCircular(a.longitude, b.longitude, t, _wrapLngStatic),
-      altitude: a.altitude + (b.altitude - a.altitude) * t,
+      altitude: boostedAltitude,
       heading: _interpolateCircular(a.heading, b.heading, t, _wrapHeadingStatic),
       pitch: _interpolateCircular(a.pitch, b.pitch, t, _wrapPitchStatic),
       roll: a.roll + (b.roll - a.roll) * t,

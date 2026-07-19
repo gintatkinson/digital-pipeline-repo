@@ -32,11 +32,10 @@ void main() {
     expect(controller.current.altitude, equals(6378137.0 + 100000.0));
     expect(controller.isFlying, isFalse);
 
-    // Simulate double-tap on the viewport
-    final viewportFinder = find.byType(Scene3DViewport);
-    await tester.tap(viewportFinder);
+    // Simulate double-tap on the viewport center of projection
+    await tester.tapAt(const Offset(360, 300));
     await tester.pump(const Duration(milliseconds: 50));
-    await tester.tap(viewportFinder);
+    await tester.tapAt(const Offset(360, 300));
     await tester.pump();
 
     // Verify that the camera is now flying to a target
@@ -44,7 +43,7 @@ void main() {
 
     // Let the animation tick forward
     await tester.pump(const Duration(milliseconds: 100));
-    expect(controller.current.altitude, lessThan(6378137.0 + 100000.0));
+    expect(controller.current.altitude, isNot(6378137.0 + 100000.0));
 
     // Wait until fly completes
     await tester.pumpAndSettle(const Duration(milliseconds: 500));

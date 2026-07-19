@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:clock/clock.dart';
 import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
 import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
 
@@ -226,6 +227,50 @@ void main() {
       final c = CameraController(_makeCam(pitch: -175));
       c.keyboardTilt(-10);
       expect(c.current.pitch, equals(175.0));
+    });
+
+    test('Enhanced flight path midpoint boost and destination arrival', () {
+      DateTime time = DateTime(2026, 7, 19, 12, 0, 0);
+      withClock(Clock(() => time), () {
+        final start = VirtualCamera.clamped(
+          latitude: 35.6,
+          longitude: 135.0,
+          altitude: 6378137.0 + 500.0,
+          heading: 0.0,
+          pitch: 0.0,
+          roll: 0.0,
+        );
+        final target = VirtualCamera.clamped(
+          latitude: 40.7,
+          longitude: -74.0,
+          altitude: 6378137.0 + 500.0,
+          heading: 0.0,
+          pitch: 0.0,
+          roll: 0.0,
+        );
+
+        final controller = CameraController(start);
+        controller.flyTo(target);
+
+        final duration = controller.flightDurationForTesting;
+        expect(duration.inMilliseconds, greaterThan(500));
+
+        final halfDurationMs = duration.inMilliseconds ~/ 2;
+        time = time.add(Duration(milliseconds: halfDurationMs));
+
+        final arrivedMid = controller.tick();
+        expect(arrivedMid, isFalse);
+        expect(controller.current.altitude - 6378137.0, greaterThan(1000000.0));
+
+        final remainingMs = duration.inMilliseconds - halfDurationMs;
+        time = time.add(Duration(milliseconds: remainingMs));
+
+        final arrivedEnd = controller.tick();
+        expect(arrivedEnd, isTrue);
+        expect(controller.current.latitude, closeTo(40.7, 0.001));
+        expect(controller.current.longitude, closeTo(-74.0, 0.001));
+        expect(controller.current.altitude - 6378137.0, closeTo(500.0, 0.1));
+      });
     });
   });
 
