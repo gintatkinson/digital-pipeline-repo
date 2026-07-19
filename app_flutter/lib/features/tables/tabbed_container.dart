@@ -37,6 +37,7 @@ class _TabbedContainerState extends State<TabbedContainer>
   TabController? _tabController;
   TablesViewModel? _viewModel;
   int? _lastIndex;
+  final List<TabController> _pendingDispose = [];
 
   @override
   void didChangeDependencies() {
@@ -69,8 +70,13 @@ class _TabbedContainerState extends State<TabbedContainer>
     if (_tabController == null || _tabController!.length != tabs.length) {
       final oldController = _tabController;
       if (oldController != null) {
+        oldController.removeListener(_onTabTick);
+        _pendingDispose.add(oldController);
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          oldController.dispose();
+          if (_pendingDispose.contains(oldController)) {
+            _pendingDispose.remove(oldController);
+            oldController.dispose();
+          }
         });
       }
       _tabController = TabController(length: tabs.length, vsync: this);
@@ -104,6 +110,17 @@ class _TabbedContainerState extends State<TabbedContainer>
     final tabs = _viewModel!.tabs;
 
     if (tabs.isEmpty) {
+      if (_viewModel!.error != null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              _viewModel!.error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        );
+      }
       if (_viewModel!.loading) {
         return const Center(child: CircularProgressIndicator());
       }
@@ -147,6 +164,10 @@ class _TabbedContainerState extends State<TabbedContainer>
     _viewModel?.removeListener(_onViewModelChanged);
     _tabController?.removeListener(_onTabTick);
     _tabController?.dispose();
+    for (final c in _pendingDispose) {
+      c.dispose();
+    }
+    _pendingDispose.clear();
     super.dispose();
   }
 }
