@@ -400,6 +400,58 @@ void main() {
         expect(controller.current.latitude, isNot(35.0),
             reason: 'Initial camera should NOT be at ViewA when ViewB is specified');
       });
+
+    testWidgets(
+      'Issue #68: _cachedCamera not corrupted by stale onCameraChanged after view switch',
+      (WidgetTester tester) async {
+        final wrapperState = await _pumpTopographicalView(tester, startView: 'ViewA');
+        final CameraController controller = _findCameraController(tester);
+
+        expect(controller.current.latitude, 35.0);
+        expect(controller.current.longitude, 140.0);
+
+        wrapperState.forceViewChange('ViewB');
+        await tester.pumpAndSettle();
+
+        final CameraController afterSwitchCtrl = _findCameraController(tester);
+        expect(afterSwitchCtrl.current.latitude, 50.0);
+        expect(afterSwitchCtrl.current.longitude, -75.0);
+
+        afterSwitchCtrl.pan(const Offset(50, 0));
+
+        wrapperState.forceViewChange('ViewA');
+        await tester.pumpAndSettle();
+
+        final CameraController backCtrl = _findCameraController(tester);
+        expect(backCtrl.current.latitude, 35.0,
+            reason: 'Camera must reset to ViewA latitude');
+        expect(backCtrl.current.longitude, 140.0,
+            reason: 'Camera must reset to ViewA longitude');
+      });
+
+    testWidgets(
+      'Issue #68: Rapid view cycling does not corrupt _cachedCamera',
+      (WidgetTester tester) async {
+        final wrapperState = await _pumpTopographicalView(tester, startView: 'ViewA');
+
+        for (int i = 0; i < 5; i++) {
+          wrapperState.forceViewChange('ViewB');
+          await tester.pumpAndSettle();
+          final CameraController bCtrl = _findCameraController(tester);
+          expect(bCtrl.current.latitude, 50.0,
+              reason: 'Cycle $i: must be at ViewB');
+          expect(bCtrl.current.longitude, -75.0,
+              reason: 'Cycle $i: must be at ViewB');
+
+          wrapperState.forceViewChange('ViewA');
+          await tester.pumpAndSettle();
+          final CameraController aCtrl = _findCameraController(tester);
+          expect(aCtrl.current.latitude, 35.0,
+              reason: 'Cycle $i: must be at ViewA');
+          expect(aCtrl.current.longitude, 140.0,
+              reason: 'Cycle $i: must be at ViewA');
+        }
+      });
   });
 
   group('Issue #44: Stale fly-to does not overwrite camera after view change', () {
