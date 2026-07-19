@@ -9,7 +9,7 @@ class CameraController extends ChangeNotifier {
 
   VirtualCamera? _startCamera;
   VirtualCamera? _targetCamera;
-  DateTime _animationStart = DateTime(0);
+  DateTime? _animationStart;
   Duration _flightDuration = const Duration(milliseconds: 500);
 
   @visibleForTesting
@@ -100,12 +100,13 @@ class CameraController extends ChangeNotifier {
     _flightDuration = Duration(milliseconds: ms.round());
     _startCamera = _camera;
     _targetCamera = target;
-    _animationStart = clock.now();
+    _animationStart = null;
   }
 
   bool tick() {
     if (_startCamera == null || _targetCamera == null) return true;
-    final elapsed = clock.now().difference(_animationStart);
+    _animationStart ??= clock.now();
+    final elapsed = clock.now().difference(_animationStart!);
     final progress =
         (elapsed.inMilliseconds / _flightDuration.inMilliseconds).clamp(0.0, 1.0);
     final t = _easeInOutCubic(progress);

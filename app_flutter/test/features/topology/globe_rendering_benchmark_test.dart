@@ -93,7 +93,7 @@ void main() {
         roll: 0.0,
       );
 
-      final framePainter = Scene3DViewportPainter(
+      final framePainter = Scene3DViewportPainter(isFlying: false, 
         camera: currentCamera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',

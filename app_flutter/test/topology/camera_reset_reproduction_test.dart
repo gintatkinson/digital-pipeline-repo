@@ -506,6 +506,9 @@ void main() {
         final gestureDetector = tester.widget<GestureDetector>(gestureDetectorFinder);
         gestureDetector.onDoubleTapDown!(TapDownDetails(globalPosition: const Offset(360, 300)));
 
+        // Trigger first tick to set start time before advancing virtual clock
+        await tester.pump();
+
         // Let the fly-to progress partway
         await tester.pump(const Duration(milliseconds: 100));
 

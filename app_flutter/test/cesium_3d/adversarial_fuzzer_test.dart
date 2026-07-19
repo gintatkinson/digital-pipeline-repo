@@ -96,7 +96,7 @@ void main() {
 
           final controller = CameraController(camera);
 
-          final painter = Scene3DViewportPainter(
+          final painter = Scene3DViewportPainter(isFlying: false, 
             camera: camera,
             activeStyle: 'dark',
             astronomicalBody: 'Earth',

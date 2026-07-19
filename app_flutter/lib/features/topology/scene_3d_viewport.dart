@@ -129,6 +129,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       imageryProvider: _providerForStyle(_activeStyle),
       verticalExaggeration: widget.verticalExaggeration,
       tileCacheVersion: _tileCacheVersion,
+      isFlying: _cameraController.isFlying,
     );
 
     final ProjectedPoint projected = painter.project(
@@ -528,6 +529,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       imageryProvider: _providerForStyle(_activeStyle),
       verticalExaggeration: widget.verticalExaggeration,
       tileCacheVersion: _tileCacheVersion,
+      isFlying: _cameraController.isFlying,
     );
 
     final ProjectedPoint earthCenterProj = painter.project(0.0, 0.0, 0.0, center, 0.0, 0.0, size);
@@ -691,6 +693,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
                       imageryProvider: _providerForStyle(_activeStyle),
                       verticalExaggeration: widget.verticalExaggeration,
                       tileCacheVersion: _tileCacheVersion,
+                      isFlying: _cameraController.isFlying,
                     ),
                   ),
                 ),
@@ -1157,6 +1160,7 @@ class Scene3DViewportPainter extends CustomPainter {
   final double verticalExaggeration;
   final int tileCacheVersion;
   final Listenable? repaint;
+  final bool isFlying;
 
   Scene3DViewportPainter({
     required VirtualCamera camera,
@@ -1176,6 +1180,7 @@ class Scene3DViewportPainter extends CustomPainter {
     required this.verticalExaggeration,
     this.tileCacheVersion = 0,
     this.repaint,
+    required this.isFlying,
   }) : camera = camera.altitude < 6378137.0 ? VirtualCamera.raw(
          latitude: camera.latitude,
          longitude: camera.longitude,
@@ -1884,6 +1889,7 @@ class Scene3DViewportPainter extends CustomPainter {
             size,
           );
         },
+        isFlying: isFlying,
       );
     }
 
@@ -2162,7 +2168,8 @@ class Scene3DViewportPainter extends CustomPainter {
         oldDelegate.tileRenderer != tileRenderer ||
         oldDelegate.imageryProvider != imageryProvider ||
         oldDelegate.verticalExaggeration != verticalExaggeration ||
-        oldDelegate.topologyData != topologyData;
+        oldDelegate.topologyData != topologyData ||
+        oldDelegate.isFlying != isFlying;
   }
 }
 

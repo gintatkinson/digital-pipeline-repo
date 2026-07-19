@@ -19,7 +19,7 @@ void main() {
         latitude: 35.0, longitude: 138.0, altitude: 2000000.0,
         heading: 0, pitch: -90, roll: 0,
       );
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -55,7 +55,7 @@ void main() {
         roll: 0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -109,7 +109,7 @@ void main() {
         roll: 0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -150,7 +150,7 @@ void main() {
         roll: 0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -218,7 +218,7 @@ void main() {
         roll: 0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -256,7 +256,7 @@ void main() {
   group('Feature 02: 3D Terrain Elevation and Node Altitude', () {
     test('getElevation returns correct heights at Mount Fuji and Alps only when active', () {
       final camera = VirtualCamera.clamped(latitude: 35.0, longitude: 138.0, altitude: 2000000.0, heading: 0, pitch: -90, roll: 0);
-      final painterActive = Scene3DViewportPainter(
+      final painterActive = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -270,7 +270,7 @@ void main() {
         zoomScale: 1.0,
         verticalExaggeration: 1.0,
       );
-      final painterInactive = Scene3DViewportPainter(
+      final painterInactive = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -332,7 +332,7 @@ void main() {
         links: const [],
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -397,7 +397,7 @@ void main() {
         links: const [],
       );
       
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',

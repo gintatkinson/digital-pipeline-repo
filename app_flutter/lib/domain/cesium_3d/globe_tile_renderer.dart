@@ -163,10 +163,13 @@ class GlobeTileRenderer {
   /// The centre tile is derived from the camera's lat/lng. A 4&times;4 grid
   /// (16 tiles) is then generated around it, clamped to valid Web Mercator
   /// bounds.
-  List<TileCoord> _visibleTiles(VirtualCamera camera, ui.Size viewportSize) {
+  List<TileCoord> _visibleTiles(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
     final double R = 6378137.0;
     final double relativeAlt = camera.altitude < R ? camera.altitude : camera.altitude - R;
-    final zoom = _zoomForAltitude(relativeAlt, viewportSize.width);
+    int zoom = _zoomForAltitude(relativeAlt, viewportSize.width);
+    if (isFlying && zoom > 4) {
+      zoom = 4;
+    }
     final center = _latLngToTile(camera.latitude, camera.longitude, zoom);
     final List<TileCoord> tiles = [];
 
@@ -228,14 +231,14 @@ class GlobeTileRenderer {
   ///
   /// This method is safe to call on every frame — its work is bounded and
   /// it never blocks the UI thread.
-  void beginTileFetch(VirtualCamera camera, ui.Size viewportSize) {
+  void beginTileFetch(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
     if (!_fetcher.isEnabled()) return;
-    _fetchVisibleTiles(camera, viewportSize); // fire-and-forget
+    _fetchVisibleTiles(camera, viewportSize, isFlying: isFlying); // fire-and-forget
   }
 
   Future<void> _fetchVisibleTiles(
-      VirtualCamera camera, ui.Size viewportSize) async {
-    final tiles = _visibleTiles(camera, viewportSize);
+      VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) async {
+    final tiles = _visibleTiles(camera, viewportSize, isFlying: isFlying);
 
     final List<TileCoord> toFetch = [];
     for (final tile in tiles) {
@@ -311,12 +314,13 @@ class GlobeTileRenderer {
     ui.Size size,
     ui.Offset center,
     double sphereRadius,
-    ProjectedPoint Function(double lat, double lng) projectFn,
-  ) {
+    ProjectedPoint Function(double lat, double lng) projectFn, {
+    bool isFlying = false,
+  }) {
     if (!_fetcher.isEnabled()) return;
 
     // Kick off fetches for tiles that may be needed soon.
-    beginTileFetch(camera, size);
+    beginTileFetch(camera, size, isFlying: isFlying);
 
     final sortedEntries = _loadedImages.entries.toList()
       ..sort((e1, e2) {

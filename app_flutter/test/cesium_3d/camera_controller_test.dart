@@ -251,6 +251,7 @@ void main() {
 
         final controller = CameraController(start);
         controller.flyTo(target);
+        controller.tick(); // lazy-initialize _animationStart to current mock time
 
         final duration = controller.flightDurationForTesting;
         expect(duration.inMilliseconds, greaterThan(500));

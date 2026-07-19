@@ -168,7 +168,7 @@ void main() {
                 roll: 0.0,
               );
 
-              final painter = Scene3DViewportPainter(
+              final painter = Scene3DViewportPainter(isFlying: false, 
                 camera: camera,
                 activeStyle: 'dark',
                 astronomicalBody: 'Earth',
@@ -280,7 +280,7 @@ void main() {
         roll: 0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -467,7 +467,7 @@ void main() {
         pitch: -90.0,
         roll: 0.0,
       );
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -507,7 +507,7 @@ void main() {
         pitch: -90.0,
         roll: 0.0,
       );
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -599,7 +599,7 @@ void main() {
       final double rotationAngle = -(camera.longitude * math.pi / 180.0);
       final double tilt = -(camera.latitude * math.pi / 180.0);
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'Satellite Map',
         astronomicalBody: 'Earth',
@@ -681,7 +681,7 @@ void main() {
         roll: 0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -815,6 +815,7 @@ class _TestViewportPainter extends Scene3DViewportPainter {
           userRotationX: 0.0,
           userTilt: 0.0,
           zoomScale: 1.0,
+          isFlying: false,
         );
 
   @override

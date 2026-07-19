@@ -313,7 +313,7 @@ void main() {
         roll: 0.0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -447,7 +447,7 @@ void main() {
                 roll: 0.0,
               );
 
-              final painter = Scene3DViewportPainter(
+              final painter = Scene3DViewportPainter(isFlying: false, 
                 camera: camera,
                 activeStyle: 'dark',
                 astronomicalBody: 'Earth',
@@ -556,7 +556,7 @@ void main() {
         roll: 0.0,
       );
 
-      final painter = Scene3DViewportPainter(
+      final painter = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
@@ -612,7 +612,7 @@ void main() {
       expect(projSpace.z, isNot(equals(projSurface.z)));
       
       // 3. Verify that elevationActive = false removes elevation offset
-      final painterNoElevation = Scene3DViewportPainter(
+      final painterNoElevation = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
         astronomicalBody: 'Earth',
