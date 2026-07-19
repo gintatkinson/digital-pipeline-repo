@@ -224,18 +224,12 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     _globeFocusNode.addListener(() {
       if (mounted) setState(() {});
     });
+
+    _treeViewModel = context.read<TreeViewModel?>();
+    _treeViewModel?.addListener(_onTreeViewModelChangeInsideViewport);
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final model = context.read<TreeViewModel?>();
-    if (model != _treeViewModel) {
-      _treeViewModel?.removeListener(_onTreeViewModelChangeInsideViewport);
-      _treeViewModel = model;
-      _treeViewModel?.addListener(_onTreeViewModelChangeInsideViewport);
-    }
-  }
+
 
   void _onCameraChangedInside() {
     if (mounted && !_isUpdatingWidget) {
