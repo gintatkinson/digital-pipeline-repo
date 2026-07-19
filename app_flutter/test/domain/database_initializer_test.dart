@@ -80,5 +80,15 @@ void main() {
 
       await db.close();
     });
+
+    test('calling create() without arguments initializes the database successfully in test environment', () async {
+      final db = await DatabaseInitializer.create();
+      expect(db, isNotNull);
+      final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='properties'",
+      );
+      expect(tables.length, 1);
+      await db.close();
+    });
   });
 }

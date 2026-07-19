@@ -62,10 +62,12 @@ class DatabaseInitializer {
     } else {
       path = dbPath != null
           ? (dbPath == inMemoryDatabasePath ? dbPath : p.absolute(dbPath))
-          : p.join(
-              (await getApplicationSupportDirectory()).path,
-              'properties_db.db',
-            );
+          : (isTest 
+              ? inMemoryDatabasePath 
+              : p.join(
+                  (await getApplicationSupportDirectory()).path,
+                  'properties_db.db',
+                ));
     }
 
     final db = await databaseFactory.openDatabase(path);
