@@ -229,7 +229,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final model = context.watch<TreeViewModel?>();
+    final model = context.read<TreeViewModel?>();
     if (model != _treeViewModel) {
       _treeViewModel?.removeListener(_onTreeViewModelChangeInsideViewport);
       _treeViewModel = model;
