@@ -232,6 +232,7 @@ class GlobeTileRenderer {
   /// This method is safe to call on every frame — its work is bounded and
   /// it never blocks the UI thread.
   void beginTileFetch(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
+    if (isFlying) return;
     if (!_fetcher.isEnabled()) return;
     _fetchVisibleTiles(camera, viewportSize, isFlying: isFlying); // fire-and-forget
   }
