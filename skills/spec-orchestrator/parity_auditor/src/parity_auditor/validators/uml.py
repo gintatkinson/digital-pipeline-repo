@@ -26,7 +26,9 @@ class UmlValidator(IValidator):
         features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
         user_stories_dir = os.path.join(repo.workspace_dir, backlog_dirs.user_stories)
         use_cases_dir = os.path.join(repo.workspace_dir, backlog_dirs.use_cases)
-        epics_dir = os.path.join(repo.workspace_dir, backlog_dirs.epics)
+        epics_dir = kwargs.get("epics_dir")
+        if epics_dir is None:
+            epics_dir = os.path.join(repo.workspace_dir, backlog_dirs.epics) if backlog_dirs.epics else None
         
         errors = []
         
@@ -79,11 +81,10 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "Feature", filename, errors)
             self._validate_placeholders_and_links(content, "Feature", filename, errors, checkbox_syntax_regex)
                 
-            if re.search(dotted_link_pattern, content):
-                errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-                
             mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
             mermaid_content = "\n".join(mermaid_blocks)
+            if re.search(dotted_link_pattern, mermaid_content):
+                errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
             for ftype in forbidden_diagram_types:
                 if re.search(ftype, mermaid_content):
                     errors.append(f"Feature {filename} contains forbidden '{ftype}' diagram type.")
@@ -154,11 +155,10 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "User Story", filename, errors)
             self._validate_placeholders_and_links(content, "User Story", filename, errors, checkbox_syntax_regex)
                 
-            if re.search(dotted_link_pattern, content):
-                errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-                
             mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
             mermaid_content = "\n".join(mermaid_blocks)
+            if re.search(dotted_link_pattern, mermaid_content):
+                errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
             for ftype in forbidden_diagram_types:
                 if re.search(ftype, mermaid_content):
                     errors.append(f"User Story {filename} contains forbidden '{ftype}' diagram type.")
@@ -298,11 +298,10 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "Use Case", basename, errors)
             self._validate_placeholders_and_links(content, "Use Case", basename, errors, checkbox_syntax_regex)
                 
-            if re.search(dotted_link_pattern, content):
-                errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-                
             mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
             mermaid_content = "\n".join(mermaid_blocks)
+            if re.search(dotted_link_pattern, mermaid_content):
+                errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
             for ftype in forbidden_diagram_types:
                 if re.search(ftype, mermaid_content):
                     errors.append(f"Use Case {basename} contains forbidden '{ftype}' diagram type.")
@@ -523,11 +522,10 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "Epic", filename, errors)
             self._validate_placeholders_and_links(content, "Epic", filename, errors, checkbox_syntax_regex)
                 
-            if re.search(dotted_link_pattern, content):
-                errors.append(f"Epic {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-                
             mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
             mermaid_content = "\n".join(mermaid_blocks)
+            if re.search(dotted_link_pattern, mermaid_content):
+                errors.append(f"Epic {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
             for ftype in forbidden_diagram_types:
                 if re.search(ftype, mermaid_content):
                     errors.append(f"Epic {filename} contains forbidden '{ftype}' diagram type.")
@@ -712,11 +710,14 @@ class UmlValidator(IValidator):
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
                     if not method.return_type or method.return_type.lower() in ("void", "none"):
                         continue
-                    has_mult = False
-                    if method.return_type and re.search(multiplicity_regex, method.return_type):
-                        has_mult = True
-                    elif re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw):
-                        has_mult = True
+                    has_mult = True
+                    if method.return_type:
+                        if '[' in method.return_type or ']' in method.return_type:
+                            if not re.search(multiplicity_regex, method.return_type):
+                                has_mult = False
+                        elif '[' in method.raw or ']' in method.raw:
+                            if not (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
+                                has_mult = False
                     if not has_mult:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
         

@@ -106,12 +106,9 @@ def _main_impl():
     
     args = parser.parse_args()
     
-    # 1. Locate workspace directory dynamically starting from the script's directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 1. Locate workspace directory dynamically starting from current working directory
     workspace_dir = None
-    
-    # Try traversing up from script_dir
-    curr = script_dir
+    curr = os.getcwd()
     while True:
         if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
             workspace_dir = curr
@@ -121,9 +118,10 @@ def _main_impl():
             break
         curr = parent
         
-    # If not found, fall back to os.getcwd() traversal
+    # Fall back to script's directory traversal if not found in cwd hierarchy
     if not workspace_dir:
-        curr = os.getcwd()
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        curr = script_dir
         while True:
             if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
                 workspace_dir = curr
@@ -271,12 +269,16 @@ def _main_impl():
         if not args.allow_missing_specs:
             sys.exit(1)
     
+    epic_files = []
+    if epics_dir and os.path.exists(epics_dir):
+        epic_files = [f for f in os.listdir(epics_dir) if f.endswith(".md")]
+
     skip_coverage_checks = False
-    if args.spec_only or not features:
+    if args.spec_only or (not features and not epic_files):
         if args.spec_only:
             print("Note: Running in spec-only mode. Skipping model coverage checks.")
         else:
-            print("Note: No feature specifications found in directory. Skipping model coverage checks.")
+            print("Note: No feature or epic specifications found in directory. Skipping model coverage checks.")
         skip_coverage_checks = True
     else:
         react_dir_name = rules.target_directories.react
@@ -295,7 +297,7 @@ def _main_impl():
     uml_validator = UmlValidator()
     global_classes = uml_validator.build_global_classes(repo, features_dir, epics_dir)
     
-    if not skip_coverage_checks and features:
+    if not skip_coverage_checks and (features or epic_files):
         # Read codebase source files
         codebase_contents = []
         
@@ -365,6 +367,23 @@ def _main_impl():
                     variants.add(name[0].upper() + name[1:])
             return variants
 
+        common_words = {"id", "name", "type", "status", "value", "height", "width", "time", "x", "y", "z", "t", "date", "info", "data", "key", "code", "save", "edit", "view", "vector"}
+        
+        def is_present_in_codebase(v: str, codebase: List[str]) -> bool:
+            v_escaped = re.escape(v)
+            if v.lower() not in common_words:
+                return any(re.search(r'\b' + v_escaped + r'\b', content) for content in codebase)
+            
+            patterns = [
+                r'\.\s*' + v_escaped + r'\b',                                  # member access: obj.id / obj?.id
+                r'\bthis\s*\.\s*' + v_escaped + r'\b',                          # constructor assignment: this.id
+                r'\b[a-zA-Z_][a-zA-Z0-9_<>\s]*\s+' + v_escaped + r'\b',          # type declaration: String name
+                r'\b' + v_escaped + r'\s*:',                                   # named parameter: name: value
+                r'\bconst\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',       # destructuring
+                r'\blet\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',         # destructuring
+            ]
+            return any(any(re.search(pat, content) for pat in patterns) for content in codebase)
+
         for cls_name, cls_info in sorted(global_classes.items()):
             # Check class name
             cls_variants = get_variants(cls_name)
@@ -384,11 +403,7 @@ def _main_impl():
             for attr in cls_info["attributes"]:
                 attr_name = attr["name"]
                 attr_variants = get_variants(attr_name)
-                attr_found = False
-                for content in codebase_contents:
-                    if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in attr_variants):
-                        attr_found = True
-                        break
+                attr_found = any(is_present_in_codebase(v, codebase_contents) for v in attr_variants)
                 total_defined += 1
                 if attr_found:
                     total_covered += 1
@@ -399,11 +414,7 @@ def _main_impl():
             for method in cls_info["methods"]:
                 method_name = method["name"]
                 method_variants = get_variants(method_name)
-                method_found = False
-                for content in codebase_contents:
-                    if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in method_variants):
-                        method_found = True
-                        break
+                method_found = any(is_present_in_codebase(v, codebase_contents) for v in method_variants)
                 total_defined += 1
                 if method_found:
                     total_covered += 1
@@ -420,7 +431,7 @@ def _main_impl():
             print("No UML elements found in specifications to verify.")
             sys.exit(1)
             
-    elif args.spec_only and features:
+    elif args.spec_only and (features or epic_files):
         print("\n=== Spec-Only Model Coverage Validation ===")
         all_definitions = {}
         for module_defs in modules.values():
