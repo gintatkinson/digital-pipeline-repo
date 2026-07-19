@@ -251,11 +251,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
         pitch: rawCamUpdate.pitch,
         roll: rawCamUpdate.roll,
       ) : rawCamUpdate;
-      final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST') ||
-          WidgetsBinding.instance.runtimeType.toString().contains('Test');
-      if (isTest) {
-        _cameraController.updateCamera(absCamUpdate);
-      }
+      _cameraController.updateCamera(absCamUpdate);
       _isUpdatingWidget = false;
     }
   }
