@@ -36,6 +36,7 @@ class TreeViewModel extends ChangeNotifier {
   final FocusNode _treeFocusNode = FocusNode();
   final Map<String, GlobalKey> _nodeKeys = {};
   bool _disposed = false;
+  String? _flightTarget;
 
   List<TreeNode> get treeData => _treeData;
   String get currentView => _currentView;
@@ -94,6 +95,17 @@ class TreeViewModel extends ChangeNotifier {
     _scrollToNode(viewId);
     notifyListeners();
     onViewSelected?.call(viewId);
+  }
+
+  String? get flightTarget => _flightTarget;
+
+  void triggerFlight(String nodeId) {
+    _flightTarget = nodeId;
+    notifyListeners();
+  }
+
+  void clearFlightTarget() {
+    _flightTarget = null;
   }
 
   /// Updates the current view (without firing [selectView]'s external callback).

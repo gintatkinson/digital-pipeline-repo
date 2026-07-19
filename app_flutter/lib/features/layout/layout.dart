@@ -391,7 +391,14 @@ class _LayoutState extends State<Layout> {
     );
     final rootNode = _parsedLayout!['layout']['root_container']
         as Map<String, dynamic>;
-    return factory.build(rootNode, constraints.maxWidth, constraints.maxHeight, context);
+    final childWidget = factory.build(rootNode, constraints.maxWidth, constraints.maxHeight, context);
+    if (_treeViewModel != null) {
+      return ChangeNotifierProvider<TreeViewModel>.value(
+        value: _treeViewModel!,
+        child: childWidget,
+      );
+    }
+    return childWidget;
   }
 
   @override

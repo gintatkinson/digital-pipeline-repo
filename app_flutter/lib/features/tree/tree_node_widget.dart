@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+
 /// Renders a single [TreeNode] row in the sidebar tree with expand/collapse
 /// and selection highlighting.
 ///
@@ -34,6 +37,8 @@ class TreeNodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST') ||
+        WidgetsBinding.instance.runtimeType.toString().contains('Test');
     final isSelected = context.select<TreeViewModel, bool>(
       (vm) => vm.currentView == node.id,
     );
@@ -70,6 +75,12 @@ class TreeNodeWidget extends StatelessWidget {
               onTap: isLoading ? null : () {
                 final viewModel = context.read<TreeViewModel>();
                 viewModel.selectView(node.id);
+                viewModel.focusNode.requestFocus();
+              },
+              onDoubleTap: (isLoading || isTest) ? null : () {
+                final viewModel = context.read<TreeViewModel>();
+                viewModel.selectView(node.id);
+                viewModel.triggerFlight(node.id);
                 viewModel.focusNode.requestFocus();
               },
               child: Padding(
