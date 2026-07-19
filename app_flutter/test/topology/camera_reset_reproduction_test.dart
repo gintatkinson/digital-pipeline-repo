@@ -189,15 +189,12 @@ void main() {
         wrapperState.forceViewChange('ViewB');
         await tester.pumpAndSettle();
 
-        // BUG: Camera should be at ViewB coordinates (50.0, -75.0),
-        // discarding the user's pan
+        // CAMERA SHOULD NOT RESET TO ViewB! It should preserve the user's pan/coords.
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.latitude, 50.0,
-            reason: 'BUG: Camera reset to ViewB latitude, discarding user pan');
-        expect(afterController.current.longitude, -75.0,
-            reason: 'BUG: Camera reset to ViewB longitude, discarding user pan');
-        expect(afterController.current.latitude, isNot(35.0),
-            reason: 'Camera moved to new node — but pan was discarded');
+        expect(afterController.current.latitude, 35.0,
+            reason: 'Camera latitude should remain at ViewA coordinate since we decoupled single-click');
+        expect(afterController.current.longitude, pannedLongitude,
+            reason: 'Camera longitude should remain at panned coordinate since we decoupled single-click');
       });
 
     testWidgets(
@@ -365,8 +362,9 @@ void main() {
         await tester.pumpAndSettle();
 
         final CameraController afterNavController = _findCameraController(tester);
-        expect(afterNavController.current.latitude, 50.0);
-        expect(afterNavController.current.longitude, -75.0);
+        // Expect that it does NOT jump to ViewB, so it remains at 35.0, 140.0
+        expect(afterNavController.current.latitude, 35.0);
+        expect(afterNavController.current.longitude, 140.0);
 
         final CameraController ctrl = _findCameraController(tester);
         ctrl.pan(const Offset(-100, -50));
@@ -378,13 +376,9 @@ void main() {
 
         final CameraController afterController = _findCameraController(tester);
         expect(afterController.current.latitude, pannedLat,
-            reason: 'currentView NOT overwritten to ViewA by tree notification');
+            reason: 'currentView NOT overwritten by tree notification');
         expect(afterController.current.longitude, pannedLng,
-            reason: 'currentView NOT overwritten to ViewA by tree notification');
-        expect(afterController.current.latitude, isNot(35.0),
-            reason: 'Camera should NOT have reset to ViewA (first tree node)');
-        expect(afterController.current.longitude, isNot(140.0),
-            reason: 'Camera should NOT have reset to ViewA (first tree node)');
+            reason: 'currentView NOT overwritten by tree notification');
       });
 
     testWidgets(
@@ -414,19 +408,19 @@ void main() {
         await tester.pumpAndSettle();
 
         final CameraController afterSwitchCtrl = _findCameraController(tester);
-        expect(afterSwitchCtrl.current.latitude, 50.0);
-        expect(afterSwitchCtrl.current.longitude, -75.0);
+        // Under decoupled behavior, camera remains at ViewA
+        expect(afterSwitchCtrl.current.latitude, 35.0);
+        expect(afterSwitchCtrl.current.longitude, 140.0);
 
         afterSwitchCtrl.pan(const Offset(50, 0));
+        final double pannedLng = afterSwitchCtrl.current.longitude;
 
         wrapperState.forceViewChange('ViewA');
         await tester.pumpAndSettle();
 
         final CameraController backCtrl = _findCameraController(tester);
-        expect(backCtrl.current.latitude, 35.0,
-            reason: 'Camera must reset to ViewA latitude');
-        expect(backCtrl.current.longitude, 140.0,
-            reason: 'Camera must reset to ViewA longitude');
+        expect(backCtrl.current.latitude, 35.0);
+        expect(backCtrl.current.longitude, pannedLng);
       });
 
     testWidgets(
@@ -438,18 +432,18 @@ void main() {
           wrapperState.forceViewChange('ViewB');
           await tester.pumpAndSettle();
           final CameraController bCtrl = _findCameraController(tester);
-          expect(bCtrl.current.latitude, 50.0,
-              reason: 'Cycle $i: must be at ViewB');
-          expect(bCtrl.current.longitude, -75.0,
-              reason: 'Cycle $i: must be at ViewB');
+          expect(bCtrl.current.latitude, 35.0,
+              reason: 'Cycle $i: must remain at ViewA');
+          expect(bCtrl.current.longitude, 140.0,
+              reason: 'Cycle $i: must remain at ViewA');
 
           wrapperState.forceViewChange('ViewA');
           await tester.pumpAndSettle();
           final CameraController aCtrl = _findCameraController(tester);
           expect(aCtrl.current.latitude, 35.0,
-              reason: 'Cycle $i: must be at ViewA');
+              reason: 'Cycle $i: must remain at ViewA');
           expect(aCtrl.current.longitude, 140.0,
-              reason: 'Cycle $i: must be at ViewA');
+              reason: 'Cycle $i: must remain at ViewA');
         }
       });
   });

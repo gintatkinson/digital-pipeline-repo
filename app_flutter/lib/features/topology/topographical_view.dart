@@ -103,7 +103,7 @@ class _TopographicalViewState extends State<TopographicalView> {
   @override
   void didUpdateWidget(covariant TopographicalView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentView != widget.currentView || oldWidget.topologyData != widget.topologyData) {
+    if (oldWidget.topologyData != widget.topologyData) {
       _cachedCamera = _calculateCameraForView(widget.currentView);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
