@@ -222,10 +222,9 @@ void main() {
           (lat, lng) => ProjectedPoint(ui.Offset.zero, 1.0),
         );
 
-        // We injected 3 tiles. Zoom-2 (0,0) should be skipped (child exists).
-        // Zoom-6 (0,0) and zoom-2 (3,3) should be drawn. That's 2 tiles.
-        expect(tilesDrawn, equals(2),
-            reason: 'Only 2 tiles should be drawn — zoom-2 (0,0) masked by child');
+        // We injected 3 tiles. All should be drawn since parent is no longer skipped.
+        expect(tilesDrawn, equals(3),
+            reason: 'All 3 tiles should be drawn — parent is not skipped');
       });
 
       test('no false masking when tiles are at same zoom', () async {
