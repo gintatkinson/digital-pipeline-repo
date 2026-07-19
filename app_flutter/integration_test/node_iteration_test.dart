@@ -11,7 +11,6 @@ import 'package:flutter/foundation.dart';
 import 'package:app_flutter/main.dart' as app_main;
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
-import 'package:app_flutter/core/theme/widgets/settings_panel.dart';
 
 final File benchmarkLogFile = File(
   Platform.environment['BENCHMARK_PATH'] ??
@@ -107,45 +106,6 @@ Future<void> _editTextFields(
   await tester.pump();
 }
 
-Future<void> _changeSettingsViaUI(
-    WidgetTester tester, ThemeMode themeMode, double textScale) async {
-  await tester.ensureVisible(find.byKey(const Key('sidebar_settings_button')));
-  await _settle(tester);
-  await tester.tap(find.byKey(const Key('sidebar_settings_button')));
-  await _settle(tester);
-
-  final IconData themeIcon;
-  switch (themeMode) {
-    case ThemeMode.light:
-      themeIcon = Icons.light_mode;
-    case ThemeMode.dark:
-      themeIcon = Icons.dark_mode;
-    case ThemeMode.system:
-      themeIcon = Icons.settings_brightness;
-  }
-  await tester.tap(find.byIcon(themeIcon).last);
-  await _settle(tester);
-
-  final slider = find.byKey(const Key('settings_text_scale_slider'));
-  await tester.ensureVisible(slider);
-  await _settle(tester);
-
-  final rect = tester.getRect(slider);
-  const double min = 0.7;
-  const double max = 1.5;
-  final double fraction = (textScale - min) / (max - min);
-  // Sliders have internal padding for the track. In Material, it is 24.0 dp.
-  const double trackPadding = 24.0;
-  final double trackWidth = rect.width - (2 * trackPadding);
-  final double targetX = rect.left + trackPadding + (fraction * trackWidth);
-  await tester.tapAt(Offset(targetX, rect.center.dy));
-  await _settle(tester);
-
-  // Close the bottom sheet reliably by popping the navigator
-  Navigator.pop(tester.element(find.byType(SettingsPanel)));
-  await _settle(tester);
-}
-
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -218,7 +178,9 @@ void main() {
         final ThemeMode themeMode = themeModes[passCount % themeModes.length];
         final double textScale = 0.7 + (passCount % 9) * 0.1;
 
-        await _changeSettingsViaUI(tester, themeMode, textScale);
+        await themeCtrl.updateThemeMode(themeMode);
+        textCtrl.setScale(textScale);
+        await _settle(tester);
 
         final memBefore = ProcessInfo.currentRss;
         final stopwatch = Stopwatch()..start();

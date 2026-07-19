@@ -1,76 +1,40 @@
-# Detailed Engineering Implementation Plan: Debug Protocol and Adversarial Auditor Fixes
+# Implementation Plan: Correct GitHub Issues #58-63 Bodies
 
-This implementation plan resolves GitHub Issues #56 and #57 by enforcing a strict mechanical proof gate for issue closure in `debug-protocol` and adding the "Semantic Traceability" pillar to `adversarial-code-auditor`.
-
----
-
-## 1. Target Files & Code Diffs
-
-### Component: Debug Protocol (Recursive Debugging Loop)
-
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/debug-protocol/SKILL.md)
-
-##### Change 1: Enforce Three-Proof Gate in Step 7 (L58-59)
-Modify Step 7 instructions to require fix presence grep check, raw test output, and git diff verification:
-```markdown
-<<<<
-## Step 7 — Verification Subagent
-Dispatch a subagent to: Confirm bug is fixed using original reproduction steps. Test edge cases. Verify no regressions (test suite must pass). Once verified, comment on and close the GitHub issue to mark it as resolved. Return pass/fail result.
-====
-## Step 7 — Verification Subagent
-Dispatch a subagent to:
-1. Confirm bug is fixed using original reproduction steps from Step 1.
-2. Grep the fix location (FILE_LOCATION from issue body) and confirm the fix code is present.
-3. Run the full test suite and paste raw terminal output.
-4. Show `git diff` of the fix commit to confirm only expected changes.
-5. If all three proofs pass, comment on the GitHub issue with the evidence and close it.
-Return: grep output, raw test output, git diff output. Do NOT return a pass/fail summary without evidence.
->>>>
-```
-
-##### Change 2: Update Checklist Item for Step 7 (L88)
-Update the verification checklist item to reflect the three-proof validation:
-```markdown
-<<<<
-- [ ] Step 7 subagent dispatched, tests pass, issue closed
-====
-- [ ] Step 7: Verification subagent dispatched, three proofs validated, issue closed with mechanical proof
->>>>
-```
+This plan outlines the updates to GitHub Issues #58 through #63 to resolve all Mermaid syntax errors, unquoted participant labels, incorrect sequence diagrams, and pillar classification mismatches.
 
 ---
 
-### Component: Adversarial Code Auditor
+## 1. Proposed Actions
 
-#### [MODIFY] [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/adversarial-code-auditor/SKILL.md)
+We will generate the corrected issue bodies for all 6 issues and run `gh issue edit [number] --body-file [temp_file]` to apply the updates.
 
-##### Change 1: Add Semantic Traceability to Pillars Table (L27-32)
-Insert the new "Semantic Traceability" pillar to enforce defect-to-test mapping:
-```markdown
-<<<<
-| Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
-====
-| Test Integrity | FFI/DB-dependent tests, sleep loops, bare assert(), missing testWidgets, duplicated fakes, flaky assertions |
-| Semantic Traceability | Test assertions mapped to defect invariants from issue body. Tests that pass without exercising the reported symptom. Tests whose assertions don't match the invariants violated. |
->>>>
-```
-
-##### Change 2: Include Semantic Traceability in Skeleton Output (L67)
-Update the pillar selection placeholder options in Section 2 skeleton:
-```markdown
-<<<<
-* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity]
-====
-* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity | Semantic Traceability]
->>>>
-```
+### Targets for Correction:
+1. **Issue #58 (`[EPIC-LNT-01]`)**:
+   * Quoted participant label: `participant C as "Caller (Programmatic)"`
+   * Refactored helper call `build_global_classes` as a self-call: `V->>V: build_global_classes(...)`
+   * Pillar: `Model Coverage` (Audit Source: `Adversarial Model Coverage Audit`)
+   * Reference lines: `uml.py:29`
+2. **Issue #59 (`[EPIC-LNT-02]`)**:
+   * Quoted participant label: `participant M as "main() implementation"`
+   * Pillar: `Model Coverage` (Audit Source: `Adversarial Model Coverage Audit`)
+3. **Issue #60 (`[LNT-UML-01]`)**:
+   * Refactored helper call `parse_attribute_signature` as a self-call on parser `P`: `P->>P: parse_attribute_signature(...)`
+   * Replaced double-quotes in message parameters with single quotes to avoid parser errors.
+   * Pillar: `Diagram Validity` (Audit Source: `Adversarial Diagram Validity Audit`)
+4. **Issue #61 (`[LNT-UML-02]`)**:
+   * Refactored helper call `_validate_class_diagram` as a self-call on validator `V`: `V->>V: _validate_class_diagram(...)`
+   * Replaced double-quotes in message parameters.
+   * Pillar: `Diagram Validity` (Audit Source: `Adversarial Diagram Validity Audit`)
+5. **Issue #62 (`[LNT-UML-03]`)**:
+   * Quoted participant labels: `participant C as "CLI (Model Coverage)"` and `participant F as "File Content (with comments)"`
+   * Replaced double-quotes in message parameters.
+   * Pillar: `Model Coverage` (Audit Source: `Adversarial Model Coverage Audit`)
+6. **Issue #63 (`[LNT-UML-04]`)**:
+   * Pillar: `Diagram Validity` (Audit Source: `Adversarial Diagram Validity Audit`)
 
 ---
 
 ## 2. Verification Plan
 
 ### Automated Verification
-* Verify that the markdown files render correctly without broken formatting or unclosed code blocks.
-
-### Manual Verification
-* Coordinator inspects the updated skills to confirm the three-proof gate and the fifth audit pillar are correctly documented.
+* View all 6 issues on GitHub using `gh issue view` and check that the bodies match the corrected templates with correct quotes and rendering syntax.
