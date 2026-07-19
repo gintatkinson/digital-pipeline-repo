@@ -489,7 +489,7 @@ void main() {
     }
 
     testWidgets(
-      'Camera preserved when fly-to animation interrupted by external camera update',
+      'Flight animation is NOT interrupted by external camera update',
       (WidgetTester tester) async {
         final cameraA = _makeCamera(35.0, 140.0);
         final controller = await _pumpScene3DViewport(tester, camera: cameraA);
@@ -533,19 +533,24 @@ void main() {
         );
         await tester.pump();
 
-        // Camera should now be at the externally-set position
-        expect(controller.current.latitude, closeTo(50.0, 0.1),
-            reason: 'Camera should have jumped to B position after external update');
-        expect(controller.current.longitude, closeTo(-75.0, 0.1),
-            reason: 'Camera should have jumped to B position after external update');
+        // Camera should NOT be at the B position, it should remain in flight
+        expect(controller.current.latitude, isNot(closeTo(50.0, 0.1)),
+            reason: 'Camera should not jump to B latitude');
+        expect(controller.current.longitude, isNot(closeTo(-75.0, 0.1)),
+            reason: 'Camera should not jump to B longitude');
 
-        // Pump more frames - the old fly-ticker should NOT move the camera
+        expect(controller.current.latitude, closeTo(34.7, 0.1),
+            reason: 'Camera should be on the flight path near 34.7 latitude');
+        expect(controller.current.longitude, closeTo(140.0, 1.0),
+            reason: 'Camera should be on the flight path near 140.0 longitude');
+
+        // Pump more frames - the flight continues
         for (int i = 0; i < 10; i++) {
           await tester.pump(const Duration(milliseconds: 50));
-          expect(controller.current.latitude, closeTo(50.0, 0.1),
-              reason: 'Camera should NOT drift from B position at frame $i');
-          expect(controller.current.longitude, closeTo(-75.0, 0.1),
-              reason: 'Camera should NOT drift from B position at frame $i');
+          expect(controller.current.latitude, isNot(closeTo(50.0, 0.1)),
+              reason: 'Camera should NOT jump to B latitude at frame $i');
+          expect(controller.current.longitude, isNot(closeTo(-75.0, 0.1)),
+              reason: 'Camera should NOT jump to B longitude at frame $i');
         }
       });
   });

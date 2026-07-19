@@ -241,6 +241,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   void didUpdateWidget(covariant Scene3DViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.camera != widget.camera) {
+      if (_cameraController.isFlying) return;
       _isUpdatingWidget = true;
       final rawCamUpdate = widget.camera;
       final absCamUpdate = rawCamUpdate.altitude < 6378137.0 ? VirtualCamera.raw(
