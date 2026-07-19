@@ -7,6 +7,16 @@ class CoordinateValidationException implements Exception {
   String toString() => 'CoordinateValidationException: $message';
 }
 
+class Ellipsoid {
+  static const double wgs84EquatorialRadius = 6378137.0;
+}
+
+enum AltitudeMode {
+  absolute,
+  clampToGround,
+  relativeToGround,
+}
+
 class VirtualCamera {
   final double latitude;
   final double longitude;
@@ -111,6 +121,21 @@ class VirtualCamera {
         other.heading == heading &&
         other.pitch == pitch &&
         other.roll == roll;
+  }
+
+  bool isSpatiallyEquivalentTo(
+    VirtualCamera other, {
+    double epsilonCoordinate = 1e-7,
+    double epsilonAltitude = 1e-3,
+    double epsilonOrientation = 1e-3,
+  }) {
+    if (identical(this, other)) return true;
+    return (latitude - other.latitude).abs() <= epsilonCoordinate &&
+           (longitude - other.longitude).abs() <= epsilonCoordinate &&
+           (altitude - other.altitude).abs() <= epsilonAltitude &&
+           (heading - other.heading).abs() <= epsilonOrientation &&
+           (pitch - other.pitch).abs() <= epsilonOrientation &&
+           (roll - other.roll).abs() <= epsilonOrientation;
   }
 
   @override

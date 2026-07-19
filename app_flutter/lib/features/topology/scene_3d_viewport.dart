@@ -70,15 +70,15 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     if (size == null) return Offset.zero;
 
     final rawCamera = _cameraController.current;
-    final camera = rawCamera.altitude < 6378137.0 ? VirtualCamera.raw(
+    final camera = rawCamera.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.raw(
       latitude: rawCamera.latitude,
       longitude: rawCamera.longitude,
-      altitude: 6378137.0 + rawCamera.altitude,
+      altitude: Ellipsoid.wgs84EquatorialRadius + rawCamera.altitude,
       heading: rawCamera.heading,
       pitch: rawCamera.pitch,
       roll: rawCamera.roll,
     ) : rawCamera;
-    final double zoomScale = 6378137.0 / camera.altitude;
+    final double zoomScale = Ellipsoid.wgs84EquatorialRadius / camera.altitude;
     final Offset center = Offset(size.width * 0.45, size.height * 0.5);
 
     final double baseRotation = -(camera.longitude * math.pi / 180.0);
@@ -100,16 +100,16 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
 
     final double finalHeight;
     if (type == 'space') {
-      finalHeight = 6378137.0 + altitude;
+      finalHeight = Ellipsoid.wgs84EquatorialRadius + altitude;
     } else {
       if (_elevationActive) {
         final double terrainElev = Scene3DViewportPainter.getElevationStatic(latitude, longitude, _elevationActive);
         final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND'
             ? altitude
             : altitude - terrainElev;
-        finalHeight = 6378137.0 + terrainElev * widget.verticalExaggeration + relativeAlt;
+        finalHeight = Ellipsoid.wgs84EquatorialRadius + terrainElev * widget.verticalExaggeration + relativeAlt;
       } else {
-        finalHeight = 6378137.0 + altitude;
+        finalHeight = Ellipsoid.wgs84EquatorialRadius + altitude;
       }
     }
 
@@ -194,10 +194,10 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     });
 
     final rawCamInit = widget.camera;
-    final absCamInit = rawCamInit.altitude < 6378137.0 ? VirtualCamera.raw(
+    final absCamInit = rawCamInit.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.raw(
       latitude: rawCamInit.latitude,
       longitude: rawCamInit.longitude,
-      altitude: 6378137.0 + rawCamInit.altitude,
+      altitude: Ellipsoid.wgs84EquatorialRadius + rawCamInit.altitude,
       heading: rawCamInit.heading,
       pitch: rawCamInit.pitch,
       roll: rawCamInit.roll,
@@ -240,14 +240,14 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   @override
   void didUpdateWidget(covariant Scene3DViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.camera != widget.camera) {
+    if (!oldWidget.camera.isSpatiallyEquivalentTo(widget.camera)) {
       if (_cameraController.isFlying) return;
       _isUpdatingWidget = true;
       final rawCamUpdate = widget.camera;
-      final absCamUpdate = rawCamUpdate.altitude < 6378137.0 ? VirtualCamera.raw(
+      final absCamUpdate = rawCamUpdate.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.raw(
         latitude: rawCamUpdate.latitude,
         longitude: rawCamUpdate.longitude,
-        altitude: 6378137.0 + rawCamUpdate.altitude,
+        altitude: Ellipsoid.wgs84EquatorialRadius + rawCamUpdate.altitude,
         heading: rawCamUpdate.heading,
         pitch: rawCamUpdate.pitch,
         roll: rawCamUpdate.roll,
@@ -276,10 +276,10 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       
       final targetCam = _calculateCameraForNode(targetNodeId);
       if (targetCam != null) {
-        final absCam = targetCam.altitude < 6378137.0 ? VirtualCamera.raw(
+        final absCam = targetCam.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.raw(
           latitude: targetCam.latitude,
           longitude: targetCam.longitude,
-          altitude: 6378137.0 + targetCam.altitude,
+          altitude: Ellipsoid.wgs84EquatorialRadius + targetCam.altitude,
           heading: targetCam.heading,
           pitch: targetCam.pitch,
           roll: targetCam.roll,
@@ -499,15 +499,15 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
 
   VirtualCamera? _clickToCamera(Offset localPosition, Size size) {
     final rawCamera = _cameraController.current;
-    final camera = rawCamera.altitude < 6378137.0 ? VirtualCamera.raw(
+    final camera = rawCamera.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.raw(
       latitude: rawCamera.latitude,
       longitude: rawCamera.longitude,
-      altitude: 6378137.0 + rawCamera.altitude,
+      altitude: Ellipsoid.wgs84EquatorialRadius + rawCamera.altitude,
       heading: rawCamera.heading,
       pitch: rawCamera.pitch,
       roll: rawCamera.roll,
     ) : rawCamera;
-    final double zoomScale = 6378137.0 / camera.altitude;
+    final double zoomScale = Ellipsoid.wgs84EquatorialRadius / camera.altitude;
     final Offset center = Offset(size.width * 0.45, size.height * 0.5);
 
     final painter = Scene3DViewportPainter(
@@ -535,8 +535,8 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
 
     final double cRad = camera.altitude;
     final double F = size.shortestSide * 1.2;
-    final double radDiff1 = cRad * cRad - 6378137.0 * 6378137.0;
-    final double projectedRadius = 6378137.0 * F / math.sqrt(radDiff1 <= 0.0 ? 1.0 : radDiff1);
+    final double radDiff1 = cRad * cRad - Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
+    final double projectedRadius = Ellipsoid.wgs84EquatorialRadius * F / math.sqrt(radDiff1 <= 0.0 ? 1.0 : radDiff1);
 
     final double dx = localPosition.dx - projectedCenter.dx;
     final double dy = -(localPosition.dy - projectedCenter.dy);
@@ -586,8 +586,8 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   @override
   Widget build(BuildContext context) {
     final rawCamera = _cameraController.current;
-    final double buildAlt = rawCamera.altitude < 6378137.0 ? 6378137.0 + rawCamera.altitude : rawCamera.altitude;
-    final zoomScale = 6378137.0 / buildAlt;
+    final double buildAlt = rawCamera.altitude < Ellipsoid.wgs84EquatorialRadius ? Ellipsoid.wgs84EquatorialRadius + rawCamera.altitude : rawCamera.altitude;
+    final zoomScale = Ellipsoid.wgs84EquatorialRadius / buildAlt;
     return Focus(
       focusNode: _globeFocusNode,
       autofocus: true,
@@ -770,7 +770,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
                             ),
                           ),
                           Text(
-                            'Altitude: ${(_cameraController.current.altitude - 6378137.0).toStringAsFixed(2)} meters',
+                            'Altitude: ${(_cameraController.current.altitude - Ellipsoid.wgs84EquatorialRadius).toStringAsFixed(2)} meters',
                             style: const TextStyle(
                               color: Color(0xFFE0E0E0),
                               fontFamily: 'monospace',
@@ -1179,10 +1179,10 @@ class Scene3DViewportPainter extends CustomPainter {
     this.tileCacheVersion = 0,
     this.repaint,
     required this.isFlying,
-  }) : camera = camera.altitude < 6378137.0 ? VirtualCamera.raw(
+  }) : camera = camera.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.raw(
          latitude: camera.latitude,
          longitude: camera.longitude,
-         altitude: 6378137.0 + camera.altitude,
+         altitude: Ellipsoid.wgs84EquatorialRadius + camera.altitude,
          heading: camera.heading,
          pitch: camera.pitch,
          roll: camera.roll,
@@ -1292,7 +1292,7 @@ class Scene3DViewportPainter extends CustomPainter {
   ProjectedPoint project(
     double lat,
     double lng,
-    double height, // passed as height in meters (e.g. 6378137.0 + alt)
+    double height, // passed as height in meters (e.g. Ellipsoid.wgs84EquatorialRadius + alt)
     Offset center,
     double rotationY,
     double tilt,
@@ -1303,7 +1303,7 @@ class Scene3DViewportPainter extends CustomPainter {
     final double radLng = -rotationY;
     final double radLat = -tilt;
 
-    final double R = 6378137.0;
+    final double R = Ellipsoid.wgs84EquatorialRadius;
 
     double px = height * math.cos(lat) * math.cos(lng);
     double py = height * math.cos(lat) * math.sin(lng);
@@ -1471,7 +1471,7 @@ class Scene3DViewportPainter extends CustomPainter {
     double height,
     double cameraAltitude,
   ) {
-    final double R = 6378137.0;
+    final double R = Ellipsoid.wgs84EquatorialRadius;
     final double radLng = 0.0;
     final double radLat = 0.0;
 
@@ -1543,7 +1543,7 @@ class Scene3DViewportPainter extends CustomPainter {
   }
 
   Path _getHorizonPath(Size size, Offset center, double rotationAngle, double tilt) {
-    final double R = 6378137.0;
+    final double R = Ellipsoid.wgs84EquatorialRadius;
     final double cRad = camera.altitude;
     final double d2 = cRad * cRad;
 
@@ -1650,8 +1650,8 @@ class Scene3DViewportPainter extends CustomPainter {
 
     final double cRad = camera.altitude;
     final double F = size.shortestSide * 1.2;
-    final double radDiff = cRad * cRad - 6378137.0 * 6378137.0;
-    final double projectedRadius = 6378137.0 * F / math.sqrt(radDiff <= 0.0 ? 1.0 : radDiff);
+    final double radDiff = cRad * cRad - Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
+    final double projectedRadius = Ellipsoid.wgs84EquatorialRadius * F / math.sqrt(radDiff <= 0.0 ? 1.0 : radDiff);
 
     Path _getScaledPath(double scaleFactor) {
       final Matrix4 scaleMatrix = Matrix4.identity();
@@ -1755,7 +1755,7 @@ class Scene3DViewportPainter extends CustomPainter {
 
     // 5. Draw Grid lines (Meridians & Parallels) - front hemisphere only
     _gridPaint.color = gridColor;
-    const double earthRadius = 6378137.0;
+    const double earthRadius = Ellipsoid.wgs84EquatorialRadius;
 
     const int numMeridians = 12;
     const int meridianSteps = 30;
@@ -1813,12 +1813,12 @@ class Scene3DViewportPainter extends CustomPainter {
         final List<ProjectedPoint> pts = [];
         for (int s = 0; s <= steps; s++) {
           final double lng = s * (2 * math.pi / steps);
-          final p = project(latMin, lng, 6378137.0 * 1.002, center, rotationAngle, tilt, size);
+          final p = project(latMin, lng, Ellipsoid.wgs84EquatorialRadius * 1.002, center, rotationAngle, tilt, size);
           if (p.z >= 0.0) pts.add(p);
         }
         for (int s = steps; s >= 0; s--) {
           final double lng = s * (2 * math.pi / steps);
-          final p = project(latMax, lng, 6378137.0 * 1.002, center, rotationAngle, tilt, size);
+          final p = project(latMax, lng, Ellipsoid.wgs84EquatorialRadius * 1.002, center, rotationAngle, tilt, size);
           if (p.z >= 0.0) pts.add(p);
         }
 
@@ -1873,14 +1873,14 @@ class Scene3DViewportPainter extends CustomPainter {
         camera,
         size,
         center,
-        6378137.0,
+        Ellipsoid.wgs84EquatorialRadius,
         (double latDeg, double lngDeg) {
           final double elev = getElevation(latDeg, lngDeg);
           final double ampElev = elev * verticalExaggeration;
           return project(
             _rad(latDeg),
             _rad(lngDeg),
-            6378137.0 + ampElev,
+            Ellipsoid.wgs84EquatorialRadius + ampElev,
             center,
             rotationAngle,
             tilt,
@@ -1922,7 +1922,7 @@ class Scene3DViewportPainter extends CustomPainter {
         type = (alt < 50000.0) ? 'ground' : 'space';
       }
 
-      final double orbitHeight = 6378137.0 + alt;
+      final double orbitHeight = Ellipsoid.wgs84EquatorialRadius + alt;
       final double speed = 0.0;
 
       final double currentLng = baseLng + rotationAngle * speed;
@@ -1963,9 +1963,9 @@ class Scene3DViewportPainter extends CustomPainter {
           final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND'
               ? alt
               : alt - terrainElev;
-          finalHeight = 6378137.0 + terrainElev * verticalExaggeration + relativeAlt;
+          finalHeight = Ellipsoid.wgs84EquatorialRadius + terrainElev * verticalExaggeration + relativeAlt;
         } else {
-          finalHeight = 6378137.0 + alt;
+          finalHeight = Ellipsoid.wgs84EquatorialRadius + alt;
         }
       }
       final proj = project(lat, currentLng, finalHeight, center, rotationAngle, tilt, size);
@@ -1983,7 +1983,7 @@ class Scene3DViewportPainter extends CustomPainter {
             () => '$id-${latDeg.toStringAsFixed(6)}-${lngDeg.toStringAsFixed(6)}-$astronomicalBody-$elevationActive',
           );
           final double terrainElev = _nodeElevationCache.putIfAbsent(cacheKey, () => getElevation(latDeg, lngDeg));
-          final double surfaceHeight = 6378137.0 + terrainElev * verticalExaggeration;
+          final double surfaceHeight = Ellipsoid.wgs84EquatorialRadius + terrainElev * verticalExaggeration;
           final surfaceProj = project(lat, currentLng, surfaceHeight, center, rotationAngle, tilt, size);
 
           const int dashes = 10;
@@ -2151,7 +2151,7 @@ class Scene3DViewportPainter extends CustomPainter {
       _nodeElevationCache.clear();
       _cacheKeyStringCache.clear();
     }
-    return oldDelegate.camera != camera ||
+    return !oldDelegate.camera.isSpatiallyEquivalentTo(camera) ||
         oldDelegate.tileCacheVersion != tileCacheVersion ||
         oldDelegate.activeStyle != activeStyle ||
         oldDelegate.astronomicalBody != astronomicalBody ||

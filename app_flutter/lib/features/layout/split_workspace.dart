@@ -78,6 +78,7 @@ class SplitWorkspace extends StatefulWidget {
 
 class _SplitWorkspaceState extends State<SplitWorkspace> {
   double _firstPaneSize = 0;
+  double? _draggedPaneSize;
   bool _initialized = false;
 
   @override
@@ -107,25 +108,68 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
         ).toDouble();
 
         final isHorizontal = widget.direction == Axis.horizontal;
+        final splitterPosition = _draggedPaneSize ?? clampedFirstPane;
 
         final splitter = GestureDetector(
           key: widget.splitterKey,
           onHorizontalDragUpdate: isHorizontal
               ? (details) {
                   setState(() {
-                    _firstPaneSize = (_firstPaneSize + details.delta.dx)
+                    _draggedPaneSize = ((_draggedPaneSize ?? clampedFirstPane) + details.delta.dx)
                         .clamp(widget.minFirstPaneSize, math.max(widget.minFirstPaneSize, totalSize - widget.minFirstPaneSize)).toDouble();
                   });
-                  widget.onDrag?.call(_firstPaneSize);
+                }
+              : null,
+          onHorizontalDragEnd: isHorizontal
+              ? (details) {
+                  if (_draggedPaneSize != null) {
+                    setState(() {
+                      _firstPaneSize = _draggedPaneSize!;
+                      _draggedPaneSize = null;
+                    });
+                    widget.onDrag?.call(_firstPaneSize);
+                  }
+                }
+              : null,
+          onHorizontalDragCancel: isHorizontal
+              ? () {
+                  if (_draggedPaneSize != null) {
+                    setState(() {
+                      _firstPaneSize = _draggedPaneSize!;
+                      _draggedPaneSize = null;
+                    });
+                    widget.onDrag?.call(_firstPaneSize);
+                  }
                 }
               : null,
           onVerticalDragUpdate: !isHorizontal
               ? (details) {
                   setState(() {
-                    _firstPaneSize = (_firstPaneSize + details.delta.dy)
+                    _draggedPaneSize = ((_draggedPaneSize ?? clampedFirstPane) + details.delta.dy)
                         .clamp(widget.minFirstPaneSize, math.max(widget.minFirstPaneSize, totalSize - widget.minFirstPaneSize)).toDouble();
                   });
-                  widget.onDrag?.call(_firstPaneSize);
+                }
+              : null,
+          onVerticalDragEnd: !isHorizontal
+              ? (details) {
+                  if (_draggedPaneSize != null) {
+                    setState(() {
+                      _firstPaneSize = _draggedPaneSize!;
+                      _draggedPaneSize = null;
+                    });
+                    widget.onDrag?.call(_firstPaneSize);
+                  }
+                }
+              : null,
+          onVerticalDragCancel: !isHorizontal
+              ? () {
+                  if (_draggedPaneSize != null) {
+                    setState(() {
+                      _firstPaneSize = _draggedPaneSize!;
+                      _draggedPaneSize = null;
+                    });
+                    widget.onDrag?.call(_firstPaneSize);
+                  }
                 }
               : null,
           child: MouseRegion(
@@ -172,15 +216,15 @@ class _SplitWorkspaceState extends State<SplitWorkspace> {
         );
 
         final leadingPane = isHorizontal
-            ? SizedBox(width: clampedFirstPane, child: RepaintBoundary(key: const ValueKey('leading_pane'), child: widget.leading))
-            : SizedBox(height: clampedFirstPane, child: RepaintBoundary(key: const ValueKey('leading_pane'), child: widget.leading));
+            ? SizedBox(width: clampedFirstPane, child: RepaintBoundary(key: const ValueKey('split_leading'), child: widget.leading))
+            : SizedBox(height: clampedFirstPane, child: RepaintBoundary(key: const ValueKey('split_leading'), child: widget.leading));
 
-        final trailingPane = RepaintBoundary(child: widget.trailing);
+        final trailingPane = RepaintBoundary(key: const ValueKey('split_trailing'), child: widget.trailing);
 
         final splitterWidget = Positioned(
-          left: isHorizontal ? clampedFirstPane : 0,
+          left: isHorizontal ? splitterPosition : 0,
           right: isHorizontal ? null : 0,
-          top: isHorizontal ? 0 : clampedFirstPane,
+          top: isHorizontal ? 0 : splitterPosition,
           bottom: isHorizontal ? 0 : null,
           width: isHorizontal ? resolvedDividerSize : null,
           height: isHorizontal ? null : resolvedDividerSize,
