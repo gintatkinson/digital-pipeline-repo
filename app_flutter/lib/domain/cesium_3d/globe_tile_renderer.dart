@@ -164,7 +164,7 @@ class GlobeTileRenderer {
   /// (16 tiles) is then generated around it, clamped to valid Web Mercator
   /// bounds.
   List<TileCoord> _visibleTiles(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
-    final double R = 6378137.0;
+    final double R = Ellipsoid.wgs84EquatorialRadius;
     final double relativeAlt = camera.altitude < R ? camera.altitude : camera.altitude - R;
     int zoom = _zoomForAltitude(relativeAlt, viewportSize.width);
     if (isFlying && zoom > 4) {
@@ -173,7 +173,7 @@ class GlobeTileRenderer {
     final center = _latLngToTile(camera.latitude, camera.longitude, zoom);
     final List<TileCoord> tiles = [];
 
-    // Horizon angle theta = acos(R / (R + h)) where R = 6378137.0
+    // Horizon angle theta = acos(R / (R + h)) where R = Ellipsoid.wgs84EquatorialRadius
     final double h = relativeAlt < 0.1 ? 0.1 : relativeAlt;
     final double theta = math.acos(R / (R + h));
 
@@ -232,7 +232,6 @@ class GlobeTileRenderer {
   /// This method is safe to call on every frame — its work is bounded and
   /// it never blocks the UI thread.
   void beginTileFetch(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
-    if (isFlying) return;
     if (!_fetcher.isEnabled()) return;
     _fetchVisibleTiles(camera, viewportSize, isFlying: isFlying); // fire-and-forget
   }
