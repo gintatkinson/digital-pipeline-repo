@@ -386,8 +386,9 @@ class GlobeTileRenderer {
           final int i3 = i2 + 1;
 
           // Triangle 1: (i0, i1, i2)
+          final bool anyBehind1 = zs[i0] <= -100.0 || zs[i1] <= -100.0 || zs[i2] <= -100.0;
           final bool allCulled1 = zs[i0] < -0.5 && zs[i1] < -0.5 && zs[i2] < -0.5;
-          if (allCulled1) {
+          if (anyBehind1 || allCulled1) {
             // Discard
           } else {
             indices.add(i0);
@@ -396,8 +397,9 @@ class GlobeTileRenderer {
           }
 
           // Triangle 2: (i1, i3, i2)
+          final bool anyBehind2 = zs[i1] <= -100.0 || zs[i3] <= -100.0 || zs[i2] <= -100.0;
           final bool allCulled2 = zs[i1] < -0.5 && zs[i3] < -0.5 && zs[i2] < -0.5;
-          if (allCulled2) {
+          if (anyBehind2 || allCulled2) {
             // Discard
           } else {
             indices.add(i1);
@@ -407,7 +409,12 @@ class GlobeTileRenderer {
         }
       }
 
-      if (indices.isEmpty) continue;
+      if (indices.isEmpty) {
+        if (onDrawVerticesForTesting != null) {
+          onDrawVerticesForTesting!(positions, indices);
+        }
+        continue;
+      }
 
       if (onDrawVerticesForTesting != null) {
         onDrawVerticesForTesting!(positions, indices);

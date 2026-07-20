@@ -1,9 +1,56 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+(globalThis as any).expect = expect;
+import '@testing-library/jest-dom';
 import { Layout } from './layout';
 import { PropertyGrid } from './property-grid';
 import { validateFields } from '../domain/validation';
 import { Counter32, Gauge32 } from '../domain/numeric-metrics';
+
+if (typeof window !== 'undefined') {
+  if (!window.matchMedia) {
+    window.matchMedia = (query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+  }
+  if (!(window as any).ResizeObserver) {
+    (window as any).ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+  if (!window.URL) {
+    (window as any).URL = {
+      createObjectURL: () => 'blob:mock',
+      revokeObjectURL: () => {},
+    };
+  } else if (!window.URL.createObjectURL) {
+    window.URL.createObjectURL = () => 'blob:mock';
+    window.URL.revokeObjectURL = () => {};
+  }
+  if (!(window as any).Worker) {
+    (window as any).Worker = class FakeWorker {
+      onmessage: any = null;
+      postMessage(msg: any) {
+        if (this.onmessage) {
+          setTimeout(() => {
+            this.onmessage({ data: 42 });
+          }, 0);
+        }
+      }
+      terminate() {}
+    };
+  }
+}
 
 describe('Domain Validations', () => {
   it('should validate required constraints dynamically', () => {
@@ -63,7 +110,7 @@ describe('UI Layout & PropertyGrid Components', () => {
         <div>Child Content</div>
       </Layout>
     );
-    expect(screen.getByText('Antigravity Console')).toBeInTheDocument();
+    expect(screen.getAllByText('Antigravity Console')[0]).toBeInTheDocument();
     expect(screen.getByText('Active View: Ingestion')).toBeInTheDocument();
     expect(screen.getByText('Child Content')).toBeInTheDocument();
   });

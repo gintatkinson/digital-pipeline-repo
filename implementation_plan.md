@@ -1,158 +1,73 @@
-# Implementation Plan: Keyboard Enter-Flight Shortcut and Acceptance Tests
+# Implementation Plan: 3D Globe Visual/Rendering Fixes & Parity Resolver
 
-This plan details the steps to implement the Enter-Flight keyboard shortcut in the sidebar tree, add verification test assertions, build the production app, package it, run backlog reconciliation, commit and push the changes.
-
-## 1. Proposed Changes
-
-### Component: Sidebar Tree Focus KeyEvent Handling
-* **Action**: Split the key event handling in the `Focus` widget inside `SidebarTree` so that the space key only selects the node, while the enter key both selects the node and triggers the camera flight.
-* **Target File**: `app_flutter/lib/features/tree/sidebar_tree.dart`
-* **Changes**:
-```diff
--                  if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
--                    final currentId = viewModel.currentView;
--                    if (currentId != null) {
--                      viewModel.selectView(currentId);
--                    }
--                    return KeyEventResult.handled;
--                  }
-+                  if (key == LogicalKeyboardKey.space) {
-+                    final currentId = viewModel.currentView;
-+                    if (currentId != null) {
-+                      viewModel.selectView(currentId);
-+                    }
-+                    return KeyEventResult.handled;
-+                  }
-+                  if (key == LogicalKeyboardKey.enter) {
-+                    final currentId = viewModel.currentView;
-+                    if (currentId != null) {
-+                      viewModel.selectView(currentId);
-+                      viewModel.triggerFlight(currentId);
-+                    }
-+                    return KeyEventResult.handled;
-+                  }
-```
-
-### Component: Integration / Acceptance Tests
-* **Action**: Add a new test case to `double_click_fly_acceptance_test.dart` to simulate focusing the sidebar tree, navigating using arrow keys, and pressing `LogicalKeyboardKey.enter` to verify that both node selection and camera flight are successfully triggered.
-* **Target File**: `app_flutter/test/topology/double_click_fly_acceptance_test.dart`
-* **Changes**: Add the following test case inside the main `group`:
-```dart
-    testWidgets(
-      'Key event with LogicalKeyboardKey.enter simulated on sidebar tree focus node triggers selection and camera flight',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1200, 800);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                Provider<DataSource>.value(value: fakeDataSource),
-                ChangeNotifierProvider<ThemeController>.value(
-                  value: ThemeController(FakeThemeService()),
-                ),
-              ],
-              child: MaterialApp(
-                home: Scaffold(
-                  body: Layout(
-                    activeView: 'NodeA',
-                    layoutConfig: testLayoutConfig,
-                  ),
-                ),
-              ),
-            ),
-          );
-          await settle(tester);
-
-          // Verify initial state
-          final CameraController controller = findCameraController(tester);
-          expect(controller.current.latitude, 35.6);
-          expect(controller.current.longitude, 139.7);
-          expect(controller.isFlying, isFalse);
-
-          // Focus the tree's focusNode by tapping the sidebar node A
-          final nodeAFinder = find.byKey(const Key('node_NodeA'));
-          expect(nodeAFinder, findsOneWidget);
-          await tester.tap(nodeAFinder);
-          await settle(tester);
-
-          // Verify selection is still Node A
-          final treeViewModel = tester.element(find.byType(TopographicalView)).read<TreeViewModel>();
-          expect(treeViewModel.currentView, 'NodeA');
-
-          // Press ArrowDown to change focused/selected view to NodeB
-          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-          await settle(tester);
-          expect(treeViewModel.currentView, 'NodeB');
-          expect(controller.isFlying, isFalse);
-
-          // Press Enter key to trigger flight
-          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-          await settle(tester);
-
-          // Verify that camera flight starts
-          expect(controller.isFlying, isTrue, reason: 'Enter key should trigger flight');
-
-          await tester.pump(const Duration(milliseconds: 100));
-          expect(controller.current.latitude, greaterThan(35.6));
-          expect(controller.current.longitude, isNot(139.7));
-
-          await tester.pumpAndSettle();
-          expect(controller.isFlying, isFalse);
-          expect(controller.current.latitude, 40.7);
-          expect(controller.current.longitude, -74.0);
-        });
-      },
-    );
-```
+This plan details the codebase modifications to resolve the five visual, rendering, gesture, and category alignment defects identified across the Flutter and React codebases.
 
 ---
 
-## 2. Execution & Verification Steps
+## 1. Viewport Offset/Shift Bug (Issue 4)
 
-### Step 1: Apply Code Changes
-* Modify `app_flutter/lib/features/tree/sidebar_tree.dart`.
-* Modify `app_flutter/test/topology/double_click_fly_acceptance_test.dart`.
+* **Defect**: Camera projections shift or offset during click-to-camera or view transitions due to hardcoded minimum projection clamp values (`10000.0` instead of `1.0`) and non-synchronized camera rotation parameters inside `_clickToCamera`.
+* **Target File**: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
+* **Changes**:
+  1. In `project` method: update `safeDepth` projection clamp check from `10000.0` to `1.0`.
+  2. In `_getHorizonPath` and `project` methods: dynamically adjust camera altitude (`cRad`) to `Ellipsoid.wgs84EquatorialRadius + camera.altitude` when it is less than `Ellipsoid.wgs84EquatorialRadius`.
+  3. In `_clickToCamera` method: synchronize camera rotation parameters by passing `baseRotation` and `baseTilt` (instead of `0.0`, `0.0`) to `painter.project`.
 
-### Step 2: Run Unit and Integration Tests
-Run `flutter test` inside the `app_flutter` directory to verify tests pass successfully (Green Phase).
+---
 
-### Step 3: Build macOS Production Release
-Run the command inside `app_flutter` directory:
-```bash
-flutter build macos --release
-```
+## 2. LOD Seams (Problem 5)
 
-### Step 4: Package App
-Run the zip command in `app_flutter/build/macos/Build/Products/Release/`:
-```bash
-zip -r -y ../../../../../app_flutter_release.zip app_flutter.app
-```
+* **Defect**: Tile boundaries show straight rectangular seam lines instead of warping along the globe, caused by missing vertex culled/behind checks.
+* **Target File**: `app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart`
+* **Changes**:
+  1. Inside the main `renderTiles` triangle generation loop, add `anyBehind` checks (matching `calculateIndicesForTesting`) to discard triangles that cross behind the visible horizon or have vertices too far behind the camera.
 
-### Step 5: Stage and Commit Changes
-Run git commands:
-```bash
-git add app_flutter/lib/features/tree/sidebar_tree.dart app_flutter/test/topology/double_click_fly_acceptance_test.dart
-git commit -m "feat: implement enter-flight keyboard shortcut and verify with acceptance test"
-```
+---
 
-### Step 6: Backlog Reconciliation
-Run backlog reconciliation script:
-```bash
-python3 skills/spec-orchestrator/scripts/reconcile_backlog.py
-```
+## 3. Label Collision (Problem 6)
 
-### Step 7: Push and Launch
-* Push changes:
-```bash
-git push origin feat/58-63-linter-fixes
-```
-* Launch the updated app:
-```bash
-open app_flutter/build/macos/Build/Products/Release/app_flutter.app
-```
+* **Defect**: Node label texts overlap and collide, reducing readability in dense topology views.
+* **Target Files**:
+  * `app_flutter/lib/features/topology/topology_map.dart` (Flutter)
+  * `web_react/src/components/topology-map.tsx` (React)
+* **Changes**:
+  1. **Flutter**: Introduce a local `drawnLabelRects` bounding box cache inside `TopologyPainter.paint`. For each node label, calculate the text bounding box, check if it overlaps existing labels by more than 10%, and skip painting if it collides.
+  2. **React**: Replicate the exact same label collision resolver logic inside the canvas node drawing loop in `topology-map.tsx` using `ctx.measureText` for label dimensions.
+
+---
+
+## 4. Flat Globe Shading & Atmosphere (Problems 7 & 8)
+
+* **Defect**: Visual depth is lost on satellite tiles making the globe appear flat, and the atmosphere lacks volumetric depth.
+* **Target File**: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
+* **Changes**:
+  1. In `paint` method: dynamically adjust `cRad` if it is less than the equatorial radius.
+  2. In `paint` method: implement a translucent shading overlay Paint layer using a `RadialGradient` drawn on top of the rendered tiles to restore 3D volumetric shading.
+
+---
+
+## 5. Misaligned Grid Categories (Problem 15)
+
+* **Defect**: False-positive structural category dimming highlights structural categories when metrics or unrelated views are active.
+* **Target File**: `web_react/src/components/property-grid.tsx`
+* **Changes**:
+  1. Adjust `isHighlighted` in `property-grid.tsx` to precisely check for active views:
+     - Highlight `Geodetic Coordinate Frame` only when `activeView === 'Location' || activeView === 'Ingestion'`.
+     - Highlight `Alternate Structural Grid Frame` when `activeView === 'Chassis'` or default `activeView === 'root'`.
+     - Dim all other categories when unrelated views (e.g. `Metrics`) are active.
+
+---
+
+## 2. Verification Steps
+
+### Step 1: React Tests validation
+* Run `npm test` inside `web_react` to verify all tests pass:
+  ```bash
+  npm test
+  ```
+
+### Step 2: Flutter Tests validation
+* Run `flutter test` inside `app_flutter` to verify all tests pass:
+  ```bash
+  flutter test
+  ```

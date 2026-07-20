@@ -909,6 +909,7 @@ class TopologyPainter extends CustomPainter {
     }
 
     // 5. Draw nodes
+    final List<Rect> drawnLabelRects = [];
     for (final TopologyNode node in activeData.nodes) {
       final Offset? pos = projectedPositions[node.id];
       if (pos == null) continue;
@@ -957,16 +958,48 @@ class TopologyPainter extends CustomPainter {
         canvas.drawCircle(pos, haloRadius, haloPaint);
       }
 
-      // Draw node label below
+      // Draw node label below with collision resolution
       final TextPainter textPainter = _TextPainterCache.getOrCreate(
         node.label,
         colors.labelColor,
         labelFontSize,
       );
-      textPainter.paint(
-        canvas,
-        Offset(pos.dx - textPainter.width / 2.0, pos.dy + 14.0),
+      final Offset textPos = Offset(pos.dx - textPainter.width / 2.0, pos.dy + 14.0);
+      final Rect labelRect = Rect.fromLTWH(
+        textPos.dx,
+        textPos.dy,
+        textPainter.width,
+        textPainter.height,
       );
+
+      bool overlaps = false;
+      final double area1 = labelRect.width * labelRect.height;
+      for (final Rect existing in drawnLabelRects) {
+        final double left = math.max(labelRect.left, existing.left);
+        final double right = math.min(labelRect.right, existing.right);
+        final double top = math.max(labelRect.top, existing.top);
+        final double bottom = math.min(labelRect.bottom, existing.bottom);
+        final double intersectWidth = right - left;
+        final double intersectHeight = bottom - top;
+        if (intersectWidth > 0 && intersectHeight > 0) {
+          final double intersectArea = intersectWidth * intersectHeight;
+          final double area2 = existing.width * existing.height;
+          final double overlapPercent1 = area1 > 0 ? intersectArea / area1 : 0.0;
+          final double overlapPercent2 = area2 > 0 ? intersectArea / area2 : 0.0;
+          if (overlapPercent1 > 0.10 || overlapPercent2 > 0.10) {
+            overlaps = true;
+            break;
+          }
+        }
+      }
+
+      if (!overlaps) {
+        drawnLabelRects.add(labelRect);
+        textPainter.paint(
+          canvas,
+          textPos,
+        );
+      }
     }
   }
 

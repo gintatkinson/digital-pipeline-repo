@@ -261,6 +261,7 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
     });
 
     // Draw nodes
+    const drawnLabelRects: Array<{ left: number, right: number, top: number, bottom: number, width: number, height: number }> = [];
     projectedNodes.forEach((node: any) => {
       const isFocused = activeFocusedNode === node.id;
 
@@ -300,12 +301,43 @@ export const TopologyMap: React.FC<TopologyMapProps> = ({
         ctx.stroke();
       }
 
-      // Draw label
-      ctx.fillStyle = '#f8fafc';
+      // Draw label with collision resolution
       ctx.font = '12px Outfit, Inter, system-ui';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(node.label, node.x, node.y + 14);
+      const labelWidth = ctx.measureText(node.label).width;
+      const labelHeight = 12;
+      const left = node.x - labelWidth / 2;
+      const right = node.x + labelWidth / 2;
+      const top = node.y + 14;
+      const bottom = node.y + 14 + labelHeight;
+
+      let overlaps = false;
+      const area1 = labelWidth * labelHeight;
+      for (const existing of drawnLabelRects) {
+        const x_left = Math.max(left, existing.left);
+        const x_right = Math.min(right, existing.right);
+        const y_top = Math.max(top, existing.top);
+        const y_bottom = Math.min(bottom, existing.bottom);
+        const intersectWidth = x_right - x_left;
+        const intersectHeight = y_bottom - y_top;
+        if (intersectWidth > 0 && intersectHeight > 0) {
+          const intersectArea = intersectWidth * intersectHeight;
+          const area2 = existing.width * existing.height;
+          const overlapPercent1 = area1 > 0 ? intersectArea / area1 : 0.0;
+          const overlapPercent2 = area2 > 0 ? intersectArea / area2 : 0.0;
+          if (overlapPercent1 > 0.10 || overlapPercent2 > 0.10) {
+            overlaps = true;
+            break;
+          }
+        }
+      }
+
+      if (!overlaps) {
+        drawnLabelRects.push({ left, right, top, bottom, width: labelWidth, height: labelHeight });
+        ctx.fillStyle = '#f8fafc';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(node.label, node.x, node.y + 14);
+      }
     });
   };
 

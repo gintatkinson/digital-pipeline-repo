@@ -131,7 +131,16 @@ export const Layout: React.FC<LayoutProps> = ({
   // TabbedContainer state (switching tables)
   const [activeTabId, setActiveTabId] = useState<string>('sub_elements_table');
 
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'system');
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      try {
+        return window.localStorage.getItem('theme') || 'system';
+      } catch (e) {
+        return 'system';
+      }
+    }
+    return 'system';
+  });
 
   useEffect(() => {
     const updateTheme = () => {
@@ -140,7 +149,13 @@ export const Layout: React.FC<LayoutProps> = ({
     };
 
     updateTheme();
-    localStorage.setItem('theme', theme);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      try {
+        window.localStorage.setItem('theme', theme);
+      } catch (e) {
+        // ignore
+      }
+    }
 
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -515,7 +530,7 @@ export const Layout: React.FC<LayoutProps> = ({
       },
     ];
 
-    if (tableId === 'sub_elements_table') {
+    if (tableId === 'sub_elements_table' || tableId === 'components_table') {
       return (
         <table className="hd-table" data-testid="items-table">
           <thead>
@@ -540,7 +555,7 @@ export const Layout: React.FC<LayoutProps> = ({
       );
     }
 
-    if (tableId === 'active_alarms_table') {
+    if (tableId === 'active_alarms_table' || tableId === 'relation_a_table') {
       return (
         <table className="hd-table" data-testid="status-table">
           <thead>
@@ -565,7 +580,7 @@ export const Layout: React.FC<LayoutProps> = ({
       );
     }
 
-    if (tableId === 'historical_events_table') {
+    if (tableId === 'historical_events_table' || tableId === 'relation_b_table') {
       return (
         <table className="hd-table" data-testid="activity-table">
           <thead>
@@ -739,6 +754,9 @@ export const Layout: React.FC<LayoutProps> = ({
           sub_elements_table: 'Items',
           active_alarms_table: 'Status',
           historical_events_table: 'Activity',
+          components_table: 'Items',
+          relation_a_table: 'Status',
+          relation_b_table: 'Activity',
         };
 
         const tabs = node.children.map((child: any) => {

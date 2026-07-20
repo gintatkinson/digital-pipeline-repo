@@ -150,12 +150,14 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ activeView, onSave }
   };
 
   const isHighlighted = (groupName: string) => {
-    const geodeticActive = activeView === 'Location' || activeView === 'Ingestion';
-    if (isGeodeticGroup(groupName)) {
-      return geodeticActive;
-    } else {
-      return !geodeticActive;
+    const nameLower = groupName.toLowerCase();
+    if (activeView === 'Location' || activeView === 'Ingestion') {
+      return nameLower.includes('geodetic');
     }
+    if (activeView === 'Chassis' || activeView === 'root') {
+      return nameLower.includes('structural');
+    }
+    return false;
   };
 
   return (

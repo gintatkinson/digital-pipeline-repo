@@ -530,7 +530,10 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       isFlying: _cameraController.isFlying,
     );
 
-    final ProjectedPoint earthCenterProj = painter.project(0.0, 0.0, 0.0, center, 0.0, 0.0, size);
+    final double baseRotation = -(camera.longitude * math.pi / 180.0);
+    final double baseTilt = -(camera.latitude * math.pi / 180.0);
+
+    final ProjectedPoint earthCenterProj = painter.project(0.0, 0.0, 0.0, center, baseRotation, baseTilt, size);
     final Offset projectedCenter = earthCenterProj.offset;
 
     final double cRad = camera.altitude;
@@ -547,9 +550,6 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
 
     final double radDiff = projectedRadius * projectedRadius - dx * dx - dy * dy;
     final double zFinal = math.sqrt(radDiff < 0.0 ? 0.0 : radDiff);
-
-    final double baseRotation = -(camera.longitude * math.pi / 180.0);
-    final double baseTilt = -(camera.latitude * math.pi / 180.0);
 
     final double cosT = math.cos(baseTilt);
     final double sinT = math.sin(baseTilt);
@@ -1310,7 +1310,9 @@ class Scene3DViewportPainter extends CustomPainter {
     double pz = height * math.sin(lat);
 
     // Camera position in ECEF
-    final double cRad = camera.altitude;
+    final double cRad = camera.altitude < Ellipsoid.wgs84EquatorialRadius
+        ? Ellipsoid.wgs84EquatorialRadius + camera.altitude
+        : camera.altitude;
     final double cx = cRad * math.cos(radLat) * math.cos(radLng);
     final double cy = cRad * math.cos(radLat) * math.sin(radLng);
     final double cz = cRad * math.sin(radLat);
@@ -1417,7 +1419,7 @@ class Scene3DViewportPainter extends CustomPainter {
     // Focal length (45-degree FOV)
     final double F = size.shortestSide * 1.2;
     final double absDepth = depth.abs();
-    final double safeDepth = absDepth <= 10000.0 ? 10000.0 : absDepth;
+    final double safeDepth = absDepth <= 1.0 ? 1.0 : absDepth;
     final double pScale = F / safeDepth;
 
     final double rx_pixel = x_cam * pScale;
@@ -1544,7 +1546,9 @@ class Scene3DViewportPainter extends CustomPainter {
 
   Path _getHorizonPath(Size size, Offset center, double rotationAngle, double tilt) {
     final double R = Ellipsoid.wgs84EquatorialRadius;
-    final double cRad = camera.altitude;
+    final double cRad = camera.altitude < Ellipsoid.wgs84EquatorialRadius
+        ? Ellipsoid.wgs84EquatorialRadius + camera.altitude
+        : camera.altitude;
     final double d2 = cRad * cRad;
 
     final double radLng = -rotationAngle;
@@ -1610,7 +1614,7 @@ class Scene3DViewportPainter extends CustomPainter {
       final double depth = -z_cam;
       final double F = size.shortestSide * 1.2;
       final double absDepth = depth.abs();
-      final double safeDepth = absDepth <= 10000.0 ? 10000.0 : absDepth;
+      final double safeDepth = absDepth <= 1.0 ? 1.0 : absDepth;
       final double pScale = F / safeDepth;
 
       final double rx_pixel = x_cam * pScale;
@@ -1648,7 +1652,9 @@ class Scene3DViewportPainter extends CustomPainter {
     final ProjectedPoint earthCenterProj = project(0.0, 0.0, 0.0, center, rotationAngle, tilt, size);
     final Offset projectedCenter = earthCenterProj.offset;
 
-    final double cRad = camera.altitude;
+    final double cRad = camera.altitude < Ellipsoid.wgs84EquatorialRadius
+        ? Ellipsoid.wgs84EquatorialRadius + camera.altitude
+        : camera.altitude;
     final double F = size.shortestSide * 1.2;
     final double radDiff = cRad * cRad - Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
     final double projectedRadius = Ellipsoid.wgs84EquatorialRadius * F / math.sqrt(radDiff <= 0.0 ? 1.0 : radDiff);
@@ -1891,6 +1897,18 @@ class Scene3DViewportPainter extends CustomPainter {
       );
     }
 
+    // 6c. Render translucent shading overlay for 3D globe depth
+    final Paint shadingOverlayPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0x00000000),
+          const Color(0x22000000),
+          const Color(0xAA000000),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: projectedCenter, radius: projectedRadius));
+    canvas.drawPath(oceanPath, shadingOverlayPaint);
+
     // 7. Space, Ground, and Underwater Node Layouts (Dynamic DB-Backed)
     List<TopologyNode> nodes = topologyData?.nodes ?? [];
     List<TopologyLink> links = topologyData?.links ?? [];
@@ -1969,8 +1987,8 @@ class Scene3DViewportPainter extends CustomPainter {
         }
       }
       final proj = project(lat, currentLng, finalHeight, center, rotationAngle, tilt, size);
-      if (node.id == 'Master_1') {
-        print("DEBUG Master_1: type=$type, finalHeight=$finalHeight, proj.z=${proj.z}, proj.offset=${proj.offset}");
+      if (node.id == 'Master_1' || node.id == 'Master_1_Child_2_Grandchild_1') {
+        print("DIAGNOSTIC ${node.id}: type=$type, latDeg=$latDeg, lngDeg=$lngDeg, finalHeight=$finalHeight, proj.z=${proj.z}, proj.offset=Offset(${proj.offset.dx}, ${proj.offset.dy}), screenCenter=Offset(${center.dx}, ${center.dy}), size=Size(${size.width}, ${size.height}), cameraLat=${camera.latitude}, cameraLng=${camera.longitude}, cameraAlt=${camera.altitude}, pitch=${camera.pitch}, heading=${camera.heading}");
       }
       
       if (proj.z >= 0) {
