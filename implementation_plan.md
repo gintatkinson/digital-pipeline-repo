@@ -39,3 +39,11 @@
 ## Phase 5: Backlog & Sync
 1. Run `python3 .agents/skills/spec-orchestrator/scripts/reconcile_backlog.py`.
 2. Stage, commit, and push.
+
+## Phase 6: Viewport Math Unit Tests
+1. Create `app_flutter/test/domain/cesium_3d/viewport_math_test.dart`.
+2. Phase 1: Test Suite Setup with groups for CoordinateTransformer, ElevationProvider, and VirtualCameraNormalization.
+3. Phase 2: Test VirtualCameraNormalization (Surface/Relative Altitude and Absolute Altitude).
+4. Phase 3: Test ElevationProvider (Inactive State, Fuji Simulation, Vertical Exaggeration).
+5. Phase 4: Test CoordinateTransformer (Constructor Pre-computation, Horizon Culling Check, Direct Line of Sight).
+6. Run `flutter test test/domain/cesium_3d/viewport_math_test.dart` to verify.
