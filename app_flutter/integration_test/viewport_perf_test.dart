@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_driver/flutter_driver.dart' as driver;
@@ -25,6 +29,63 @@ void main() {
 
   group('Performance Profiling Test Suite', () {
     testWidgets('3D Viewport Stress Test - Timeline', (WidgetTester tester) async {
+      tester.binding.setSurfaceSize(const Size(1920, 1080));
+      addTearDown(() {
+        tester.binding.setSurfaceSize(null);
+      });
+
+      Future<double> calculateStdDev(Uint8List pngBytes) async {
+        final double? result = await tester.runAsync<double>(() async {
+          final ui.Codec codec = await ui.instantiateImageCodec(pngBytes);
+          final ui.FrameInfo frame = await codec.getNextFrame();
+          final ui.Image decodedImage = frame.image;
+          final ByteData? rawRgba = await decodedImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+          if (rawRgba == null) return 0.0;
+          final Uint8List rgbaBytes = rawRgba.buffer.asUint8List();
+          
+          double sum = 0.0;
+          int count = 0;
+          for (int i = 0; i < rgbaBytes.length; i += 16) {
+            final double r = rgbaBytes[i].toDouble();
+            final double g = rgbaBytes[i + 1].toDouble();
+            final double b = rgbaBytes[i + 2].toDouble();
+            final double gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            sum += gray;
+            count++;
+          }
+          if (count == 0) return 0.0;
+          final double mean = sum / count;
+          
+          double sumSquaredDiff = 0.0;
+          for (int i = 0; i < rgbaBytes.length; i += 16) {
+            final double r = rgbaBytes[i].toDouble();
+            final double g = rgbaBytes[i + 1].toDouble();
+            final double b = rgbaBytes[i + 2].toDouble();
+            final double gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            final double diff = gray - mean;
+            sumSquaredDiff += diff * diff;
+          }
+          final double variance = sumSquaredDiff / count;
+          return math.sqrt(variance);
+        });
+        return result ?? 0.0;
+      }
+
+      Future<void> takeScreenshot(String name) async {
+        final String screenshotDir = Platform.environment['SCREENSHOT_DIR'] ?? '/Users/perkunas/jail/digital-pipeline-repo/screenshots';
+        final File file = File('$screenshotDir/$name.png');
+        file.parent.createSync(recursive: true);
+        final RenderRepaintBoundary boundary = tester.renderObject(find.byType(RepaintBoundary).first);
+        final ui.Image image = (await tester.runAsync<ui.Image>(() => boundary.toImage()))!;
+        final ByteData? byteData = await tester.runAsync<ByteData?>(() => image.toByteData(format: ui.ImageByteFormat.png));
+        final Uint8List pngBytes = byteData!.buffer.asUint8List();
+        
+        final double stdDev = await calculateStdDev(pngBytes);
+        expect(stdDev, greaterThan(15.0), reason: 'Standard deviation $stdDev is not greater than 15.0; screen is likely blank/solid-color');
+        
+        file.writeAsBytesSync(pngBytes);
+      }
+
       // 1. Setup SQLite Database
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -110,7 +171,8 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
+      await takeScreenshot('perf_initial_hud');
 
       // 4. Trace the interaction script
       await binding.traceAction(() async {
@@ -145,6 +207,9 @@ void main() {
            }
         }
       }, reportKey: 'viewport_perf');
+
+      await tester.pump(const Duration(seconds: 2));
+      await takeScreenshot('perf_gesture_rotated');
 
       // 5. Output and Thresholds
       final reportData = binding.reportData;
