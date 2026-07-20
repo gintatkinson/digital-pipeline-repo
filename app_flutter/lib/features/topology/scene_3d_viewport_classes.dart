@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -527,22 +528,45 @@ class TextPainterKey {
   @override int get hashCode => Object.hash(text, color);
 }
 
+enum ModelRenderState { unloaded, loading, loaded, error }
+
 class Network3DScene {
-  String gltfData = '';
+  Uint8List? gltfData;
   bool isTranslucent = false;
+  ModelRenderState state = ModelRenderState.unloaded;
 
   /// Loads the glTF model data from the given path.
-  bool loadModel(String modelPath) {
+  Future<bool> loadModel(String modelPath) async {
     if (modelPath.isEmpty) {
+      state = ModelRenderState.error;
       return false;
     }
-    gltfData = 'gltf_binary_stub_data_for_$modelPath';
-    return true;
+    
+    state = ModelRenderState.loading;
+    try {
+      final ByteData data = await rootBundle.load(modelPath);
+      final Uint8List bytes = data.buffer.asUint8List();
+      
+      if (bytes.isEmpty) {
+        state = ModelRenderState.error;
+        return false;
+      }
+      
+      gltfData = bytes;
+      state = ModelRenderState.loaded;
+      return true;
+    } catch (e) {
+      state = ModelRenderState.error;
+      return false;
+    }
   }
 
   /// Applies PBR materials and sets transcluent flags.
   bool applyPbrMaterials() {
-    isTranslucent = true;
-    return true;
+    if (state == ModelRenderState.loaded && gltfData != null) {
+      isTranslucent = true;
+      return true;
+    }
+    return false;
   }
 }

@@ -1,49 +1,78 @@
-# Implementation Plan
+# Implementation Plan: Asynchronous glTF Model Loader & Real I/O Tests
 
-## Phase 1: Skill Reading
-1. Read `.agents/skills/debug-protocol/SKILL.md`.
-2. Read `.agents/skills/performance-profiling-test-automation/SKILL.md`.
+This plan outlines the implementation of a robust, asynchronous binary glTF/glb loader mapped directly to the four sequential phases specified in the prompt.
 
-## Phase 2: Codebase Fixes
-1. **Database Seeding format update**:
-   - File: `app_flutter/lib/domain/database_initializer.dart`
-   - Changes: In `_seed`, change `'type_name': 'Links'` to `'type_name': 'interface'`, and change `'data_json': jsonEncode({'target': to})` to `'data_json': jsonEncode({'description': 'link to node $to'})`.
-   - Action: Run `flutter test lib/domain/database_initializer.dart` to generate DB files.
-2. **Double Earth-Radius Projection Correction**:
-   - File: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
-   - Changes: Change `heightMeters` to `ampElev` at line 252.
-   - File: `app_flutter/lib/features/topology/scene_3d_viewport_classes.dart`
-   - Changes: Lines 438-456: remove `Ellipsoid.wgs84EquatorialRadius +` additions.
-3. **Database Overwrite & Drift Fix**:
-   - File: `app_flutter/lib/domain/repository_resolver.dart`
-   - Changes: Force overwrite database in ApplicationSupport if size or record schema does not match the gzipped assets bundle.
-4. **Force Test Database Injection & Assertions**:
-   - File: `app_flutter/integration_test/viewport_perf_test.dart`
-   - Changes: Inject test database `DataSource` provider. Add assertions for `nodes.length > 800` and `links.length > 1000`.
-5. **Entitlements Outbound Access**:
-   - Files: `app_flutter/macos/Runner/DebugProfile.entitlements` and `app_flutter/macos/Runner/Release.entitlements`
-   - Changes: Add `<key>com.apple.security.network.client</key><true/>`.
-6. **Stuck Table Spinner Debug**:
-   - File: `app_flutter/lib/features/tables/view_models/tables_view_model.dart`
-   - Changes: Trace and resolve deadlock/uncompleted Future/infinite stream.
+## User Review Required
 
-## Phase 3: Workspace Contamination Scan
-1. Run scan for `3dgs`, `phoenix`, `ion`, or `dgph` inside `/Users/perkunas/jail/digital-pipeline-repo`.
-2. Write matches to `/Users/perkunas/.gemini/antigravity/brain/35945883-18ea-4018-81b3-27aba96f2102/contamination_report.md`.
-3. Stop and report back before making contamination changes.
+> [!IMPORTANT]
+> **No Mocking Directive**: Mockito, Mocktail, dummy 1-byte files, or fake asset bundle bindings are strictly forbidden. All operations and unit tests must execute against real file I/O using the existing populated SQLite database (`properties_db.db`).
 
-## Phase 4: Automated Verification & Packaging
-1. Run `python3 scripts/verify_downstream_baseline.py`.
-2. Run `flutter drive --driver=test_driver/integration_test.dart --target=integration_test/viewport_perf_test.dart -d macos`.
+## Open Questions
 
-## Phase 5: Backlog & Sync
-1. Run `python3 .agents/skills/spec-orchestrator/scripts/reconcile_backlog.py`.
-2. Stage, commit, and push.
+None. The task phases are executed in order below.
 
-## Phase 6: Viewport Math Unit Tests
-1. Create `app_flutter/test/domain/cesium_3d/viewport_math_test.dart`.
-2. Phase 1: Test Suite Setup with groups for CoordinateTransformer, ElevationProvider, and VirtualCameraNormalization.
-3. Phase 2: Test VirtualCameraNormalization (Surface/Relative Altitude and Absolute Altitude).
-4. Phase 3: Test ElevationProvider (Inactive State, Fuji Simulation, Vertical Exaggeration).
-5. Phase 4: Test CoordinateTransformer (Constructor Pre-computation, Horizon Culling Check, Direct Line of Sight).
-6. Run `flutter test test/domain/cesium_3d/viewport_math_test.dart` to verify.
+---
+
+## Proposed Changes
+
+### Phase 1: Refactor for Asynchronous I/O
+* **Target File**: [scene_3d_viewport_classes.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/topology/scene_3d_viewport_classes.dart) (Lines 1–15, 530–541)
+* **Changes**:
+  - Add `import 'dart:typed_data';` to support binary data structures.
+  - Modify `Network3DScene`:
+    - Change `String gltfData` to `Uint8List? gltfData` to represent the binary glTF format.
+    - Change the signature of `loadModel(String modelPath)` to `Future<bool> loadModel(String modelPath)`.
+    - Implement asset byte loading using `rootBundle.load(modelPath)` and convert the returned `ByteData` to `Uint8List` using `asUint8List()`.
+
+### Phase 2: Error Handling & Data Validation
+* **Target File**: [scene_3d_viewport_classes.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/topology/scene_3d_viewport_classes.dart) (Lines 533–542)
+* **Changes**:
+  - Wrap the `rootBundle.load(modelPath)` binary loading operation in a robust try-catch block.
+  - Implement validation checks:
+    - Return `false` immediately if `modelPath` is empty.
+    - Check if the loaded `Uint8List` is empty (length == 0). If empty, return `false`.
+    - Ensure the method strictly returns `false` on any exception or invalid data, and `true` only when bytes are successfully extracted.
+
+### Phase 3: PBR Material State Management
+* **Target File**: [scene_3d_viewport_classes.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/topology/scene_3d_viewport_classes.dart) (Lines 528–530, 543–548)
+* **Changes**:
+  - Define the lifecycle tracking enum:
+    ```dart
+    enum ModelRenderState { unloaded, loading, loaded, error }
+    ```
+  - Add `ModelRenderState state = ModelRenderState.unloaded;` inside `Network3DScene`.
+  - Update `state` during `loadModel` execution:
+    - Set state to `ModelRenderState.error` if the path is empty.
+    - Set state to `ModelRenderState.loading` when starting standard asset loading.
+    - Set state to `ModelRenderState.loaded` when bytes are successfully validated and stored in `gltfData`.
+    - Set state to `ModelRenderState.error` if loading catches an exception or fails validation.
+  - Refactor `applyPbrMaterials()`:
+    - Enforce that it only sets `isTranslucent = true` and returns `true` if `state == ModelRenderState.loaded` and `gltfData != null`. Otherwise, return `false`.
+
+### Phase 4: Real I/O Unit Testing with the Database
+* **Target File**: [network_3d_scene_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/domain/cesium_3d/network_3d_scene_test.dart) [NEW]
+* **Changes**:
+  - Initialize the SQLite database connection inside `setUpAll` using the FFI database factory (`sqfliteFfiInit()`, `databaseFactory = databaseFactoryFfi`).
+  - Query `assets/properties_db.db` to extract a valid registered asset model path.
+  - **Success Test**: Call `loadModel` using the database-retrieved path. Assert that it successfully reads the bytes, returns `true`, and sets `state` to `ModelRenderState.loaded`.
+  - **Failure Test**: Call `loadModel` with a non-existent path. Assert that it catches the file exception gracefully, returns `false`, and sets `state` to `ModelRenderState.error`.
+  - **State Test**: Call `applyPbrMaterials()` before loading has occurred. Assert that it returns `false` safely without setting `isTranslucent = true`.
+
+### Phase 5: Lint Fixes
+* **Target File**: [network_3d_scene_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/domain/cesium_3d/network_3d_scene_test.dart)
+* **Changes**:
+  - Remove unused import `package:flutter/services.dart`.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run the newly created unit test suite:
+  ```bash
+  flutter test test/domain/cesium_3d/network_3d_scene_test.dart
+  ```
+- Run the full verification baseline pipeline script:
+  ```bash
+  python3 scripts/verify_downstream_baseline.py
+  ```
