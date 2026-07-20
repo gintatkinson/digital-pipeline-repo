@@ -63,6 +63,14 @@ None. The task phases are executed in order below.
 * **Changes**:
   - Remove unused import `package:flutter/services.dart`.
 
+### Phase 6: Documentation Walkthrough
+* **Target File**: [docs/designs/feat-58-solution.md](file:///Users/perkunas/jail/digital-pipeline-repo/docs/designs/feat-58-solution.md) [NEW]
+* **Changes**:
+  - Write a new solution walkthrough document detailing the asynchronous glTF model loader implementation.
+  - Include an Overview of Changes (detailing Network3DScene refactoring to load Uint8List glTF data, ModelRenderState lifecycle tracking, PBR material state management, and real database I/O unit testing).
+  - Include a Code Realization Table mapping UML to actual files.
+  - Include a Verification & Testing section showing the test command.
+
 ---
 
 ## Verification Plan
