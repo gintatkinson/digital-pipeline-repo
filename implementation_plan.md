@@ -71,3 +71,48 @@ This plan details the codebase modifications to resolve the five visual, renderi
   ```bash
   flutter test
   ```
+
+---
+
+## 6. Scene 3D Viewport Architectural Refactoring
+
+* **Defect**: The `scene_3d_viewport.dart` file suffers from severe Garbage Collection (GC) jank, duplicated math logic, and God Class anti-patterns.
+* **Target File**: `app_flutter/lib/features/topology/scene_3d_viewport.dart`
+* **Changes**:
+  1. **Phase 1: Math & Domain Extraction**: 
+     - Add `VirtualCameraNormalization` extension.
+     - Extract `ElevationProvider` service.
+     - Create `CoordinateTransformer` engine to handle 3D-to-2D projection and horizon generation.
+  2. **Phase 2: State Normalization**:
+     - Create `SceneViewState` as a `ChangeNotifier` to hold all pre-calculated rendering data.
+     - Eliminate string allocations in caches by using Dart 3 Records for cache keys (`ElevationCacheKey`).
+  3. **Phase 3: Painter Decomposition**:
+     - Create `SceneLayer` base interface.
+     - Implement `BackgroundLayer`, `GlobeLayer`, `TopologyLayer`, and `HUDLayer`.
+     - Simplify `Scene3DViewportPainter` to simply iterate through and paint the injected layers.
+  4. **Phase 4: UI Component Cleanup**:
+     - Extract `CameraStatsPanel` and `MapConfigPanel` from the massive `Scene3DViewportState.build()` method into standalone stateless widgets.
+     - Clean up the main stack to only compose these widgets.
+
+* **Verification**:
+  - Run `flutter test` inside `app_flutter` to verify no regressions in rendering math.
+  - Run `flutter analyze` to ensure structural validity of the extracted widgets and layers.
+
+---
+
+## 7. Automated Performance Profiling Test Suite
+
+* **Defect**: No automated regression test suite exists to capture 3D rendering engine performance issues or catch frame drop regressions below 60 FPS.
+* **Target Files**:
+  * `app_flutter/pubspec.yaml`
+  * `app_flutter/test_driver/integration_test.dart`
+  * `app_flutter/integration_test/viewport_perf_test.dart`
+* **Changes**:
+  1. **Phase 1: Integration Test Setup**: Configure `integration_test` in `pubspec.yaml`, create `test_driver/integration_test.dart`, and create `integration_test/viewport_perf_test.dart`.
+  2. **Phase 2: Live Persistence Test Fixture**: Seed 500 ground nodes, 100 space nodes, and 200 network links directly into the live SQLite database (Zero-Mocking Live Persistence Mandate). Mount the full application against this DB. Clean up during teardown.
+  3. **Phase 3: Interaction & Recording Script**: Use `WidgetTester.traceAction()` to record aggressive viewport usage (scrolling, panning, UI toggling, iterating nodes to trigger fly-to animations, properties pane edits, and density table tabs).
+  4. **Phase 4: Regression Thresholds & Output**: Save the TimelineSummary via `writeTimelineToFile`. Implement `expect()` assertions that enforce >60 FPS performance (average frame build < 16.0ms, 90th percentile build < 16.6ms, average rasterizer < 16.0ms).
+
+* **Verification**:
+  - Run the profiling test using the Flutter CLI command for macOS/simulator.
+  - Verify that the assertions pass and timeline output is saved.

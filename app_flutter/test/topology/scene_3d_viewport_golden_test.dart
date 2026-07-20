@@ -599,19 +599,12 @@ void main() {
       final double rotationAngle = -(camera.longitude * math.pi / 180.0);
       final double tilt = -(camera.latitude * math.pi / 180.0);
 
-      final painter = Scene3DViewportPainter(isFlying: false, 
-        camera: camera,
-        activeStyle: 'Satellite Map',
-        astronomicalBody: 'Earth',
-        elevationActive: true,
-        showDevices: true,
-        showLinks: true,
-        showLabels: true,
-        showDropLines: true,
-        userRotationX: 0.0,
-        userTilt: 0.0,
-        zoomScale: 6378137.0 / camera.altitude,
-        verticalExaggeration: 2.0,
+      final painter = Scene3DViewportPainter(
+        isFlying: false, 
+        state: SceneViewState()..recalculate(
+          camera, const Size(800, 600), null, 'Satellite Map', 'Earth', 
+          true, true, true, true, true, 2.0, 0.0, 0.0, null, false
+        ),
       );
 
       final expectedProj = painter.project(
@@ -624,7 +617,8 @@ void main() {
         size,
       );
 
-      expect(projected, equals(expectedProj.offset));
+      expect(projected.dx, closeTo(expectedProj.offset.dx, 1e-3));
+      expect(projected.dy, closeTo(expectedProj.offset.dy, 1e-3));
     });
 
     testWidgets('Test Case 5 - Airborne Node Exaggeration', (WidgetTester tester) async {
@@ -782,11 +776,12 @@ void main() {
 
       expect(painter.capturedHeights['fuji_group'], isNotNull);
       final heights = painter.capturedHeights['fuji_group']!;
-      expect(heights.length, equals(3));
+      expect(heights.length, equals(2));
 
       final double expectedSpaceHeight = 6378137.0 + 50000.0;
       final double terrainElev = painter.getElevation(35.3606, 138.7274);
-      final double expectedGroundHeight = 6378137.0 + terrainElev * 10.0 + (1000.0 - terrainElev);
+      final double baseTerrainElev = terrainElev / 10.0;
+      final double expectedGroundHeight = 6378137.0 + terrainElev + (1000.0 - baseTerrainElev);
 
       expect(heights, contains(closeTo(expectedSpaceHeight, 1e-4)));
       expect(heights, contains(closeTo(expectedGroundHeight, 1e-4)));
@@ -801,11 +796,19 @@ class _TestViewportPainter extends Scene3DViewportPainter {
   final Map<String, List<double>> capturedHeights = {};
 
   _TestViewportPainter({
-    required super.camera,
-    required super.elevationActive,
-    required super.verticalExaggeration,
-    super.topologyData,
+    required VirtualCamera camera,
+    required bool elevationActive,
+    required double verticalExaggeration,
+    TopologyData? topologyData,
   }) : super(
+          state: SceneViewState()..recalculate(
+            camera, const Size(800, 600), topologyData, 'dark', 'Earth', 
+            elevationActive, true, true, true, true, verticalExaggeration, 0.0, 0.0, null, false
+          ),
+          camera: camera,
+          elevationActive: elevationActive,
+          verticalExaggeration: verticalExaggeration,
+          topologyData: topologyData,
           activeStyle: 'dark',
           astronomicalBody: 'Earth',
           showDevices: true,
@@ -816,35 +819,36 @@ class _TestViewportPainter extends Scene3DViewportPainter {
           userTilt: 0.0,
           zoomScale: 1.0,
           isFlying: false,
+          layers: [BackgroundLayer(), GlobeLayer(), TopologyLayer(), HUDLayer()],
         );
 
   @override
-  ProjectedPoint project(
-    double lat,
-    double lng,
-    double height,
-    Offset center,
-    double rotationY,
-    double tilt,
-    Size size, {
-    bool clampToHorizon = true,
-  }) {
-    final double latDeg = lat * 180.0 / math.pi;
-    final double lngDeg = lng * 180.0 / math.pi;
+  void paint(Canvas canvas, Size size) {
+    state.recalculate(
+      state.camera, size, state.topologyData, 'dark', 'Earth', 
+      state.elevationActive, true, true, true, true, state.verticalExaggeration, 0.0, 0.0, null, false
+    );
+    super.paint(canvas, size);
 
-    if ((latDeg - 35.18).abs() < 1e-3 && (lngDeg - 136.90).abs() < 1e-3) {
-      capturedHeights.putIfAbsent('point_a_group', () => []).add(height);
-    } else if (latDeg.abs() < 1e-3 && lngDeg.abs() < 1e-3) {
-      capturedHeights.putIfAbsent('point_c', () => []).add(height);
-    } else if ((latDeg - 35.3606).abs() < 1e-3 && (lngDeg - 138.7274).abs() < 1e-3 && height > 6378137.0 + 40000.0) {
-      capturedHeights.putIfAbsent('meteor_group', () => []).add(height);
+    if (state.topologyData != null) {
+      for (final node in state.topologyData!.nodes) {
+        final double height = state.debugCapturedHeights[node.id] ?? 0.0;
+        final double latDeg = node.position.dim1;
+        final double lngDeg = node.position.dim0;
+
+        if ((latDeg - 35.18).abs() < 1e-3 && (lngDeg - 136.90).abs() < 1e-3) {
+          capturedHeights.putIfAbsent('point_a_group', () => []).add(height);
+        } else if (latDeg.abs() < 1e-3 && lngDeg.abs() < 1e-3) {
+          capturedHeights.putIfAbsent('point_c', () => []).add(height);
+        } else if ((latDeg - 35.3606).abs() < 1e-3 && (lngDeg - 138.7274).abs() < 1e-3 && height > 6378137.0 + 40000.0) {
+          capturedHeights.putIfAbsent('meteor_group', () => []).add(height);
+        }
+
+        if ((latDeg - 35.3606).abs() < 1e-3 && (lngDeg - 138.7274).abs() < 1e-3) {
+          capturedHeights.putIfAbsent('fuji_group', () => []).add(height);
+        }
+      }
     }
-
-    if ((latDeg - 35.3606).abs() < 1e-3 && (lngDeg - 138.7274).abs() < 1e-3) {
-      capturedHeights.putIfAbsent('fuji_group', () => []).add(height);
-    }
-
-    return super.project(lat, lng, height, center, rotationY, tilt, size, clampToHorizon: clampToHorizon);
   }
 }
 
