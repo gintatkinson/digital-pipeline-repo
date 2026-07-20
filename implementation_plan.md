@@ -116,3 +116,18 @@ This plan details the codebase modifications to resolve the five visual, renderi
 * **Verification**:
   - Run the profiling test using the Flutter CLI command for macOS/simulator.
   - Verify that the assertions pass and timeline output is saved.
+
+---
+
+## 8. Agent Skill: Performance Profiling Test Automation
+
+* **Defect**: Lack of documented guidelines and automated agent workflows to generate and maintain performance profiling tests.
+* **Target File**: `.agents/skills/performance-profiling-test-automation/SKILL.md`
+* **Changes**:
+  1. Create a new skill documentation file covering the purpose of automated 3D viewport profiling.
+  2. Detail setup standards for configuring `integration_test` and `test_driver`.
+  3. Explicitly document Zero-Mocking Persistence (Section 1.9 compliance) with instructions for seeding live local databases.
+  4. Detail Interactive Animation Tracing techniques with `WidgetTester.traceAction()`.
+  5. Include strict Frame Budget Assertions limits (Average build < 16.0ms, 90th percentile build < 16.6ms, Average rasterizer < 16.0ms).
+  6. Provide execution commands for macOS and simulator targets.
+
