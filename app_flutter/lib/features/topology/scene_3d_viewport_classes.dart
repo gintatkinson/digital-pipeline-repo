@@ -211,7 +211,7 @@ class CoordinateTransformer {
 
     return ProjectedPoint(
       Offset(screenCenter.dx + rxPixel, screenCenter.dy - ryPixel),
-      isCulled ? -100.0 : depth,
+      depthVal,
     );
   }
 
@@ -435,7 +435,7 @@ class SceneViewState extends ChangeNotifier {
         type = (alt < 50000.0) ? 'ground' : 'space';
       }
 
-      final double orbitHeight = Ellipsoid.wgs84EquatorialRadius + alt;
+      final double orbitHeight = alt;
       final double currentLngRad = lngRad; // simplified
 
       double finalHeight = orbitHeight;
@@ -445,9 +445,9 @@ class SceneViewState extends ChangeNotifier {
           final double terrainElev = nodeElevationCache.putIfAbsent(cacheKey, () => elevationProvider.getElevation(latDeg, lngDeg));
           final double baseElev = terrainElev / (verticalExaggeration == 0 ? 1 : verticalExaggeration);
           final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND' ? alt : alt - baseElev;
-          finalHeight = Ellipsoid.wgs84EquatorialRadius + terrainElev + relativeAlt;
+          finalHeight = terrainElev + relativeAlt;
         } else {
-          finalHeight = Ellipsoid.wgs84EquatorialRadius + alt;
+          finalHeight = alt;
         }
       }
 

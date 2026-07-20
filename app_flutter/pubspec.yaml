@@ -76,6 +76,8 @@ flutter:
     - assets/properties_db.db.gz
     - assets/topology_data.json
     - assets/strings.json
+    - assets/ntt_exchanges_japan_763.json
+    - assets/cable_landing_stations_japan.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

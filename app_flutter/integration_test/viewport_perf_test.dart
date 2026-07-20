@@ -21,6 +21,7 @@ import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/main.dart' as app;
 
 void main() {
@@ -93,58 +94,8 @@ void main() {
       final file = File(dbPath);
       if (file.existsSync()) file.deleteSync();
 
-      final db = await DatabaseInitializer.create(dbPath: dbPath, seed: false);
-
-      // 2. Seed 500 ground nodes, 100 space nodes, and 200 links
-      final batch = db.batch();
-      
-      // Ground nodes
-      for (int i = 0; i < 500; i++) {
-        batch.insert('properties', {
-          'node_id': 'ground_$i',
-          'parent_node_id': null,
-          'data_json': jsonEncode({
-            'name': 'Ground Node $i',
-            'type': 'ground',
-            'latitude': 30.0 + (i % 20) * 0.1,
-            'longitude': -90.0 + (i % 25) * 0.1,
-            'altitude': 0.0,
-            'status': 'Active',
-          }),
-        });
-      }
-
-      // Space nodes
-      for (int i = 0; i < 100; i++) {
-        batch.insert('properties', {
-          'node_id': 'space_$i',
-          'parent_node_id': null,
-          'data_json': jsonEncode({
-            'name': 'Space Node $i',
-            'type': 'space',
-            'latitude': 40.0 + (i % 10) * 0.2,
-            'longitude': -100.0 + (i % 10) * 0.2,
-            'altitude': 500000.0,
-            'status': 'Active',
-          }),
-        });
-      }
-
-      // 200 links
-      for (int i = 0; i < 200; i++) {
-        final source = 'ground_${i % 500}';
-        final target = i < 100 ? 'space_$i' : 'ground_${(i + 10) % 500}';
-        batch.insert('instances', {
-          'id': 'link_$i',
-          'parent_node_id': source,
-          'type_name': 'interface',
-          'data_json': jsonEncode({
-            'description': 'link to node $target',
-          }),
-        });
-      }
-
-      await batch.commit(noResult: true);
+      // 2. Initialise Database with actual seeding
+      final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
       final dataSource = SqliteDataSource(db);
 
       // 3. Mount the application
@@ -174,6 +125,13 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
       await takeScreenshot('perf_initial_hud');
 
+      final topoViewFinder = find.byType(TopographicalView);
+      expect(topoViewFinder, findsOneWidget);
+      final TopographicalView topoView = tester.widget<TopographicalView>(topoViewFinder);
+      expect(topoView.topologyData.nodes.length, greaterThan(800), reason: 'Database seeding failed or loaded stale empty DB');
+      expect(topoView.topologyData.links.length, greaterThan(1000), reason: 'Database seeding failed or loaded stale empty DB');
+
+
       // 4. Trace the interaction script
       await binding.traceAction(() async {
         final center = tester.getCenter(find.byType(MaterialApp));
@@ -196,9 +154,9 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
         }
 
-        // Visually iterate through each node in the tree and trigger fly-to-node
+        // Visually iterate through some specific nodes in the tree
         for (int i = 0; i < 5; i++) {
-           final nodeFinder = find.text('Ground Node $i');
+           final nodeFinder = find.text('ntt_exchange_$i');
            if (nodeFinder.evaluate().isNotEmpty) {
              await tester.tap(nodeFinder.first);
              for (int j = 0; j < 10; j++) {

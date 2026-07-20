@@ -154,54 +154,58 @@ class RepositoryResolver {
       dbPath = inMemory ? inMemoryDatabasePath : p.join(dir.path, 'properties_db.db');
     }
 
-    if (!kIsWeb && !inMemory) {
-      final dbFile = File(dbPath);
-      bool isOutdated = false;
-      final exists = await dbFile.exists();
-      if (exists) {
-        Database? tempDb;
+      if (!kIsWeb && !inMemory) {
+        final dbFile = File(dbPath);
+        bool isOutdated = false;
+        final exists = await dbFile.exists();
+        
+        List<int>? decodedAssetBytes;
         try {
-          tempDb = await databaseFactory.openDatabase(dbPath);
-          final tables = ['properties', 'instances', 'type_definitions', 'type_attributes', 'type_relations'];
-          final rows = await tempDb.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name IN (${tables.map((t) => "'$t'").join(', ')})"
-          );
-          if (rows.length < tables.length) {
-            isOutdated = true;
-          }
-        } catch (_) {
-          isOutdated = true;
-        } finally {
-          if (tempDb != null) {
-            await tempDb.close();
-          }
-        }
-      }
-
-      if (!exists || isOutdated) {
-        if (exists) {
-          try {
-            await dbFile.delete();
-          } catch (e) {
-            debugPrint('Failed to delete outdated database file: $e');
-          }
-        }
-        final assetPath = dbAssetPath ?? _defaultDbAsset;
-        try {
+          final assetPath = dbAssetPath ?? _defaultDbAsset;
           final bytes = await rootBundle.load(assetPath);
-          List<int> decodedBytes = bytes.buffer.asUint8List(
+          decodedAssetBytes = bytes.buffer.asUint8List(
             bytes.offsetInBytes,
             bytes.lengthInBytes,
           );
           if (assetPath.endsWith('.gz')) {
-            decodedBytes = gzip.decode(decodedBytes);
+            decodedAssetBytes = gzip.decode(decodedAssetBytes);
           }
-          await dbFile.writeAsBytes(decodedBytes);
         } catch (e) {
-          debugPrint('Failed to write database file "$dbPath": $e');
+          debugPrint('Failed to load asset database: $e');
+        }
+
+        if (exists && decodedAssetBytes != null) {
+          final currentSize = await dbFile.length();
+          if (currentSize != decodedAssetBytes.length) {
+            isOutdated = true;
+          } else {
+            final currentBytes = await dbFile.readAsBytes();
+            for (int i = 0; i < currentSize; i++) {
+              if (currentBytes[i] != decodedAssetBytes[i]) {
+                isOutdated = true;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!exists || isOutdated) {
+          if (exists) {
+            try {
+              await dbFile.delete();
+            } catch (e) {
+              debugPrint('Failed to delete outdated database file: $e');
+            }
+          }
+          if (decodedAssetBytes != null) {
+            try {
+              await dbFile.writeAsBytes(decodedAssetBytes);
+            } catch (e) {
+              debugPrint('Failed to write database file "$dbPath": $e');
+            }
+          }
         }
       }
-    }
 
     final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
     return SqliteDataSource(db);

@@ -33,7 +33,7 @@ void main() {
       final camera = VirtualCamera(
         latitude: 0.0,
         longitude: 0.0,
-        altitude: 500000.0, // 500,000m
+        altitude: 6378137.0 + 500000.0, // 500,000m
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -207,7 +207,7 @@ void main() {
         final camera = VirtualCamera(
           latitude: 0.0,
           longitude: 0.0,
-          altitude: 500000.0,
+          altitude: 6378137.0 + 500000.0,
           heading: 0.0,
           pitch: 0.0,
           roll: 0.0,
@@ -253,7 +253,7 @@ void main() {
       final cameraLow = VirtualCamera(
         latitude: 0.0,
         longitude: 0.0,
-        altitude: 500000.0,
+        altitude: 6378137.0 + 500000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -283,7 +283,7 @@ void main() {
       final camera = VirtualCamera(
         latitude: 0.0,
         longitude: 0.0,
-        altitude: 500000.0,
+        altitude: 6378137.0 + 500000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -306,7 +306,7 @@ void main() {
       final camera = VirtualCamera(
         latitude: 0.0,
         longitude: 0.0,
-        altitude: 500000.0, // 500,000m
+        altitude: 6378137.0 + 500000.0, // 500,000m
         heading: 0.0,
         pitch: -90.0,
         roll: 0.0,
@@ -336,7 +336,7 @@ void main() {
       final projectedPoint = painter.project(
         0.0, // lat
         math.pi, // lng (180 degrees)
-        6378137.0, // height (Earth surface radius)
+        6378137.0 * 2.0, // height (2R to force it way behind the Earth for culling/clamping test)
         center,
         0.0, // rotationY
         0.0, // tilt

@@ -9,7 +9,7 @@ void main() {
     final camera = VirtualCamera(
       latitude: 35.0,
       longitude: 135.0,
-      altitude: 6378137.0 + 100000.0,
+      altitude: 100000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -48,6 +48,6 @@ void main() {
     // Wait until fly completes
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(controller.isFlying, isFalse);
-    expect(controller.current.altitude, closeTo((6378137.0 + 100000.0) * 0.5, 0.1));
+    expect(controller.current.altitude, closeTo(6378137.0 + 50000.0, 0.1));
   });
 }

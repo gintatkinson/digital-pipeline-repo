@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -214,7 +215,12 @@ class DatabaseInitializer {
     }
 
     final nttFile = File('assets/ntt_exchanges_japan_763.json');
-    final nttJsonString = await nttFile.readAsString();
+    String nttJsonString;
+    if (await nttFile.exists()) {
+      nttJsonString = await nttFile.readAsString();
+    } else {
+      nttJsonString = await rootBundle.loadString('assets/ntt_exchanges_japan_763.json');
+    }
     final nttJson = jsonDecode(nttJsonString) as List;
 
     final nttNodes = <Map<String, dynamic>>[];
@@ -230,7 +236,12 @@ class DatabaseInitializer {
     }
 
     final landingFile = File('assets/cable_landing_stations_japan.json');
-    final landingJsonString = await landingFile.readAsString();
+    String landingJsonString;
+    if (await landingFile.exists()) {
+      landingJsonString = await landingFile.readAsString();
+    } else {
+      landingJsonString = await rootBundle.loadString('assets/cable_landing_stations_japan.json');
+    }
     final landingJson = jsonDecode(landingJsonString) as List;
 
     final landingNodes = <Map<String, dynamic>>[];
@@ -257,8 +268,8 @@ class DatabaseInitializer {
         batch.insert('instances', {
           'id': 'link_${linkIdCounter++}',
           'parent_node_id': from,
-          'type_name': 'Links',
-          'data_json': jsonEncode({'target': to}),
+          'type_name': 'interface',
+          'data_json': jsonEncode({'description': 'link to node $to'}),
         });
       }
     }

@@ -8,7 +8,7 @@ void main() {
     final camera = VirtualCamera(
       latitude: 35.0,
       longitude: 135.0,
-      altitude: 1000.0,
+      altitude: 6378137.0 + 100000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,

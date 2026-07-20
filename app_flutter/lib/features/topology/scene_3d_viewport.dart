@@ -249,7 +249,7 @@ class GlobeLayer extends SceneLayer {
           return state.transformer.projectWgs84ToScreen(
             latRad: latDeg * math.pi / 180.0,
             lngRad: lngDeg * math.pi / 180.0,
-            heightMeters: Ellipsoid.wgs84EquatorialRadius + ampElev,
+            heightMeters: ampElev,
           );
         },
         isFlying: state.isFlying,
@@ -587,7 +587,7 @@ class CameraStatsPanel extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('CAMERA STATS', style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 12)),
-                      InkWell(onTap: onClose, child: const Icon(Icons.close, size: 14, color: Color(0xAAFFFFFF))),
+                      InkWell(key: const Key('collapse_camera_stats_button'), onTap: onClose, child: const Icon(Icons.close, size: 14, color: Color(0xAAFFFFFF))),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -718,7 +718,7 @@ class MapConfigPanel extends StatelessWidget {
                   const Icon(Icons.settings, color: Color(0xFF00E5FF), size: 16),
                   const SizedBox(width: 8),
                   const Expanded(child: Text('MAP CONFIGURATION', style: TextStyle(color: Color(0xFF00E5FF), fontSize: 12, fontWeight: FontWeight.bold))),
-                  InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(4.0), child: Icon(Icons.close, size: 14, color: Color(0xAAFFFFFF)))),
+                  InkWell(key: const Key('collapse_map_config_button'), onTap: onClose, child: const Padding(padding: EdgeInsets.all(4.0), child: Icon(Icons.close, size: 14, color: Color(0xAAFFFFFF)))),
                 ],
               ),
               const SizedBox(height: 12),
@@ -1006,19 +1006,22 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _globeFocusNode.requestFocus(),
         onDoubleTapDown: (details) {
-          final current = _cameraController.current;
-          final targetAlt = (current.altitude * 0.5).clamp(
+          print("DOUBLE TAP TRIGGERED"); final current = _cameraController.current;
+          final surfaceAlt = current.altitude - Ellipsoid.wgs84EquatorialRadius;
+          final targetAlt = (surfaceAlt * 0.5).clamp(
             CameraController.minAltitude,
             CameraController.maxAltitude,
           );
           _cameraController.flyTo(VirtualCamera.raw(
             latitude: current.latitude,
             longitude: current.longitude,
-            altitude: targetAlt,
+            altitude: targetAlt + Ellipsoid.wgs84EquatorialRadius,
             heading: current.heading,
             pitch: current.pitch,
             roll: current.roll,
           ));
+          _flyTicker?.stop();
+          _flyTicker?.start();
         },
         onScaleStart: (_) => _globeFocusNode.requestFocus(),
         onScaleUpdate: (details) {
