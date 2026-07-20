@@ -131,3 +131,13 @@ This plan details the codebase modifications to resolve the five visual, renderi
   5. Include strict Frame Budget Assertions limits (Average build < 16.0ms, 90th percentile build < 16.6ms, Average rasterizer < 16.0ms).
   6. Provide execution commands for macOS and simulator targets.
 
+---
+
+## 9. Automated Release Compilation and Zip Packaging
+
+* **Defect**: The automated verification script does not produce a release build artifact.
+* **Target File**: `scripts/verify_downstream_baseline.py`
+* **Changes**:
+  1. Modify `scripts/verify_downstream_baseline.py` inside the Flutter verification block.
+  2. Add `subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True)` after tests.
+  3. Add `subprocess.run(["zip", "-r", "../../app_flutter_release.zip", "Platform Console.app"], cwd=os.path.join(dest, "build", "macos", "Build", "Products", "Release"), check=True)` to package the app into the root of the repository.
