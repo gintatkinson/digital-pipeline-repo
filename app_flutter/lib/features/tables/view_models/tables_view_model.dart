@@ -62,6 +62,7 @@ class TablesViewModel extends ChangeNotifier {
 
   final Map<(String, String), List<InstanceRecord>> _cache = {};
   StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
+  Timer? _debounceTimer;
 
   TablesViewModel(this._dataSource, this._activeView) {
     _setupPropertiesSubscription(_activeView);
@@ -201,6 +202,8 @@ class TablesViewModel extends ChangeNotifier {
   Future<void> selectTab(String tabId) async {
     if (_disposed) return;
     if (!_tabs.any((t) => t.id == tabId)) return;
+    if (_selectedTabId == tabId) return;
+    
     final tab = _tabs.firstWhere((t) => t.id == tabId);
     _selectedTabId = tabId;
     final requestId = ++_requestId;
@@ -253,6 +256,7 @@ class TablesViewModel extends ChangeNotifier {
   void _setupPropertiesSubscription(String nodeId) {
     if (_disposed) return;
     _propertiesSubscription?.cancel();
+    _debounceTimer?.cancel();
     bool isFirst = true;
     _propertiesSubscription = _dataSource.watchProperties(nodeId).listen(
       (data) {
@@ -261,12 +265,16 @@ class TablesViewModel extends ChangeNotifier {
           isFirst = false;
           return;
         }
-        _cache.clear();
-        if (_tabs.isNotEmpty && _selectedTabId != null) {
-          final tab = _tabs.firstWhere((t) => t.id == _selectedTabId);
-          final requestId = ++_requestId;
-          _loadData(tab, requestId);
-        }
+        _debounceTimer?.cancel();
+        _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+          if (_disposed) return;
+          _cache.clear();
+          if (_tabs.isNotEmpty && _selectedTabId != null) {
+            final tab = _tabs.firstWhere((t) => t.id == _selectedTabId);
+            final requestId = ++_requestId;
+            _loadData(tab, requestId);
+          }
+        });
       },
       onError: (Object e) {
         debugPrint('TablesViewModel properties subscription error: $e');
@@ -284,6 +292,7 @@ class TablesViewModel extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _propertiesSubscription?.cancel();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 }
