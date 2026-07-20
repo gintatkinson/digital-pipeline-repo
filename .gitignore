@@ -22,3 +22,4 @@ build/
 .dart_tool/
 .pub/
 .flutter-plugins*
+app_flutter_release.zip

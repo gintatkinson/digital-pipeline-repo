@@ -141,3 +141,47 @@ This plan details the codebase modifications to resolve the five visual, renderi
   1. Modify `scripts/verify_downstream_baseline.py` inside the Flutter verification block.
   2. Add `subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True)` after tests.
   3. Add `subprocess.run(["zip", "-r", "../../app_flutter_release.zip", "Platform Console.app"], cwd=os.path.join(dest, "build", "macos", "Build", "Products", "Release"), check=True)` to package the app into the root of the repository.
+
+---
+
+## 10. NTT & Landing Stations Seeding
+
+* **Target File**: `app_flutter/lib/domain/database_initializer.dart`
+* **Changes**:
+  1. Read and parse `assets/ntt_exchanges_japan_763.json` and `assets/cable_landing_stations_japan.json`.
+  2. Populate 100 space nodes (`space_0` to `space_99`) at geodetic coordinates (lat: 25.0 to 45.0, lon: 125.0 to 145.0, altitude: 500,000.0 meters).
+  3. Populate 763 NTT central offices as `ntt_exchange` nodes.
+  4. Populate Cable landing stations as `cable_landing` nodes.
+  5. Connect each NTT central office to its 2 nearest central offices (prevent duplicate undirected links).
+  6. Connect each NTT central office to 2 separate space nodes (e.g., exchange `i` connected to `space_${(i * 2) % 100}` and `space_${(i * 2 + 1) % 100}`).
+  7. Connect each cable landing station to the 5 closest NTT central offices.
+  8. Ensure type definitions, relations, and type attributes (`field_1` to `field_50`) are correctly generated for all nodes.
+  9. Run `dart run lib/domain/database_initializer.dart` inside `app_flutter` to regenerate and gzip `assets/properties_db.db.gz`.
+
+---
+
+## 11. Entitlements Outbound Access
+
+* **Target Files**:
+  * `app_flutter/macos/Runner/DebugProfile.entitlements`
+  * `app_flutter/macos/Runner/Release.entitlements`
+* **Changes**:
+  1. Add `<key>com.apple.security.network.client</key><true/>` to explicitly enable macOS sandbox bypass for network access.
+
+---
+
+## 12. Stuck Table Spinner Debug
+
+* **Target File**: `app_flutter/lib/features/tables/view_models/tables_view_model.dart`
+* **Changes**:
+  1. Inspect and trace the view model to locate the deadlock, uncompleted Future, or infinite stream causing the table tab to hang in a spinner state, and resolve it.
+
+---
+
+## 13. Automated Verification, Performance, and Sync
+
+* **Execution Steps**:
+  1. Run `python3 scripts/verify_downstream_baseline.py` to build the macOS release and package it into `app_flutter_release.zip`.
+  2. Run `flutter drive --driver=test_driver/integration_test.dart --target=integration_test/viewport_perf_test.dart -d macos` to verify performance thresholds.
+  3. Run `python3 .agents/skills/spec-orchestrator/scripts/reconcile_backlog.py` to synchronize issues.
+  4. Stage, commit (`fix(perf): seed real NTT exchanges and cable landing stations, fix tiles network access, and resolve spinner hang`), and push all changes.

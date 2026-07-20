@@ -170,22 +170,29 @@ class DatabaseInitializer {
 
   /// Inserts sample data.
   static Future<void> _seed(Database db) async {
-    final details = ['Components', 'Relation_A', 'Relation_B'];
+    final batch = db.batch();
+
+    final spaceDetails = ['Components', 'Telemetry', 'Logs', 'Links'];
+    final nttDetails = ['Components', 'Alarms', 'Links'];
+    final landingDetails = ['Components', 'Links'];
+
     final displayNames = {
       'Components': 'Components',
-      'Relation_A': 'Relation A',
-      'Relation_B': 'Relation B',
+      'Telemetry': 'Telemetry',
+      'Logs': 'Logs',
+      'Alarms': 'Alarms',
+      'Links': 'Links',
     };
-    for (final d in details) {
-      await db.insert('type_definitions', {
+
+    for (final d in displayNames.keys) {
+      batch.insert('type_definitions', {
         'type_name': d,
         'display_name': displayNames[d] ?? d,
         'icon_name': 'widgets',
-      });
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
-      final attrBatch = db.batch();
       for (int i = 1; i <= 50; i++) {
-        attrBatch.insert('type_attributes', {
+        batch.insert('type_attributes', {
           'type_name': d,
           'attr_key': 'field_$i',
           'label': 'Field $i',
@@ -193,52 +200,112 @@ class DatabaseInitializer {
           'section_label': 'General',
           'section_order': 0,
           'is_required': 0,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    }
+
+    final spaceNodes = <String>[];
+    for (int i = 0; i < 100; i++) {
+      final id = 'space_$i';
+      spaceNodes.add(id);
+      final lat = 25.0 + (i / 100.0) * 20.0;
+      final lon = 125.0 + (i % 20) * 1.0;
+      _addNodeToBatch(batch, id, null, spaceDetails, lat: lat, lon: lon, height: 500000.0);
+    }
+
+    final nttFile = File('assets/ntt_exchanges_japan_763.json');
+    final nttJsonString = await nttFile.readAsString();
+    final nttJson = jsonDecode(nttJsonString) as List;
+
+    final nttNodes = <Map<String, dynamic>>[];
+    for (int i = 0; i < nttJson.length; i++) {
+      final item = nttJson[i];
+      final id = 'ntt_exchange_$i';
+      nttNodes.add({
+        'id': id,
+        'lat': (item['latitude'] as num).toDouble(),
+        'lon': (item['longitude'] as num).toDouble(),
+      });
+      _addNodeToBatch(batch, id, null, nttDetails, lat: (item['latitude'] as num).toDouble(), lon: (item['longitude'] as num).toDouble(), height: 0.0);
+    }
+
+    final landingFile = File('assets/cable_landing_stations_japan.json');
+    final landingJsonString = await landingFile.readAsString();
+    final landingJson = jsonDecode(landingJsonString) as List;
+
+    final landingNodes = <Map<String, dynamic>>[];
+    for (int i = 0; i < landingJson.length; i++) {
+      final item = landingJson[i];
+      final id = 'cable_landing_$i';
+      landingNodes.add({
+        'id': id,
+        'lat': (item['latitude'] as num).toDouble(),
+        'lon': (item['longitude'] as num).toDouble(),
+      });
+      _addNodeToBatch(batch, id, null, landingDetails, lat: (item['latitude'] as num).toDouble(), lon: (item['longitude'] as num).toDouble(), height: 0.0);
+    }
+
+    final Set<String> addedLinks = {};
+    int linkIdCounter = 0;
+
+    void addLink(String from, String to) {
+      final key1 = '${from}_$to';
+      final key2 = '${to}_$from';
+      if (!addedLinks.contains(key1) && !addedLinks.contains(key2)) {
+        addedLinks.add(key1);
+        addedLinks.add(key2);
+        batch.insert('instances', {
+          'id': 'link_${linkIdCounter++}',
+          'parent_node_id': from,
+          'type_name': 'Links',
+          'data_json': jsonEncode({'target': to}),
         });
       }
-      await attrBatch.commit(noResult: true);
     }
 
-    final int maxMasters = 5; // Scaled down to keep DB size small
-    for (int chunkStart = 0; chunkStart < maxMasters; chunkStart += 50) {
-      final chunkEnd = (chunkStart + 50) > maxMasters ? maxMasters : (chunkStart + 50);
-      final batch = db.batch();
+    double distSq(double lat1, double lon1, double lat2, double lon2) {
+      return (lat1 - lat2) * (lat1 - lat2) + (lon1 - lon2) * (lon1 - lon2);
+    }
 
-      for (int i = chunkStart; i < chunkEnd; i++) {
-        final m = 'Master_${i + 1}';
-        final int rootHash = m.hashCode.abs();
-        final double rootLat = 35.6074 + ((rootHash % 10007) + 1) / 200000.0 * (rootHash.isEven ? 1 : -1);
-        final double rootLon = 140.1063 + ((rootHash % 10007) + 1) / 200000.0 * ((rootHash ~/ 2).isEven ? 1 : -1);
-        const double rootHeight = 100.0;
-
-        _addNodeToBatch(batch, m, null, details, lat: rootLat, lon: rootLon, height: rootHeight);
-
-        for (int c = 1; c <= 5; c++) {
-          final child = '${m}_Child_$c';
-          final int childHash = child.hashCode.abs();
-          final double offsetLat = ((childHash % 10007) + 1) / 200000.0;
-          final double offsetLon = ((childHash % 10007) + 1) / 200000.0;
-          final double childLat = rootLat + (childHash.isEven ? offsetLat : -offsetLat);
-          final double childLon = rootLon + ((childHash ~/ 2).isEven ? offsetLon : -offsetLon);
-          const double childHeight = 0.0;
-
-          _addNodeToBatch(batch, child, m, details, lat: childLat, lon: childLon, height: childHeight);
-
-          for (int g = 1; g <= 2; g++) {
-            final gc = '${child}_Grandchild_$g';
-            final int gcHash = gc.hashCode.abs();
-            final double gcOffsetLat = ((gcHash % 10007) + 1) / 200000.0;
-            final double gcOffsetLon = ((gcHash % 10007) + 1) / 200000.0;
-            final double gcLat = childLat + (gcHash.isEven ? gcOffsetLat : -gcOffsetLat);
-            final double gcLon = childLon + ((gcHash ~/ 2).isEven ? gcOffsetLon : -gcOffsetLon);
-            const double gcHeight = 0.0;
-
-            _addNodeToBatch(batch, gc, child, details, lat: gcLat, lon: gcLon, height: gcHeight);
-          }
-        }
+    for (int i = 0; i < nttNodes.length; i++) {
+      final current = nttNodes[i];
+      final distances = <Map<String, dynamic>>[];
+      for (int j = 0; j < nttNodes.length; j++) {
+        if (i == j) continue;
+        final target = nttNodes[j];
+        distances.add({
+          'id': target['id'],
+          'dist': distSq(current['lat'], current['lon'], target['lat'], target['lon']),
+        });
       }
-
-      await batch.commit(noResult: true);
+      distances.sort((a, b) => (a['dist'] as double).compareTo(b['dist'] as double));
+      for (int k = 0; k < 2 && k < distances.length; k++) {
+        addLink(current['id'], distances[k]['id']);
+      }
+      
+      final space1 = spaceNodes[(i * 2) % 100];
+      final space2 = spaceNodes[(i * 2 + 1) % 100];
+      addLink(current['id'], space1);
+      addLink(current['id'], space2);
     }
+
+    for (int i = 0; i < landingNodes.length; i++) {
+      final current = landingNodes[i];
+      final distances = <Map<String, dynamic>>[];
+      for (int j = 0; j < nttNodes.length; j++) {
+        final target = nttNodes[j];
+        distances.add({
+          'id': target['id'],
+          'dist': distSq(current['lat'], current['lon'], target['lat'], target['lon']),
+        });
+      }
+      distances.sort((a, b) => (a['dist'] as double).compareTo(b['dist'] as double));
+      for (int k = 0; k < 5 && k < distances.length; k++) {
+        addLink(current['id'], distances[k]['id']);
+      }
+    }
+
+    await batch.commit(noResult: true);
   }
 
   static void _addNodeToBatch(
