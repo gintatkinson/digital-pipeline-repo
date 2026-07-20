@@ -36,6 +36,23 @@ void main() {
 
       final canvas = FakeRecordingCanvas();
       const Size viewportSize = Size(800, 600);
+      painter.state.recalculate(
+        painter.state.camera,
+        viewportSize,
+        painter.state.topologyData,
+        painter.state.activeStyle,
+        painter.state.astronomicalBody,
+        painter.state.elevationActive,
+        painter.state.showDevices,
+        painter.state.showLinks,
+        painter.state.showLabels,
+        painter.state.showDropLines,
+        painter.state.verticalExaggeration,
+        painter.userRotationX,
+        painter.userTilt,
+        null,
+        false,
+      );
       painter.paint(canvas, viewportSize);
 
       expect(canvas.clipRects.length, greaterThanOrEqualTo(1));
@@ -347,6 +364,23 @@ void main() {
       );
 
       final canvas = FakeRecordingCanvas();
+      painter.state.recalculate(
+        painter.state.camera,
+        const Size(800, 600),
+        painter.state.topologyData,
+        painter.state.activeStyle,
+        painter.state.astronomicalBody,
+        painter.state.elevationActive,
+        painter.state.showDevices,
+        painter.state.showLinks,
+        painter.state.showLabels,
+        painter.state.showDropLines,
+        painter.state.verticalExaggeration,
+        painter.userRotationX,
+        painter.userTilt,
+        null,
+        false,
+      );
       painter.paint(canvas, const Size(800, 600));
 
       // Ground nodes are drawn via drawPoints (not drawCircle).
@@ -414,6 +448,23 @@ void main() {
       );
       
       final canvas = FakeRecordingCanvas();
+      painter.state.recalculate(
+        painter.state.camera,
+        const Size(800, 600),
+        painter.state.topologyData,
+        painter.state.activeStyle,
+        painter.state.astronomicalBody,
+        painter.state.elevationActive,
+        painter.state.showDevices,
+        painter.state.showLinks,
+        painter.state.showLabels,
+        painter.state.showDropLines,
+        painter.state.verticalExaggeration,
+        painter.userRotationX,
+        painter.userTilt,
+        null,
+        false,
+      );
       painter.paint(canvas, const Size(800, 600));
       
       // In RED phase, the second label should be discarded due to label collision (length == 1).

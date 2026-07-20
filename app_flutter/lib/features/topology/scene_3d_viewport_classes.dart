@@ -142,7 +142,7 @@ class CoordinateTransformer {
     bool isCulled = _checkCulling(px, py, pz, heightMeters, latRad, lngRad, R);
 
     if (isCulled && clampToHorizon) {
-      final double h2 = heightMeters * heightMeters;
+      final double h2 = rad * rad;
       if (_d2 > h2) {
         final double r2OverD2 = h2 / _d2;
         final double parX = r2OverD2 * _cx;
@@ -157,7 +157,7 @@ class CoordinateTransformer {
 
         final double perpLen = math.sqrt(perpX * perpX + perpY * perpY + perpZ * perpZ);
         if (perpLen > 0.0) {
-          final double rHorizon = heightMeters * math.sqrt(1.0 - h2 / _d2);
+          final double rHorizon = rad * math.sqrt(1.0 - h2 / _d2);
           final double scale = rHorizon / perpLen;
           px = parX + perpX * scale;
           py = parY + perpY * scale;
@@ -346,6 +346,7 @@ class SceneViewState extends ChangeNotifier {
   late ElevationProvider elevationProvider;
   late CoordinateTransformer transformer;
 
+  final Map<String, Offset> finalLabelPositions = {};
   final Map<TextPainterKey, TextPainter> textPainterCache = {};
   
   void recalculate(
@@ -391,6 +392,7 @@ class SceneViewState extends ChangeNotifier {
     packetPoints.clear();
     drawnLabelRects.clear();
     debugCapturedHeights.clear();
+    finalLabelPositions.clear();
 
     final Offset center = Offset(size.width * 0.45, size.height * 0.5);
     final double baseRotation = -(camera.longitude * math.pi / 180.0);
@@ -488,25 +490,37 @@ class SceneViewState extends ChangeNotifier {
             )..layout();
           });
 
-          final Offset textPos = proj.offset + const Offset(8, -4);
-          final Rect outerRect = Rect.fromLTWH(textPos.dx - 6, textPos.dy - 3, textPainter.width + 12, textPainter.height + 6);
+          Offset textPos = proj.offset + const Offset(8, -4);
+          Rect outerRect = Rect.fromLTWH(textPos.dx - 6, textPos.dy - 3, textPainter.width + 12, textPainter.height + 6);
 
-          bool overlaps = false;
-          final double area1 = outerRect.width * outerRect.height;
-          for (final Rect existing in drawnLabelRects) {
-            final double left = math.max(outerRect.left, existing.left);
-            final double right = math.min(outerRect.right, existing.right);
-            final double top = math.max(outerRect.top, existing.top);
-            final double bottom = math.min(outerRect.bottom, existing.bottom);
-            if (right > left && bottom > top) {
-              final double intersectArea = (right - left) * (bottom - top);
-              if (intersectArea / area1 > 0.10 || intersectArea / (existing.width * existing.height) > 0.10) {
-                overlaps = true;
-                break;
+          bool overlaps = true;
+          int offsetLoop = 0;
+          while (overlaps && offsetLoop < 5) {
+            overlaps = false;
+            final double area1 = outerRect.width * outerRect.height;
+            for (final Rect existing in drawnLabelRects) {
+              final double left = math.max(outerRect.left, existing.left);
+              final double right = math.min(outerRect.right, existing.right);
+              final double top = math.max(outerRect.top, existing.top);
+              final double bottom = math.min(outerRect.bottom, existing.bottom);
+              if (right > left && bottom > top) {
+                final double intersectArea = (right - left) * (bottom - top);
+                if (intersectArea / area1 > 0.10 || intersectArea / (existing.width * existing.height) > 0.10) {
+                  overlaps = true;
+                  break;
+                }
               }
             }
+            if (overlaps) {
+              textPos += const Offset(0, 16);
+              outerRect = Rect.fromLTWH(textPos.dx - 6, textPos.dy - 3, textPainter.width + 12, textPainter.height + 6);
+              offsetLoop++;
+            }
           }
-          if (!overlaps) drawnLabelRects.add(outerRect);
+          if (!overlaps) {
+            drawnLabelRects.add(outerRect);
+            finalLabelPositions[id] = textPos;
+          }
         }
       }
     }

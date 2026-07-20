@@ -383,14 +383,14 @@ class HUDLayer extends SceneLayer {
         final key = TextPainterKey(labelText, textColor);
         final textPainter = state.textPainterCache[key];
         if (textPainter != null) {
-          final Offset textPos = proj.offset + const Offset(8, -4);
-          final Rect outerRect = Rect.fromLTWH(textPos.dx - 6, textPos.dy - 3, textPainter.width + 12, textPainter.height + 6);
-          if (state.drawnLabelRects.contains(outerRect)) {
+          final Offset? finalPos = state.finalLabelPositions[node.id];
+          if (finalPos != null) {
+            final Rect outerRect = Rect.fromLTWH(finalPos.dx - 6, finalPos.dy - 3, textPainter.width + 12, textPainter.height + 6);
             final RRect capsuleRRect = RRect.fromRectAndRadius(outerRect, const Radius.circular(8));
             _labelBorderPaint.color = textColor.withOpacity(0.4);
             canvas.drawRRect(capsuleRRect, _labelBgPaint);
             canvas.drawRRect(capsuleRRect, _labelBorderPaint);
-            textPainter.paint(canvas, textPos);
+            textPainter.paint(canvas, finalPos);
           }
         }
       }
@@ -507,7 +507,7 @@ class Scene3DViewportPainter extends CustomPainter {
     this.userRotationX = 0.0,
     this.userTilt = 0.0,
     this.zoomScale = 1.0,
-  }) : layers = layers ?? const [],
+  }) : layers = layers ?? [BackgroundLayer(), GlobeLayer(), TopologyLayer(), HUDLayer()],
        state = state ?? SceneViewState(),
        super(repaint: state ?? SceneViewState()) {
     if (camera != null) this.state.camera = camera;
@@ -849,10 +849,29 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       tilt: -(camera.latitude * math.pi / 180.0),
     );
 
-    double finalHeight = Ellipsoid.wgs84EquatorialRadius + altitude;
-    if (nodeType == 'ground') {
-      final double terrainElev = ElevationProvider(isElevationActive: _elevationActive).getElevation(latitude, longitude);
-      finalHeight = Ellipsoid.wgs84EquatorialRadius + terrainElev * widget.verticalExaggeration + altitude;
+    final String heightRef = nodeType.toUpperCase();
+    final String type;
+    if (heightRef == 'RELATIVE_TO_GROUND' || heightRef == 'CLAMP_TO_GROUND') {
+      type = 'ground';
+    } else if (heightRef == 'ABSOLUTE') {
+      type = 'space';
+    } else {
+      type = (altitude < 50000.0) ? 'ground' : 'space';
+    }
+
+    final double finalHeight;
+    if (type == 'space') {
+      finalHeight = altitude;
+    } else {
+      if (_elevationActive) {
+        final double terrainElev = Scene3DViewportPainter.getElevationStatic(latitude, longitude, _elevationActive);
+        final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND'
+            ? altitude
+            : altitude - terrainElev;
+        finalHeight = terrainElev * widget.verticalExaggeration + relativeAlt;
+      } else {
+        finalHeight = altitude;
+      }
     }
 
     final proj = transformer.projectWgs84ToScreen(

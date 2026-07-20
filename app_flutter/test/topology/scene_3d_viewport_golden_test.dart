@@ -384,14 +384,14 @@ void main() {
       
       final double terrainElev = painter.getElevation(35.18, 136.90);
       final double verticalExaggeration = 10.0;
-      final double expectedPointAHeight = 6378137.0 + terrainElev * verticalExaggeration;
-      final double expectedPointBHeight = 6378137.0 + terrainElev * verticalExaggeration + 100.0;
+      final double expectedPointAHeight = terrainElev * verticalExaggeration;
+      final double expectedPointBHeight = terrainElev * verticalExaggeration + 100.0;
       
       expect(painter.capturedHeights['point_a_group']![0], closeTo(expectedPointAHeight, 1e-4));
       expect(painter.capturedHeights['point_a_group']![1], closeTo(expectedPointBHeight, 1e-4));
       
       expect(painter.capturedHeights['point_c'], isNotNull);
-      expect(painter.capturedHeights['point_c']!.any((h) => (h - (6378137.0 + 1000000.0)).abs() < 1e-4), isTrue);
+      expect(painter.capturedHeights['point_c']!.any((h) => (h - 1000000.0).abs() < 1e-4), isTrue);
 
       // Verify PointA is classified as ground when rendering
       final double rotationAngle = - (camera.longitude * math.pi / 180.0);
@@ -662,7 +662,7 @@ void main() {
       painter.paint(canvas, const Size(800, 600));
 
       expect(painter.capturedHeights['meteor_group'], isNotNull);
-      expect(painter.capturedHeights['meteor_group']![0], closeTo(6378137.0 + 50000.0, 1e-4));
+      expect(painter.capturedHeights['meteor_group']![0], closeTo(50000.0, 1e-4));
     });
 
     testWidgets('Test Case 6 - Dynamic Horizon Snapping Verification', (WidgetTester tester) async {
@@ -778,10 +778,10 @@ void main() {
       final heights = painter.capturedHeights['fuji_group']!;
       expect(heights.length, equals(2));
 
-      final double expectedSpaceHeight = 6378137.0 + 50000.0;
+      final double expectedSpaceHeight = 50000.0;
       final double terrainElev = painter.getElevation(35.3606, 138.7274);
       final double baseTerrainElev = terrainElev / 10.0;
-      final double expectedGroundHeight = 6378137.0 + terrainElev + (1000.0 - baseTerrainElev);
+      final double expectedGroundHeight = terrainElev + (1000.0 - baseTerrainElev);
 
       expect(heights, contains(closeTo(expectedSpaceHeight, 1e-4)));
       expect(heights, contains(closeTo(expectedGroundHeight, 1e-4)));
@@ -840,7 +840,7 @@ class _TestViewportPainter extends Scene3DViewportPainter {
           capturedHeights.putIfAbsent('point_a_group', () => []).add(height);
         } else if (latDeg.abs() < 1e-3 && lngDeg.abs() < 1e-3) {
           capturedHeights.putIfAbsent('point_c', () => []).add(height);
-        } else if ((latDeg - 35.3606).abs() < 1e-3 && (lngDeg - 138.7274).abs() < 1e-3 && height > 6378137.0 + 40000.0) {
+        } else if ((latDeg - 35.3606).abs() < 1e-3 && (lngDeg - 138.7274).abs() < 1e-3 && height > 40000.0) {
           capturedHeights.putIfAbsent('meteor_group', () => []).add(height);
         }
 
