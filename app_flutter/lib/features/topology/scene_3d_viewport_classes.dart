@@ -311,6 +311,7 @@ class CoordinateTransformer {
 typedef ElevationCacheKey = (String id, double latDeg, double lngDeg, String astronomicalBody, bool elevationActive);
 
 class SceneViewState extends ChangeNotifier {
+  final Map<String, Network3DScene> nodeModels = {};
   final Map<String, ProjectedPoint> projectedNodes = {};
   final List<Offset> groundGlowPoints = [];
   final List<Offset> groundPoints = [];
@@ -419,6 +420,16 @@ class SceneViewState extends ChangeNotifier {
 
     for (final node in nodes) {
       final String id = node.id;
+      final String modelPath = (node.rawProperties['model_path'] ?? node.rawProperties['model'] ?? '').toString();
+      
+      if (modelPath.isNotEmpty && !nodeModels.containsKey(id)) {
+        final scene = Network3DScene();
+        nodeModels[id] = scene;
+        scene.loadModel(modelPath).then((_) {
+          notifyListeners();
+        });
+      }
+
       final double latDeg = node.position.dim1;
       final double lngDeg = node.position.dim0;
       final double alt = node.position.dim2;

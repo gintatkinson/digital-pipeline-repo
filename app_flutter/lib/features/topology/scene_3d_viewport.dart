@@ -307,24 +307,44 @@ class TopologyLayer extends SceneLayer {
       final double alt = node.position.dim2;
       String type = (heightRef == 'RELATIVE_TO_GROUND' || heightRef == 'CLAMP_TO_GROUND') ? 'ground' : (heightRef == 'ABSOLUTE' ? 'space' : (alt < 50000.0 ? 'ground' : 'space'));
 
-      if (type == 'space') {
+      final model = state.nodeModels[node.id];
+      final bool hasLoadedModel = model != null && model.state == ModelRenderState.loaded && model.gltfData != null;
+
+      if (hasLoadedModel) {
+        final Path path = Path();
+        final double s = 6.0;
+        path.moveTo(proj.offset.dx, proj.offset.dy - s);
+        path.lineTo(proj.offset.dx + s, proj.offset.dy);
+        path.lineTo(proj.offset.dx, proj.offset.dy + s);
+        path.lineTo(proj.offset.dx - s, proj.offset.dy);
+        path.close();
+        
+        canvas.drawPath(path, _satNodePaint);
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.0,
+        );
+      } else if (type == 'space') {
         canvas.drawCircle(proj.offset, 7.0, _satNodeGlowPaint);
         canvas.drawCircle(proj.offset, 4.0, _satNodePaint);
         canvas.drawCircle(proj.offset, 1.8, _innerWhitePaint);
+      }
         
-        if (state.showDropLines) {
-           final double latRad = node.position.dim1 * math.pi / 180.0;
-           final double lngRad = node.position.dim0 * math.pi / 180.0;
-           final double elev = state.elevationProvider.getElevation(node.position.dim1, node.position.dim0);
-           final double surfaceHeight = Ellipsoid.wgs84EquatorialRadius + elev * state.verticalExaggeration;
-           final surfaceProj = state.transformer.projectWgs84ToScreen(latRad: latRad, lngRad: lngRad, heightMeters: surfaceHeight);
-           const int dashes = 10;
-           for (int d = 0; d < dashes; d++) {
-             final Offset pStart = Offset.lerp(proj.offset, surfaceProj.offset, d / dashes)!;
-             final Offset pEnd = Offset.lerp(proj.offset, surfaceProj.offset, (d + 0.5) / dashes)!;
-             canvas.drawLine(pStart, pEnd, _dropPaint);
-           }
-        }
+      if (type == 'space' && state.showDropLines) {
+         final double latRad = node.position.dim1 * math.pi / 180.0;
+         final double lngRad = node.position.dim0 * math.pi / 180.0;
+         final double elev = state.elevationProvider.getElevation(node.position.dim1, node.position.dim0);
+         final double surfaceHeight = Ellipsoid.wgs84EquatorialRadius + elev * state.verticalExaggeration;
+         final surfaceProj = state.transformer.projectWgs84ToScreen(latRad: latRad, lngRad: lngRad, heightMeters: surfaceHeight);
+         const int dashes = 10;
+         for (int d = 0; d < dashes; d++) {
+           final Offset pStart = Offset.lerp(proj.offset, surfaceProj.offset, d / dashes)!;
+           final Offset pEnd = Offset.lerp(proj.offset, surfaceProj.offset, (d + 0.5) / dashes)!;
+           canvas.drawLine(pStart, pEnd, _dropPaint);
+         }
       }
     }
   }
