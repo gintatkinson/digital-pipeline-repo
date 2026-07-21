@@ -33,6 +33,20 @@ If any phase fails (worker error, GitHub API failure, validation gate failure):
 5. Escalate to the user with the full error context and the link to the created upstream issue.
 6. **Never skip a validation gate.** If a gate cannot be satisfied, the pipeline is halted until manually resolved.
 
+## Pre-Flight Git Repository Verification
+Before performing any orchestration steps, the agent MUST run `git ls-files` on:
+1. `.pipeline/constitution.md`
+2. `skills/`
+3. `rules/`
+4. `scripts/`
+
+If any of these verification checks fail (i.e. the files are untracked or missing), the agent MUST halt and instruct the operator to add, commit, and push them first:
+```bash
+git add .pipeline/ skills/ rules/ scripts/ app_flutter/
+git commit -m "chore: bootstrap pipeline infrastructure"
+git push
+```
+
 ## Pre-Flight Checklist
 Before beginning orchestration, verify you have:
 1. The target specification identifier (e.g., RFC 8345, 3GPP TS 23.501).

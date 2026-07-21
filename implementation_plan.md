@@ -1,40 +1,47 @@
-# Implementation Plan - Issue #76 Single-Point Backlog Reconciliation State
+# Implementation Plan - Issue #77 Git Pre-Flight Verify
 
-This plan details the steps to audit and modify `skills/spec-orchestrator/SKILL.md` to ensure all specification issues are registered with their full body contents during creation in Phases 1, 2, and 3, and to clarify the role of Phase 4 backlog reconciliation.
-
-## User Review Required
-
-> [!IMPORTANT]
-> **Plan Approval**: As required by project rules, this plan must be approved before executing codebase modifications, running scripts, or executing git operations.
+This plan details the steps to audit and modify `skills/spec-orchestrator/SKILL.md` and `.agents/skills/project-constitution/SKILL.md` to enforce git repository tracking verification and remote constitution presence verification.
 
 ## Proposed Changes
 
 ### Phase 1: Codebase Modifications
 
 1. **File**: `skills/spec-orchestrator/SKILL.md`
-   - **Section "Item-Level Subagent Context Isolation" (under Step 4: Registration)**:
-     - Clarify that the worker agent must register issues with their full body contents at creation time:
-       `4. **Registration**: The worker agent aggregates the outputs, links them, and registers them sequentially in the issue tracker. All spec issues (Epics, Features, User Stories, Use Cases) MUST be created with their full body contents using `gh issue create --body-file <local-md-file>` at the time of creation during Phases 1, 2, and 3. An immediate post-creation verification check must be run (e.g. validating that the tracker body is not a stub and contains 'Source References' or 'References') to ensure the tracker is fully populated.`
-   - **Section "Phase 1: Structural Extraction (Worker A)" (Step 2: Execution)**:
-     - Clarify feature/epic issue creation using `--body-file` and immediate post-creation verification.
-   - **Section "Phase 2: Behavioral Extraction - User Stories (Worker B)" (Step 2: Execution)**:
-     - Clarify user story issue creation using `--body-file` and immediate post-creation verification.
-   - **Section "Phase 3: System Interaction Extraction - UML Use Cases (Worker C)" (Step 2: Execution)**:
-     - Clarify use case issue creation using `--body-file` and immediate post-creation verification.
-   - **Section "Phase 4: Reconciliation & Automated Verification"**:
-     - Clarify that Phase 4 backlog reconciliation is a secondary verification gate (syncing checkbox lists, cross-links, and closing completed items), rather than a deferred publisher of primary issue bodies.
-     - Mandate that the tracker is the canonical source of truth and must remain fully populated at all times during the specification lifecycle.
+   - **Section "Pre-Flight Git Repository Verification"**:
+     - Add a new section right before "Pre-Flight Checklist" instructing the agent to run `git ls-files` on:
+       1. `.pipeline/constitution.md`
+       2. `skills/`
+       3. `rules/`
+       4. `scripts/`
+     - Halt and instruct the operator to add/commit/push them first if any check fails:
+       ```bash
+       git add .pipeline/ skills/ rules/ scripts/ app_flutter/
+       git commit -m "chore: bootstrap pipeline infrastructure"
+       git push
+       ```
 
-### Phase 2: Verification
+2. **File**: `.agents/skills/project-constitution/SKILL.md`
+   - **Section "Step 6: Commit & Reference"**:
+     - Add a verification step to run:
+       ```bash
+       gh api repos/$OWNER/$REPO/contents/.pipeline/constitution.md --jq '.name'
+       ```
+     - Halt and inform the user if the command fails or returns empty.
+
+### Phase 2: Verification & Test Execution
 
 1. Run the local linter checks:
    ```bash
    python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
    ```
 
-### Phase 3: Remote Synchronization
+### Phase 3: Git Operations
 
-1. Stage and commit changes with message:
-   `docs: update spec-orchestrator instructions to enforce immediate issue body creation and verify Phase 4 gate`
-2. Push changes directly to branch `feat/58-63-linter-fixes`.
-3. Verify that `git diff origin/feat/58-63-linter-fixes` is empty.
+1. Stage the modified files:
+   ```bash
+   git add skills/spec-orchestrator/SKILL.md .agents/skills/project-constitution/SKILL.md
+   ```
+2. Commit with message:
+   `docs: implement git pre-flight verify checklist and remote presence checks`
+3. Push changes directly to the remote tracking branch `feat/58-63-linter-fixes`.
+4. Verify that `git diff origin/feat/58-63-linter-fixes` is empty.
