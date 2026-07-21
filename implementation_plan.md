@@ -1,44 +1,32 @@
-# Implementation Plan: Topology 3D Model Integration
+# Implementation Plan: Epic UML Class Diagram Validation Bypass Fix (Issue #58)
 
-This plan details the integration of the asynchronous glTF loader into `SceneViewState` and `TopologyLayer` to render 3D assets for specific network nodes with standard 2D fallback paths.
+This plan details the audit, reproduction, implementation, and verification steps to address the Epic UML Class Diagram validation bypass issue in the spec-orchestrator parity linter.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **No Mocking Directive**: Mockito, Mocktail, or fake data stubs are forbidden. The test suite must query the real database and perform actual asset bundle reads.
+> **Plan Approval Requirement**: As mandated by the workspace guidelines, this plan must be explicitly approved by the user before any workspace-modifying commands (e.g., checkout, file edits, git push) are executed.
 
 ## Open Questions
 
-None. The execution phases match the prompt sequentially.
+None.
 
 ---
 
 ## Proposed Changes
 
-### Phase 1: Model State Integration in SceneViewState
-- Add a mapping dictionary member to `SceneViewState` in `scene_3d_viewport_classes.dart`:
-  ```dart
-  final Map<String, Network3DScene> nodeModels = {};
-  ```
-- In the node projection or topology loading pipeline (`setTopologyData` or `updateNodeProjections`), evaluate if a node requires a 3D model:
-  - A node requires a 3D model if it has a non-empty `model_path` (or `model`) property inside its `rawProperties` mapping.
-- For each eligible node:
-  - If it is not present in `nodeModels`, instantiate a new `Network3DScene`.
-  - Put the scene instance into `nodeModels[node.id]`.
-  - Trigger `loadModel(modelPath)` asynchronously.
-  - Upon completion of `loadModel`, trigger `notifyListeners()` so the CustomPainter reactively triggers a repaint once the model transitions to `loaded` or `error`.
+### Phase 1: Branch Checkout & Baseline Research
+1. Checkout the target tracking branch `feat/58-63-linter-fixes` where the epic files reside.
+2. Inspect the epic file structures and check for any existing class diagrams inside `docs/epics/`.
+3. Locate the logical discrepancies in `cli.py` and `validators/uml.py` that bypass or ignore Epic class diagrams during audit.
 
-### Phase 2: TopologyLayer Rendering Update
-- In `TopologyLayer.paint` inside `scene_3d_viewport.dart`:
-  - Check `state.nodeModels[node.id]` for an associated `Network3DScene`.
-  - If a model is mapped, check if `model.state == ModelRenderState.loaded` and `model.gltfData != null`.
-  - If **loaded**:
-    - Bypass the standard 2D circle drawing commands.
-    - Render a 3D visual representation (such as a shaded octahedron or diamond shape using `canvas.drawPath` to represent the glTF model) at `proj.offset`.
-  - If **loading**, **error**, or **unloaded**:
-    - Gracefully fall back to the standard 2D circles (`_satNodeGlowPaint`, `_satNodePaint`, `_innerWhitePaint`).
+### Phase 2: Bug Fix Implementation
+1. Modify `skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py` to ensure that:
+   - The UML Diagrams Compliance Audit is not skipped if there are epic specifications present, even if feature specifications are empty.
+   - The resolved `epics_dir` is correctly passed to `uml_validator.validate()`.
+2. Modify `skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py` to ensure epic class diagrams are validated properly and integrated with standard compliance and model coverage checks.
 
-### Phase 3: Integration Testing
-- Extend the integration tests in `test/domain/cesium_3d/network_3d_scene_test.dart`:
-  - **Test 1 (Successful 3D Render)**: Inject a node with a valid database model path into the state. Trigger the loader and assert that `TopologyLayer.paint` executes without throwing, and identifies the node state as loaded (bypassing the circle paints).
-  - **Test 2 (Fallback 2D Render)**: Inject a node with an invalid model path. Verify that after loading fails, the model transitions to the `error` state and the layer defaults to the standard 2D circle rendering logic.
+### Phase 3: Verification & Sync
+1. Run local linter checks: `python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only`.
+2. Run automated test suite: `python3 -m pytest tests/`.
+3. Verify that `git diff origin/feat/58-63-linter-fixes` is empty after staging, committing, and pushing.
