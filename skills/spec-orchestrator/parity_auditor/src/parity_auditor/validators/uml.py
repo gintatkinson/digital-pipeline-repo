@@ -33,7 +33,7 @@ class UmlValidator(IValidator):
         errors = []
         
         def get_md_files(d):
-            if not os.path.exists(d):
+            if not d or not os.path.exists(d):
                 return []
             return [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".md")]
             

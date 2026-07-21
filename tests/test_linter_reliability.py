@@ -488,4 +488,39 @@ def test_mermaid_prose_dotted_link(tmp_path, base_config):
 
 
 
+def test_epic_only_uml_validation(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    os.makedirs(ws_dir / "docs" / "epics", exist_ok=True)
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    
+    with open(ws_dir / "docs" / "epics" / "epic_invalid.md", "w", encoding="utf-8") as f:
+        f.write("""---
+generation_mode: subagent
+title: "Invalid Epic"
+type: "epic"
+---
+# Invalid Epic
 
+## 1. Executive Summary
+## 2. Requirements & Checklist
+## 3. UML Diagrams
+```mermaid
+classDiagram
+    class InvalidClass {
+        +String myAttr { invalid }
+    }
+```
+""")
+
+    old_cwd = os.getcwd()
+    os.chdir(ws_dir)
+    old_argv = sys.argv
+    sys.argv = ["parity-auditor", "--spec-only", "--allow-missing-specs"]
+    
+    try:
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code != 0
+    finally:
+        sys.argv = old_argv
+        os.chdir(old_cwd)

@@ -502,10 +502,10 @@ def _main_impl():
 
     print("\n=== UML Diagrams Compliance Audit ===")
     uml_errors = []
-    if not features:
+    if not features and not epic_files:
         print("Note: No feature specifications found. Skipping UML Diagrams Compliance Audit.")
     else:
-        uml_errors = uml_validator.validate(repo, global_classes=global_classes)
+        uml_errors = uml_validator.validate(repo, global_classes=global_classes, epics_dir=epics_dir)
         
     if uml_errors:
         print("[!] UML Compliance Violations Identified:")
@@ -513,7 +513,7 @@ def _main_impl():
             print(f"  - {err}")
         has_failed = True
     else:
-        if features:
+        if features or epic_files:
             print("Success: All specification files are fully UML-compliant (no ERDs or invalid syntax found).")
             
     if coverage_gaps:
@@ -523,13 +523,13 @@ def _main_impl():
         print("\nError: 100% model coverage validation failed.")
         has_failed = True
     else:
-        if not skip_coverage_checks and features:
+        if not skip_coverage_checks and (features or epic_files):
             print("\nSuccess: 100% model coverage verified across all specification files.")
             
     print("\n=== Behavioral Coverage Triggers Audit ===")
     behavioral_validator = BehavioralValidator()
     behavioral_errors = []
-    if not features:
+    if not features and not epic_files:
         print("Note: No feature specifications found. Skipping Behavioral Coverage Triggers Audit.")
     else:
         behavioral_errors = behavioral_validator.validate(repo, schema_dir=schema_dir, modules=modules)
