@@ -390,7 +390,7 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
                 title = re.sub(r'\(.*?\)', '', title).strip()
                 title = title.strip('[]-* ')
                 
-        if not title and "issue_id:" in line:
+        if (not title or not title.strip()) and re.search(r'issue[\s\-_]*id\s*:', line, re.IGNORECASE):
             title = extract_title(filepath)
 
         if title:

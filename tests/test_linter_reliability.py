@@ -606,3 +606,45 @@ Some architecture notes.
     assert "us-02" in updated_content
     assert "#102" in updated_content
     assert "## 3. Architecture" in updated_content
+
+
+def test_reconcile_backlog_frontmatter_resolution_variations(tmp_path, base_config):
+    ws_dir = tmp_path / "workspace"
+    os.makedirs(ws_dir / ".pipeline" / "logical-ui", exist_ok=True)
+    with open(ws_dir / ".pipeline" / "logical-ui" / "codebase_rules.json", "w", encoding="utf-8") as f:
+        json.dump(base_config, f)
+        
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    
+    variations = [
+        ("issue-id: #[IssueID]", "issue-id: #42"),
+        ("issueid: #[IssueID]", "issueid: #42"),
+        ("Issue-Id: #[IssueID]", "Issue-Id: #42"),
+        ("issue_id: #[IssueID]", "issue_id: #42"),
+    ]
+    
+    if str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))) not in sys.path:
+        sys.path.insert(0, str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))))
+    import reconcile_backlog
+    
+    feature_titles = {"geolocation": 42}
+    
+    for idx, (line_variation, expected_line) in enumerate(variations):
+        feat_path = ws_dir / "docs" / "features" / f"feat-{idx}-geo.md"
+        with open(feat_path, "w", encoding="utf-8") as f:
+            f.write(f"---\ntitle: \"Feature 1: Geolocation\"\n{line_variation}\n---\n# Feature 1: Geolocation\n")
+            
+        reconcile_backlog.resolve_issue_ids_in_file(
+            str(feat_path),
+            epic_titles={},
+            feature_titles=feature_titles,
+            story_titles={},
+            usecase_titles={},
+            rules=base_config
+        )
+        
+        with open(feat_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        assert expected_line in content, f"Expected '{expected_line}' to be in resolved content, but got:\n{content}"
+
