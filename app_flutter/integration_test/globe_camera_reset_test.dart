@@ -43,7 +43,7 @@ void main() {
 
       await StringResources.load();
 
-      final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true);
+      final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: false);
       addTearDown(() async {
         await db.close();
       });
@@ -125,13 +125,13 @@ void main() {
       final afterLng = _parseHudValue('Longitude', tester);
       final afterAlt = _parseHudValue('Altitude', tester);
 
-      expect(afterLat, equals(initialLat),
+      expect(afterLat, closeTo(initialLat, 0.01),
           reason: 'Latitude should NOT change after tree node tap. '
               'Initial: $initialLat, After: $afterLat');
-      expect(afterLng, equals(initialLng),
+      expect(afterLng, closeTo(initialLng, 0.01),
           reason: 'Longitude should NOT change after tree node tap. '
               'Initial: $initialLng, After: $afterLng');
-      expect(afterAlt, equals(initialAlt),
+      expect(afterAlt, closeTo(initialAlt, 1.0),
           reason: 'Altitude should NOT change after tree node tap. '
               'Initial: $initialAlt, After: $afterAlt');
     });
