@@ -137,67 +137,51 @@ Copy the pipeline directories and (optionally) the application templates into yo
 * **For Flutter Projects:**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
-cp ./.tmp-pipeline/requirements.txt ./
-cp -RP ./.tmp-pipeline/app_flutter ./
 rm -rf ./.tmp-pipeline
-echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
-git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt app_flutter/
 ```
 
 * **For React Projects:**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./web_react
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
-cp ./.tmp-pipeline/requirements.txt ./
-cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
-echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
-git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt web_react/
 ```
 
 **For Refactored Version (`refactor`):**
 
 * **For Flutter Projects:**
 ```bash
-git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
-cp ./.tmp-pipeline/requirements.txt ./
-cp -RP ./.tmp-pipeline/app_flutter ./
 rm -rf ./.tmp-pipeline
-echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
-git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt app_flutter/
 ```
 
 * **For React Projects:**
 ```bash
-git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./web_react
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
-cp ./.tmp-pipeline/requirements.txt ./
-cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
-echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
-git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt web_react/
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
