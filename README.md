@@ -196,24 +196,6 @@ rm -rf ./.tmp-pipeline
 python3 scripts/setup_git_hooks.py
 ```
 
-### Stage and Track Copied Files in Git
-
-Because these files are copied directly into your existing project, they are **untracked** by default. To track them in Git and push them to GitHub, stage them manually:
-
-```bash
-git add skills rules .pipeline .agents scripts requirements.txt app_flutter  # or web_react
-```
-
-If your project's `.gitignore` contains rules that ignore hidden folders (e.g., `.*`) or custom scripts, Git will ignore the `.pipeline/` and `.agents/` configuration folders. To resolve this, add whitelist rules to your `.gitignore` file:
-
-```gitignore
-!/skills/
-!/rules/
-!/.pipeline/
-!/.agents/
-!/scripts/
-```
-
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
 
 ---
