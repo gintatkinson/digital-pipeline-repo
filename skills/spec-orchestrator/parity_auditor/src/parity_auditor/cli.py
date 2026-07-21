@@ -251,6 +251,29 @@ def _main_impl():
         issue_title = issue.get("title", "")
         found = False
         for f in features:
+            # Try to extract YAML frontmatter and check issue_id
+            frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
+            if frontmatter_match:
+                try:
+                    import yaml
+                    data = yaml.safe_load(frontmatter_match.group(1))
+                    if isinstance(data, dict):
+                        val = data.get("issue_id")
+                        if val is not None and int(val) == issue_number:
+                            found = True
+                            break
+                except Exception:
+                    # Fallback regex for frontmatter extraction of issue_id
+                    try:
+                        fm_text = frontmatter_match.group(1)
+                        m = re.search(r'(?:^|\n)\s*issue_id\s*:\s*(\d+)', fm_text)
+                        if m and int(m.group(1)) == issue_number:
+                            found = True
+                            break
+                    except Exception:
+                        pass
+
+            # Existing filename/content check as fallback
             basename = os.path.splitext(f.filename)[0]
             numbers_in_filename = [int(x) for x in re.findall(r'\d+', basename)]
             if issue_number in numbers_in_filename:

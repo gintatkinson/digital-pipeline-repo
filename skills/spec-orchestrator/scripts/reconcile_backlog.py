@@ -463,7 +463,20 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             if l.startswith("#"):
                 break
             if l.startswith("- [ ]") or l.startswith("- [x]") or l.startswith("- [X]"):
-                if "feat-XX-name" in l or "uc-XX-name" in l or "us-XX-name" in l or "Feature 1:" in l or "Use Case 1:" in l or "User Story 1:" in l:
+                l_lower = l.lower()
+                ignore_patterns = [
+                    "feat-xx-name",
+                    "uc-xx-name",
+                    "us-xx-name",
+                    "feature title",
+                    "use case title",
+                    "user story title",
+                    "epic title",
+                    "feature 1:",
+                    "use case 1:",
+                    "user story 1:"
+                ]
+                if any(p in l_lower for p in ignore_patterns):
                     continue
                 items.append(lines[i])
         return items
