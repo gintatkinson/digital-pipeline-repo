@@ -1,6 +1,6 @@
-# Implementation Plan - Issue Frontmatter Resolution Variations
+# Implementation Plan - Issue #74 Backlog Issue Verification and Body Sync
 
-This plan details the steps to modify the frontmatter file resolve logic in `reconcile_backlog.py` and verify it with a new regression unit test in `tests/test_linter_reliability.py`.
+This plan details the steps to modify the specification engineering guides to prevent stubs in the issue tracker by using `--body-file` and performing immediate body synchronization and post-creation checks.
 
 ## User Review Required
 
@@ -9,49 +9,42 @@ This plan details the steps to modify the frontmatter file resolve logic in `rec
 
 ## Proposed Changes
 
-### Phase 1: Codebase Modification
-1. **File**: `skills/spec-orchestrator/scripts/reconcile_backlog.py`
-2. **Change**: Locate `resolve_issue_ids_in_file` (approx line 393). Replace:
-   ```python
-   if not title and "issue_id:" in line:
-       title = extract_title(filepath)
-   ```
-   with:
-   ```python
-   if (not title or not title.strip()) and re.search(r'issue[\s\-_]*id\s*:', line, re.IGNORECASE):
-       title = extract_title(filepath)
-   ```
+### Phase 1: Codebase Modifications (Spec Engineering Skills)
 
-### Phase 2: Regression Unit Test
-1. **File**: `tests/test_linter_reliability.py`
-2. **Change**: Append a new unit test function named `test_reconcile_backlog_frontmatter_resolution_variations(tmp_path, base_config)` at the end of the file.
-3. **Details**:
-   The test will:
-   - Create a temporary workspace layout with a features directory.
-   - Generate test files containing frontmatter variations:
-     - `issue-id: #[IssueID]`
-     - `issueid: #[IssueID]`
-     - `Issue-Id: #[IssueID]`
-     - `issue_id: #[IssueID]`
-   - Call `resolve_issue_ids_in_file` assuming `feature_titles={'geolocation': 42}`.
-   - Assert that each variation is correctly resolved to `#42`.
+1. **File**: `skills/schema-specification-engineering/SKILL.md`
+   - **Changes in Step 5.4**:
+     - Mandate registering Features using `gh issue create --body-file <local-md-file>`.
+     - Mandate executing `gh issue edit <ID> --body-file <local-md-file>` immediately after replacing `#[IssueID]` with the resolved ID in the local file.
+     - Mandate running the post-creation body verification check:
+       `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
+       and retry/halt if it fails.
+   - **Changes in Step 5.6**:
+     - Mandate registering Epics using `gh issue create --body-file <local-md-file>`.
+     - Mandate executing `gh issue edit <ID> --body-file <local-md-file>` immediately after placeholder resolution.
+     - Mandate running the post-creation body verification check.
 
-### Phase 3: Verification & Execution
-1. Run the test suite:
-   ```bash
-   python3 -m pytest tests/test_linter_reliability.py
-   ```
-2. Run model coverage checking script:
+2. **File**: `skills/spec-user-story-engineering/SKILL.md`
+   - **Changes in Step 5.4**:
+     - Mandate registering User Stories using `gh issue create --body-file <local-md-file>`.
+     - Mandate executing `gh issue edit <ID> --body-file <local-md-file>` immediately after placeholder resolution.
+     - Mandate running the post-creation body verification check.
+
+3. **File**: `skills/spec-usecase-engineering/SKILL.md`
+   - **Changes in Step 5.4**:
+     - Mandate registering Use Cases using `gh issue create --body-file <local-md-file>`.
+     - Mandate executing `gh issue edit <ID> --body-file <local-md-file>` immediately after placeholder resolution.
+     - Mandate running the post-creation body verification check.
+
+### Phase 2: Verification
+
+1. Run the local linter checks:
    ```bash
    python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
    ```
-3. Run the backlog reconciliation script:
-   ```bash
-   python3 skills/spec-orchestrator/scripts/reconcile_backlog.py
-   ```
 
-### Phase 4: Remote Synchronization
+### Phase 3: Remote Synchronization
+
 1. Stage and commit changes with message:
-   `fix: support frontmatter issue-id variations and add regression test`
-2. Push changes to remote tracking branch `feat/58-63-linter-fixes`.
+   `fix: mandate issue body-file creation, immediate edit sync, and post-creation verification in spec skills`
+2. Push changes directly to branch `feat/58-63-linter-fixes`.
 3. Verify that `git diff origin/feat/58-63-linter-fixes` is empty.

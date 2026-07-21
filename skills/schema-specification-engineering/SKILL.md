@@ -287,11 +287,23 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
 4. **Feature Backlog Creation FIRST:**
    - Register each Feature specification with the active tracker provider, capturing the returned Issue ID/URL from the tracker.
+   - **Crucial Verification & Body Synchronization:**
+     1. Backlog issues MUST be registered using `gh issue create --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
+     2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
+     3. The subagent MUST run a post-creation verification check:
+        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
+        and retry/halt if this verification fails.
 
 5. **Epic Backlog Assembly:**
    - Now that you possess the actual live Issue IDs for all extracted features, inject them into the Epic's checklist.
    - Ensure the body of the Epic lists its child features as a tasklist referencing the Issue ID and the absolute repository URL of the feature document (relative links resolve incorrectly on tracker UI platforms). You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the configured URL template (e.g., `[Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md` where `<blob_path>` is resolved from configuration).
 
 6. **Epic Backlog Creation LAST:**
-   - Finally, register the Epic specification containing the fully resolved tasklist with the active tracker provider.
+   - Register the Epic specification containing the fully resolved tasklist with the active tracker provider.
+   - **Crucial Verification & Body Synchronization:**
+     1. Register the Epic issue using `gh issue create --body-file <local-md-file>`.
+     2. Immediately after placeholder resolution, the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
+     3. The subagent MUST run a post-creation verification check:
+        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
+        and retry/halt if this verification fails.
 
