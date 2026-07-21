@@ -34,3 +34,32 @@ This walkthrough summarizes the changes implemented to address the 6 custom lint
 * **Commit details**:
   * **SHA**: `2fcdd6c74a7b506a112e390da44d152a3416203c`
   * **Message**: `fix: Issue #58 Epic UML class diagram validation bypass in linter`
+
+
+---
+
+# Walkthrough Addendum: Epic Checklist Truncation Fix (Issue #16)
+
+This section documents the fix for Issue #16 where content between the end of the user stories checklist and the next H2 section in Epic specification files was being truncated during backlog reconciliation.
+
+## 1. Changes Made
+
+### Component: Backlog Reconciliation Script
+
+#### [reconcile_backlog.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/scripts/reconcile_backlog.py) [MODIFY]
+* **Preserve Section 2 Post-Checklist Content**: Updated `reconcile_epic_checklists` to compute `start_after_stories = idx_stories + 1 + len(existing_stories) if idx_stories != -1 else len(lines)`.
+* **Correct Slicing**: Appended `lines[start_after_stories : idx_next]` to `new_lines` when `idx_next != -1` prior to extending with `lines[idx_next:]`. This preserves non-checklist content (subheadings, notes, etc.) located between the user stories checklist and the next H2 header.
+
+### Component: Unit Tests
+
+#### [test_linter_reliability.py](file:///Users/perkunas/jail/digital-pipeline-repo/tests/test_linter_reliability.py) [MODIFY]
+* **Add Regression Test**: Added `test_reconcile_epic_checklist_preserves_custom_content` to verify that custom non-checklist paragraphs and headings under section 2 of Epics are preserved after backlog reconciliation.
+
+---
+
+## 2. Verification & Synchronization
+
+* **Linter Validation Gate**: Ran `python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only` and verified 100% success.
+* **Unit Tests**: Executed `python3 -m pytest tests/` with all 17 tests passing successfully.
+* **Backlog Reconciliation**: Ran `python3 skills/spec-orchestrator/scripts/reconcile_backlog.py` to verify full synchronization.
+* **Remote Synchronization**: Stage, commit, and pushed changes successfully to `origin/feat/58-63-linter-fixes`.
