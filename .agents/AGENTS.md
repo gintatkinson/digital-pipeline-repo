@@ -29,6 +29,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
    - **TypeName**: `self`
    - **Role**: Set a descriptive role (e.g., `Codebase Researcher`, `Feature Spec Writer`, `Micro-Task Implementer`).
    - **Prompt**: Construct a clean, isolated task description. Do not copy the entire conversation history. Pass only the relevant schema fragment, spec guidelines, templates, and reference standards.
+   - **Mandatory Skill-Reading Instruction**: When launching a subagent, the coordinator's prompt MUST explicitly instruct the subagent to read the relevant `SKILL.md` file (e.g. using `view_file` on `.agents/skills/debug-protocol/SKILL.md`) as its very first step, and to strictly follow its formatting templates and instruction guidelines.
    - **Authorization**: Append the keyword `PROCEED` (case-insensitive) to the end of the prompt to authorize the subagent to use modifying tools.
 3. **Wait for Completion**: Do not poll or loop. Let the system wake you up.
 4. **Coordinate Output**: When the subagents complete, perform the validation checks and sync/register them in the tracker.
