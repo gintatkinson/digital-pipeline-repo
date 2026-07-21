@@ -1,32 +1,45 @@
-# Implementation Plan - Issue #77 Git Pre-Flight Verify
+# Implementation Plan - Issue #78 Docs Scoping Commit Limit
 
-This plan details the steps to audit and modify `skills/spec-orchestrator/SKILL.md` and `.agents/skills/project-constitution/SKILL.md` to enforce git repository tracking verification and remote constitution presence verification.
+This plan details the steps to audit and modify `skills/schema-specification-engineering/SKILL.md`, `skills/spec-user-story-engineering/SKILL.md`, and `skills/spec-usecase-engineering/SKILL.md` to mandate a pre-commit infrastructure audit before committing generated markdown files.
 
 ## Proposed Changes
 
 ### Phase 1: Codebase Modifications
 
-1. **File**: `skills/spec-orchestrator/SKILL.md`
-   - **Section "Pre-Flight Git Repository Verification"**:
-     - Add a new section right before "Pre-Flight Checklist" instructing the agent to run `git ls-files` on:
-       1. `.pipeline/constitution.md`
-       2. `skills/`
-       3. `rules/`
-       4. `scripts/`
-     - Halt and instruct the operator to add/commit/push them first if any check fails:
+1. **File**: `skills/schema-specification-engineering/SKILL.md`
+   - **Section "Step 5: Local Validation & Backlog Synchronization"**:
+     - **Step 5.1**: Add instruction to check for untracked pipeline infrastructure files before committing.
+     - **Step 5.4**: Add sub-step 4 under "Crucial Verification & Body Synchronization" to check for untracked pipeline infrastructure files before committing.
+     - **Step 5.6**: Add sub-step 4 under "Crucial Verification & Body Synchronization" to check for untracked pipeline infrastructure files before committing.
+     - Include the exact command snippet in all three steps:
        ```bash
-       git add .pipeline/ skills/ rules/ scripts/ app_flutter/
-       git commit -m "chore: bootstrap pipeline infrastructure"
-       git push
+       UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+       if [ -n "$UNTRACKED_INFRA" ]; then
+         git add .pipeline/ skills/ rules/ scripts/
+       fi
        ```
 
-2. **File**: `.agents/skills/project-constitution/SKILL.md`
-   - **Section "Step 6: Commit & Reference"**:
-     - Add a verification step to run:
+2. **File**: `skills/spec-user-story-engineering/SKILL.md`
+   - **Section "Step 5: Zero-Fault Backlog Synchronization"**:
+     - **Step 5.1**: Add instruction to check for untracked pipeline infrastructure files before committing.
+     - Include the exact command snippet:
        ```bash
-       gh api repos/$OWNER/$REPO/contents/.pipeline/constitution.md --jq '.name'
+       UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+       if [ -n "$UNTRACKED_INFRA" ]; then
+         git add .pipeline/ skills/ rules/ scripts/
+       fi
        ```
-     - Halt and inform the user if the command fails or returns empty.
+
+3. **File**: `skills/spec-usecase-engineering/SKILL.md`
+   - **Section "Step 5: Zero-Fault Backlog Synchronization"**:
+     - **Step 5.1**: Add instruction to check for untracked pipeline infrastructure files before committing.
+     - Include the exact command snippet:
+       ```bash
+       UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+       if [ -n "$UNTRACKED_INFRA" ]; then
+         git add .pipeline/ skills/ rules/ scripts/
+       fi
+       ```
 
 ### Phase 2: Verification & Test Execution
 
@@ -39,9 +52,9 @@ This plan details the steps to audit and modify `skills/spec-orchestrator/SKILL.
 
 1. Stage the modified files:
    ```bash
-   git add skills/spec-orchestrator/SKILL.md .agents/skills/project-constitution/SKILL.md
+   git add skills/schema-specification-engineering/SKILL.md skills/spec-user-story-engineering/SKILL.md skills/spec-usecase-engineering/SKILL.md
    ```
 2. Commit with message:
-   `docs: implement git pre-flight verify checklist and remote presence checks`
+   `docs: mandate pre-commit infrastructure audit in specification engineering skills`
 3. Push changes directly to the remote tracking branch `feat/58-63-linter-fixes`.
 4. Verify that `git diff origin/feat/58-63-linter-fixes` is empty.

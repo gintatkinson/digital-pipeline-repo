@@ -142,7 +142,15 @@ Normative Specification: [Normative Specification](link-to-specification)
    ```bash
    ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs
    ```
-   If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Use Case markdown files, and re-run the linter until it passes with exit code 0. Once the linter passes, commit and push the Markdown files to the remote repository.
+   If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Use Case markdown files, and re-run the linter until it passes with exit code 0.
+   Before committing the generated markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
+   ```bash
+   UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+   if [ -n "$UNTRACKED_INFRA" ]; then
+     git add .pipeline/ skills/ rules/ scripts/
+   fi
+   ```
+   Once the linter passes, commit and push the Markdown files to the remote repository.
 2. Verify the `use-case` label exists in the tracker repository, bootstrapping it if necessary.
 3. **Duplicate Detection:** Before creating, query the active tracker provider for all existing use case issues to check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
 4. Register the Use Case issue natively with the active tracker provider.
