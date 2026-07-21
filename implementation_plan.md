@@ -1,60 +1,65 @@
-# Implementation Plan - Issue #78 Docs Scoping Commit Limit
+# Implementation Plan - Issue #64 Tables Loading Spinner Stuck Regression Test
 
-This plan details the steps to audit and modify `skills/schema-specification-engineering/SKILL.md`, `skills/spec-user-story-engineering/SKILL.md`, and `skills/spec-usecase-engineering/SKILL.md` to mandate a pre-commit infrastructure audit before committing generated markdown files.
+This plan outlines the steps to audit the tables view model and add a regression unit test to verify that `loadForNode` resets `_loading` to `false` and notifies listeners when the type descriptor is null.
 
 ## Proposed Changes
 
-### Phase 1: Codebase Modifications
+### Phase 1: Audit & Codebase Modifications
 
-1. **File**: `skills/schema-specification-engineering/SKILL.md`
-   - **Section "Step 5: Local Validation & Backlog Synchronization"**:
-     - **Step 5.1**: Add instruction to check for untracked pipeline infrastructure files before committing.
-     - **Step 5.4**: Add sub-step 4 under "Crucial Verification & Body Synchronization" to check for untracked pipeline infrastructure files before committing.
-     - **Step 5.6**: Add sub-step 4 under "Crucial Verification & Body Synchronization" to check for untracked pipeline infrastructure files before committing.
-     - Include the exact command snippet in all three steps:
-       ```bash
-       UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
-       if [ -n "$UNTRACKED_INFRA" ]; then
-         git add .pipeline/ skills/ rules/ scripts/
-       fi
-       ```
+1. **Audit VM behavior**:
+   - Inspect `app_flutter/lib/features/tables/view_models/tables_view_model.dart` at L135-141.
+   - Confirm that if `typeFor` returns `null`, the view model sets `_loading` to `false` and calls `notifyListeners()`.
 
-2. **File**: `skills/spec-user-story-engineering/SKILL.md`
-   - **Section "Step 5: Zero-Fault Backlog Synchronization"**:
-     - **Step 5.1**: Add instruction to check for untracked pipeline infrastructure files before committing.
-     - Include the exact command snippet:
-       ```bash
-       UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
-       if [ -n "$UNTRACKED_INFRA" ]; then
-         git add .pipeline/ skills/ rules/ scripts/
-       fi
-       ```
+2. **Add Regression Unit Test**:
+   - **File**: `app_flutter/test/features/tables/view_models/tables_view_model_test.dart`
+   - **Location**: Add a new test group `TablesViewModel loadForNode error handling` at the end of the `main()` function block.
+   - **Test Details**:
+     ```dart
+     group('TablesViewModel loadForNode error handling', () {
+       late _MockDataSource dataSource;
+       late TablesViewModel viewModel;
 
-3. **File**: `skills/spec-usecase-engineering/SKILL.md`
-   - **Section "Step 5: Zero-Fault Backlog Synchronization"**:
-     - **Step 5.1**: Add instruction to check for untracked pipeline infrastructure files before committing.
-     - Include the exact command snippet:
-       ```bash
-       UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
-       if [ -n "$UNTRACKED_INFRA" ]; then
-         git add .pipeline/ skills/ rules/ scripts/
-       fi
-       ```
+       setUp(() {
+         dataSource = _MockDataSource();
+         viewModel = TablesViewModel(dataSource, 'test');
+       });
+
+       test('loadForNode resets loading to false and notifies listeners when type descriptor is null', () async {
+         dataSource.onTypeFor = (typeName) async => null;
+
+         bool notified = false;
+         viewModel.addListener(() {
+           if (!viewModel.loading) {
+             notified = true;
+           }
+         });
+
+         await viewModel.loadForNode('unknown-node');
+
+         expect(viewModel.loading, isFalse);
+         expect(notified, isTrue);
+       });
+     });
+     ```
 
 ### Phase 2: Verification & Test Execution
 
-1. Run the local linter checks:
+1. Run the specific unit test suite:
    ```bash
-   python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
+   flutter test test/features/tables/view_models/tables_view_model_test.dart
    ```
+2. Verify that all 11 tests (including the new regression test) pass successfully.
 
-### Phase 3: Git Operations
+### Phase 3: Git Operations & Synchronization
 
-1. Stage the modified files:
+1. Stage the modified test file:
    ```bash
-   git add skills/schema-specification-engineering/SKILL.md skills/spec-user-story-engineering/SKILL.md skills/spec-usecase-engineering/SKILL.md
+   git add test/features/tables/view_models/tables_view_model_test.dart
    ```
-2. Commit with message:
-   `docs: mandate pre-commit infrastructure audit in specification engineering skills`
-3. Push changes directly to the remote tracking branch `feat/58-63-linter-fixes`.
+2. Commit with the message:
+   `test: add regression test for stuck tables loading spinner on null type descriptor`
+3. Push the changes to the remote branch `feat/58-63-linter-fixes`:
+   ```bash
+   git push origin feat/58-63-linter-fixes
+   ```
 4. Verify that `git diff origin/feat/58-63-linter-fixes` is empty.
