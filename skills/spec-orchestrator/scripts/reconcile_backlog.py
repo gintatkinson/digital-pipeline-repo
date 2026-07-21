@@ -618,6 +618,18 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_dir = find_workspace_dir(script_dir)
 
+    # Programmatic gate: Run linter before proceeding with reconciliation
+    print("Running pre-reconciliation linter validation...")
+    linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
+    cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
+    res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True)
+    if res.returncode != 0:
+        print("[FATAL] Pre-reconciliation linter validation failed. Aborting backlog reconciliation to prevent uploading specifications with UML/linter errors.", file=sys.stderr)
+        print(res.stdout, file=sys.stderr)
+        print(res.stderr, file=sys.stderr)
+        sys.exit(1)
+    print("Pre-reconciliation linter validation passed successfully.")
+
     try:
         rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
         if not os.path.exists(rules_path):
