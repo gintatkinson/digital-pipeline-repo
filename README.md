@@ -146,7 +146,8 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/app_flutter ./
 rm -rf ./.tmp-pipeline
-python3 scripts/setup_git_hooks.py
+echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
+git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt app_flutter/
 ```
 
 * **For React Projects:**
@@ -161,7 +162,8 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
-python3 scripts/setup_git_hooks.py
+echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
+git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt web_react/
 ```
 
 **For Refactored Version (`refactor`):**
@@ -178,7 +180,8 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/app_flutter ./
 rm -rf ./.tmp-pipeline
-python3 scripts/setup_git_hooks.py
+echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
+git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt app_flutter/
 ```
 
 * **For React Projects:**
@@ -193,7 +196,8 @@ cp -RP ./.tmp-pipeline/scripts ./
 cp ./.tmp-pipeline/requirements.txt ./
 cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
-python3 scripts/setup_git_hooks.py
+echo -e "\n!/.pipeline/\n!/.agents/\n!/skills/\n!/rules/\n!/scripts/" >> .gitignore
+git add skills/ rules/ .pipeline/ .agents/ scripts/ requirements.txt web_react/
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
