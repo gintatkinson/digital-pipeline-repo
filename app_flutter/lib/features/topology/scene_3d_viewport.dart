@@ -492,17 +492,17 @@ class Scene3DViewportPainter extends CustomPainter {
   Scene3DViewportPainter({
     List<SceneLayer>? layers,
     SceneViewState? state,
-    bool isFlying = false,
+    bool? isFlying,
     VirtualCamera? camera,
     TopologyData? topologyData,
-    String activeStyle = '',
-    String astronomicalBody = 'Earth',
-    bool elevationActive = true,
-    bool showDevices = true,
-    bool showLinks = true,
-    bool showLabels = true,
-    bool showDropLines = true,
-    double verticalExaggeration = 1.0,
+    String? activeStyle,
+    String? astronomicalBody,
+    bool? elevationActive,
+    bool? showDevices,
+    bool? showLinks,
+    bool? showLabels,
+    bool? showDropLines,
+    double? verticalExaggeration,
     GlobeTileRenderer? tileRenderer,
     this.userRotationX = 0.0,
     this.userTilt = 0.0,
@@ -510,24 +510,42 @@ class Scene3DViewportPainter extends CustomPainter {
   }) : layers = layers ?? [BackgroundLayer(), GlobeLayer(), TopologyLayer(), HUDLayer()],
        state = state ?? SceneViewState(),
        super(repaint: state ?? SceneViewState()) {
-    if (camera != null) this.state.camera = camera;
-    if (topologyData != null) this.state.topologyData = topologyData;
-    this.state.activeStyle = activeStyle;
-    this.state.astronomicalBody = astronomicalBody;
-    this.state.elevationActive = elevationActive;
-    this.state.showDevices = showDevices;
-    this.state.showLinks = showLinks;
-    this.state.showLabels = showLabels;
-    this.state.showDropLines = showDropLines;
-    this.state.camera = camera ?? this.state.camera;
-    this.state.elevationActive = elevationActive;
-    this.state.verticalExaggeration = verticalExaggeration;
-    this.state.elevationProvider = ElevationProvider(
-      isElevationActive: elevationActive,
-      verticalExaggeration: verticalExaggeration,
-    );
-    this.state.tileRenderer = tileRenderer;
-    this.state.isFlying = isFlying;
+    final passedState = state;
+    if (passedState == null) {
+      if (camera != null) this.state.camera = camera;
+      if (topologyData != null) this.state.topologyData = topologyData;
+      this.state.activeStyle = activeStyle ?? '';
+      this.state.astronomicalBody = astronomicalBody ?? 'Earth';
+      this.state.elevationActive = elevationActive ?? true;
+      this.state.showDevices = showDevices ?? true;
+      this.state.showLinks = showLinks ?? true;
+      this.state.showLabels = showLabels ?? true;
+      this.state.showDropLines = showDropLines ?? true;
+      this.state.verticalExaggeration = verticalExaggeration ?? 1.0;
+      this.state.elevationProvider = ElevationProvider(
+        isElevationActive: this.state.elevationActive,
+        verticalExaggeration: this.state.verticalExaggeration,
+      );
+      this.state.tileRenderer = tileRenderer;
+      this.state.isFlying = isFlying ?? false;
+    } else {
+      if (camera != null) this.state.camera = camera;
+      if (topologyData != null) this.state.topologyData = topologyData;
+      if (activeStyle != null) this.state.activeStyle = activeStyle;
+      if (astronomicalBody != null) this.state.astronomicalBody = astronomicalBody;
+      if (elevationActive != null) this.state.elevationActive = elevationActive;
+      if (showDevices != null) this.state.showDevices = showDevices;
+      if (showLinks != null) this.state.showLinks = showLinks;
+      if (showLabels != null) this.state.showLabels = showLabels;
+      if (showDropLines != null) this.state.showDropLines = showDropLines;
+      if (verticalExaggeration != null) this.state.verticalExaggeration = verticalExaggeration;
+      this.state.elevationProvider = ElevationProvider(
+        isElevationActive: this.state.elevationActive,
+        verticalExaggeration: this.state.verticalExaggeration,
+      );
+      if (tileRenderer != null) this.state.tileRenderer = tileRenderer;
+      if (isFlying != null) this.state.isFlying = isFlying;
+    }
   }
 
   static double getElevationStatic(double latDeg, double lngDeg, bool isElevationActive) {
