@@ -13,6 +13,53 @@ import shutil
 import subprocess
 import sys
 
+def check_no_domain_config(destination):
+    config_paths = [
+        os.path.join(destination, ".pipeline", "logical-ui", "codebase_rules.json"),
+        os.path.join(destination, "codebase_rules.json"),
+        os.path.join(destination, "baseline_manifest.json")
+    ]
+    for path in config_paths:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                if isinstance(data, dict):
+                    if "validation_rules" in data and isinstance(data["validation_rules"], dict):
+                        if data["validation_rules"].get("no_domain") is True:
+                            return True
+                    if data.get("no_domain") is True:
+                        return True
+            except Exception:
+                pass
+    return False
+
+def tag_restoration_point():
+    print("Tagging restoration point...")
+    try:
+        subprocess.run(["git", "tag", "-f", "restoration-point"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"WARNING: Failed to tag restoration point: {e}", file=sys.stderr)
+
+def cleanup_workspace(destination):
+    print("Cleaning up workspace...")
+    to_delete_dirs = [".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies"]
+    for d in to_delete_dirs:
+        path = os.path.join(destination, d)
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+        elif os.path.isfile(path):
+            os.remove(path)
+    
+    for root, _, files in os.walk(destination):
+        for f in files:
+            if f.endswith(".db-shm") or f.endswith(".db-wal"):
+                try:
+                    os.remove(os.path.join(root, f))
+                except Exception:
+                    pass
+
 # Mandated domain classes/interfaces to check in types.ts or types.dart
 MANDATED_CLASSES = []
 
@@ -80,6 +127,18 @@ def main():
         print(f"ERROR: Destination path '{dest}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
         sys.exit(1)
 
+    if check_no_domain_config(dest):
+        args.no_domain = True
+
+    try:
+        _run_verification(args, dest, is_flutter, is_react)
+        print("Success: Build and test suite execution passed. Conformance gate verified.")
+        tag_restoration_point()
+        sys.exit(0)
+    finally:
+        cleanup_workspace(dest)
+
+def _run_verification(args, dest, is_flutter, is_react):
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
         # 1. Assert baseline files exist
@@ -222,8 +281,6 @@ def main():
                 print(f"ERROR: React verification command failed: {e}", file=sys.stderr)
                 sys.exit(1)
 
-    print("Success: Build and test suite execution passed. Conformance gate verified.")
-    sys.exit(0)
-
 if __name__ == "__main__":
     main()
+
