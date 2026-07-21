@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -116,6 +117,25 @@ def main():
             print("Skipping build and test suite execution (--no-domain specified, domain implementation pending).")
         else:
             try:
+                # Resolve and copy assets directory from template
+                repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                src_assets = os.path.join(repo_root, "app_flutter", "assets")
+                dest_assets = os.path.join(dest, "assets")
+                if os.path.exists(src_assets):
+                    if os.path.abspath(src_assets) != os.path.abspath(dest_assets):
+                        print(f"Copying template assets from {src_assets} to {dest_assets}...")
+                        os.makedirs(dest_assets, exist_ok=True)
+                        for item in os.listdir(src_assets):
+                            s_path = os.path.join(src_assets, item)
+                            d_path = os.path.join(dest_assets, item)
+                            if os.path.isfile(s_path):
+                                shutil.copy2(s_path, d_path)
+                        print("Assets copied successfully.")
+                    else:
+                        print("Source and destination assets directories are the same. Skipping copy.")
+                else:
+                    print(f"WARNING: Upstream assets directory not found at {src_assets}")
+
                 print("Running 'flutter pub get' to resolve dependencies...")
                 subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True)
                 
