@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -11,6 +13,7 @@ void main() {
 
   late Directory tempDir;
   late String dbPath;
+  List<int>? mockAssetBytes;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -20,6 +23,7 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp();
     dbPath = p.join(tempDir.path, 'properties_db.db');
+    mockAssetBytes = null;
 
     // Mock path provider to return our temp directory
     const MethodChannel channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -27,6 +31,19 @@ void main() {
         .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       if (methodCall.method == 'getApplicationSupportDirectory') {
         return tempDir.path;
+      }
+      return null;
+    });
+
+    // Mock asset channel to return specified database bytes
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler('flutter/assets', (ByteData? message) async {
+      if (message == null) return null;
+      final key = utf8.decode(message.buffer.asUint8List(message.offsetInBytes, message.lengthInBytes));
+      if (key == 'assets/properties_db.db.gz') {
+        if (mockAssetBytes != null) {
+          return ByteData.sublistView(Uint8List.fromList(mockAssetBytes!));
+        }
       }
       return null;
     });
@@ -47,6 +64,11 @@ void main() {
     await db.execute('CREATE TABLE test_marker (id TEXT PRIMARY KEY)');
     await db.close();
 
+    // Mock the asset loading with the gzipped bytes of the database containing the test_marker
+    final dbFile = File(dbPath);
+    final dbBytes = await dbFile.readAsBytes();
+    mockAssetBytes = gzip.encode(dbBytes);
+
     // 2. Resolve the repository. It should detect the database is NOT outdated and leave it intact.
     final dataSource = await RepositoryResolver.resolve(
       dataSourceType: 'sqlite',
@@ -65,6 +87,12 @@ void main() {
   test('Database missing some of the 5 required tables IS considered outdated and gets recreated', () async {
     // 1. Create a database using DatabaseInitializer
     final db = await DatabaseInitializer.create(dbPath: dbPath, seed: false);
+
+    // Read the complete database bytes before we drop type_relations
+    final dbFile = File(dbPath);
+    final dbBytes = await dbFile.readAsBytes();
+    mockAssetBytes = gzip.encode(dbBytes);
+
     // Drop 'type_relations' to make it missing one of the required tables
     await db.execute('DROP TABLE type_relations');
     // Add a test marker table to verify that the database gets deleted and recreated
