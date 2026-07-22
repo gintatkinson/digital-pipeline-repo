@@ -157,6 +157,8 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
 
         # 2. Skip unresolved template placeholders
         if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
+            ref_str = format_issue_reference(dep_num_str, tracker_rules)
+            print(f"  [Deferred] Unresolved placeholder {ref_str} in {os.path.basename(filepath)} — skipping")
             continue
         has_deps = True
         dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
@@ -164,9 +166,6 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         
         if dep_issue is None:
             ref_str = format_issue_reference(dep_num, tracker_rules)
-            if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
-                print(f"  [Deferred] Unresolved placeholder {ref_str} in {os.path.basename(filepath)} — skipping")
-                continue
             print(f"  [Warning] Dependency {ref_str} not found in tracker for {os.path.basename(filepath)} — skipping item")
             continue
             
