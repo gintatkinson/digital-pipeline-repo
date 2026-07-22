@@ -44,7 +44,7 @@ def tag_restoration_point():
 
 def cleanup_workspace(destination):
     print("Cleaning up workspace...")
-    to_delete_dirs = [".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies"]
+    to_delete_dirs = [".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies", "build"]
     for d in to_delete_dirs:
         path = os.path.join(destination, d)
         if os.path.isdir(path):
@@ -54,7 +54,7 @@ def cleanup_workspace(destination):
     
     for root, _, files in os.walk(destination):
         for f in files:
-            if f.endswith(".db-shm") or f.endswith(".db-wal"):
+            if f.endswith(".db-shm") or f.endswith(".db-wal") or f.endswith(".db-journal"):
                 try:
                     os.remove(os.path.join(root, f))
                 except Exception:
@@ -108,6 +108,8 @@ def main():
         print(f"ERROR: Destination path '{dest}' is not a directory.", file=sys.stderr)
         sys.exit(1)
 
+    repo_root = dest
+
     is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
     # If checking from root and app_flutter exists, run inside app_flutter
     if not is_flutter and os.path.isdir(os.path.join(dest, "app_flutter")):
@@ -127,7 +129,7 @@ def main():
         print(f"ERROR: Destination path '{dest}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
         sys.exit(1)
 
-    if check_no_domain_config(dest):
+    if check_no_domain_config(repo_root) or check_no_domain_config(dest):
         args.no_domain = True
 
     try:
