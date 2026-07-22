@@ -4,6 +4,10 @@ from typing import List, Dict, Any
 from .base import IValidator
 from ..core.workspace import WorkspaceRepository
 
+MD_CONSTRUCTS_INVALID_IN_MERMAID = re.compile(
+    r'^(#|> |[\*\-\+]\s|\[|`[^`]|!\[|\|)'
+)
+
 class DocsValidator(IValidator):
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
         errors = []
@@ -98,8 +102,12 @@ class DocsValidator(IValidator):
                         code_block_start = idx
                         is_mermaid_block = stripped.startswith("```mermaid")
                 elif in_code_block and is_mermaid_block:
-                    if stripped.startswith("#"):
-                        errors.append(f"Specification '{rel_path}' contains a markdown heading '{stripped}' inside an unclosed Mermaid block starting at line {code_block_start}. All diagrams must be closed with '```' on a new line.")
+                    if MD_CONSTRUCTS_INVALID_IN_MERMAID.match(stripped):
+                        errors.append(
+                            f"Specification '{rel_path}' has non-mermaid content "
+                            f"'{stripped[:60]}' inside an unclosed Mermaid block "
+                            f"starting at line {code_block_start}."
+                        )
                         in_code_block = False
                         is_mermaid_block = False
             if in_code_block:
