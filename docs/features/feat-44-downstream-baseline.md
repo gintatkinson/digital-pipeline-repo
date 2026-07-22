@@ -31,7 +31,7 @@ classDiagram
     }
     class SeedingManager {
         +purgeDatabase()
-        +seedBaselineRecords(List records)
+        +seedBaselineRecords(List[1] records)
     }
     class ComplianceValidator {
         +Boolean[1] validateSchema(String schemaPath)
