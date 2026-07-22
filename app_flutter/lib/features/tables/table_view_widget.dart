@@ -53,12 +53,16 @@ class _TableViewWidgetState extends State<TableViewWidget> {
   int? _cachedSortColumnIndex;
   bool? _cachedSortAscending;
 
+  Map<String, int>? _cachedHeaderIndices;
+  List<ColumnModel>? _cachedAllHeadersForIndices;
+
   List<List<String>> _getSortedRows(
     List<List<String>> rows,
     List<ColumnModel> headers,
     Map<String, int> headerIndices,
   ) {
     if (_sortColumnIndex == null || _sortColumnIndex! >= headers.length) {
+      _clearCache();
       return rows;
     }
 
@@ -160,6 +164,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
         final tableWidth = math.max(constraints.maxWidth, colCount * colWidth + spacingWidth + 2 * widget.horizontalMargin);
 
         void onSort(int columnIndex) {
+          _clearCache();
           setState(() {
             if (_sortColumnIndex == columnIndex) {
               _sortAscending = !_sortAscending;
