@@ -37,8 +37,18 @@ def _run_script(script_path, cwd):
     )
 
 
-def test_whitelist_appended_to_gitignore(tmp_path):
+def test_whitelist_skipped_when_not_git_repo(tmp_path):
     script = _make_repo(tmp_path, init_git=False)
+    result = _run_script(script, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    content = (tmp_path / ".gitignore").read_text()
+    for entry in WHITELIST_ENTRIES:
+        assert entry not in content, f"Whitelist entry should NOT be present without .git/HEAD: {entry}"
+
+
+def test_whitelist_appended_when_git_repo(tmp_path):
+    script = _make_repo(tmp_path, init_git=True)
     result = _run_script(script, tmp_path)
     assert result.returncode == 0, result.stderr
 
