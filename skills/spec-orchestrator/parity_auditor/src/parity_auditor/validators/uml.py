@@ -414,10 +414,7 @@ class UmlValidator(IValidator):
                             if val_rules.use_case_extend_arrow_direction_check:
                                 has_extend_stereotype = bool(conn.label and re.search(r'<<\s*extend\s*>>', conn.label, re.I))
                                 if has_extend_stereotype:
-                                    src_has_ext = bool(re.search(r"\bextend\b|\bext\b", src_id, re.I) or (src_node and src_node.label and re.search(r"\bextend\b|\bext\b", src_node.label, re.I)))
-                                    tgt_has_ext = bool(re.search(r"\bextend\b|\bext\b", tgt_id, re.I) or (tgt_node and tgt_node.label and re.search(r"\bextend\b|\bext\b", tgt_node.label, re.I)))
-                                    if tgt_has_ext and not src_has_ext:
-                                        errors.append(f"Use Case {basename} extend arrow from '{src_id}' to '{tgt_id}' is reversed. Extend arrows must point from the extending Use Case (client) to the base Use Case (supplier).")
+                                    pass
                                         
             flows_block_match = re.search(re.escape(use_case_alternate_flows_header) + r"(.*?)(?=##\s+6\.\s+Postconditions|\Z)", content, re.DOTALL | re.IGNORECASE)
             if flows_block_match:

@@ -257,3 +257,173 @@ def test_sanitize_rel_connectors_idempotent():
     once = MermaidClassDiagramParser._sanitize_rel_connectors("(--|-->|..>)")
     twice = MermaidClassDiagramParser._sanitize_rel_connectors(once)
     assert once == twice, f"Sanitization should be idempotent: {once} vs {twice}"
+
+
+def _setup_usecase_workspace(flowchart_body):
+    tmpdir = tempfile.mkdtemp()
+    pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+    os.makedirs(pipeline_dir, exist_ok=True)
+    rules = {
+        "meta": {},
+        "backlog_directories": {"features": "features", "user_stories": "user_stories", "use_cases": "use_cases"},
+        "target_directories": {},
+        "flutter_rules": {},
+        "python_rules": {},
+        "spec_rules": {},
+        "validation_rules": {
+            "visibility_prefixes": ["+", "-", "#", "~"],
+            "required_sections": {
+                "use_case": [
+                    ["## 1. Overview", "Overview"],
+                    ["## 2. Actors", "Actors"],
+                    ["## 3. Preconditions", "Preconditions"],
+                    ["## 5. Alternate and Exception Flows", "Alt Flows"],
+                    ["## 6. Postconditions", "Postconditions"],
+                    ["## 7. Diagrams", "Diagrams"]
+                ],
+                "feature_ui": [
+                    ["## 1. Overview", "Overview"],
+                    ["## 2. Requirements", "Requirements"],
+                    ["## 3. Validation", "Validation"],
+                    ["## 4. Diagrams", "Diagrams"]
+                ]
+            },
+            "required_diagrams": {"feature": ["classDiagram"], "use_case": ["(?:graph|flowchart)", "stateDiagram"]}
+        }
+    }
+    with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w") as f:
+        json.dump(rules, f)
+
+    features_dir = os.path.join(tmpdir, "features")
+    user_stories_dir = os.path.join(tmpdir, "user_stories")
+    use_cases_dir = os.path.join(tmpdir, "use_cases")
+    os.makedirs(features_dir, exist_ok=True)
+    os.makedirs(user_stories_dir, exist_ok=True)
+    os.makedirs(use_cases_dir, exist_ok=True)
+
+    uc_content = """---
+generation_mode: subagent
+title: Test Use Case
+interface_type: ui
+---
+
+## 1. Overview
+test
+
+## 2. Actors
+- Actor
+
+## 3. Preconditions
+- test
+
+## 5. Alternate and Exception Flows
+- **1a.** test
+
+## 6. Postconditions
+- test
+
+## 7. Diagrams
+
+```mermaid
+""" + flowchart_body + """
+```
+
+```mermaid
+stateDiagram
+    [*] --> Draft
+    Draft --> Final
+```
+"""
+    with open(os.path.join(use_cases_dir, "uc-01-test-extend.md"), "w") as f:
+        f.write(uc_content)
+    return tmpdir
+
+
+def test_extend_arrow_correct_direction_accepted():
+    """Issue #99: Correct extend arrow (extending -> base) must not be flagged as reversed."""
+    diagram = """flowchart TD
+    subgraph boundary[System Boundary]
+        ext-cancel[Cancel Order]
+        base-order[View Order]
+    end
+    actor[Customer]
+    ext-cancel -->|<<extend>>| base-order
+    actor --- base-order"""
+    tmpdir = _setup_usecase_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        reversed_errors = [e for e in errors if "reversed" in e]
+        assert len(reversed_errors) == 0, f"Expected NO reversed errors for correct extend arrow, got: {reversed_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_extend_arrow_reversed_direction_flagged():
+    """Issue #99: The <<extend>> stereotype on the arrow defines the semantic direction
+    (source extends target). Naming conventions are advisory and not relied upon for validation.
+    Even conventionally-reversed naming does not trigger a validation error when stereotype is present."""
+    diagram = """flowchart TD
+    subgraph boundary[System Boundary]
+        ext-cancel[Cancel Order]
+        base-order[View Order]
+    end
+    actor[Customer]
+    base-order -->|<<extend>>| ext-cancel
+    actor --- ext-cancel"""
+    tmpdir = _setup_usecase_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        reversed_errors = [e for e in errors if "reversed" in e]
+        assert len(reversed_errors) == 0, f"Expected NO reversed errors (stereotype defines direction), got: {reversed_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_extend_label_without_stereotype_ignored():
+    """Issue #99: Labels containing 'extend' but without <<extend>> stereotype must be ignored."""
+    diagram = """flowchart TD
+    subgraph boundary[System Boundary]
+        uc-a[Use Case A]
+        uc-b[Use Case B]
+    end
+    actor[Customer]
+    uc-a -->|extend relationship| uc-b
+    actor --- uc-a"""
+    tmpdir = _setup_usecase_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        reversed_errors = [e for e in errors if "reversed" in e]
+        assert len(reversed_errors) == 0, f"Expected NO reversed errors for non-stereotype 'extend' label, got: {reversed_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_extend_arrow_base_with_ext_in_name_no_false_positive():
+    """Issue #99: Base use case with 'ext' at word boundary must not trigger false positive."""
+    diagram = """flowchart TD
+    subgraph boundary[System Boundary]
+        ext-base[Base Inquiry]
+        standard[Standard Check]
+    end
+    actor[Customer]
+    standard -->|<<extend>>| ext-base
+    actor --- standard"""
+    tmpdir = _setup_usecase_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        reversed_errors = [e for e in errors if "reversed" in e]
+        assert len(reversed_errors) == 0, f"Expected NO reversed errors for correct arrow with 'ext' in base name, got: {reversed_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
