@@ -32,6 +32,15 @@ class UmlValidator(IValidator):
         
         errors = []
         
+        if epics_dir and not os.path.exists(epics_dir):
+            errors.append(
+                f"Warning: Epic directory '{epics_dir}' configured in backlog_dirs.epics "
+                f"does not exist on disk. Epic class diagrams will be excluded from the "
+                f"global class registry. Sequence diagram lifeline validation may produce "
+                f"false positive errors for classifiers defined in epic specifications. "
+                f"Create the directory and populate epic files before running validation."
+            )
+        
         def get_md_files(d):
             if not d or not os.path.exists(d):
                 return []
