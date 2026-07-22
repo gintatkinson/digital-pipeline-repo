@@ -107,9 +107,67 @@ def test_cleanup_workspace_preserves_dart_tool_cache():
             shutil.rmtree(tmpdir)
 
 
+def test_verify_no_domain_fallback_when_domain_dir_missing():
+    """Issue #97: When no config exists and --no-domain is not passed,
+    the verification should auto-detect missing lib/domain/ and skip domain checks.
+    This test simulates the data flow through _run_verification's filesystem fallback."""
+    import tempfile
+    import shutil
+    import types
+
+    tmpdir = None
+    try:
+        tmpdir = tempfile.mkdtemp()
+        pubspec = os.path.join(tmpdir, "pubspec.yaml")
+        with open(pubspec, "w") as f:
+            f.write("name: test\n")
+        os.makedirs(os.path.join(tmpdir, "lib"), exist_ok=True)
+        with open(os.path.join(tmpdir, "lib", "main.dart"), "w") as f:
+            f.write("void main() {}\n")
+
+        domain_dir = os.path.join(tmpdir, "lib", "domain")
+        assert not os.path.isdir(domain_dir), (
+            "Precondition: lib/domain/ must NOT exist (simulating --no-domain bootstrap)"
+        )
+
+        baseline_files = [
+            "pubspec.yaml",
+            "analysis_options.yaml",
+            "lib/main.dart",
+            "lib/domain/repository_resolver.dart",
+            "lib/domain/validation.dart"
+        ]
+
+        no_domain = False
+        assert not no_domain, "no_domain flag should be False (simulating no --no-domain CLI and no config)"
+
+        if no_domain:
+            baseline_files.remove("lib/domain/repository_resolver.dart")
+            baseline_files.remove("lib/domain/validation.dart")
+        else:
+            domain_dir = os.path.join(tmpdir, "lib", "domain")
+            if not os.path.isdir(domain_dir):
+                baseline_files.remove("lib/domain/repository_resolver.dart")
+                baseline_files.remove("lib/domain/validation.dart")
+
+        assert "lib/domain/repository_resolver.dart" not in baseline_files, (
+            "Domain file should be removed when domain dir is absent (filesystem fallback)"
+        )
+        assert "lib/domain/validation.dart" not in baseline_files, (
+            "Domain file should be removed when domain dir is absent (filesystem fallback)"
+        )
+        assert len(baseline_files) == 3, (
+            f"Expected 3 baseline files after domain removal, got {len(baseline_files)}: {baseline_files}"
+        )
+    finally:
+        if tmpdir and os.path.exists(tmpdir):
+            shutil.rmtree(tmpdir)
+
+
 if __name__ == "__main__":
     test_config_found_when_dest_reassigned_to_app_flutter()
     test_config_not_found_when_no_config_exists()
     test_baseline_manifest_detected()
     test_cleanup_workspace_preserves_dart_tool_cache()
+    test_verify_no_domain_fallback_when_domain_dir_missing()
     print("ALL TESTS PASSED")

@@ -164,6 +164,13 @@ def _run_verification(args, dest, is_flutter, is_react):
         if args.no_domain:
             baseline_files.remove("lib/domain/repository_resolver.dart")
             baseline_files.remove("lib/domain/validation.dart")
+        else:
+            domain_dir = os.path.join(dest, "lib", "domain")
+            if not os.path.isdir(domain_dir):
+                print("NOTE: lib/domain/ directory not found — applying no-domain baseline check automatically.")
+                args.no_domain = True
+                baseline_files.remove("lib/domain/repository_resolver.dart")
+                baseline_files.remove("lib/domain/validation.dart")
 
         missing_files = []
         for f in baseline_files:
