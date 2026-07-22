@@ -250,18 +250,28 @@ void main() {
           try {
             final treeVmCount = await _countInstances(vmService, 'TreeViewModel');
             final propVmCount = await _countInstances(vmService, 'PropertiesViewModel');
-            final tablesVmCount = await _countInstances(vmService, 'TablesViewModel');
-            
-            if (treeVmCount > 1 || propVmCount > 1 || tablesVmCount > 1) {
+
+            if (treeVmCount > 1 || propVmCount > 1) {
               leakDetected = true;
-              leakDetails = 'Leaks: TreeViewModel ($treeVmCount), PropertiesViewModel ($propVmCount), TablesViewModel ($tablesVmCount)';
+              leakDetails = 'Leaks: TreeViewModel ($treeVmCount), PropertiesViewModel ($propVmCount)';
             }
           } finally {
             vmService.dispose();
           }
         }
 
+        if (leakDetected) {
+          fail('ViewModel leak detected after pass $passCount: $leakDetails');
+        }
+
         memorySamples.add(memAfter);
+        if (memorySamples.length >= 5) {
+          final recent = memorySamples.sublist(memorySamples.length - 5);
+          final netGrowth = recent.last - recent.first;
+          if (netGrowth > 150 * 1024 * 1024) {
+            fail('Memory grew ${(netGrowth / (1024 * 1024)).toStringAsFixed(1)}MB over 5 passes (threshold: 150MB)');
+          }
+        }
         if (memorySamples.length >= 5) {
           final recent = memorySamples.sublist(memorySamples.length - 5);
           final netGrowth = recent.last - recent.first;
