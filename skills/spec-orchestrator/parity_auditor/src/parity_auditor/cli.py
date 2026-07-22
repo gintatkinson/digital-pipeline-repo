@@ -30,15 +30,15 @@ from .validators.cardinality_validator import SchemaCardinalityValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
-def get_open_feature_issues() -> list:
+def get_open_feature_issues():
     """
     Fetch open feature issues from GitHub via ``gh issue list``.
 
     Filters out issues whose title contains known defect/bug/tooling keywords.
 
     Returns:
-        List of issue dicts with 'number' and 'title' keys, or an empty list
-        when the ``gh`` CLI is unavailable or returns a non-zero exit code.
+        List of issue dicts with 'number' and 'title' keys, or None when the
+        ``gh`` CLI is unavailable, returns a non-zero exit code, or times out.
     """
     import subprocess
     import json
@@ -46,7 +46,8 @@ def get_open_feature_issues() -> list:
         result = subprocess.run(
             ["gh", "issue", "list", "--state", "open", "--label", "feature", "--json", "number,title"],
             capture_output=True,
-            text=True
+            text=True,
+            timeout=30
         )
         if result.returncode == 0:
             issues = json.loads(result.stdout)
@@ -56,11 +57,14 @@ def get_open_feature_issues() -> list:
                 if not any(kw in issue.get("title", "").lower() for kw in keywords)
             ]
         else:
-            print(f"Warning: gh CLI exited with code {result.returncode}: {result.stderr.strip()}")
-            return []
+            print(f"ERROR: gh CLI exited with code {result.returncode}: {result.stderr.strip()}", file=sys.stderr)
+            return None
+    except subprocess.TimeoutExpired:
+        print("ERROR: gh CLI timed out after 30 seconds.", file=sys.stderr)
+        return None
     except Exception as e:
-        print(f"Warning: Failed to run gh CLI to fetch open feature issues: {e}")
-        return []
+        print(f"ERROR: Failed to run gh CLI to fetch open feature issues: {e}", file=sys.stderr)
+        return None
 
 def parse_ignore_issues(ignore_str: str) -> set:
     ignored = set()
@@ -275,6 +279,11 @@ def _main_impl():
             ignored_set.update(parse_ignore_issues(str(rule_ignore)))
 
     open_issues = get_open_feature_issues()
+    if open_issues is None:
+        print("[!] ERROR: Could not fetch open feature issues from GitHub. Cross-reference verification aborted.", file=sys.stderr)
+        has_failed = True
+        open_issues = []
+
     if ignored_set:
         open_issues = [issue for issue in open_issues if issue.get("number") not in ignored_set]
 
