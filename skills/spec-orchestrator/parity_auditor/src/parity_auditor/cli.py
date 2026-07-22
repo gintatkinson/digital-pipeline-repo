@@ -126,7 +126,7 @@ def _main_impl():
     parser.add_argument("--allow-missing-specs", action="store_true", default=True, help="Skip exiting with status code 1 when there are missing specification files")
     parser.add_argument("--no-allow-missing-specs", dest="allow_missing_specs", action="store_false", help="Exit with error code when specification files are missing (strict mode)")
     parser.add_argument("--ignore-issues", help="Comma-separated list of issue numbers or ranges to ignore (e.g., 14,16-18)")
-    parser.add_argument("--scope-local", action="store_true", help="Only check open feature issues that match local spec files' issue_id frontmatter (ignore unrelated remote issues)")
+    parser.add_argument("--scope-all", action="store_true", help="Check against ALL open feature issues (entire repo, not just local specs)")
     
     args = parser.parse_args()
     
@@ -269,7 +269,7 @@ def _main_impl():
     if ignored_set:
         open_issues = [issue for issue in open_issues if issue.get("number") not in ignored_set]
 
-    if args.scope_local:
+    if not args.scope_all:
         local_issue_ids = set()
         for f in features:
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
