@@ -412,10 +412,14 @@ class _PropertyGridState extends State<PropertyGrid> {
               final int columnCount = (width / 350.0).floor().clamp(1, 4);
               final double cardWidth = (width - (columnCount - 1) * widget.gapSize) / columnCount - 0.01;
 
-              return Wrap(
-                spacing: widget.gapSize,
-                runSpacing: widget.gapSize,
-                children: sections.map((sec) => SizedBox(width: cardWidth, child: sec)).toList(),
+              return _LayoutMemo(
+                columnCount: columnCount,
+                cardWidth: cardWidth,
+                builder: (cc, cw) => Wrap(
+                  spacing: widget.gapSize,
+                  runSpacing: widget.gapSize,
+                  children: sections.map((sec) => SizedBox(width: cw, child: sec)).toList(),
+                ),
               );
             },
           ),
@@ -432,6 +436,28 @@ class _PropertyGridState extends State<PropertyGrid> {
         ],
       ),
     );
+  }
+
+  /// Caches [columnCount] and [cardWidth] so that the child tree is only
+  /// rebuilt when either value actually changes, not on every pixel-level
+  /// constraint delta from [LayoutBuilder] during window resize.
+  Widget? _layoutMemoCached;
+  int? _memoColumnCount;
+  double? _memoCardWidth;
+  List<FieldDescriptor>? _memoFields;
+
+  Widget _LayoutMemo({
+    required int columnCount,
+    required double cardWidth,
+    required Widget Function(int columnCount, double cardWidth) builder,
+  }) {
+    if (_memoFields != _fields || _memoColumnCount != columnCount || _memoCardWidth != cardWidth) {
+      _memoFields = _fields;
+      _memoColumnCount = columnCount;
+      _memoCardWidth = cardWidth;
+      _layoutMemoCached = builder(columnCount, cardWidth);
+    }
+    return _layoutMemoCached!;
   }
 
   /// Builds a single section card with a title header, an optional "Active
