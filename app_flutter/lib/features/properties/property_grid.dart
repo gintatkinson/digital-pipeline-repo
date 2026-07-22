@@ -385,8 +385,8 @@ class _PropertyGridState extends State<PropertyGrid> {
       groups.add(field.sectionLabel ?? 'Other');
     }
 
-    final List<String> sortedGroups = groups.toList();
-    sortedGroups.sort();
+    final List<String> sortedGroups = groups.toList()
+      ..sort((a, b) => _naturalCompare(a, b));
 
     final List<Widget> sections = sortedGroups.map((group) {
       final bool isActive = group == widget.activeView ||
