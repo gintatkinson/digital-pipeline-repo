@@ -34,6 +34,9 @@ classDiagram
 - Input: GitHub Issue created by Feature 05.
 - Output: Test file written to `tests/repro_cases/[issue_number].md`.
 
+### 2. Test Data Shape
+- See feat-01 for base payload schema and validation rules.
+
 ### 3. Logical Operations & Interface Messages
 1. Upstream GitHub Action triggers on issue creation with `bug` or `feature` labels.
 2. The Action parses the JSON payload from the issue description.
