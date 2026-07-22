@@ -66,8 +66,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
       return rows;
     }
 
-    if (identical(_cachedSourceRows, rows) &&
-        identical(_cachedHeaders, headers) &&
+    if (_rowsEqual(_cachedSourceRows, rows) &&
         _cachedSortColumnIndex == _sortColumnIndex &&
         _cachedSortAscending == _sortAscending &&
         _cachedSortedRows != null) {
@@ -75,7 +74,6 @@ class _TableViewWidgetState extends State<TableViewWidget> {
     }
 
     _cachedSourceRows = rows;
-    _cachedHeaders = headers;
     _cachedSortColumnIndex = _sortColumnIndex;
     _cachedSortAscending = _sortAscending;
 
@@ -98,12 +96,48 @@ class _TableViewWidgetState extends State<TableViewWidget> {
     return sortedRows;
   }
 
+  Map<String, int> _getHeaderIndices(List<ColumnModel> allHeaders) {
+    if (_cachedAllHeadersForIndices != null &&
+        _cachedHeaderIndices != null &&
+        _cachedAllHeadersForIndices!.length == allHeaders.length) {
+      var same = true;
+      for (int i = 0; i < allHeaders.length; i++) {
+        if (!identical(_cachedAllHeadersForIndices![i], allHeaders[i])) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return _cachedHeaderIndices!;
+    }
+    _cachedAllHeadersForIndices = allHeaders;
+    _cachedHeaderIndices = {
+      for (int idx = 0; idx < allHeaders.length; idx++)
+        allHeaders[idx].key: idx
+    };
+    return _cachedHeaderIndices!;
+  }
+
+  bool _rowsEqual(List<List<String>>? a, List<List<String>>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].length != b[i].length) return false;
+      for (int j = 0; j < a[i].length; j++) {
+        if (a[i][j] != b[i][j]) return false;
+      }
+    }
+    return true;
+  }
+
   void _clearCache() {
     _cachedSourceRows = null;
     _cachedHeaders = null;
     _cachedSortedRows = null;
     _cachedSortColumnIndex = null;
     _cachedSortAscending = null;
+    _cachedHeaderIndices = null;
+    _cachedAllHeadersForIndices = null;
   }
 
   @override
@@ -139,10 +173,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
 
     final headers = viewModel.visibleColumnModels;
     final allHeaders = viewModel.headers;
-    final headerIndices = <String, int>{
-      for (int idx = 0; idx < allHeaders.length; idx++)
-        allHeaders[idx].key: idx
-    };
+    final headerIndices = _getHeaderIndices(allHeaders);
 
     final rows = _getSortedRows(viewModel.rows, headers, headerIndices);
     final testId = '${viewModel.tabId}-table';
