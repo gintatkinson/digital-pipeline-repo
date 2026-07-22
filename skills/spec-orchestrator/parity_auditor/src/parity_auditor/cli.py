@@ -126,6 +126,7 @@ def _main_impl():
     parser.add_argument("--allow-missing-specs", action="store_true", default=True, help="Skip exiting with status code 1 when there are missing specification files")
     parser.add_argument("--no-allow-missing-specs", dest="allow_missing_specs", action="store_false", help="Exit with error code when specification files are missing (strict mode)")
     parser.add_argument("--ignore-issues", help="Comma-separated list of issue numbers or ranges to ignore (e.g., 14,16-18)")
+    parser.add_argument("--scope-local", action="store_true", help="Only check open feature issues that match local spec files' issue_id frontmatter (ignore unrelated remote issues)")
     
     args = parser.parse_args()
     
@@ -267,6 +268,17 @@ def _main_impl():
     open_issues = get_open_feature_issues()
     if ignored_set:
         open_issues = [issue for issue in open_issues if issue.get("number") not in ignored_set]
+
+    if args.scope_local:
+        local_issue_ids = set()
+        for f in features:
+            frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
+            if frontmatter_match:
+                fm_text = frontmatter_match.group(1)
+                ids = [int(m) for m in re.findall(r"issue_id\s*:\s*(\d+)", fm_text)]
+                local_issue_ids.update(ids)
+        if local_issue_ids:
+            open_issues = [issue for issue in open_issues if issue.get("number") in local_issue_ids]
 
     missing_specs = []
     for issue in open_issues:
@@ -470,7 +482,12 @@ def _main_impl():
         all_definitions = {}
         for module_defs in modules.values():
             all_definitions.update(module_defs)
-        
+
+        if not all_definitions:
+            print("[!] Error: No schema definitions were parsed. Cannot validate spec-only coverage.")
+            print("    Ensure the schema directory exists and contains parseable schema files.")
+            has_failed = True
+
         spec_coverage_gaps = []
         spec_elements = set()
         for cls_name, cls_info in global_classes.items():
@@ -508,7 +525,7 @@ def _main_impl():
                 print(f"  - {gap}")
             print("\nError: 100% spec-only model coverage validation failed.")
             has_failed = True
-        else:
+        elif all_definitions:
             print("Success: 100% spec-only model coverage verified across all specification files.")
 
     print("\n=== UML Diagrams Compliance Audit ===")
