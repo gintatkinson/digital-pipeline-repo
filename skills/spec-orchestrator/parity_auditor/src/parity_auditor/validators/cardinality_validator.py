@@ -62,6 +62,11 @@ class SchemaCardinalityValidator(IValidator):
 
                 containers = fm.get("schema_containers", None)
                 if containers is None:
+                    errors.append(
+                        f"{file_type} '{filename}': schema_containers is missing from frontmatter. "
+                        f"Every {file_type.lower()} must declare exactly one schema container "
+                        f"(e.g. path: 'module/container', node_type: container)."
+                    )
                     continue
 
                 if not isinstance(containers, list):
