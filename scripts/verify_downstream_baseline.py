@@ -13,6 +13,8 @@ import shutil
 import subprocess
 import sys
 
+TIMEOUT_SECONDS = 600
+
 def check_no_domain_config(destination):
     config_paths = [
         os.path.join(destination, ".pipeline", "logical-ui", "codebase_rules.json"),
@@ -257,16 +259,16 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                     print(f"WARNING: Upstream assets directory not found at {src_assets}")
 
                 print("Running 'flutter pub get' to resolve dependencies...")
-                subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True)
+                subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
                 
                 print("Running 'flutter analyze'...")
-                subprocess.run(["flutter", "analyze", "--no-fatal-warnings", "--no-fatal-infos"], cwd=dest, check=True)
+                subprocess.run(["flutter", "analyze", "--no-fatal-warnings", "--no-fatal-infos"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
                 
                 print("Running 'flutter test'...")
-                subprocess.run(["flutter", "test"], cwd=dest, check=True)
+                subprocess.run(["flutter", "test"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
                 
                 print("Running 'flutter build macos --release'...")
-                subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True)
+                subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 2)
                 
                 print("Zipping the macOS application bundle...")
                 # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
@@ -279,12 +281,15 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 app_bundle = "Platform Console.app"
                 
                 if os.path.exists(os.path.join(release_dir, app_bundle)):
-                    subprocess.run(["zip", "-r", zip_path, app_bundle], cwd=release_dir, check=True)
+                    subprocess.run(["zip", "-r", zip_path, app_bundle], cwd=release_dir, check=True, timeout=TIMEOUT_SECONDS)
                     print(f"Success: App bundled to {zip_path}")
                 else:
                     print(f"ERROR: App bundle not found at {os.path.join(release_dir, app_bundle)}", file=sys.stderr)
                     sys.exit(1)
                     
+            except subprocess.TimeoutExpired as e:
+                print(f"ERROR: Verification command timed out after {e.timeout}s: {e.cmd}", file=sys.stderr)
+                sys.exit(1)
             except subprocess.CalledProcessError as e:
                 print(f"ERROR: Verification command failed: {e}", file=sys.stderr)
                 sys.exit(1)
@@ -333,10 +338,13 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
         else:
             try:
                 print("Running 'npm install' to resolve dependencies...")
-                subprocess.run(["npm", "install"], cwd=dest, check=True)
+                subprocess.run(["npm", "install"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 2)
                 
                 print("Running 'npm run build'...")
-                subprocess.run(["npm", "run", "build"], cwd=dest, check=True)
+                subprocess.run(["npm", "run", "build"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 2)
+            except subprocess.TimeoutExpired as e:
+                print(f"ERROR: React verification command timed out after {e.timeout}s: {e.cmd}", file=sys.stderr)
+                sys.exit(1)
             except subprocess.CalledProcessError as e:
                 print(f"ERROR: React verification command failed: {e}", file=sys.stderr)
                 sys.exit(1)
