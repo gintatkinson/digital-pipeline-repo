@@ -43,7 +43,7 @@ void main() {
 
       await StringResources.load();
 
-      final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: false);
+      final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: true);
       addTearDown(() async {
         await db.close();
       });
