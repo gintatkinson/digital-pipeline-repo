@@ -513,7 +513,7 @@ def _main_impl():
     print("\n=== UML Diagrams Compliance Audit ===")
     uml_errors = []
     if not features and not epic_files:
-        print("Note: No feature specifications found. Skipping UML Diagrams Compliance Audit.")
+        print("Note: No feature or epic specifications found. Skipping UML Diagrams Compliance Audit.")
     else:
         uml_errors = uml_validator.validate(repo, global_classes=global_classes, epics_dir=epics_dir)
         
@@ -540,7 +540,7 @@ def _main_impl():
     behavioral_validator = BehavioralValidator()
     behavioral_errors = []
     if not features and not epic_files:
-        print("Note: No feature specifications found. Skipping Behavioral Coverage Triggers Audit.")
+        print("Note: No feature or epic specifications found. Skipping Behavioral Coverage Triggers Audit.")
     else:
         behavioral_errors = behavioral_validator.validate(repo, schema_dir=schema_dir, modules=modules)
         
