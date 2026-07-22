@@ -202,6 +202,7 @@ class ParsedFlowchart:
     nodes: Dict[str, FlowchartNode] = field(default_factory=dict)
     connections: List[FlowchartConnection] = field(default_factory=list)
     subgraphs: Dict[str, FlowchartSubgraph] = field(default_factory=dict)
+    parse_errors: List[str] = field(default_factory=list)
 
 @dataclass
 class ClassAttribute:
@@ -287,6 +288,7 @@ class ParsedSequenceDiagram:
     lifelines: Dict[str, SequenceLifeline] = field(default_factory=dict)
     messages: List[SequenceMessage] = field(default_factory=list)
     fragments: List[SequenceFragment] = field(default_factory=list)
+    parse_errors: List[str] = field(default_factory=list)
 
 @dataclass
 class FeatureFile:

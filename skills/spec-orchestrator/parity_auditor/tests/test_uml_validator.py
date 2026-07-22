@@ -10,7 +10,7 @@ from parity_auditor.validators.uml import UmlValidator
 from parity_auditor.core.workspace import WorkspaceRepository
 
 
-def _setup_workspace(class_diagram_body: str) -> str:
+def _setup_workspace(class_diagram_body):
     tmpdir = tempfile.mkdtemp()
     pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
     os.makedirs(pipeline_dir, exist_ok=True)
@@ -48,7 +48,8 @@ def _setup_workspace(class_diagram_body: str) -> str:
     os.makedirs(user_stories_dir, exist_ok=True)
     os.makedirs(use_cases_dir, exist_ok=True)
 
-    md_content = f"""---
+    md_content = """---
+generation_mode: subagent
 title: Test
 interface_type: ui
 ---
@@ -65,7 +66,7 @@ test
 ## 4. Diagrams
 
 ```mermaid
-{class_diagram_body}
+""" + class_diagram_body + """
 ```
 """
     with open(os.path.join(features_dir, "feat-01-test.md"), "w") as f:
@@ -75,16 +76,16 @@ test
 
 def test_method_return_without_multiplicity_rejected():
     """+Node fetch() without [1] should be rejected for missing multiplicity."""
-    tmpdir = _setup_workspace("""classDiagram
-    class Node {{
+    diagram = """classDiagram
+    class Node {
         +String id [1]
         +Node fetch()
-    }}
-    class Container {{
+    }
+    class Container {
         +String name [1]
-    }}
-    Container *-- Node : contains
-""")
+    }
+    Container *-- Node : contains"""
+    tmpdir = _setup_workspace(diagram)
     try:
         repo = WorkspaceRepository(tmpdir)
         validator = UmlValidator()
@@ -96,24 +97,24 @@ def test_method_return_without_multiplicity_rejected():
         shutil.rmtree(tmpdir)
 
 
-def test_method_return_with_multiplicity_accepted():
-    """+Node[] fetch() with [1] on return should be accepted."""
-    tmpdir = _setup_workspace("""classDiagram
-    class Node {{
+def test_method_return_with_valid_multiplicity_accepted():
+    """+Node [1] fetch() with valid multiplicity should be accepted."""
+    diagram = """classDiagram
+    class Node {
         +String id [1]
-        +Node [] fetch()
-    }}
-    class Container {{
+        +Node [1] fetch()
+    }
+    class Container {
         +String name [1]
-    }}
-    Container *-- Node : contains
-""")
+    }
+    Container *-- Node : contains"""
+    tmpdir = _setup_workspace(diagram)
     try:
         repo = WorkspaceRepository(tmpdir)
         validator = UmlValidator()
         errors = validator.validate(repo)
         multiplicity_errors = [e for e in errors if "fetch" in e and "multiplicity" in e]
-        assert len(multiplicity_errors) == 0, f"Expected NO multiplicity error for +Node[] fetch(), got: {errors}"
+        assert len(multiplicity_errors) == 0, f"Expected NO multiplicity error for +Node [1] fetch(), got: {errors}"
     finally:
         import shutil
         shutil.rmtree(tmpdir)
@@ -121,16 +122,16 @@ def test_method_return_with_multiplicity_accepted():
 
 def test_method_return_void_skipped():
     """void methods should skip multiplicity check entirely."""
-    tmpdir = _setup_workspace("""classDiagram
-    class Node {{
+    diagram = """classDiagram
+    class Node {
         +String id [1]
         +void save()
-    }}
-    class Container {{
+    }
+    class Container {
         +String name [1]
-    }}
-    Container *-- Node : contains
-""")
+    }
+    Container *-- Node : contains"""
+    tmpdir = _setup_workspace(diagram)
     try:
         repo = WorkspaceRepository(tmpdir)
         validator = UmlValidator()
@@ -140,3 +141,43 @@ def test_method_return_void_skipped():
     finally:
         import shutil
         shutil.rmtree(tmpdir)
+
+
+def test_flowchart_parser_reports_parse_errors():
+    """MermaidFlowchartParser must report parse errors for unrecognized lines (Issue #88)."""
+    from parity_auditor.parsers.mermaid import MermaidFlowchartParser
+    from parity_auditor.core.models import ParsedFlowchart
+    parser = MermaidFlowchartParser()
+    result = parser.parse("flowchart TD\n    A[Start] --> B[Process]\n    MALFORMED_NONSENSE\n    C[End]")
+    assert isinstance(result, ParsedFlowchart)
+    assert len(result.parse_errors) > 0, \
+        f"Expected parse_errors for malformed line, got: {result.parse_errors}"
+    assert "MALFORMED_NONSENSE" in result.parse_errors[0]
+
+
+def test_sequence_parser_reports_parse_errors():
+    """MermaidSequenceDiagramParser must report parse errors for unrecognized lines (Issue #88)."""
+    from parity_auditor.parsers.mermaid import MermaidSequenceDiagramParser
+    from parity_auditor.core.models import ParsedSequenceDiagram
+    parser = MermaidSequenceDiagramParser()
+    result = parser.parse("sequenceDiagram\n    A->>B: hello\n    MALFORMED_NONSENSE\n    B-->>A: world")
+    assert isinstance(result, ParsedSequenceDiagram)
+    assert len(result.parse_errors) > 0, \
+        f"Expected parse_errors for malformed line, got: {result.parse_errors}"
+    assert "MALFORMED_NONSENSE" in result.parse_errors[0]
+
+
+def test_flowchart_parser_no_errors_for_valid_input():
+    """MermaidFlowchartParser must return empty parse_errors for valid input (Issue #88)."""
+    from parity_auditor.parsers.mermaid import MermaidFlowchartParser
+    parser = MermaidFlowchartParser()
+    result = parser.parse("flowchart TD\n    A[Start] --> B[End]")
+    assert result.parse_errors == [], f"Expected no parse_errors for valid input, got: {result.parse_errors}"
+
+
+def test_sequence_parser_no_errors_for_valid_input():
+    """MermaidSequenceDiagramParser must return empty parse_errors for valid input (Issue #88)."""
+    from parity_auditor.parsers.mermaid import MermaidSequenceDiagramParser
+    parser = MermaidSequenceDiagramParser()
+    result = parser.parse("sequenceDiagram\n    A->>B: hello\n    B-->>A: world")
+    assert result.parse_errors == [], f"Expected no parse_errors for valid input, got: {result.parse_errors}"

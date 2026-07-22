@@ -202,6 +202,8 @@ class UmlValidator(IValidator):
             for seq_match in seq_diagram_matches:
                 seq_code = seq_match.group(0)
                 parsed = sequence_parser.parse(seq_code)
+                for err in parsed.parse_errors:
+                    errors.append(f"User Story {filename} sequence diagram parse error: {err}")
                 lifelines = parsed.lifelines
                 messages = parsed.messages
                 
@@ -343,6 +345,8 @@ class UmlValidator(IValidator):
                     for match in diag_matches:
                         diagram_code = match.group(0)
                         parsed = flowchart_parser.parse(diagram_code)
+                        for err in parsed.parse_errors:
+                            errors.append(f"Use Case {basename} flowchart parse error: {err}")
                         
                         boundary_sub = None
                         for sub_id, sub_info in parsed.subgraphs.items():
@@ -725,8 +729,15 @@ class UmlValidator(IValidator):
                             if not re.search(multiplicity_regex, method.return_type):
                                 has_mult = False
                         elif '[' in method.raw or ']' in method.raw:
-                            if not (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
-                                has_mult = False
+                            if ")" in method.raw:
+                                return_suffix = method.raw.rsplit(")", 1)[-1]
+                            else:
+                                return_suffix = method.raw
+                            if '[' in return_suffix or ']' in return_suffix:
+                                if not (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
+                                    has_mult = False
+                        else:
+                            has_mult = False
                     if not has_mult:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
         

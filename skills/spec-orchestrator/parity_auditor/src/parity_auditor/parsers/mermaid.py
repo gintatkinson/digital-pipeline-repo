@@ -18,6 +18,7 @@ class MermaidFlowchartParser(IParser):
         connections = []
         subgraphs = {}
         subgraph_stack = []
+        parse_errors = []
 
         def extract_node_from_part(part):
             part = part.strip()
@@ -175,8 +176,12 @@ class MermaidFlowchartParser(IParser):
                         current_sub = subgraph_stack[-1]
                         if node_id not in subgraphs[current_sub].nodes:
                             subgraphs[current_sub].nodes.append(node_id)
+                elif node_id:
+                    parse_errors.append(f"Unparseable line: unrecognized shape for node '{node_id}' — '{line.strip()}'")
+                else:
+                    parse_errors.append(f"Unparseable line: not a connection or node — '{line.strip()}'")
 
-        return ParsedFlowchart(nodes=nodes, connections=connections, subgraphs=subgraphs)
+        return ParsedFlowchart(nodes=nodes, connections=connections, subgraphs=subgraphs, parse_errors=parse_errors)
 
 
 class MermaidClassDiagramParser(IParser):
@@ -427,6 +432,7 @@ class MermaidSequenceDiagramParser(IParser):
         messages = []
         fragments = []
         fragment_stack = []
+        parse_errors = []
 
         def parse_lifeline_label(label):
             if not label:
@@ -606,5 +612,7 @@ class MermaidSequenceDiagramParser(IParser):
                 if fragment_stack:
                     fragment_stack[-1].branches[-1].messages.append(msg_record)
                 continue
+            else:
+                parse_errors.append(f"Unparseable line: not a valid sequence diagram element — '{line.strip()}'")
 
-        return ParsedSequenceDiagram(lifelines=lifelines, messages=messages, fragments=fragments)
+        return ParsedSequenceDiagram(lifelines=lifelines, messages=messages, fragments=fragments, parse_errors=parse_errors)
