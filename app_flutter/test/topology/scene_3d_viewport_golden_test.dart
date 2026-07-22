@@ -1,4 +1,5 @@
 // Playhead rate limits [0.9, 1.1]
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -64,7 +65,8 @@ void main() {
 
       await expectLater(
         find.byType(Scene3DViewport),
-        matchesGoldenFile('goldens/stars_and_sphere.png'),
+        matchesGoldenFile('goldens/${Platform.operatingSystem}/stars_and_sphere.png'),
+        skip: !Platform.isMacOS,
       );
     });
 
@@ -123,7 +125,8 @@ void main() {
 
       await expectLater(
         find.byType(Scene3DViewport),
-        matchesGoldenFile('goldens/exaggerated_fuji_node.png'),
+        matchesGoldenFile('goldens/${Platform.operatingSystem}/exaggerated_fuji_node.png'),
+        skip: !Platform.isMacOS,
       );
     });
 
