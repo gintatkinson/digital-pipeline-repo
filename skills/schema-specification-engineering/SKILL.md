@@ -303,8 +303,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      1. Backlog issues MUST be registered using `gh issue create --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
      2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
-        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
-        and retry/halt if this verification fails.
+         `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','UML Class Diagram','Acceptance Criteria']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
+         and retry/halt if this verification fails.
      4. Before committing the generated feature markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
         ```bash
         UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
@@ -323,8 +323,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      1. Register the Epic issue using `gh issue create --body-file <local-md-file>`.
      2. Immediately after placeholder resolution, the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
-        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
-        and retry/halt if this verification fails.
+         `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','UML Class Diagram','Acceptance Criteria']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
+         and retry/halt if this verification fails.
      4. Before committing the generated epic markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
         ```bash
         UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
