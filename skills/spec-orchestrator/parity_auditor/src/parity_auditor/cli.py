@@ -294,15 +294,13 @@ def _main_impl():
                 if found:
                     break
 
-            # Existing filename/content check as fallback
-            basename = os.path.splitext(f.filename)[0]
-            numbers_in_filename = [int(x) for x in re.findall(r'\d+', basename)]
-            if issue_number in numbers_in_filename:
-                found = True
-                break
-            if f"#{issue_number}" in f.content or f"issue {issue_number}" in f.content.lower():
-                found = True
-                break
+            # Existing filename check as fallback only when no frontmatter present
+            else:
+                basename = os.path.splitext(f.filename)[0]
+                m = re.search(r'(?:^|\D)(\d+)(?:$|\D)', basename)
+                if m and int(m.group(1)) == issue_number:
+                    found = True
+                    break
         if not found:
             missing_specs.append(f"Issue #{issue_number}: '{issue_title}'")
             
