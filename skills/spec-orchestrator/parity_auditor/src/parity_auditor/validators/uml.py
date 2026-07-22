@@ -747,8 +747,6 @@ class UmlValidator(IValidator):
                             if '[' in return_suffix or ']' in return_suffix:
                                 if not (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
                                     has_mult = False
-                        else:
-                            has_mult = False
                     if not has_mult:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
         
