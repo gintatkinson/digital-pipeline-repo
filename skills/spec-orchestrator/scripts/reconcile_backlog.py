@@ -587,7 +587,13 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             
         new_lines.extend(final_stories)
         
-        start_after_stories = idx_stories + 1 + len(existing_stories) if idx_stories != -1 else len(lines)
+        if idx_stories != -1:
+            start_after_stories = idx_stories + 1 + len(existing_stories)
+        else:
+            if idx_usecases != -1:
+                start_after_stories = idx_usecases + 1 + len(existing_usecases)
+            else:
+                start_after_stories = idx_req + 1 + len(existing_features)
         if idx_next != -1:
             new_lines.extend(lines[start_after_stories : idx_next])
             new_lines.extend(lines[idx_next:])
