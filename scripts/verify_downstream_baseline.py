@@ -140,6 +140,13 @@ def main():
     if check_no_domain_config(repo_root) or check_no_domain_config(dest):
         args.no_domain = True
 
+    if args.no_domain:
+        flutter_domain = os.path.join(dest if is_flutter else repo_root, "lib", "domain")
+        react_domain = os.path.join(dest if is_react else repo_root, "src", "domain")
+        if os.path.isdir(flutter_domain) or os.path.isdir(react_domain):
+            print("NOTE: Domain directory found on disk — overriding no_domain config and enabling domain verification.")
+            args.no_domain = False
+
     try:
         _run_verification(args, dest, repo_root, is_flutter, is_react)
         print("Success: Build and test suite execution passed. Conformance gate verified.")
