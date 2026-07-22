@@ -45,7 +45,7 @@ class RegexSchemaParser(IParser):
 
         definitions = {}
         for pattern in patterns:
-            kw_match = re.search(r'\\b([a-zA-Z0-9_\-]+)\\s+', pattern)
+            kw_match = re.search(r'([a-zA-Z][a-zA-Z0-9_\-]*)', pattern[2:] if pattern[:2] == '\\b' else pattern)
             def_type = kw_match.group(1) if kw_match else "unknown"
             for match in re.finditer(pattern, content):
                 name = match.group(1)
