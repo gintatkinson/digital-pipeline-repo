@@ -435,6 +435,10 @@ class SceneViewState extends ChangeNotifier {
     List<TopologyNode> nodes = topoData?.nodes ?? [];
     List<TopologyLink> links = topoData?.links ?? [];
 
+    final Set<String> currentIds = nodes.map((n) => n.id).toSet();
+    nodeModels.removeWhere((id, _) => !currentIds.contains(id));
+    nodeElevationCache.removeWhere((key, _) => !currentIds.contains(key.$1));
+
     for (final node in nodes) {
       final String id = node.id;
       final String modelPath = (node.rawProperties['model_path'] ?? node.rawProperties['model'] ?? '').toString();
