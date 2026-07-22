@@ -60,6 +60,9 @@ classDiagram
 }
 ```
 
+### 2. Payload Schema
+- Uses WebGPU buffer layouts for geometry data transfer to GPU VRAM.
+
 ### 3. Visual Layout & Arrangement
 1. The canvas component initializes and obtains a WebGPU device context or Impeller graphics instance.
 2. Coordinates and edge structures for the entire network topology are loaded into local memory buffers.
