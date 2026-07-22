@@ -701,12 +701,23 @@ class UmlValidator(IValidator):
                     if m2:
                         choice_classes.add(m2.group(1))
             for cls_name, cls_info in classes.items():
+                matched_stereotype = False
                 for st in choice_stereotypes:
                     if st in cls_name:
-                        choice_classes.add(cls_name)
+                        matched_stereotype = True
+                        break
                     for attr in cls_info.attributes:
-                        if attr.raw and st in attr.raw:
-                            choice_classes.add(cls_name)
+                        if attr.raw and (f"<<{st}>>" in attr.raw or f"&lt;&lt;{st}&gt;&gt;" in attr.raw):
+                            matched_stereotype = True
+                            break
+                    for method in cls_info.methods:
+                        if method.raw and (f"<<{st}>>" in method.raw or f"&lt;&lt;{st}&gt;&gt;" in method.raw):
+                            matched_stereotype = True
+                            break
+                    if matched_stereotype:
+                        break
+                if matched_stereotype:
+                    choice_classes.add(cls_name)
                             
             for choice_cls in choice_classes:
                 has_subclass = False
