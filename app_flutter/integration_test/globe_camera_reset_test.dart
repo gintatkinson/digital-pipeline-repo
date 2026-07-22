@@ -125,14 +125,14 @@ void main() {
       final afterLng = _parseHudValue('Longitude', tester);
       final afterAlt = _parseHudValue('Altitude', tester);
 
-      expect(afterLat, closeTo(initialLat, 0.01),
-          reason: 'Latitude should NOT change after tree node tap. '
+      expect(afterLat, equals(initialLat),
+          reason: 'Latitude must be identical after tree node tap. '
               'Initial: $initialLat, After: $afterLat');
-      expect(afterLng, closeTo(initialLng, 0.01),
-          reason: 'Longitude should NOT change after tree node tap. '
+      expect(afterLng, equals(initialLng),
+          reason: 'Longitude must be identical after tree node tap. '
               'Initial: $initialLng, After: $afterLng');
-      expect(afterAlt, closeTo(initialAlt, 1.0),
-          reason: 'Altitude should NOT change after tree node tap. '
+      expect(afterAlt, equals(initialAlt),
+          reason: 'Altitude must be identical after tree node tap. '
               'Initial: $initialAlt, After: $afterAlt');
     });
   });
