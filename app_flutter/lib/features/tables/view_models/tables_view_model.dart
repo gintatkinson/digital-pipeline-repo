@@ -64,6 +64,10 @@ class TablesViewModel extends ChangeNotifier {
   StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
   Timer? _debounceTimer;
 
+  List<ColumnModel>? _prevVisibleHeaders;
+  Set<String>? _prevHiddenKeys;
+  List<ColumnModel>? _cachedVisibleModels;
+
   TablesViewModel(this._dataSource, this._activeView) {
     _setupPropertiesSubscription(_activeView);
   }
@@ -86,12 +90,22 @@ class TablesViewModel extends ChangeNotifier {
 
   Set<String>? get hiddenColumnKeys => _hiddenColumnKeys;
 
-  List<ColumnModel> get visibleColumnModels =>
-      (_hiddenColumnKeys == null || _hiddenColumnKeys!.isEmpty
-          ? _headers
-          : _headers.where((cm) => !_hiddenColumnKeys!.contains(cm.key)))
-          .where((cm) => cm.visible)
-          .toList();
+  List<ColumnModel> get visibleColumnModels {
+    if (identical(_prevVisibleHeaders, _headers) &&
+        identical(_prevHiddenKeys, _hiddenColumnKeys) &&
+        _cachedVisibleModels != null) {
+      return _cachedVisibleModels!;
+    }
+    _prevVisibleHeaders = _headers;
+    _prevHiddenKeys = _hiddenColumnKeys;
+    _cachedVisibleModels = (_hiddenColumnKeys == null ||
+            _hiddenColumnKeys!.isEmpty
+        ? _headers
+        : _headers.where((cm) => !_hiddenColumnKeys!.contains(cm.key)))
+        .where((cm) => cm.visible)
+        .toList();
+    return _cachedVisibleModels!;
+  }
 
   /// Column models for the currently selected tab.
   List<ColumnModel> get columnModels => _columnModels;
