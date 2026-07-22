@@ -74,7 +74,7 @@ def normalize_title(title, rules=None):
     # Strip quotes and leading/trailing whitespace
     title = title.strip().strip('"\'')
     # Strip common prefixes (e.g., epic-01:, feat-02:, us-03:, uc-04:, etc.)
-    regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
+    regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+(?:[-][-\w]+)*)?\s*[:\-]?\s*'
     title = re.sub(regex, '', title, flags=re.IGNORECASE)
     # Normalize hyphens to spaces to handle typographic variations
     title = title.replace("-", " ")
@@ -861,6 +861,11 @@ def main():
                 
                 norm = normalize_title(title, rules=rules)
                 issue_num = epic_titles.get(norm)
+                if not issue_num:
+                    meta = extract_metadata(filepath)
+                    fm_id = meta.get('issue_id')
+                    if fm_id and fm_id in issue_dict:
+                        issue_num = fm_id
                 if issue_num:
                     updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
@@ -889,6 +894,11 @@ def main():
                 
                 norm = normalize_title(title, rules=rules)
                 issue_num = feature_titles.get(norm)
+                if not issue_num:
+                    meta = extract_metadata(filepath)
+                    fm_id = meta.get('issue_id')
+                    if fm_id and fm_id in issue_dict:
+                        issue_num = fm_id
                 if issue_num:
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
@@ -909,6 +919,11 @@ def main():
                 
                 norm = normalize_title(title, rules=rules)
                 issue_num = story_titles.get(norm)
+                if not issue_num:
+                    meta = extract_metadata(filepath)
+                    fm_id = meta.get('issue_id')
+                    if fm_id and fm_id in issue_dict:
+                        issue_num = fm_id
                 if issue_num:
                     _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
@@ -937,6 +952,11 @@ def main():
                 
                 norm = normalize_title(title, rules=rules)
                 issue_num = usecase_titles.get(norm)
+                if not issue_num:
+                    meta = extract_metadata(filepath)
+                    fm_id = meta.get('issue_id')
+                    if fm_id and fm_id in issue_dict:
+                        issue_num = fm_id
                 if issue_num:
                     _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
