@@ -479,7 +479,7 @@ def test_mermaid_prose_dotted_link(tmp_path, base_config):
     features_dir = ws_dir / "docs" / "features"
     os.makedirs(features_dir, exist_ok=True)
     with open(features_dir / "feat-prose.md", "w", encoding="utf-8") as f:
-        f.write("# Feature: Prose\nPlease refer to this: A ..> B for description.\n\n## UML Diagrams\n```mermaid\nclassDiagram\n    class A\n    class B\n    A ..> B : dependency\n```\n")
+        f.write("# Feature: Prose\nPlease refer to this: A-.->|label|B for description.\n\n## UML Diagrams\n```mermaid\nclassDiagram\n    class A\n    class B\n    A ..> B : dependency\n```\n")
     from parity_auditor.validators.uml import UmlValidator
     validator = UmlValidator()
     errors = validator.validate(repo, epics_dir=str(ws_dir / "docs/epics"))
