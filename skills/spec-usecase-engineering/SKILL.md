@@ -26,7 +26,7 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
 
 ## Step 2: Isolated Use Case Modeling (Subagent Dispatch Loop)
 
-1. **Identify Use Cases:** Scan the specification architecture/deployment chapters and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). Compile the list of target Use Cases to be engineered.
+1. **Identify Use Cases:** Scan the specification architecture/deployment chapters and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). **1:1 Container-to-Use-Case Mapping Mandate:** Each distinct schema `container` or `choice`/`case` MUST be extracted into its own separate Use Case file. Do NOT consolidate multiple containers, choices, or cases into a single Use Case file. Compile the list of target Use Cases to be engineered.
 2. **Dispatch Use Case Subagent:** For each identified Use Case, invoke a **new, fresh subagent with an isolated context**. Pass ONLY the specific system interaction text, relevant User Stories, Feature specs, and the Use Case template. The subagent must have no visibility or knowledge of other Use Cases.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for system boundary subgraphs, external actors, and complete realization matrices.
@@ -62,6 +62,7 @@ title: "[Use Case Title]"
 type: "use-case"
 generation_mode: "subagent"
 spec_source: "[Spec Reference]"
+schema_containers: []
 ---
 
 # Use Case: [Title]
@@ -135,6 +136,8 @@ Normative Specification: [Normative Specification](link-to-specification)
 > **Mermaid Block Closing Constraints & Code Fence Integrity:**
 > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
 > - Ensure there are no stray backticks or unmatched code fences in the document.
+
+> **Container Traceability:** Every Use Case MUST declare its schema container in `schema_containers` with exactly one entry containing the container path and `node_type` (e.g. `- path: "module/ellipsoid", node_type: container`). Multi-container Use Cases are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
 
 
 ## Step 5: Zero-Fault Backlog Synchronization

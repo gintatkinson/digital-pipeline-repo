@@ -48,13 +48,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - For any candidate subtree node N, compute its **Structural Weight (SW)**:
      $$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L_{immediate}(C)$$
      where $L_{immediate}(X)$ is the count of leaf and leaf-list nodes directly under node X, excluding any nested list elements.
-   - If $SW(N) <= 20$ and has no nested lists, group all nodes under N into **1 Feature** — provided all child containers share the same functional domain and deployment context. Cross-domain sibling containers MUST be extracted as separate Features, one per container, even when $SW(N) <= 20$.
+   - **1:1 Container-to-Feature Mapping Mandate:** Every distinct schema `container` and `choice`/`case` MUST be extracted into its own separate Feature file. Do NOT consolidate multiple containers, choices, or cases into a single Feature file regardless of structural weight. Attributes within a single container may be grouped within that container's Feature file.
    - If $SW(N) > 20$ or has nested lists, partition it:
      - *Sibling lists*: Split each list into its own Feature.
      - *Nested lists*: Split nested lists with >= 5 leaves into child Features.
      - *Complex container*: Split the container by its immediate child containers.
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
-   - **Container Traceability**: Every Feature containing more than one top-level schema container MUST include a `schema_containers` list in its YAML frontmatter enumerating every container path and `node_type`, so that defect-to-invariant-to-test triage can isolate the container responsible for a failing acceptance criterion.
+   - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field with the container path and `node_type`. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
 2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass ONLY the schema nodes and properties for this specific feature group. The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
@@ -108,11 +108,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    interface_type: "ui" # Options: ui, api, m2m
    generation_mode: "subagent"
    labels: ["feature", "<domain-name>"]
-   schema_containers: []
+    schema_containers:
+      - path: "module/container-name"
+        node_type: container
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
-   > **Container Traceability:** When a Feature consolidates multiple schema containers, populate `schema_containers` with each container's path and node_type (e.g. `- path: "module/ellipsoid", node_type: container`). For single-container Features, leave the list empty. When `schema_containers` has more than one entry, every container MUST have at least one uniquely attributable Given-When-Then acceptance criterion.
+    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the container path and `node_type` (e.g. `- path: "module/ellipsoid", node_type: container`). Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ```markdown
