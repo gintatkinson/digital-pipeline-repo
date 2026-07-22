@@ -127,6 +127,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
 
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     pattern = tracker_rules.get("dependency_regex", r"(-\s*\[\s*([ xX])\s*\]\s*(#|#\[|\#\s*)?([A-Za-z0-9\-]+))")
+    PLACEHOLDER_PATTERN = re.compile(r'^(IssueID|EpicIssueID|StoryIssueID|FeatureIssueID|UseCaseIssueID|StoryID|N/A)\]?$')
     
     updated_content = content
     all_deps_closed = True
@@ -155,7 +156,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             continue
 
         # 2. Skip unresolved template placeholders
-        if dep_num_str in ("IssueID", "EpicIssueID", "StoryIssueID", "FeatureIssueID", "UseCaseIssueID", "StoryID", "N/A"):
+        if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
             continue
         has_deps = True
         dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
@@ -163,12 +164,11 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         
         if dep_issue is None:
             ref_str = format_issue_reference(dep_num, tracker_rules)
-            print(f"Error: Invalid dependency reference {ref_str} in {os.path.basename(filepath)}")
-            workspace_root = find_workspace_dir(filepath)
-            upstream_repo = get_upstream_repository(rules, workspace_root) if rules else "unknown"
-            troubleshooting = rules.get("meta", {}).get("troubleshooting_instruction", "Please report this issue to upstream repository {upstream_repo}") if rules else "Report to {upstream_repo}"
-            print(f"\n[!] {troubleshooting.format(upstream_repo=upstream_repo)}")
-            sys.exit(1)
+            if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
+                print(f"  [Deferred] Unresolved placeholder {ref_str} in {os.path.basename(filepath)} — skipping")
+                continue
+            print(f"  [Warning] Dependency {ref_str} not found in tracker for {os.path.basename(filepath)} — skipping item")
+            continue
             
         is_closed = (str(dep_issue[state_key]).upper() == closed_state)
         target_mark = 'x' if is_closed else ' '
