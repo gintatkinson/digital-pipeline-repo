@@ -34,10 +34,10 @@ classDiagram
 }
 ```
 
-### 3. Visual Layout & Arrangement
+### 3. Visual Layout and Arrangement
 - Renders zero codegen grid inside details tab view.
 
-### 1. Payload Schema
+### 2. Payload Schema
 Uses the output schema of the compiler (`logical-layout.json`) loaded dynamically at startup:
 ```json
 {
@@ -55,7 +55,7 @@ Uses the output schema of the compiler (`logical-layout.json`) loaded dynamicall
 }
 ```
 
-### 3. Logical Operations & Interface Messages
+### 4. Logical Operations & Interface Messages
 1. UI launches and loads the dynamic JSON layout schema mapping attributes.
 2. `PropertyGrid` is initialized with the attributes list and initial values map.
 3. `FormFieldFactory` walks the configuration list and instantiates form widgets depending on `type` (e.g., `Dropdown` for enum, `TextField` for string, `NumberField` for double/int).
