@@ -42,10 +42,18 @@ def _whitelist_infrastructure(repo_root):
 
     print(f"Appended {len(patterns)} whitelist entr{'y' if len(patterns)==1 else 'ies'} to .gitignore")
 
-    subprocess.run(
+    git_dir = os.path.join(repo_root, ".git")
+    if not os.path.isdir(git_dir) or not os.path.isfile(os.path.join(git_dir, "HEAD")):
+        print("Warning: not a git repository — skipping git add staging", file=sys.stderr)
+        return
+
+    result = subprocess.run(
         ["git", "add"] + STAGE_DIRS,
         capture_output=True, cwd=repo_root
     )
+    if result.returncode != 0:
+        print(f"Error: git add failed: {result.stderr.decode().strip()}", file=sys.stderr)
+        sys.exit(1)
     print("Staged pipeline infrastructure directories")
 
 
@@ -59,18 +67,21 @@ def setup_git_hooks():
         sys.exit(1)
         
     hooks_dir = os.path.join(git_dir, "hooks")
-    pre_commit_path = os.path.join(hooks_dir, "pre-commit")
-    pre_push_path = os.path.join(hooks_dir, "pre-push")
-    
-    for path in [pre_commit_path, pre_push_path]:
+    errored = False
+
+    for path in [os.path.join(hooks_dir, name) for name in ("pre-commit", "pre-push")]:
         if os.path.exists(path):
             try:
                 os.remove(path)
                 print(f"Successfully removed Git hook: {path}")
             except Exception as e:
                 print(f"Error removing Git hook {path}: {e}", file=sys.stderr)
+                errored = True
         else:
             print(f"Git hook not present: {path}")
+
+    if errored:
+        sys.exit(1)
 
     _whitelist_infrastructure(repo_root)
 

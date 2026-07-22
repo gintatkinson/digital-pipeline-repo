@@ -60,3 +60,38 @@ def test_pipeline_dirs_staged_after_setup(tmp_path):
     for d in [".pipeline", ".agents", "skills", "rules", "scripts"]:
         found = any(f.startswith(d + "/") or f == d for f in staged_files)
         assert found, f"Directory not staged: {d}"
+
+
+def test_hooks_removed_by_setup(tmp_path):
+    script = _make_repo(tmp_path, init_git=False)
+    hooks_dir = tmp_path / ".git" / "hooks"
+
+    pre_commit = hooks_dir / "pre-commit"
+    pre_push = hooks_dir / "pre-push"
+    for hook in [pre_commit, pre_push]:
+        hook.write_text("#!/bin/sh\necho 'heavy build'\n")
+        os.chmod(str(hook), 0o755)
+
+    result = _run_script(script, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    assert not pre_commit.exists(), "pre-commit hook was not removed"
+    assert not pre_push.exists(), "pre-push hook was not removed"
+
+
+def test_exits_nonzero_on_hook_removal_failure(tmp_path):
+    script = _make_repo(tmp_path, init_git=False)
+    hooks_dir = tmp_path / ".git" / "hooks"
+
+    pre_push = hooks_dir / "pre-push"
+    pre_push.write_text("#!/bin/sh\necho 'heavy build'\n")
+    os.chmod(str(pre_push), 0o755)
+
+    hooks_dir.chmod(0o500)
+
+    result = _run_script(script, tmp_path)
+    assert result.returncode != 0, (
+        f"Expected non-zero exit when hook removal fails, got {result.returncode}"
+    )
+
+    hooks_dir.chmod(0o700)
