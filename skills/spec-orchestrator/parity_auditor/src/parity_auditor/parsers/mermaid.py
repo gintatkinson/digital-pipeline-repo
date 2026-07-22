@@ -192,10 +192,9 @@ class MermaidClassDiagramParser(IParser):
     def _sanitize_rel_connectors(rel_connectors: str) -> str:
         inner = rel_connectors[1:-1] if rel_connectors.startswith('(') else rel_connectors
         if inner == rel_connectors:
-            parts = [inner]
+            parts = [re.escape(inner)]
         else:
-            parts = [p.strip() for p in inner.split('|') if p.strip()]
-        parts = [r'\.\.>' if p == '..>' else p for p in parts]
+            parts = [re.escape(p.strip()) for p in inner.split('|') if p.strip()]
         if r'\.\.>' not in parts:
             parts.append(r'\.\.>')
         parts.sort(key=len, reverse=True)
