@@ -216,12 +216,6 @@ class MermaidClassDiagramParser(IParser):
                 visibility = vis_match.group(1)
                 sig = vis_match.group(2).strip()
                 
-            multiplicity = None
-            mult_match = re.search(r'\[([^\]]+)\]', sig)
-            if mult_match:
-                multiplicity = mult_match.group(1).strip()
-                sig = re.sub(r'\[([^\]]+)\]', '', sig).strip()
-                
             name = sig
             attr_type = None
             if ':' in sig:
@@ -233,6 +227,12 @@ class MermaidClassDiagramParser(IParser):
                 if len(parts) > 1:
                     name = parts[-1].strip()
                     attr_type = ' '.join(parts[:-1]).strip()
+                    
+            multiplicity = None
+            mult_match = re.search(r'\[([^\]]+)\]$', name)
+            if mult_match:
+                multiplicity = mult_match.group(1).strip()
+                name = re.sub(r'\[([^\]]+)\]$', '', name).strip()
                     
             return ClassAttribute(
                 visibility=visibility,
