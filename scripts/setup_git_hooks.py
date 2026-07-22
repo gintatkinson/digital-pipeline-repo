@@ -21,6 +21,11 @@ def _whitelist_infrastructure(repo_root):
         print(f"Warning: .gitignore not found at {gitignore_path}", file=sys.stderr)
         return
 
+    git_dir = os.path.join(repo_root, ".git")
+    if not os.path.isdir(git_dir) or not os.path.isfile(os.path.join(git_dir, "HEAD")):
+        print("Warning: not a git repository — skipping whitelist modifications", file=sys.stderr)
+        return
+
     with open(gitignore_path, "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -41,11 +46,6 @@ def _whitelist_infrastructure(repo_root):
             f.write(f"{p}\n")
 
     print(f"Appended {len(patterns)} whitelist entr{'y' if len(patterns)==1 else 'ies'} to .gitignore")
-
-    git_dir = os.path.join(repo_root, ".git")
-    if not os.path.isdir(git_dir) or not os.path.isfile(os.path.join(git_dir, "HEAD")):
-        print("Warning: not a git repository — skipping git add staging", file=sys.stderr)
-        return
 
     result = subprocess.run(
         ["git", "add"] + STAGE_DIRS,
