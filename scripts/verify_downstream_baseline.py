@@ -184,9 +184,10 @@ def _validate_domain_types(dest, repo_root, ext, domain_subpath):
         with open(sf, "r", encoding="utf-8") as f:
             combined += f.read() + "\n"
     if ext == "dart":
-        pattern = r"\bclass\s+({})\b".format("|".join(re.escape(c) for c in mandated))
+        type_keywords = r"(?:class|mixin|enum|extension\s+type|sealed\s+class)"
+        pattern = r"\b" + type_keywords + r"\s+({})\b".format("|".join(re.escape(c) for c in mandated))
     else:
-        pattern = r"\b(?:interface|class)\s+({})\b".format("|".join(re.escape(c) for c in mandated))
+        pattern = r"\b(?:interface|class|type)\s+({})\b".format("|".join(re.escape(c) for c in mandated))
     found = set(re.findall(pattern, combined, re.MULTILINE))
     missing = set(mandated) - found
     if missing:
