@@ -422,7 +422,7 @@ def _main_impl():
             cls_variants = get_variants(cls_name)
             cls_found = False
             for content in codebase_contents:
-                if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in cls_variants):
+                if any(re.search(r'\b' + re.escape(v) + r'\b', strip_comments_and_strings(content)) for v in cls_variants):
                     cls_found = True
                     break
             
