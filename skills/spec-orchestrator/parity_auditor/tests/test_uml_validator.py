@@ -25,7 +25,7 @@ def _setup_workspace(class_diagram_body):
             "visibility_prefixes": ["+", "-", "#", "~"],
             "multiplicity_regex": "\\[[^\\]]+\\]",
             "uml_primitives": ["String", "Integer", "Real", "Boolean"],
-            "relationship_connectors": "(<\\|--|\\*--|o--|-->|..>|--)",
+            "relationship_connectors": "(<\\|--|\\*--|o--|-->|\\.\\.>|--)",
             "choice_stereotypes": ["<<choice>>"],
             "required_sections": {
                 "feature_ui": [
@@ -237,7 +237,7 @@ def test_sanitize_rel_connectors_adds_missing_dot_right_arrow():
     """Issue #98: _sanitize_rel_connectors must add ..> when missing from config."""
     from parity_auditor.parsers.mermaid import MermaidClassDiagramParser
     result = MermaidClassDiagramParser._sanitize_rel_connectors("(--|-->)")
-    assert "..>" in result, f"..> should have been added, got: {result}"
+    assert r"\.\.>" in result, f"..> should have been added, got: {result}"
 
 
 def test_sanitize_rel_connectors_sorts_longest_first():

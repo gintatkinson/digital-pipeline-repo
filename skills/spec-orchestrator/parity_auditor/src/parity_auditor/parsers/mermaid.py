@@ -195,8 +195,9 @@ class MermaidClassDiagramParser(IParser):
             parts = [inner]
         else:
             parts = [p.strip() for p in inner.split('|') if p.strip()]
-        if '..>' not in parts:
-            parts.append('..>')
+        parts = [r'\.\.>' if p == '..>' else p for p in parts]
+        if r'\.\.>' not in parts:
+            parts.append(r'\.\.>')
         parts.sort(key=len, reverse=True)
         return '(' + '|'.join(parts) + ')'
 

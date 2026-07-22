@@ -83,7 +83,7 @@
     "uml_primitives": ["String", "Integer", "Real", "Boolean", "Decimal64"],
     "visibility_prefixes": ["+", "-", "#", "~"],
     "playhead_rate_limits": [0.90, 1.10],
-    "relationship_connectors": "(<\\|--|\\*--|o--|-->|..>|--)",
+    "relationship_connectors": "(<\\|--|\\*--|o--|-->|\\.\\.>|--)",
     "choice_stereotypes": ["<<choice>>"],
     "sequence_replies": ["-->"],
     "fragment_keywords": ["alt", "loop", "opt", "par", "critical", "else", "option"],
