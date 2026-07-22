@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import argparse
+import fcntl
+import glob
 import os
 import subprocess
 import sys
 import json
 import tempfile
+import time
 
 def main():
     repo_root = "/Users/perkunas/jail/digital-pipeline-repo"
@@ -15,15 +18,31 @@ def main():
     if os.path.exists(benchmark_path):
         os.remove(benchmark_path)
     
-    # Clean up stale XCBuildData to avoid "database is locked" from prior builds
-    import glob
+    # Clean up stale XCBuildData to avoid "database is locked" from prior builds.
+    # Use an advisory lock for mutual exclusion with concurrent builds and retry
+    # with backoff for transient locks from closing Xcode processes.
     xcbuild_data_dir = os.path.join(app_flutter_dir, "build", "macos", "Build", "Intermediates.noindex", "XCBuildData")
-    if os.path.isdir(xcbuild_data_dir):
-        for entry in glob.glob(os.path.join(xcbuild_data_dir, "build.db*")):
-            try:
-                os.remove(entry)
-            except OSError:
-                pass
+    lockfile = os.path.join(app_flutter_dir, "build", "macos", ".audit.lock")
+
+    os.makedirs(os.path.dirname(lockfile), exist_ok=True)
+    with open(lockfile, 'w') as lf:
+        try:
+            fcntl.flock(lf.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print("Another audit or build is active. Exiting.")
+            sys.exit(0)
+
+        if os.path.isdir(xcbuild_data_dir):
+            for entry in glob.glob(os.path.join(xcbuild_data_dir, "build.db*")):
+                for attempt in range(5):
+                    try:
+                        os.remove(entry)
+                        break
+                    except OSError:
+                        time.sleep(1)
+                else:
+                    print(f"ERROR: Could not delete {entry} after 5 attempts; a build process may be active.")
+                    sys.exit(1)
 
     print("Running integration tests...")
     # Run the test command
