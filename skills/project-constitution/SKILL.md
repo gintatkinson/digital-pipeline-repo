@@ -207,13 +207,20 @@ last_updated: "[ISO Date]"
 
 ### Step 6: Commit & Reference
 
-1. Commit all constitution documents:
+1. Commit and push all constitution documents:
    ```bash
    git add .pipeline/
    git commit -m "docs: establish project constitution (functional + implementation profiles)"
+   git push
    ```
 
-2. Ensure the project's `AGENTS.md` (or equivalent) references the constitution:
+2. Verify that the remote repository contains the committed constitution file:
+   ```bash
+   gh api repos/$OWNER/$REPO/contents/.pipeline/constitution.md --jq '.name'
+   ```
+   If this command fails or returns empty, the subagent MUST halt and inform the user that the bootstrap commit was not pushed.
+
+3. Ensure the project's `AGENTS.md` (or equivalent) references the constitution:
    ```markdown
    **CRITICAL: Read `.pipeline/constitution.md` before any task execution.**
    **For implementation tasks, also read `.pipeline/profiles/<platform>.md`.**

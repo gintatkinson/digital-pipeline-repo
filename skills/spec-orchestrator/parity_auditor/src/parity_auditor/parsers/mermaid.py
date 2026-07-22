@@ -18,6 +18,7 @@ class MermaidFlowchartParser(IParser):
         connections = []
         subgraphs = {}
         subgraph_stack = []
+        parse_errors = []
 
         def extract_node_from_part(part):
             part = part.strip()
@@ -175,13 +176,30 @@ class MermaidFlowchartParser(IParser):
                         current_sub = subgraph_stack[-1]
                         if node_id not in subgraphs[current_sub].nodes:
                             subgraphs[current_sub].nodes.append(node_id)
+                elif node_id:
+                    parse_errors.append(f"Unparseable line: unrecognized shape for node '{node_id}' — '{line.strip()}'")
+                else:
+                    parse_errors.append(f"Unparseable line: not a connection or node — '{line.strip()}'")
 
-        return ParsedFlowchart(nodes=nodes, connections=connections, subgraphs=subgraphs)
+        return ParsedFlowchart(nodes=nodes, connections=connections, subgraphs=subgraphs, parse_errors=parse_errors)
 
 
 class MermaidClassDiagramParser(IParser):
     def __init__(self, workspace_repo: WorkspaceRepository):
         self.workspace_repo = workspace_repo
+
+    @staticmethod
+    def _sanitize_rel_connectors(rel_connectors: str) -> str:
+        inner = rel_connectors[1:-1] if rel_connectors.startswith('(') else rel_connectors
+        if inner == rel_connectors:
+            parts = [inner]
+        else:
+            parts = [p.strip() for p in inner.split('|') if p.strip()]
+        parts = [r'\.\.>' if p == '..>' else p for p in parts]
+        if r'\.\.>' not in parts:
+            parts.append(r'\.\.>')
+        parts.sort(key=len, reverse=True)
+        return '(' + '|'.join(parts) + ')'
 
     def can_parse(self, mermaid_code: str) -> bool:
         return "classdiagram" in mermaid_code.strip().lower()
@@ -201,6 +219,7 @@ class MermaidClassDiagramParser(IParser):
         rel_connectors = val_rules.relationship_connectors
         if not rel_connectors.startswith('('):
             rel_connectors = f"({rel_connectors})"
+        rel_connectors = self._sanitize_rel_connectors(rel_connectors)
 
         def parse_attribute_signature(sig):
             sig = sig.strip()
@@ -216,12 +235,6 @@ class MermaidClassDiagramParser(IParser):
                 visibility = vis_match.group(1)
                 sig = vis_match.group(2).strip()
                 
-            multiplicity = None
-            mult_match = re.search(r'\[([^\]]+)\]', sig)
-            if mult_match:
-                multiplicity = mult_match.group(1).strip()
-                sig = re.sub(r'\[([^\]]+)\]', '', sig).strip()
-                
             name = sig
             attr_type = None
             if ':' in sig:
@@ -233,6 +246,12 @@ class MermaidClassDiagramParser(IParser):
                 if len(parts) > 1:
                     name = parts[-1].strip()
                     attr_type = ' '.join(parts[:-1]).strip()
+                    
+            multiplicity = None
+            mult_match = re.search(r'\[([^\]]+)\]$', name)
+            if mult_match:
+                multiplicity = mult_match.group(1).strip()
+                name = re.sub(r'\[([^\]]+)\]$', '', name).strip()
                     
             return ClassAttribute(
                 visibility=visibility,
@@ -427,6 +446,7 @@ class MermaidSequenceDiagramParser(IParser):
         messages = []
         fragments = []
         fragment_stack = []
+        parse_errors = []
 
         def parse_lifeline_label(label):
             if not label:
@@ -606,5 +626,7 @@ class MermaidSequenceDiagramParser(IParser):
                 if fragment_stack:
                     fragment_stack[-1].branches[-1].messages.append(msg_record)
                 continue
+            else:
+                parse_errors.append(f"Unparseable line: not a valid sequence diagram element — '{line.strip()}'")
 
-        return ParsedSequenceDiagram(lifelines=lifelines, messages=messages, fragments=fragments)
+        return ParsedSequenceDiagram(lifelines=lifelines, messages=messages, fragments=fragments, parse_errors=parse_errors)

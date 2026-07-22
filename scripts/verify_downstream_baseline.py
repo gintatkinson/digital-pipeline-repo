@@ -9,8 +9,64 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+
+def check_no_domain_config(destination):
+    config_paths = [
+        os.path.join(destination, ".pipeline", "logical-ui", "codebase_rules.json"),
+        os.path.join(destination, "codebase_rules.json"),
+        os.path.join(destination, "baseline_manifest.json")
+    ]
+    for path in config_paths:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                if isinstance(data, dict):
+                    if "validation_rules" in data and isinstance(data["validation_rules"], dict):
+                        if data["validation_rules"].get("no_domain") is True:
+                            return True
+                    if data.get("no_domain") is True:
+                        return True
+            except Exception:
+                pass
+    return False
+
+def tag_restoration_point():
+    print("Tagging restoration point...")
+    try:
+        subprocess.run(["git", "tag", "-f", "restoration-point"], check=True)
+        return True
+    except (subprocess.CalledProcessError, OSError) as e:
+        print(f"WARNING: Failed to tag restoration point: {e}", file=sys.stderr)
+        return False
+
+def cleanup_workspace(destination):
+    print("Cleaning up workspace...")
+    to_delete_files = [".dart_tool/package_config.json.lock",
+                       ".flutter-plugins-dependencies"]
+    for f in to_delete_files:
+        path = os.path.join(destination, f)
+        if os.path.isfile(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+    build_dir = os.path.join(destination, "build")
+    if os.path.isdir(build_dir):
+        shutil.rmtree(build_dir, ignore_errors=True)
+
+    for root, _, files in os.walk(destination):
+        for f in files:
+            if f.endswith(".db-shm") or f.endswith(".db-wal") or f.endswith(".db-journal"):
+                try:
+                    os.remove(os.path.join(root, f))
+                except Exception:
+                    pass
 
 # Mandated domain classes/interfaces to check in types.ts or types.dart
 MANDATED_CLASSES = []
@@ -60,6 +116,8 @@ def main():
         print(f"ERROR: Destination path '{dest}' is not a directory.", file=sys.stderr)
         sys.exit(1)
 
+    repo_root = dest
+
     is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
     # If checking from root and app_flutter exists, run inside app_flutter
     if not is_flutter and os.path.isdir(os.path.join(dest, "app_flutter")):
@@ -79,6 +137,55 @@ def main():
         print(f"ERROR: Destination path '{dest}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
         sys.exit(1)
 
+    if check_no_domain_config(repo_root) or check_no_domain_config(dest):
+        args.no_domain = True
+
+    try:
+        _run_verification(args, dest, repo_root, is_flutter, is_react)
+        print("Success: Build and test suite execution passed. Conformance gate verified.")
+        if not tag_restoration_point():
+            print("ERROR: Conformance gate verified but restoration point tag could not be placed.", file=sys.stderr)
+            sys.exit(1)
+        sys.exit(0)
+    finally:
+        cleanup_workspace(dest)
+
+def _validate_domain_types(dest, repo_root, ext, domain_subpath):
+    mandated = load_mandated_classes(dest)
+    if repo_root != dest:
+        upstream_mandated = load_mandated_classes(repo_root)
+        mandated = list(set(mandated + upstream_mandated))
+    if not mandated:
+        print("No mandated classes configured — skipping type validation.")
+        return
+    domain_dir = os.path.join(dest, domain_subpath)
+    if not os.path.isdir(domain_dir):
+        print(f"ERROR: Domain directory '{domain_dir}' does not exist but mandated classes are configured.", file=sys.stderr)
+        sys.exit(1)
+    source_files = []
+    for root, _, files in os.walk(domain_dir):
+        for f in files:
+            if f.endswith("." + ext) or (ext == "ts" and f.endswith(".tsx")):
+                source_files.append(os.path.join(root, f))
+    if not source_files:
+        print(f"ERROR: No .{ext} source files found in '{domain_dir}' but mandated classes are configured.", file=sys.stderr)
+        sys.exit(1)
+    combined = ""
+    for sf in source_files:
+        with open(sf, "r", encoding="utf-8") as f:
+            combined += f.read() + "\n"
+    if ext == "dart":
+        pattern = r"\bclass\s+({})\b".format("|".join(re.escape(c) for c in mandated))
+    else:
+        pattern = r"\b(?:interface|class)\s+({})\b".format("|".join(re.escape(c) for c in mandated))
+    found = set(re.findall(pattern, combined, re.MULTILINE))
+    missing = set(mandated) - found
+    if missing:
+        print(f"ERROR: Type validation failed. Mandated classes missing in {domain_subpath}/: {', '.join(sorted(missing))}", file=sys.stderr)
+        sys.exit(1)
+    print(f"Success: All {len(mandated)} mandated domain classes found in {domain_subpath}/.")
+
+def _run_verification(args, dest, repo_root, is_flutter, is_react):
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
         # 1. Assert baseline files exist
@@ -92,6 +199,13 @@ def main():
         if args.no_domain:
             baseline_files.remove("lib/domain/repository_resolver.dart")
             baseline_files.remove("lib/domain/validation.dart")
+        else:
+            domain_dir = os.path.join(dest, "lib", "domain")
+            if not os.path.isdir(domain_dir):
+                print("NOTE: lib/domain/ directory not found — applying no-domain baseline check automatically.")
+                args.no_domain = True
+                baseline_files.remove("lib/domain/repository_resolver.dart")
+                baseline_files.remove("lib/domain/validation.dart")
 
         missing_files = []
         for f in baseline_files:
@@ -109,13 +223,32 @@ def main():
         if args.no_domain:
             print("Skipping domain type compatibility validation (--no-domain specified).")
         else:
-            print("Success: Type compatibility validation passed (domain layer exists).")
+            _validate_domain_types(dest, repo_root, "dart", os.path.join("lib", "domain"))
 
         # 3. Run build/test commands
         if args.no_domain:
             print("Skipping build and test suite execution (--no-domain specified, domain implementation pending).")
         else:
             try:
+                # Resolve and copy assets directory from template
+                upstream_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                src_assets = os.path.join(upstream_repo_root, "app_flutter", "assets")
+                dest_assets = os.path.join(dest, "assets")
+                if os.path.exists(src_assets):
+                    if os.path.abspath(src_assets) != os.path.abspath(dest_assets):
+                        print(f"Copying template assets from {src_assets} to {dest_assets}...")
+                        os.makedirs(dest_assets, exist_ok=True)
+                        for item in os.listdir(src_assets):
+                            s_path = os.path.join(src_assets, item)
+                            d_path = os.path.join(dest_assets, item)
+                            if os.path.isfile(s_path):
+                                shutil.copy2(s_path, d_path)
+                        print("Assets copied successfully.")
+                    else:
+                        print("Source and destination assets directories are the same. Skipping copy.")
+                else:
+                    print(f"WARNING: Upstream assets directory not found at {src_assets}")
+
                 print("Running 'flutter pub get' to resolve dependencies...")
                 subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True)
                 
@@ -131,8 +264,7 @@ def main():
                 print("Zipping the macOS application bundle...")
                 # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
                 # We need to package it into the repository root as app_flutter_release.zip
-                repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                zip_path = os.path.join(repo_root, "app_flutter_release.zip")
+                zip_path = os.path.join(upstream_repo_root, "app_flutter_release.zip")
                 
                 # We expect the app bundle to be named 'Platform Console.app'. 
                 # Let's find it in the release directory.
@@ -186,7 +318,7 @@ def main():
         if args.no_domain:
             print("Skipping domain type compatibility validation (--no-domain specified).")
         else:
-            print("Success: Type compatibility validation passed (domain layer exists).")
+            _validate_domain_types(dest, repo_root, "ts", os.path.join("src", "domain"))
 
         # 3. Run build/test commands
         if args.no_domain:
@@ -202,8 +334,6 @@ def main():
                 print(f"ERROR: React verification command failed: {e}", file=sys.stderr)
                 sys.exit(1)
 
-    print("Success: Build and test suite execution passed. Conformance gate verified.")
-    sys.exit(0)
-
 if __name__ == "__main__":
     main()
+

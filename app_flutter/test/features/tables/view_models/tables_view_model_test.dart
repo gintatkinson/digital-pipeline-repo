@@ -585,4 +585,30 @@ void main() {
       expect(viewModel.visibleColumnModels.any((c) => c.key == hiddenKey), isFalse);
     });
   });
+
+  group('TablesViewModel loadForNode error handling', () {
+    late _MockDataSource dataSource;
+    late TablesViewModel viewModel;
+
+    setUp(() {
+      dataSource = _MockDataSource();
+      viewModel = TablesViewModel(dataSource, 'test');
+    });
+
+    test('loadForNode resets loading to false and notifies listeners when type descriptor is null', () async {
+      dataSource.onTypeFor = (typeName) async => null;
+
+      bool notified = false;
+      viewModel.addListener(() {
+        if (!viewModel.loading) {
+          notified = true;
+        }
+      });
+
+      await viewModel.loadForNode('unknown-node');
+
+      expect(viewModel.loading, isFalse);
+      expect(notified, isTrue);
+    });
+  });
 }

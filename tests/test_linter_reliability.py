@@ -479,7 +479,7 @@ def test_mermaid_prose_dotted_link(tmp_path, base_config):
     features_dir = ws_dir / "docs" / "features"
     os.makedirs(features_dir, exist_ok=True)
     with open(features_dir / "feat-prose.md", "w", encoding="utf-8") as f:
-        f.write("# Feature: Prose\nPlease refer to this: A ..> B for description.\n\n## UML Diagrams\n```mermaid\nclassDiagram\n    class A\n    class B\n    A ..> B : dependency\n```\n")
+        f.write("# Feature: Prose\nPlease refer to this: A-.->|label|B for description.\n\n## UML Diagrams\n```mermaid\nclassDiagram\n    class A\n    class B\n    A ..> B : dependency\n```\n")
     from parity_auditor.validators.uml import UmlValidator
     validator = UmlValidator()
     errors = validator.validate(repo, epics_dir=str(ws_dir / "docs/epics"))
@@ -488,4 +488,163 @@ def test_mermaid_prose_dotted_link(tmp_path, base_config):
 
 
 
+def test_epic_only_uml_validation(tmp_path, base_config):
+    ws_dir = setup_workspace(tmp_path, base_config)
+    os.makedirs(ws_dir / "docs" / "epics", exist_ok=True)
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    
+    with open(ws_dir / "docs" / "epics" / "epic_invalid.md", "w", encoding="utf-8") as f:
+        f.write("""---
+generation_mode: subagent
+title: "Invalid Epic"
+type: "epic"
+---
+# Invalid Epic
+
+## 1. Executive Summary
+## 2. Requirements & Checklist
+## 3. UML Diagrams
+```mermaid
+classDiagram
+    class InvalidClass {
+        +String myAttr { invalid }
+    }
+```
+""")
+
+    old_cwd = os.getcwd()
+    os.chdir(ws_dir)
+    old_argv = sys.argv
+    sys.argv = ["parity-auditor", "--spec-only", "--allow-missing-specs"]
+    
+    try:
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code != 0
+    finally:
+        sys.argv = old_argv
+        os.chdir(old_cwd)
+
+
+def test_reconcile_epic_checklist_preserves_custom_content(tmp_path, base_config):
+    ws_dir = tmp_path / "workspace"
+    config = base_config.copy()
+    config["tracker_rules"] = {
+        "numeric_prefix": "#",
+        "issue_id_placeholder": "#[IssueID]"
+    }
+    
+    os.makedirs(ws_dir / ".pipeline" / "logical-ui", exist_ok=True)
+    with open(ws_dir / ".pipeline" / "logical-ui" / "codebase_rules.json", "w", encoding="utf-8") as f:
+        json.dump(config, f)
+        
+    os.makedirs(ws_dir / "docs" / "epics", exist_ok=True)
+    epic_path = ws_dir / "docs" / "epics" / "epic-01-sample.md"
+    
+    initial_content = """---
+generation_mode: subagent
+title: "Epic 1: Sample Epic"
+type: "epic"
+---
+# Epic 1: Sample Epic
+
+## 1. Executive Summary
+Some summary here.
+
+## 2. Requirements & Checklist
+
+#### Associated Use Cases
+- [ ] #[IssueID] - [Use Case 1: First Usecase](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/use-cases/uc-01.md) (justification)
+
+#### Associated User Stories
+- [ ] #[IssueID] - [User Story 1: First Story](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-01.md) (justification)
+
+### Custom Heading
+This is custom content between the end of the user stories checklist and the next H2 header.
+- A custom list item that must be preserved.
+
+## 3. Architecture
+Some architecture notes.
+"""
+    with open(epic_path, "w", encoding="utf-8") as f:
+        f.write(initial_content)
+        
+    if str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))) not in sys.path:
+        sys.path.insert(0, str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))))
+    import reconcile_backlog
+    
+    epic_titles = {"epic 1: sample epic": 100}
+    feature_titles = {}
+    story_titles = {"first story": 101, "second story": 102}
+    usecase_titles = {"first usecase": 103}
+    
+    child_features = []
+    child_stories = [("us-01", "User Story 1: First Story"), ("us-02", "User Story 2: Second Story")]
+    child_usecases = [("uc-01", "Use Case 1: First Usecase")]
+    
+    reconcile_backlog.reconcile_epic_checklists(
+        str(epic_path),
+        child_features,
+        child_stories,
+        child_usecases,
+        epic_titles,
+        feature_titles,
+        story_titles,
+        usecase_titles,
+        config
+    )
+    
+    with open(epic_path, "r", encoding="utf-8") as f:
+        updated_content = f.read()
+        
+    # Check that the custom content is completely preserved
+    assert "### Custom Heading" in updated_content
+    assert "This is custom content between the end of the user stories checklist and the next H2 header." in updated_content
+    assert "- A custom list item that must be preserved." in updated_content
+    
+    # Verify that the checklist was updated correctly
+    assert "us-02" in updated_content
+    assert "#102" in updated_content
+    assert "## 3. Architecture" in updated_content
+
+
+def test_reconcile_backlog_frontmatter_resolution_variations(tmp_path, base_config):
+    ws_dir = tmp_path / "workspace"
+    os.makedirs(ws_dir / ".pipeline" / "logical-ui", exist_ok=True)
+    with open(ws_dir / ".pipeline" / "logical-ui" / "codebase_rules.json", "w", encoding="utf-8") as f:
+        json.dump(base_config, f)
+        
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    
+    variations = [
+        ("issue-id: #[IssueID]", "issue-id: #42"),
+        ("issueid: #[IssueID]", "issueid: #42"),
+        ("Issue-Id: #[IssueID]", "Issue-Id: #42"),
+        ("issue_id: #[IssueID]", "issue_id: #42"),
+    ]
+    
+    if str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))) not in sys.path:
+        sys.path.insert(0, str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))))
+    import reconcile_backlog
+    
+    feature_titles = {"geolocation": 42}
+    
+    for idx, (line_variation, expected_line) in enumerate(variations):
+        feat_path = ws_dir / "docs" / "features" / f"feat-{idx}-geo.md"
+        with open(feat_path, "w", encoding="utf-8") as f:
+            f.write(f"---\ntitle: \"Feature 1: Geolocation\"\n{line_variation}\n---\n# Feature 1: Geolocation\n")
+            
+        reconcile_backlog.resolve_issue_ids_in_file(
+            str(feat_path),
+            epic_titles={},
+            feature_titles=feature_titles,
+            story_titles={},
+            usecase_titles={},
+            rules=base_config
+        )
+        
+        with open(feat_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        assert expected_line in content, f"Expected '{expected_line}' to be in resolved content, but got:\n{content}"
 

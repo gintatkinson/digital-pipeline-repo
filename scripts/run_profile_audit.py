@@ -15,6 +15,16 @@ def main():
     if os.path.exists(benchmark_path):
         os.remove(benchmark_path)
     
+    # Clean up stale XCBuildData to avoid "database is locked" from prior builds
+    import glob
+    xcbuild_data_dir = os.path.join(app_flutter_dir, "build", "macos", "Build", "Intermediates.noindex", "XCBuildData")
+    if os.path.isdir(xcbuild_data_dir):
+        for entry in glob.glob(os.path.join(xcbuild_data_dir, "build.db*")):
+            try:
+                os.remove(entry)
+            except OSError:
+                pass
+
     print("Running integration tests...")
     # Run the test command
     cmd = ["flutter", "test", "integration_test/node_iteration_test.dart", "-d", "macos"]

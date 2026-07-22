@@ -26,7 +26,9 @@ from .validators.schema_mapping_validator import SchemaMappingValidator
 from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
 from .validators.logical_ui_validator import LogicalUiValidator
+from .validators.cardinality_validator import SchemaCardinalityValidator
 from .utils.diagnostics import serialize_diagnostics
+from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
 def get_open_feature_issues() -> list:
     """
@@ -81,6 +83,26 @@ def parse_ignore_issues(ignore_str: str) -> set:
                 pass
     return ignored
 
+
+def _extract_issue_id_from_frontmatter(fm_text: str, issue_number: int) -> bool:
+    try:
+        import yaml
+        data = yaml.safe_load(fm_text)
+        if isinstance(data, dict):
+            val = data.get("issue_id")
+            if val is not None and int(val) == issue_number:
+                return True
+    except Exception:
+        pass
+    try:
+        m = re.search(r'(?:^|\n)\s*issue_id\s*:\s*(\d+)', fm_text)
+        if m and int(m.group(1)) == issue_number:
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def _main_impl():
     """
     Orchestrate the full parity audit pipeline.
@@ -101,7 +123,8 @@ def _main_impl():
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
     parser.add_argument("--spec-only", action="store_true", help="Run in specification-only mode, bypassing codebase checks")
-    parser.add_argument("--allow-missing-specs", action="store_true", help="Skip exiting with status code 1 when there are missing specification files")
+    parser.add_argument("--allow-missing-specs", action="store_true", default=True, help="Skip exiting with status code 1 when there are missing specification files")
+    parser.add_argument("--no-allow-missing-specs", dest="allow_missing_specs", action="store_false", help="Exit with error code when specification files are missing (strict mode)")
     parser.add_argument("--ignore-issues", help="Comma-separated list of issue numbers or ranges to ignore (e.g., 14,16-18)")
     
     args = parser.parse_args()
@@ -254,24 +277,10 @@ def _main_impl():
             # Try to extract YAML frontmatter and check issue_id
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
             if frontmatter_match:
-                try:
-                    import yaml
-                    data = yaml.safe_load(frontmatter_match.group(1))
-                    if isinstance(data, dict):
-                        val = data.get("issue_id")
-                        if val is not None and int(val) == issue_number:
-                            found = True
-                            break
-                except Exception:
-                    # Fallback regex for frontmatter extraction of issue_id
-                    try:
-                        fm_text = frontmatter_match.group(1)
-                        m = re.search(r'(?:^|\n)\s*issue_id\s*:\s*(\d+)', fm_text)
-                        if m and int(m.group(1)) == issue_number:
-                            found = True
-                            break
-                    except Exception:
-                        pass
+                fm_text = frontmatter_match.group(1)
+                found = _extract_issue_id_from_frontmatter(fm_text, issue_number)
+                if found:
+                    break
 
             # Existing filename/content check as fallback
             basename = os.path.splitext(f.filename)[0]
@@ -285,13 +294,15 @@ def _main_impl():
         if not found:
             missing_specs.append(f"Issue #{issue_number}: '{issue_title}'")
             
+    missing_spec_errors = []
     if missing_specs:
         print("[!] Missing local specification files for open feature issues:")
         for spec in missing_specs:
             print(f"  - {spec}")
         if not args.allow_missing_specs:
-            sys.exit(1)
-    
+            missing_spec_errors = missing_specs[:]
+            has_failed = True
+        
     epic_files = []
     if epics_dir and os.path.exists(epics_dir):
         epic_files = [f for f in os.listdir(epics_dir) if f.endswith(".md")]
@@ -395,7 +406,7 @@ def _main_impl():
         def is_present_in_codebase(v: str, codebase: List[str]) -> bool:
             v_escaped = re.escape(v)
             if v.lower() not in common_words:
-                return any(re.search(r'\b' + v_escaped + r'\b', content) for content in codebase)
+                return any(re.search(r'\b' + v_escaped + r'\b', strip_comments_and_strings(content)) for content in codebase)
             
             patterns = [
                 r'\.\s*' + v_escaped + r'\b',                                  # member access: obj.id / obj?.id
@@ -405,14 +416,14 @@ def _main_impl():
                 r'\bconst\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',       # destructuring
                 r'\blet\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',         # destructuring
             ]
-            return any(any(re.search(pat, content) for pat in patterns) for content in codebase)
+            return any(any(re.search(pat, strip_comments_and_strings(content)) for pat in patterns) for content in codebase)
 
         for cls_name, cls_info in sorted(global_classes.items()):
             # Check class name
             cls_variants = get_variants(cls_name)
             cls_found = False
             for content in codebase_contents:
-                if any(re.search(r'\b' + re.escape(v) + r'\b', content) for v in cls_variants):
+                if any(re.search(r'\b' + re.escape(v) + r'\b', strip_comments_and_strings(content)) for v in cls_variants):
                     cls_found = True
                     break
             
@@ -502,10 +513,10 @@ def _main_impl():
 
     print("\n=== UML Diagrams Compliance Audit ===")
     uml_errors = []
-    if not features:
-        print("Note: No feature specifications found. Skipping UML Diagrams Compliance Audit.")
+    if not features and not epic_files:
+        print("Note: No feature or epic specifications found. Skipping UML Diagrams Compliance Audit.")
     else:
-        uml_errors = uml_validator.validate(repo, global_classes=global_classes)
+        uml_errors = uml_validator.validate(repo, global_classes=global_classes, epics_dir=epics_dir)
         
     if uml_errors:
         print("[!] UML Compliance Violations Identified:")
@@ -513,7 +524,7 @@ def _main_impl():
             print(f"  - {err}")
         has_failed = True
     else:
-        if features:
+        if features or epic_files:
             print("Success: All specification files are fully UML-compliant (no ERDs or invalid syntax found).")
             
     if coverage_gaps:
@@ -523,14 +534,14 @@ def _main_impl():
         print("\nError: 100% model coverage validation failed.")
         has_failed = True
     else:
-        if not skip_coverage_checks and features:
+        if not skip_coverage_checks and (features or epic_files):
             print("\nSuccess: 100% model coverage verified across all specification files.")
             
     print("\n=== Behavioral Coverage Triggers Audit ===")
     behavioral_validator = BehavioralValidator()
     behavioral_errors = []
-    if not features:
-        print("Note: No feature specifications found. Skipping Behavioral Coverage Triggers Audit.")
+    if not features and not epic_files:
+        print("Note: No feature or epic specifications found. Skipping Behavioral Coverage Triggers Audit.")
     else:
         behavioral_errors = behavioral_validator.validate(repo, schema_dir=schema_dir, modules=modules)
         
@@ -639,6 +650,17 @@ def _main_impl():
         else:
             print("Success: Test completeness checks passed.")
         
+    print("\n=== Schema Cardinality Validation ===")
+    cardinality_validator = SchemaCardinalityValidator()
+    cardinality_errors = cardinality_validator.validate(repo)
+    if cardinality_errors:
+        print("[!] Schema Cardinality Violations Identified:")
+        for err in cardinality_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: 1:1 container-to-file cardinality verified.")
+
     print("\n=== Logical UI Validation ===")
     logical_ui_validator = LogicalUiValidator()
     logical_ui_errors = logical_ui_validator.validate(repo, features_dir=features_dir)
@@ -651,7 +673,7 @@ def _main_impl():
         print("Success: Logical UI checks passed.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (logical_ui_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (logical_ui_errors or []) + (missing_spec_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None

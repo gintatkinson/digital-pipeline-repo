@@ -336,7 +336,7 @@ void main() {
       final projectedPoint = painter.project(
         0.0, // lat
         math.pi, // lng (180 degrees)
-        6378137.0 * 2.0, // height (2R to force it way behind the Earth for culling/clamping test)
+        6378137.0, // height (R to trigger horizon clamping)
         center,
         0.0, // rotationY
         0.0, // tilt

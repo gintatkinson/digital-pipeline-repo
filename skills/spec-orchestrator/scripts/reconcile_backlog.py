@@ -390,7 +390,7 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
                 title = re.sub(r'\(.*?\)', '', title).strip()
                 title = title.strip('[]-* ')
                 
-        if not title and "issue_id:" in line:
+        if (not title or not title.strip()) and re.search(r'issue[\s\-_]*id\s*:', line, re.IGNORECASE):
             title = extract_title(filepath)
 
         if title:
@@ -587,10 +587,11 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             
         new_lines.extend(final_stories)
         
+        start_after_stories = idx_stories + 1 + len(existing_stories) if idx_stories != -1 else len(lines)
         if idx_next != -1:
+            new_lines.extend(lines[start_after_stories : idx_next])
             new_lines.extend(lines[idx_next:])
         else:
-            start_after_stories = idx_stories + 1 + len(existing_stories) if idx_stories != -1 else len(lines)
             new_lines.extend(lines[start_after_stories:])
     else:
         return
@@ -617,6 +618,18 @@ def main():
         del os.environ["GITHUB_TOKEN"]
     script_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_dir = find_workspace_dir(script_dir)
+
+    # Programmatic gate: Run linter before proceeding with reconciliation
+    print("Running pre-reconciliation linter validation...")
+    linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
+    cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
+    res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True)
+    if res.returncode != 0:
+        print("[FATAL] Pre-reconciliation linter validation failed. Aborting backlog reconciliation to prevent uploading specifications with UML/linter errors.", file=sys.stderr)
+        print(res.stdout, file=sys.stderr)
+        print(res.stderr, file=sys.stderr)
+        sys.exit(1)
+    print("Pre-reconciliation linter validation passed successfully.")
 
     try:
         rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")

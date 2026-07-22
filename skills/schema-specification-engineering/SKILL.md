@@ -48,12 +48,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - For any candidate subtree node N, compute its **Structural Weight (SW)**:
      $$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L_{immediate}(C)$$
      where $L_{immediate}(X)$ is the count of leaf and leaf-list nodes directly under node X, excluding any nested list elements.
-   - If $SW(N) <= 20$ and has no nested lists, group all nodes under N into **1 Feature**.
+   - **1:1 Container-to-Feature Mapping Mandate:** Every distinct schema `container` and `choice`/`case` MUST be extracted into its own separate Feature file. Do NOT consolidate multiple containers, choices, or cases into a single Feature file regardless of structural weight. Attributes within a single container may be grouped within that container's Feature file.
    - If $SW(N) > 20$ or has nested lists, partition it:
      - *Sibling lists*: Split each list into its own Feature.
      - *Nested lists*: Split nested lists with >= 5 leaves into child Features.
      - *Complex container*: Split the container by its immediate child containers.
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
+   - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field with the container path and `node_type`. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
 2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass ONLY the schema nodes and properties for this specific feature group. The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
@@ -107,9 +108,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    interface_type: "ui" # Options: ui, api, m2m
    generation_mode: "subagent"
    labels: ["feature", "<domain-name>"]
+    schema_containers:
+      - path: "module/container-name"
+        node_type: container
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
+    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the container path and `node_type` (e.g. `- path: "module/ellipsoid", node_type: container`). Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ```markdown
@@ -277,6 +282,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs
    ```
    If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Feature and Epic markdown files, and re-run the linter until it passes with exit code 0.
+   Before committing the generated markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
+   ```bash
+   UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+   if [ -n "$UNTRACKED_INFRA" ]; then
+     git add .pipeline/ skills/ rules/ scripts/
+   fi
+   ```
 
 2. **Tracker Label Bootstrapping:** Invoke the issue tracker's label bootstrap interface (e.g. creating "epic" and "feature" labels in the configured provider).
 
@@ -287,11 +299,36 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
 4. **Feature Backlog Creation FIRST:**
    - Register each Feature specification with the active tracker provider, capturing the returned Issue ID/URL from the tracker.
+   - **Crucial Verification & Body Synchronization:**
+     1. Backlog issues MUST be registered using `gh issue create --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
+     2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
+     3. The subagent MUST run a post-creation verification check:
+        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
+        and retry/halt if this verification fails.
+     4. Before committing the generated feature markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
+        ```bash
+        UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+        if [ -n "$UNTRACKED_INFRA" ]; then
+          git add .pipeline/ skills/ rules/ scripts/
+        fi
+        ```
 
 5. **Epic Backlog Assembly:**
    - Now that you possess the actual live Issue IDs for all extracted features, inject them into the Epic's checklist.
    - Ensure the body of the Epic lists its child features as a tasklist referencing the Issue ID and the absolute repository URL of the feature document (relative links resolve incorrectly on tracker UI platforms). You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the configured URL template (e.g., `[Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md` where `<blob_path>` is resolved from configuration).
 
 6. **Epic Backlog Creation LAST:**
-   - Finally, register the Epic specification containing the fully resolved tasklist with the active tracker provider.
-
+   - Register the Epic specification containing the fully resolved tasklist with the active tracker provider.
+   - **Crucial Verification & Body Synchronization:**
+     1. Register the Epic issue using `gh issue create --body-file <local-md-file>`.
+     2. Immediately after placeholder resolution, the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
+     3. The subagent MUST run a post-creation verification check:
+        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
+        and retry/halt if this verification fails.
+     4. Before committing the generated epic markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
+        ```bash
+        UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+        if [ -n "$UNTRACKED_INFRA" ]; then
+          git add .pipeline/ skills/ rules/ scripts/
+        fi
+        ```

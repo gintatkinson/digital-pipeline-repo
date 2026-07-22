@@ -1,44 +1,30 @@
-# Implementation Plan: Topology 3D Model Integration
+# Implementation Plan - Issue #71 Auditor and Debugger
 
-This plan details the integration of the asynchronous glTF loader into `SceneViewState` and `TopologyLayer` to render 3D assets for specific network nodes with standard 2D fallback paths.
-
-## User Review Required
-
-> [!IMPORTANT]
-> **No Mocking Directive**: Mockito, Mocktail, or fake data stubs are forbidden. The test suite must query the real database and perform actual asset bundle reads.
-
-## Open Questions
-
-None. The execution phases match the prompt sequentially.
-
----
+This plan outlines the changes to `AGENTS.md` to mandate that coordinator prompts explicitly instruct subagents to read their corresponding `SKILL.md` file using `view_file`.
 
 ## Proposed Changes
 
-### Phase 1: Model State Integration in SceneViewState
-- Add a mapping dictionary member to `SceneViewState` in `scene_3d_viewport_classes.dart`:
-  ```dart
-  final Map<String, Network3DScene> nodeModels = {};
-  ```
-- In the node projection or topology loading pipeline (`setTopologyData` or `updateNodeProjections`), evaluate if a node requires a 3D model:
-  - A node requires a 3D model if it has a non-empty `model_path` (or `model`) property inside its `rawProperties` mapping.
-- For each eligible node:
-  - If it is not present in `nodeModels`, instantiate a new `Network3DScene`.
-  - Put the scene instance into `nodeModels[node.id]`.
-  - Trigger `loadModel(modelPath)` asynchronously.
-  - Upon completion of `loadModel`, trigger `notifyListeners()` so the CustomPainter reactively triggers a repaint once the model transitions to `loaded` or `error`.
+### Phase 1: Codebase Modifications
 
-### Phase 2: TopologyLayer Rendering Update
-- In `TopologyLayer.paint` inside `scene_3d_viewport.dart`:
-  - Check `state.nodeModels[node.id]` for an associated `Network3DScene`.
-  - If a model is mapped, check if `model.state == ModelRenderState.loaded` and `model.gltfData != null`.
-  - If **loaded**:
-    - Bypass the standard 2D circle drawing commands.
-    - Render a 3D visual representation (such as a shaded octahedron or diamond shape using `canvas.drawPath` to represent the glTF model) at `proj.offset`.
-  - If **loading**, **error**, or **unloaded**:
-    - Gracefully fall back to the standard 2D circles (`_satNodeGlowPaint`, `_satNodePaint`, `_innerWhitePaint`).
+1. **Update `AGENTS.md`**:
+   - File: `.agents/AGENTS.md`
+   - Action: Under the section `## Mandatory Subagent Dispatch for Research, Specification & Implementation Loops`, add the following bullet to the list of instructions for step 2 (Invoke Subagent):
+     `- **Mandatory Skill-Reading Instruction**: When launching a subagent, the coordinator's prompt MUST explicitly instruct the subagent to read the relevant \`SKILL.md\` file (e.g. using \`view_file\` on \`.agents/skills/debug-protocol/SKILL.md\`) as its very first step, and to strictly follow its formatting templates and instruction guidelines.`
 
-### Phase 3: Integration Testing
-- Extend the integration tests in `test/domain/cesium_3d/network_3d_scene_test.dart`:
-  - **Test 1 (Successful 3D Render)**: Inject a node with a valid database model path into the state. Trigger the loader and assert that `TopologyLayer.paint` executes without throwing, and identifies the node state as loaded (bypassing the circle paints).
-  - **Test 2 (Fallback 2D Render)**: Inject a node with an invalid model path. Verify that after loading fails, the model transitions to the `error` state and the layer defaults to the standard 2D circle rendering logic.
+### Phase 2: Verification
+
+1. Run `git diff` to ensure the exact changes are applied correctly to `.agents/AGENTS.md`.
+
+### Phase 3: Git Operations & Synchronization
+
+1. Stage the modified file:
+   ```bash
+   git add .agents/AGENTS.md
+   ```
+2. Commit with the conventional message:
+   `docs: mandate subagent explicit skill reading in AGENTS.md`
+3. Push the changes to the remote branch `feat/58-63-linter-fixes`:
+   ```bash
+   git push origin feat/58-63-linter-fixes
+   ```
+4. Verify that `git diff origin/feat/58-63-linter-fixes` is empty.

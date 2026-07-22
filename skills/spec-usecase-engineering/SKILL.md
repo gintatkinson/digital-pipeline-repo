@@ -26,7 +26,7 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
 
 ## Step 2: Isolated Use Case Modeling (Subagent Dispatch Loop)
 
-1. **Identify Use Cases:** Scan the specification architecture/deployment chapters and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). Compile the list of target Use Cases to be engineered.
+1. **Identify Use Cases:** Scan the specification architecture/deployment chapters and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). **1:1 Container-to-Use-Case Mapping Mandate:** Each distinct schema `container` or `choice`/`case` MUST be extracted into its own separate Use Case file. Do NOT consolidate multiple containers, choices, or cases into a single Use Case file. Compile the list of target Use Cases to be engineered.
 2. **Dispatch Use Case Subagent:** For each identified Use Case, invoke a **new, fresh subagent with an isolated context**. Pass ONLY the specific system interaction text, relevant User Stories, Feature specs, and the Use Case template. The subagent must have no visibility or knowledge of other Use Cases.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for system boundary subgraphs, external actors, and complete realization matrices.
@@ -62,6 +62,7 @@ title: "[Use Case Title]"
 type: "use-case"
 generation_mode: "subagent"
 spec_source: "[Spec Reference]"
+schema_containers: []
 ---
 
 # Use Case: [Title]
@@ -136,14 +137,30 @@ Normative Specification: [Normative Specification](link-to-specification)
 > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
 > - Ensure there are no stray backticks or unmatched code fences in the document.
 
+> **Container Traceability:** Every Use Case MUST declare its schema container in `schema_containers` with exactly one entry containing the container path and `node_type` (e.g. `- path: "module/ellipsoid", node_type: container`). Multi-container Use Cases are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
+
 
 ## Step 5: Zero-Fault Backlog Synchronization
 1. **Mandatory Local Validation Gate:** Before committing, pushing, or creating issues in the backlog, the subagent MUST execute the local validation check:
    ```bash
    ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs
    ```
-   If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Use Case markdown files, and re-run the linter until it passes with exit code 0. Once the linter passes, commit and push the Markdown files to the remote repository.
+   If the linter fails (returns a non-zero exit code), the subagent MUST parse the errors, fix all generated Use Case markdown files, and re-run the linter until it passes with exit code 0.
+   Before committing the generated markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
+   ```bash
+   UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
+   if [ -n "$UNTRACKED_INFRA" ]; then
+     git add .pipeline/ skills/ rules/ scripts/
+   fi
+   ```
+   Once the linter passes, commit and push the Markdown files to the remote repository.
 2. Verify the `use-case` label exists in the tracker repository, bootstrapping it if necessary.
 3. **Duplicate Detection:** Before creating, query the active tracker provider for all existing use case issues to check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
 4. Register the Use Case issue natively with the active tracker provider.
+   - **Crucial Verification & Body Synchronization:**
+     1. Backlog issues MUST be registered using `gh issue create --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
+     2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
+     3. The subagent MUST run a post-creation verification check:
+        `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
+        and retry/halt if this verification fails.
 5. Verify the creation and return the generated issue URLs/IDs to the Orchestrator or User.
