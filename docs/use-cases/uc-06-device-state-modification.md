@@ -82,7 +82,7 @@ Ensures focus-loss auto-saving maps cleanly to gNMI SetRequests via absolute YAN
 - [ ] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies implementation of focus-loss listeners and local auto-saving)
 
 ### Required User Stories
-- [ ] #0 - Device state modifications ([us-06-device-state](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-06-device-state.md)) (Verifies device state modification capability)
+- [ ] #[StoryID] - Device state modifications ([us-06-device-state](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-06-device-state.md)) (Verifies device state modification capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`
