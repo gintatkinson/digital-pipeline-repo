@@ -463,7 +463,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
                 break
             if l.startswith("- [ ]") or l.startswith("- [x]") or l.startswith("- [X]"):
                 l_lower = l.lower()
-                ignore_patterns = [
+                ignore_exact = {
                     "feat-xx-name",
                     "uc-xx-name",
                     "us-xx-name",
@@ -471,11 +471,12 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
                     "use case title",
                     "user story title",
                     "epic title",
-                    "feature 1:",
-                    "use case 1:",
-                    "user story 1:"
-                ]
-                if any(p in l_lower for p in ignore_patterns):
+                }
+                prefix_patterns = {"feature 1:", "use case 1:", "user story 1:"}
+                title_part = re.sub(r'^-\s*\[[ xX]\]\s*', '', l_lower)
+                if any(p == title_part for p in ignore_exact):
+                    continue
+                if any(title_part.startswith(p) for p in prefix_patterns):
                     continue
                 items.append(lines[i])
         return items
