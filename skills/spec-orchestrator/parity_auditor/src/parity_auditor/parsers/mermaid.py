@@ -246,10 +246,15 @@ class MermaidClassDiagramParser(IParser):
                     attr_type = ' '.join(parts[:-1]).strip()
                     
             multiplicity = None
-            mult_match = re.search(r'\[([^\]]+)\]$', name)
+            mult_match = re.search(r'\[([^\]]+)\]', name)
             if mult_match:
                 multiplicity = mult_match.group(1).strip()
-                name = re.sub(r'\[([^\]]+)\]$', '', name).strip()
+                name = re.sub(r'\[([^\]]+)\]', '', name).strip()
+            elif attr_type:
+                mult_match = re.search(r'\[([^\]]+)\]', attr_type)
+                if mult_match:
+                    multiplicity = mult_match.group(1).strip()
+                    attr_type = re.sub(r'\[([^\]]+)\]', '', attr_type).strip()
                     
             return ClassAttribute(
                 visibility=visibility,
