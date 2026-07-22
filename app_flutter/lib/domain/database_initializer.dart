@@ -52,7 +52,18 @@ class DatabaseInitializer {
   /// execution failures.
   static Future<Database> create({String? dbPath, bool seed = false}) async {
     final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
-    if (!kIsWeb && (isTest || Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+    if (isDesktop && !isTest) {
+      final canAccess = await _probeFfiViability();
+      if (!canAccess) {
+        throw StateError(
+          'Cannot open database on this desktop environment. '
+          'The FFI SQLite backend is blocked by the system sandbox. '
+          'Grant file-access entitlements or use a non-sandboxed deployment.',
+        );
+      }
+    }
+    if (!kIsWeb && (isTest || isDesktop)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
@@ -166,6 +177,19 @@ class DatabaseInitializer {
     } catch (e) {
       await db.close();
       rethrow;
+    }
+  }
+
+  static Future<bool> _probeFfiViability() async {
+    try {
+      sqfliteFfiInit();
+      final probe = await databaseFactoryFfi
+          .openDatabase(inMemoryDatabasePath)
+          .timeout(const Duration(seconds: 2));
+      await probe.close();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

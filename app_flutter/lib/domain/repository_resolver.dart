@@ -140,12 +140,6 @@ class RepositoryResolver {
     String? dbAssetPath,
     bool inMemory = false,
   }) async {
-    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
-    if (!kIsWeb && (isTest || Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-    }
-
     final String dbPath;
     if (kIsWeb) {
       dbPath = inMemoryDatabasePath;
