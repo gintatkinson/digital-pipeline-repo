@@ -46,14 +46,20 @@ def tag_restoration_point():
 
 def cleanup_workspace(destination):
     print("Cleaning up workspace...")
-    to_delete_dirs = [".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies", "build"]
-    for d in to_delete_dirs:
-        path = os.path.join(destination, d)
-        if os.path.isdir(path):
-            shutil.rmtree(path, ignore_errors=True)
-        elif os.path.isfile(path):
-            os.remove(path)
-    
+    to_delete_files = [".dart_tool/package_config.json.lock",
+                       ".flutter-plugins-dependencies"]
+    for f in to_delete_files:
+        path = os.path.join(destination, f)
+        if os.path.isfile(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+    build_dir = os.path.join(destination, "build")
+    if os.path.isdir(build_dir):
+        shutil.rmtree(build_dir, ignore_errors=True)
+
     for root, _, files in os.walk(destination):
         for f in files:
             if f.endswith(".db-shm") or f.endswith(".db-wal") or f.endswith(".db-journal"):
