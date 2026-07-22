@@ -260,10 +260,10 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True)
                 
                 print("Running 'flutter analyze'...")
-                subprocess.run(["flutter", "analyze", "--no-fatal-warnings", "--no-fatal-infos"], cwd=dest, check=False)
+                subprocess.run(["flutter", "analyze", "--no-fatal-warnings", "--no-fatal-infos"], cwd=dest, check=True)
                 
                 print("Running 'flutter test'...")
-                subprocess.run(["flutter", "test"], cwd=dest, check=False)
+                subprocess.run(["flutter", "test"], cwd=dest, check=True)
                 
                 print("Running 'flutter build macos --release'...")
                 subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True)
