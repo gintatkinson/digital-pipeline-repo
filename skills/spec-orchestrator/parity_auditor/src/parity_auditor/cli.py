@@ -27,6 +27,7 @@ from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
 from .validators.logical_ui_validator import LogicalUiValidator
 from .utils.diagnostics import serialize_diagnostics
+from .utils.comment_utils import strip_c_style_comments
 
 def get_open_feature_issues() -> list:
     """
@@ -285,13 +286,15 @@ def _main_impl():
         if not found:
             missing_specs.append(f"Issue #{issue_number}: '{issue_title}'")
             
+    missing_spec_errors = []
     if missing_specs:
         print("[!] Missing local specification files for open feature issues:")
         for spec in missing_specs:
             print(f"  - {spec}")
         if not args.allow_missing_specs:
-            sys.exit(1)
-    
+            missing_spec_errors = missing_specs[:]
+            has_failed = True
+        
     epic_files = []
     if epics_dir and os.path.exists(epics_dir):
         epic_files = [f for f in os.listdir(epics_dir) if f.endswith(".md")]
@@ -395,7 +398,7 @@ def _main_impl():
         def is_present_in_codebase(v: str, codebase: List[str]) -> bool:
             v_escaped = re.escape(v)
             if v.lower() not in common_words:
-                return any(re.search(r'\b' + v_escaped + r'\b', content) for content in codebase)
+                return any(re.search(r'\b' + v_escaped + r'\b', strip_c_style_comments(content)) for content in codebase)
             
             patterns = [
                 r'\.\s*' + v_escaped + r'\b',                                  # member access: obj.id / obj?.id
@@ -405,7 +408,7 @@ def _main_impl():
                 r'\bconst\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',       # destructuring
                 r'\blet\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',         # destructuring
             ]
-            return any(any(re.search(pat, content) for pat in patterns) for content in codebase)
+            return any(any(re.search(pat, strip_c_style_comments(content)) for pat in patterns) for content in codebase)
 
         for cls_name, cls_info in sorted(global_classes.items()):
             # Check class name
@@ -651,7 +654,7 @@ def _main_impl():
         print("Success: Logical UI checks passed.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (logical_ui_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (logical_ui_errors or []) + (missing_spec_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
