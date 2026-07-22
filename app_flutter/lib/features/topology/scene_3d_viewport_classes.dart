@@ -473,7 +473,14 @@ class SceneViewState extends ChangeNotifier {
           final ElevationCacheKey cacheKey = (id, latDeg, lngDeg, astronomicalBody, elevationActive);
           final double terrainElev = nodeElevationCache.putIfAbsent(cacheKey, () => elevationProvider.getElevation(latDeg, lngDeg));
           final double baseElev = terrainElev / (verticalExaggeration == 0 ? 1 : verticalExaggeration);
-          final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND' ? alt : alt - baseElev;
+          final double relativeAlt;
+          if (heightRef == 'CLAMP_TO_GROUND') {
+            relativeAlt = 0.0;
+          } else if (heightRef == 'RELATIVE_TO_GROUND') {
+            relativeAlt = alt;
+          } else {
+            relativeAlt = alt - baseElev;
+          }
           finalHeight = terrainElev + relativeAlt;
         } else {
           finalHeight = alt;

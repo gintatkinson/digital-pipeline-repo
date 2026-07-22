@@ -883,9 +883,14 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     } else {
       if (_elevationActive) {
         final double terrainElev = Scene3DViewportPainter.getElevationStatic(latitude, longitude, _elevationActive);
-        final double relativeAlt = heightRef == 'RELATIVE_TO_GROUND'
-            ? altitude
-            : altitude - terrainElev;
+        final double relativeAlt;
+        if (heightRef == 'CLAMP_TO_GROUND') {
+          relativeAlt = 0.0;
+        } else if (heightRef == 'RELATIVE_TO_GROUND') {
+          relativeAlt = altitude;
+        } else {
+          relativeAlt = altitude - terrainElev;
+        }
         finalHeight = terrainElev * widget.verticalExaggeration + relativeAlt;
       } else {
         finalHeight = altitude;
