@@ -39,8 +39,10 @@ def tag_restoration_point():
     print("Tagging restoration point...")
     try:
         subprocess.run(["git", "tag", "-f", "restoration-point"], check=True)
-    except subprocess.CalledProcessError as e:
+        return True
+    except (subprocess.CalledProcessError, OSError) as e:
         print(f"WARNING: Failed to tag restoration point: {e}", file=sys.stderr)
+        return False
 
 def cleanup_workspace(destination):
     print("Cleaning up workspace...")
@@ -135,7 +137,9 @@ def main():
     try:
         _run_verification(args, dest, is_flutter, is_react)
         print("Success: Build and test suite execution passed. Conformance gate verified.")
-        tag_restoration_point()
+        if not tag_restoration_point():
+            print("ERROR: Conformance gate verified but restoration point tag could not be placed.", file=sys.stderr)
+            sys.exit(1)
         sys.exit(0)
     finally:
         cleanup_workspace(dest)
