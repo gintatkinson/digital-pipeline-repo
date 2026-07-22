@@ -47,18 +47,22 @@ Future<void> _triggerGc(VmService vmService) async {
   }
 }
 
-Future<int> _countInstances(VmService vmService, String className) async {
+Future<int> _countInstances(VmService vmService, String className, {int limit = 1000}) async {
   try {
     final vm = await vmService.getVM();
     if (vm.isolates == null || vm.isolates!.isEmpty) return 0;
     final isolateId = vm.isolates!.first.id!;
     final classList = await vmService.getClassList(isolateId);
     if (classList.classes == null) return 0;
-    
+
     for (final c in classList.classes!) {
       if (c.name == className) {
-        final instances = await vmService.getInstances(isolateId, c.id!, 100);
-        return instances.instances?.length ?? 0;
+        final instances = await vmService.getInstances(isolateId, c.id!, limit);
+        final count = instances.instances?.length ?? 0;
+        if (count >= limit) {
+          print('WARNING: _countInstances hit limit ($limit) for $className; actual count may be higher');
+        }
+        return count;
       }
     }
   } catch (e) {
@@ -235,9 +239,16 @@ void main() {
         SchedulerBinding.instance.removeTimingsCallback(timingsCallback);
 
         VmService? vmService;
+        int? heapBeforeBytes;
         try {
           vmService = await _connectToVmService();
           if (vmService != null) {
+            final vm = await vmService.getVM();
+            if (vm.isolates != null && vm.isolates!.isNotEmpty) {
+              final isolateId = vm.isolates!.first.id!;
+              final memUsage = await vmService.getMemoryUsage(isolateId);
+              heapBeforeBytes = memUsage.heapUsage ?? 0;
+            }
             await _triggerGc(vmService);
           }
         } catch (e) {
@@ -246,8 +257,16 @@ void main() {
 
         bool leakDetected = false;
         String leakDetails = '';
+        int? heapAfterBytes;
         if (vmService != null) {
           try {
+            final vm = await vmService.getVM();
+            if (vm.isolates != null && vm.isolates!.isNotEmpty) {
+              final isolateId = vm.isolates!.first.id!;
+              final memUsage = await vmService.getMemoryUsage(isolateId);
+              heapAfterBytes = memUsage.heapUsage ?? 0;
+            }
+
             final treeVmCount = await _countInstances(vmService, 'TreeViewModel');
             final propVmCount = await _countInstances(vmService, 'PropertiesViewModel');
 
@@ -264,12 +283,23 @@ void main() {
           fail('ViewModel leak detected after pass $passCount: $leakDetails');
         }
 
+        if (heapBeforeBytes != null && heapAfterBytes != null) {
+          final heapDeltaBytes = (heapAfterBytes - heapBeforeBytes);
+          if (heapDeltaBytes > 25 * 1024 * 1024) {
+            fail('Heap grew ${(heapDeltaBytes / (1024 * 1024)).toStringAsFixed(1)}MB during pass $passCount (threshold: 25MB)');
+          }
+        }
+
+        if (memDeltaKb > 25 * 1024) {
+          fail('RSS grew ${(memDeltaKb / 1024).toStringAsFixed(1)}MB during pass $passCount (threshold: 25MB)');
+        }
+
         memorySamples.add(memAfter);
         if (memorySamples.length >= 5) {
           final recent = memorySamples.sublist(memorySamples.length - 5);
           final netGrowth = recent.last - recent.first;
-          if (netGrowth > 150 * 1024 * 1024) {
-            fail('Memory grew ${(netGrowth / (1024 * 1024)).toStringAsFixed(1)}MB over 5 passes (threshold: 150MB)');
+          if (netGrowth > 25 * 1024 * 1024) {
+            fail('Memory grew ${(netGrowth / (1024 * 1024)).toStringAsFixed(1)}MB over 5 passes (threshold: 25MB)');
           }
         }
         if (memorySamples.length >= 5) {
