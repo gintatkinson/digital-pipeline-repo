@@ -103,6 +103,12 @@ class _TableViewWidgetState extends State<TableViewWidget> {
   }
 
   @override
+  void dispose() {
+    _clearCache();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TablesViewModel>();
 
@@ -136,6 +142,9 @@ class _TableViewWidgetState extends State<TableViewWidget> {
 
     final rows = _getSortedRows(viewModel.rows, headers, headerIndices);
     final testId = '${viewModel.tabId}-table';
+    final numericTextStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontFamily: 'monospace',
+    );
 
     if (headers.isEmpty) {
       return const SizedBox.shrink();
@@ -186,6 +195,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                         horizontalMargin: widget.horizontalMargin,
                         columnSpacing: widget.columnSpacing,
                         index: index,
+                        numericTextStyle: numericTextStyle,
                       );
                     },
                   ),
@@ -339,6 +349,9 @@ class _DataRow extends StatelessWidget {
   final double horizontalMargin;
   final double columnSpacing;
   final int index;
+  final TextStyle? numericTextStyle;
+
+  static final Color _stripeColor = Colors.black.withOpacity(0.03);
 
   const _DataRow({
     required this.cells,
@@ -350,6 +363,7 @@ class _DataRow extends StatelessWidget {
     required this.horizontalMargin,
     required this.columnSpacing,
     required this.index,
+    required this.numericTextStyle,
   });
 
   @override
@@ -358,7 +372,7 @@ class _DataRow extends StatelessWidget {
       constraints: BoxConstraints(
         minHeight: dataRowMinHeight,
       ),
-      color: index.isEven ? null : Colors.black.withOpacity(0.03),
+      color: index.isEven ? null : _stripeColor,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(columnModels.length, (i) {
@@ -372,6 +386,7 @@ class _DataRow extends StatelessWidget {
             columnSpacing: columnSpacing,
             isFirst: i == 0,
             isLast: i == columnModels.length - 1,
+            numericTextStyle: numericTextStyle,
           );
         }),
       ),
@@ -387,6 +402,7 @@ class _DataCell extends StatelessWidget {
   final double columnSpacing;
   final bool isFirst;
   final bool isLast;
+  final TextStyle? numericTextStyle;
 
   const _DataCell({
     required this.value,
@@ -396,6 +412,7 @@ class _DataCell extends StatelessWidget {
     required this.columnSpacing,
     required this.isFirst,
     required this.isLast,
+    required this.numericTextStyle,
   });
 
   @override
@@ -409,9 +426,7 @@ class _DataCell extends StatelessWidget {
       case 'double':
         cellContent = Text(
           value,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontFamily: 'monospace',
-          ),
+          style: numericTextStyle ?? theme.textTheme.bodySmall,
           textAlign: TextAlign.right,
         );
         break;
