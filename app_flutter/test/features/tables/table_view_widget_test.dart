@@ -483,6 +483,25 @@ void main() {
     });
   });
 
+  group('TableViewWidget layout constraint boundaries', () {
+    testWidgets('survives high column count without negative BoxConstraints',
+        (tester) async {
+      const colCount = 50;
+      final headers = List.generate(
+        colCount,
+        (i) => ColumnModel(key: 'col$i', label: 'Col $i', type: 'string'),
+      );
+      final rows = <List<String>>[List.generate(colCount, (i) => 'val$i')];
+      await tester.pumpWidget(buildTableWithModel(
+        headers: headers,
+        columnModels: headers,
+        rows: rows,
+      ));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('TableViewWidget GPU resource lifecycle', () {
     testWidgets('no nested RepaintBoundary per data row', (tester) async {
       await tester.pumpWidget(buildTableWithModel(
