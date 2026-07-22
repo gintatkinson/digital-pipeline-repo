@@ -625,14 +625,22 @@ class UmlValidator(IValidator):
                     if not is_block_start and not is_block_end:
                         errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.")
 
-            if not re.search(relationship_connectors, diagram_body):
-                errors.append(f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
-                
             try:
                 parsed_cd = class_parser.parse(diagram_full)
             except Exception as e:
                 errors.append(f"{doc_type} {filename} contains an unparsable UML Class Diagram: {e}")
                 continue
+
+            if not re.search(relationship_connectors, diagram_body):
+                if not parsed_cd.relationships:
+                    errors.append(f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
+                else:
+                    errors.append(
+                        f"{doc_type} {filename} contains UML Class Diagram relationships "
+                        f"using connector formats not recognized by the configured relationship_connectors. "
+                        f"The parser detected {len(parsed_cd.relationships)} relationship(s) in non-standard format. "
+                        f"Verify connectors match the configured set."
+                    )
                 
             classes = parsed_cd.classes
             relationships = parsed_cd.relationships
