@@ -116,7 +116,7 @@ void main() {
         );
         for (int i = 0; i < 20; i++) {
           await tester.pump(const Duration(milliseconds: 50));
-          await Future.delayed(const Duration(milliseconds: 50));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
         }
       });
       await tester.pumpAndSettle();
