@@ -27,7 +27,7 @@ from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
 from .validators.logical_ui_validator import LogicalUiValidator
 from .utils.diagnostics import serialize_diagnostics
-from .utils.comment_utils import strip_c_style_comments
+from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
 def get_open_feature_issues() -> list:
     """
@@ -405,7 +405,7 @@ def _main_impl():
         def is_present_in_codebase(v: str, codebase: List[str]) -> bool:
             v_escaped = re.escape(v)
             if v.lower() not in common_words:
-                return any(re.search(r'\b' + v_escaped + r'\b', strip_c_style_comments(content)) for content in codebase)
+                return any(re.search(r'\b' + v_escaped + r'\b', strip_comments_and_strings(content)) for content in codebase)
             
             patterns = [
                 r'\.\s*' + v_escaped + r'\b',                                  # member access: obj.id / obj?.id
@@ -415,7 +415,7 @@ def _main_impl():
                 r'\bconst\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',       # destructuring
                 r'\blet\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',         # destructuring
             ]
-            return any(any(re.search(pat, strip_c_style_comments(content)) for pat in patterns) for content in codebase)
+            return any(any(re.search(pat, strip_comments_and_strings(content)) for pat in patterns) for content in codebase)
 
         for cls_name, cls_info in sorted(global_classes.items()):
             # Check class name

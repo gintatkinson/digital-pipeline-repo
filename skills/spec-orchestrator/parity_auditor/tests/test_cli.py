@@ -5,14 +5,14 @@ import pytest
 from typing import List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from parity_auditor.utils.comment_utils import strip_c_style_comments
+from parity_auditor.utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
 common_words = { "id", "name", "type", "status", "value", "height", "width", "time", "x", "y", "z", "t", "date", "info", "data", "key", "code", "save", "edit", "view", "vector" }
 
 def is_present_in_codebase(v: str, codebase: List[str]) -> bool:
     v_escaped = re.escape(v)
     if v.lower() not in common_words:
-        return any(re.search(r'\b' + v_escaped + r'\b', strip_c_style_comments(content)) for content in codebase)
+        return any(re.search(r'\b' + v_escaped + r'\b', strip_comments_and_strings(content)) for content in codebase)
 
     patterns = [
         r'\.\s*' + v_escaped + r'\b',
@@ -22,7 +22,7 @@ def is_present_in_codebase(v: str, codebase: List[str]) -> bool:
         r'\bconst\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',
         r'\blet\s*\{\s*[^}]*\b' + v_escaped + r'\b[^}]*\}\s*=',
     ]
-    return any(any(re.search(pat, strip_c_style_comments(content)) for pat in patterns) for content in codebase)
+    return any(any(re.search(pat, strip_comments_and_strings(content)) for pat in patterns) for content in codebase)
 
 
 class TestIsPresentInCodebase:
@@ -46,11 +46,13 @@ class TestIsPresentInCodebase:
             "userId appearing only in a block comment was incorrectly matched"
         )
 
-    def test_non_common_word_only_in_string_currently_matches(self):
-        """String literal false positive is a separate issue from comment matching."""
+    def test_non_common_word_only_in_string_does_not_match(self):
+        """A non-common property name only in a string literal should NOT be found."""
         code = ["const label = 'userId';"]
         result = is_present_in_codebase("userId", code)
-        assert result is True
+        assert result is False, (
+            "userId appearing only in a string literal was incorrectly matched as present in codebase"
+        )
 
     def test_common_word_in_comment_not_matched_as_code(self):
         """Common word 'id' in a line comment should not be matched with strict patterns."""
