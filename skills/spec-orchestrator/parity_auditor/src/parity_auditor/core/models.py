@@ -81,7 +81,7 @@ class ValidationRules:
     uml_primitives: List[str] = field(default_factory=lambda: ["String", "Integer", "Real", "Boolean"])
     visibility_prefixes: List[str] = field(default_factory=lambda: ["+", "-", "#", "~"])
     playhead_rate_limits: List[float] = field(default_factory=lambda: [0.90, 1.10])
-    relationship_connectors: str = "(\\*--|o--|<\\|--|--|-->)"
+    relationship_connectors: str = "(<\\|--|\\*--|o--|-->|..>|--)"
     choice_stereotypes: List[str] = field(default_factory=lambda: ["<<choice>>"])
     sequence_replies: List[str] = field(default_factory=lambda: ["-->", "-->>"])
     fragment_keywords: List[str] = field(default_factory=lambda: ["alt", "loop", "opt", "par", "critical", "else", "option"])

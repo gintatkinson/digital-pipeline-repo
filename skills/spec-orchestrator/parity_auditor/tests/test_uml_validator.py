@@ -25,7 +25,7 @@ def _setup_workspace(class_diagram_body):
             "visibility_prefixes": ["+", "-", "#", "~"],
             "multiplicity_regex": "\\[[^\\]]+\\]",
             "uml_primitives": ["String", "Integer", "Real", "Boolean"],
-            "relationship_connectors": "(\\*--|o--|<\\|--|--|-->)",
+            "relationship_connectors": "(<\\|--|\\*--|o--|-->|..>|--)",
             "choice_stereotypes": ["<<choice>>"],
             "required_sections": {
                 "feature_ui": [

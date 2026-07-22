@@ -188,6 +188,18 @@ class MermaidClassDiagramParser(IParser):
     def __init__(self, workspace_repo: WorkspaceRepository):
         self.workspace_repo = workspace_repo
 
+    @staticmethod
+    def _sanitize_rel_connectors(rel_connectors: str) -> str:
+        inner = rel_connectors[1:-1] if rel_connectors.startswith('(') else rel_connectors
+        if inner == rel_connectors:
+            parts = [inner]
+        else:
+            parts = [p.strip() for p in inner.split('|') if p.strip()]
+        if '..>' not in parts:
+            parts.append('..>')
+        parts.sort(key=len, reverse=True)
+        return '(' + '|'.join(parts) + ')'
+
     def can_parse(self, mermaid_code: str) -> bool:
         return "classdiagram" in mermaid_code.strip().lower()
 
@@ -206,6 +218,7 @@ class MermaidClassDiagramParser(IParser):
         rel_connectors = val_rules.relationship_connectors
         if not rel_connectors.startswith('('):
             rel_connectors = f"({rel_connectors})"
+        rel_connectors = self._sanitize_rel_connectors(rel_connectors)
 
         def parse_attribute_signature(sig):
             sig = sig.strip()
