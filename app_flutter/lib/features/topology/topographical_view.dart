@@ -110,6 +110,8 @@ class _TopographicalViewState extends State<TopographicalView> {
           _lastCurrentView = widget.currentView;
         }
       });
+    } else if (oldWidget.currentView != widget.currentView) {
+      _lastCurrentView = widget.currentView;
     }
   }
 
