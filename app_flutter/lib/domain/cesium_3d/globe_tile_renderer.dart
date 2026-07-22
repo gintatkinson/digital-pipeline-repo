@@ -459,23 +459,23 @@ class GlobeTileRenderer {
     }
   }
 
-  /// Returns true if [_loadedImages] contains a tile at a higher zoom level
-  /// whose Web Mercator parent at [tile]'s zoom matches [tile].
-  ///
-  /// Tile (z, x, y) is a parent of (z', x', y') when z' > z and
-  /// `x' >> (z' - z) == x` and `y' >> (z' - z) == y`.
+  /// Returns true only when all four direct child tiles at zoom [tile.zoom]+1
+  /// are loaded in [_loadedImages], ensuring full geographic coverage before
+  /// the parent tile can be skipped.
   bool _hasHigherZoomOverlay(TileCoord tile) {
-    for (final key in _loadedImages.keys) {
-      final parts = key.split('/');
-      if (parts.length != 3) continue;
-      final otherZ = int.tryParse(parts[0]) ?? -1;
-      final otherX = int.tryParse(parts[1]) ?? -1;
-      final otherY = int.tryParse(parts[2]) ?? -1;
-      if (otherZ <= tile.zoom) continue;
-      final int dz = otherZ - tile.zoom;
-      if ((otherX >> dz) == tile.x && (otherY >> dz) == tile.y) return true;
+    final int childZoom = tile.zoom + 1;
+    final int childX0 = tile.x * 2;
+    final int childY0 = tile.y * 2;
+    final List<String> requiredChildren = [
+      '$childZoom/$childX0/$childY0',
+      '$childZoom/${childX0 + 1}/$childY0',
+      '$childZoom/$childX0/${childY0 + 1}',
+      '$childZoom/${childX0 + 1}/${childY0 + 1}',
+    ];
+    for (final childKey in requiredChildren) {
+      if (!_loadedImages.containsKey(childKey)) return false;
     }
-    return false;
+    return true;
   }
 
   double _min4(double a, double b, double c, double d) {
