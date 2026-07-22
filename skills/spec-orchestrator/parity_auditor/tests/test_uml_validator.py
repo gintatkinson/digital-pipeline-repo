@@ -231,3 +231,29 @@ def test_sequence_parser_no_errors_for_valid_input():
     parser = MermaidSequenceDiagramParser()
     result = parser.parse("sequenceDiagram\n    A->>B: hello\n    B-->>A: world")
     assert result.parse_errors == [], f"Expected no parse_errors for valid input, got: {result.parse_errors}"
+
+
+def test_sanitize_rel_connectors_adds_missing_dot_right_arrow():
+    """Issue #98: _sanitize_rel_connectors must add ..> when missing from config."""
+    from parity_auditor.parsers.mermaid import MermaidClassDiagramParser
+    result = MermaidClassDiagramParser._sanitize_rel_connectors("(--|-->)")
+    assert "..>" in result, f"..> should have been added, got: {result}"
+
+
+def test_sanitize_rel_connectors_sorts_longest_first():
+    """Issue #98: _sanitize_rel_connectors must sort longest-first to prevent prefix shadowing."""
+    from parity_auditor.parsers.mermaid import MermaidClassDiagramParser
+    result = MermaidClassDiagramParser._sanitize_rel_connectors("(--|-->|..>)")
+    inner = result[1:-1]
+    parts = inner.split('|')
+    idx_dep = parts.index("-->")
+    idx_assoc = parts.index("--")
+    assert idx_dep < idx_assoc, f"--> should come before -- in sorted list, got: {result}"
+
+
+def test_sanitize_rel_connectors_idempotent():
+    """Issue #98: Double sanitization should be safe (idempotent)."""
+    from parity_auditor.parsers.mermaid import MermaidClassDiagramParser
+    once = MermaidClassDiagramParser._sanitize_rel_connectors("(--|-->|..>)")
+    twice = MermaidClassDiagramParser._sanitize_rel_connectors(once)
+    assert once == twice, f"Sanitization should be idempotent: {once} vs {twice}"

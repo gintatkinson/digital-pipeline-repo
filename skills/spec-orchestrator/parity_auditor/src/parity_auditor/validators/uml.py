@@ -87,7 +87,7 @@ class UmlValidator(IValidator):
         
         uml_primitives = set(val_rules.uml_primitives)
         visibility_prefixes = set(val_rules.visibility_prefixes)
-        relationship_connectors = val_rules.relationship_connectors
+        relationship_connectors = MermaidClassDiagramParser._sanitize_rel_connectors(val_rules.relationship_connectors)
         choice_stereotypes = val_rules.choice_stereotypes
         multiplicity_regex = val_rules.multiplicity_regex
         essential_feature_sections = val_rules.essential_feature_sections
