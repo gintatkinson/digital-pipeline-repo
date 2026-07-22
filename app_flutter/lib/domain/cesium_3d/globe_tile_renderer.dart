@@ -53,6 +53,8 @@ class GlobeTileRenderer {
   bool _disposed = false;
   int _activeFetchCount = 0;
   static const int _maxConcurrentFetches = 16;
+  List<MapEntry<String, ui.Image>>? _cachedSortedEntries;
+  int _cachedSortedEntriesLength = -1;
 
   /// Creates a renderer that will fetch tiles via [fetcher] and initially
   /// use [initialProvider] as the imagery source.
@@ -92,6 +94,8 @@ class GlobeTileRenderer {
     _loadedImages.clear();
     _pendingFetches.clear();
     _fetcher.clearCache();
+    _cachedSortedEntries = null;
+    _cachedSortedEntriesLength = -1;
   }
 
   /// Disposes all loaded tile images and clears the cache.
@@ -101,6 +105,8 @@ class GlobeTileRenderer {
       img.dispose();
     }
     _loadedImages.clear();
+    _cachedSortedEntries = null;
+    _cachedSortedEntriesLength = -1;
   }
 
   /// Converts degrees to radians.
@@ -284,6 +290,8 @@ class GlobeTileRenderer {
           existing.dispose();
         }
         _loadedImages[tile.key] = image;
+        _cachedSortedEntries = null;
+        _cachedSortedEntriesLength = -1;
         if (_loadedImages.length > 128) {
           final firstKey = _loadedImages.keys.first;
           final evicted = _loadedImages.remove(firstKey);
@@ -322,12 +330,19 @@ class GlobeTileRenderer {
     // Kick off fetches for tiles that may be needed soon.
     beginTileFetch(camera, size, isFlying: isFlying);
 
-    final sortedEntries = _loadedImages.entries.toList()
-      ..sort((e1, e2) {
-        final z1 = int.tryParse(e1.key.split('/')[0]) ?? 0;
-        final z2 = int.tryParse(e2.key.split('/')[0]) ?? 0;
-        return z1.compareTo(z2);
-      });
+    final List<MapEntry<String, ui.Image>> sortedEntries;
+    if (_cachedSortedEntries != null && _cachedSortedEntriesLength == _loadedImages.length) {
+      sortedEntries = _cachedSortedEntries!;
+    } else {
+      sortedEntries = _loadedImages.entries.toList()
+        ..sort((e1, e2) {
+          final z1 = int.tryParse(e1.key.split('/')[0]) ?? 0;
+          final z2 = int.tryParse(e2.key.split('/')[0]) ?? 0;
+          return z1.compareTo(z2);
+        });
+      _cachedSortedEntries = sortedEntries;
+      _cachedSortedEntriesLength = _loadedImages.length;
+    }
     for (final entry in sortedEntries) {
       final key = entry.key;
       final parts = key.split('/');

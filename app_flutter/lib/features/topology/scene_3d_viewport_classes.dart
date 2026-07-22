@@ -328,12 +328,10 @@ class SceneViewState extends ChangeNotifier {
   double projectedRadius = 0.0;
   Offset projectedCenter = Offset.zero;
 
-  // Added missing state fields
   late VirtualCamera camera;
   GlobeTileRenderer? tileRenderer;
   bool isFlying = false;
 
-  // Configuration state
   late String activeStyle;
   late String astronomicalBody;
   late bool elevationActive;
@@ -348,7 +346,11 @@ class SceneViewState extends ChangeNotifier {
 
   final Map<String, Offset> finalLabelPositions = {};
   final Map<TextPainterKey, TextPainter> textPainterCache = {};
-  
+
+  VirtualCamera? _lastRecalculatedCamera;
+  TopologyData? _lastRecalculatedTopology;
+  bool _lastRecalculatedIsFlying = false;
+
   void recalculate(
     VirtualCamera camera, 
     Size size, 
@@ -366,7 +368,20 @@ class SceneViewState extends ChangeNotifier {
     GlobeTileRenderer? tileRenderer,
     bool isFlying,
   ) {
-    this.camera = camera.toAbsoluteWgs84();
+    final VirtualCamera absoluteCamera = camera.toAbsoluteWgs84();
+    final bool cameraUnchanged = _lastRecalculatedCamera != null &&
+        _lastRecalculatedCamera!.isSpatiallyEquivalentTo(absoluteCamera);
+    final bool topologyUnchanged = _lastRecalculatedTopology != null &&
+        identical(_lastRecalculatedTopology, topoData);
+    final bool flyingUnchanged = _lastRecalculatedIsFlying == isFlying;
+    if (cameraUnchanged && topologyUnchanged && flyingUnchanged) {
+      return;
+    }
+    _lastRecalculatedCamera = absoluteCamera;
+    _lastRecalculatedTopology = topoData;
+    _lastRecalculatedIsFlying = isFlying;
+
+    this.camera = absoluteCamera;
     this.tileRenderer = tileRenderer;
     this.isFlying = isFlying;
     this.activeStyle = activeStyle;
