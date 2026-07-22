@@ -222,9 +222,10 @@ void main() {
           (lat, lng) => ProjectedPoint(ui.Offset.zero, 1.0),
         );
 
-        // We injected 3 tiles. All should be drawn since parent is no longer skipped.
-        expect(tilesDrawn, equals(3),
-            reason: 'All 3 tiles should be drawn — parent is not skipped');
+        // We injected 3 tiles. The zoom-2 parent (0,0) is skipped because
+        // zoom-6 child (0,0) is a higher-zoom overlay; (2,3,3) is unrelated.
+        expect(tilesDrawn, equals(2),
+            reason: '2 tiles drawn — zoom-2 parent skipped due to higher-zoom overlay');
       });
 
       test('no false masking when tiles are at same zoom', () async {

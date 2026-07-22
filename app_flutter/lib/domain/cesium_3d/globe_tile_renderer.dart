@@ -353,7 +353,7 @@ class GlobeTileRenderer {
       if (z < 0 || x < 0 || y < 0) continue;
 
       // LOD masking: skip this tile if a higher-zoom child tile is loaded.
-      // if (_hasHigherZoomOverlay(TileCoord(zoom: z, x: x, y: y))) continue;
+      if (_hasHigherZoomOverlay(TileCoord(zoom: z, x: x, y: y))) continue;
 
       // Geographic bounds for this tile.
       final double latN = _tile2lat(y.toDouble(), z);
