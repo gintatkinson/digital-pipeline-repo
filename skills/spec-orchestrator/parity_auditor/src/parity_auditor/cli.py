@@ -219,6 +219,7 @@ def _main_impl():
     
     # 1. Parse all modules
     modules = {}
+    module_sources = {}
     if os.path.exists(schema_dir):
         for filename in os.listdir(schema_dir):
             filepath = os.path.join(schema_dir, filename)
@@ -227,7 +228,15 @@ def _main_impl():
             try:
                 module_name, definitions = parse_schema_file(filepath)
                 if module_name:
+                    if module_name in modules:
+                        print(
+                            f"Warning: Duplicate module name '{module_name}' found in "
+                            f"'{filename}' (previously defined in '{module_sources[module_name]}'). "
+                            f"Definitions from '{module_sources[module_name]}' will be overwritten.",
+                            file=sys.stderr
+                        )
                     modules[module_name] = definitions
+                    module_sources[module_name] = filename
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
                 
