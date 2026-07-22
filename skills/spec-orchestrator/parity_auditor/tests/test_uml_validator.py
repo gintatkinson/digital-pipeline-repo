@@ -143,6 +143,56 @@ def test_method_return_void_skipped():
         shutil.rmtree(tmpdir)
 
 
+def test_brackets_in_method_name_not_false_positive():
+    """Brackets in method name (e.g. +reset[atomic]() : Node) should not trigger false-positive multiplicity detection.
+    The method may still be rejected for genuinely missing return-type multiplicity,
+    but the rejection must not be caused by confused bracket detection."""
+    diagram = """classDiagram
+    class ThingProcessor {
+        +String name [1]
+        +reset[atomic]() : Node
+    }
+    class Node {
+        +String id [1]
+    }
+    ThingProcessor --> Node : uses"""
+    tmpdir = _setup_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        error_text = "\n".join(errors)
+        assert "Missing bracket match" not in error_text, \
+            f"Should not report bracket-match errors for brackets in method name, got: {errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_brackets_in_parameter_types_not_false_positive():
+    """Brackets in parameter type expressions (e.g. +sort(list[0]): Bool) should not trigger false-positive multiplicity detection."""
+    diagram = """classDiagram
+    class Sorter {
+        +String name [1]
+        +sort(T[] items) : Bool
+    }
+    class Item {
+        +String id [1]
+    }
+    Sorter --> Item : sorts"""
+    tmpdir = _setup_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        error_text = "\n".join(errors)
+        assert "Missing bracket match" not in error_text, \
+            f"Should not report bracket-match errors for brackets in parameter types, got: {errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
 def test_flowchart_parser_reports_parse_errors():
     """MermaidFlowchartParser must report parse errors for unrecognized lines (Issue #88)."""
     from parity_auditor.parsers.mermaid import MermaidFlowchartParser
