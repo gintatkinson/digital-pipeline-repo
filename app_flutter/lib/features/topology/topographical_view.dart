@@ -173,6 +173,7 @@ class _TopographicalViewState extends State<TopographicalView> {
             topologyData: widget.topologyData,
             onCameraChanged: (newCamera) {
               if (!mounted) return;
+              if (widget.currentView != _lastCurrentView) return;
               setState(() {
                 _cachedCamera = newCamera;
               });
