@@ -412,7 +412,8 @@ class UmlValidator(IValidator):
                                         errors.append(f"Use Case {basename} connection from '{src_id}' to '{tgt_id}' between Actor and Use Case must use an undirected link, not '{conn.style}'.")
                                         
                             if val_rules.use_case_extend_arrow_direction_check:
-                                if conn.label and "extend" in conn.label.lower():
+                                has_extend_stereotype = bool(conn.label and re.search(r'<<\s*extend\s*>>', conn.label, re.I))
+                                if has_extend_stereotype:
                                     src_has_ext = bool(re.search(r"\bextend\b|\bext\b", src_id, re.I) or (src_node and src_node.label and re.search(r"\bextend\b|\bext\b", src_node.label, re.I)))
                                     tgt_has_ext = bool(re.search(r"\bextend\b|\bext\b", tgt_id, re.I) or (tgt_node and tgt_node.label and re.search(r"\bextend\b|\bext\b", tgt_node.label, re.I)))
                                     if tgt_has_ext and not src_has_ext:
