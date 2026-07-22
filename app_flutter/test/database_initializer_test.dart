@@ -44,4 +44,24 @@ void main() {
     expect(db.isOpen, true);
     await db.close();
   });
+
+  test('databaseFactory is restored after create() failure', () async {
+    final isTargetPlatform = !kIsWeb &&
+        (Platform.environment.containsKey('FLUTTER_TEST') ||
+         Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+    if (!isTargetPlatform) {
+      return;
+    }
+    sqfliteFfiInit();
+    final originalFactory = databaseFactory;
+    final tmpDir = await Directory.systemTemp.createTemp('di_fail_test_');
+    try {
+      await di.DatabaseInitializer.create(dbPath: tmpDir.path, seed: false);
+      fail('Expected an exception when opening a directory as a database');
+    } catch (_) {
+      expect(identical(databaseFactory, originalFactory), isTrue);
+    } finally {
+      await tmpDir.delete(recursive: true);
+    }
+  });
 }

@@ -65,8 +65,10 @@ class DatabaseInitializer {
         );
       }
     }
+    dynamic previousFactory;
     if (!kIsWeb && (isTest || isDesktop)) {
       sqfliteFfiInit();
+      previousFactory = databaseFactory;
       databaseFactory = databaseFactoryFfi;
     }
 
@@ -173,6 +175,9 @@ class DatabaseInitializer {
 
       return db;
     } catch (e) {
+      if (!kIsWeb && (isTest || isDesktop)) {
+        databaseFactory = previousFactory;
+      }
       await db.close();
       rethrow;
     }
