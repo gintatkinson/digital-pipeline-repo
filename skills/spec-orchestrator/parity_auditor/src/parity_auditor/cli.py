@@ -82,6 +82,26 @@ def parse_ignore_issues(ignore_str: str) -> set:
                 pass
     return ignored
 
+
+def _extract_issue_id_from_frontmatter(fm_text: str, issue_number: int) -> bool:
+    try:
+        import yaml
+        data = yaml.safe_load(fm_text)
+        if isinstance(data, dict):
+            val = data.get("issue_id")
+            if val is not None and int(val) == issue_number:
+                return True
+    except Exception:
+        pass
+    try:
+        m = re.search(r'(?:^|\n)\s*issue_id\s*:\s*(\d+)', fm_text)
+        if m and int(m.group(1)) == issue_number:
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def _main_impl():
     """
     Orchestrate the full parity audit pipeline.
@@ -255,24 +275,10 @@ def _main_impl():
             # Try to extract YAML frontmatter and check issue_id
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
             if frontmatter_match:
-                try:
-                    import yaml
-                    data = yaml.safe_load(frontmatter_match.group(1))
-                    if isinstance(data, dict):
-                        val = data.get("issue_id")
-                        if val is not None and int(val) == issue_number:
-                            found = True
-                            break
-                except Exception:
-                    # Fallback regex for frontmatter extraction of issue_id
-                    try:
-                        fm_text = frontmatter_match.group(1)
-                        m = re.search(r'(?:^|\n)\s*issue_id\s*:\s*(\d+)', fm_text)
-                        if m and int(m.group(1)) == issue_number:
-                            found = True
-                            break
-                    except Exception:
-                        pass
+                fm_text = frontmatter_match.group(1)
+                found = _extract_issue_id_from_frontmatter(fm_text, issue_number)
+                if found:
+                    break
 
             # Existing filename/content check as fallback
             basename = os.path.splitext(f.filename)[0]
