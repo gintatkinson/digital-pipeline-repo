@@ -51,6 +51,37 @@ class UmlValidator(IValidator):
             
         dotted_link_pattern = val_rules.mermaid_dotted_link_regex
         forbidden_diagram_types = val_rules.forbidden_diagram_types
+
+        mermaid_block_re = re.compile(r'```mermaid\s*\n(.*?)```', re.DOTALL)
+
+        def validate_dotted_links(content, doc_type, filename, errors_list):
+            for block_match in mermaid_block_re.finditer(content):
+                block = block_match.group(1)
+                block_start_line = content[:block_match.start()].count('\n') + 1
+                for line_idx, line in enumerate(block.splitlines()):
+                    if re.search(dotted_link_pattern, line):
+                        errors_list.append(
+                            f"{doc_type} {filename} contains invalid Mermaid dotted link label "
+                            f"syntax at line {block_start_line + line_idx + 1}: "
+                            f"'{line.strip()}'. Use standard label formatting."
+                        )
+                        break
+
+        def validate_forbidden_diagram_types(content, doc_type, filename, errors_list):
+            for block_match in mermaid_block_re.finditer(content):
+                block = block_match.group(1)
+                block_start_line = content[:block_match.start()].count('\n') + 1
+                for ftype in forbidden_diagram_types:
+                    if re.search(ftype, block):
+                        for line_idx, line in enumerate(block.splitlines()):
+                            if re.search(ftype, line):
+                                errors_list.append(
+                                    f"{doc_type} {filename} contains forbidden '{ftype}' "
+                                    f"diagram type at line {block_start_line + line_idx + 1}: "
+                                    f"'{line.strip()}'"
+                                )
+                                break
+                        break
         required_sections = val_rules.required_sections
         required_diagrams = val_rules.required_diagrams
         
@@ -90,13 +121,8 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "Feature", filename, errors)
             self._validate_placeholders_and_links(content, "Feature", filename, errors, checkbox_syntax_regex)
                 
-            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
-            mermaid_content = "\n".join(mermaid_blocks)
-            if re.search(dotted_link_pattern, mermaid_content):
-                errors.append(f"Feature {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-            for ftype in forbidden_diagram_types:
-                if re.search(ftype, mermaid_content):
-                    errors.append(f"Feature {filename} contains forbidden '{ftype}' diagram type.")
+            validate_dotted_links(content, "Feature", filename, errors)
+            validate_forbidden_diagram_types(content, "Feature", filename, errors)
                     
             interface_type = "ui"
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
@@ -164,13 +190,8 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "User Story", filename, errors)
             self._validate_placeholders_and_links(content, "User Story", filename, errors, checkbox_syntax_regex)
                 
-            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
-            mermaid_content = "\n".join(mermaid_blocks)
-            if re.search(dotted_link_pattern, mermaid_content):
-                errors.append(f"User Story {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-            for ftype in forbidden_diagram_types:
-                if re.search(ftype, mermaid_content):
-                    errors.append(f"User Story {filename} contains forbidden '{ftype}' diagram type.")
+            validate_dotted_links(content, "User Story", filename, errors)
+            validate_forbidden_diagram_types(content, "User Story", filename, errors)
                     
             required_story_sections = required_sections.get("user_story")
             if required_story_sections is None:
@@ -309,13 +330,8 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "Use Case", basename, errors)
             self._validate_placeholders_and_links(content, "Use Case", basename, errors, checkbox_syntax_regex)
                 
-            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
-            mermaid_content = "\n".join(mermaid_blocks)
-            if re.search(dotted_link_pattern, mermaid_content):
-                errors.append(f"Use Case {basename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-            for ftype in forbidden_diagram_types:
-                if re.search(ftype, mermaid_content):
-                    errors.append(f"Use Case {basename} contains forbidden '{ftype}' diagram type.")
+            validate_dotted_links(content, "Use Case", basename, errors)
+            validate_forbidden_diagram_types(content, "Use Case", basename, errors)
                     
             required_usecase_sections = required_sections.get("use_case")
             if required_usecase_sections is None:
@@ -535,13 +551,8 @@ class UmlValidator(IValidator):
             self._validate_subagent_isolation(content, "Epic", filename, errors)
             self._validate_placeholders_and_links(content, "Epic", filename, errors, checkbox_syntax_regex)
                 
-            mermaid_blocks = re.findall(r'```mermaid\s*\n(.*?)```', content, re.DOTALL)
-            mermaid_content = "\n".join(mermaid_blocks)
-            if re.search(dotted_link_pattern, mermaid_content):
-                errors.append(f"Epic {filename} contains invalid Mermaid dotted link label syntax. Use standard label formatting.")
-            for ftype in forbidden_diagram_types:
-                if re.search(ftype, mermaid_content):
-                    errors.append(f"Epic {filename} contains forbidden '{ftype}' diagram type.")
+            validate_dotted_links(content, "Epic", filename, errors)
+            validate_forbidden_diagram_types(content, "Epic", filename, errors)
                     
             required_epic_sections = required_sections.get("epic")
             if required_epic_sections is None:
