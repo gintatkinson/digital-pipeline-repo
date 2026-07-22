@@ -250,6 +250,7 @@ class ParsedClassDiagram:
     classes: Dict[str, ClassInfo] = field(default_factory=dict)
     relationships: List[ClassRelationship] = field(default_factory=list)
     namespaces: Dict[str, ClassNamespace] = field(default_factory=dict)
+    parse_errors: List[str] = field(default_factory=list)
 
 @dataclass
 class SequenceMessage:

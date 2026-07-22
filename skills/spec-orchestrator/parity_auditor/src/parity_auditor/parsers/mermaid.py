@@ -207,6 +207,7 @@ class MermaidClassDiagramParser(IParser):
         relationships = []
         namespaces = {}
         block_stack = []
+        parse_errors = []
 
         rules = self.workspace_repo.get_codebase_rules()
         val_rules = rules.validation_rules
@@ -436,8 +437,11 @@ class MermaidClassDiagramParser(IParser):
                     classes[cls_name].methods.append(parse_method_signature(line))
                 else:
                     classes[cls_name].attributes.append(parse_attribute_signature(line))
+                continue
 
-        return ParsedClassDiagram(classes=classes, relationships=relationships, namespaces=namespaces)
+            parse_errors.append(f"Unparseable line in classDiagram: '{line.strip()}'")
+
+        return ParsedClassDiagram(classes=classes, relationships=relationships, namespaces=namespaces, parse_errors=parse_errors)
 
 
 class MermaidSequenceDiagramParser(IParser):
