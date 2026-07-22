@@ -91,16 +91,21 @@ class DocsValidator(IValidator):
             in_code_block = False
             code_block_start = 0
             is_mermaid_block = False
+            mermaid_fence_count = 0
             for idx, line in enumerate(lines, 1):
                 stripped = line.strip()
                 if stripped.startswith("```"):
                     if in_code_block:
                         in_code_block = False
+                        if is_mermaid_block:
+                            mermaid_fence_count += 1
                         is_mermaid_block = False
                     else:
                         in_code_block = True
                         code_block_start = idx
-                        is_mermaid_block = stripped.startswith("```mermaid")
+                        if stripped.startswith("```mermaid"):
+                            is_mermaid_block = True
+                            mermaid_fence_count += 1
                 elif in_code_block and is_mermaid_block:
                     if MD_CONSTRUCTS_INVALID_IN_MERMAID.match(stripped):
                         errors.append(
@@ -112,5 +117,7 @@ class DocsValidator(IValidator):
                         is_mermaid_block = False
             if in_code_block:
                 errors.append(f"Specification '{rel_path}' has an unclosed code block (or stray code fence) starting at line {code_block_start}.")
+            if mermaid_fence_count % 2 != 0:
+                errors.append(f"Specification '{rel_path}' has unbalanced mermaid fences ({mermaid_fence_count} opening/closing found). A closing ``` may be missing after a mermaid block.")
                         
         return errors
