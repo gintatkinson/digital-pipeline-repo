@@ -105,3 +105,28 @@ def test_exits_nonzero_on_hook_removal_failure(tmp_path):
     )
 
     hooks_dir.chmod(0o700)
+
+
+def test_pipeline_dirs_staged_even_if_already_whitelisted(tmp_path):
+    script = _make_repo(tmp_path, init_git=True)
+    # First run to append whitelist entries
+    result = _run_script(script, tmp_path)
+    assert result.returncode == 0
+
+    # Unstage files to verify staging on the second run
+    subprocess.run(["git", "reset"], capture_output=True, cwd=str(tmp_path))
+
+    # Second run where patterns will be empty
+    result2 = _run_script(script, tmp_path)
+    assert result2.returncode == 0, result2.stderr
+    assert "already present in .gitignore" in result2.stdout
+
+    # Verify files are still staged
+    staged = subprocess.run(
+        ["git", "diff", "--cached", "--name-only"],
+        capture_output=True, text=True, cwd=str(tmp_path)
+    )
+    staged_files = staged.stdout.strip().split("\n") if staged.stdout.strip() else []
+    for d in [".pipeline", ".agents", "skills", "rules", "scripts"]:
+        found = any(f.startswith(d + "/") or f == d for f in staged_files)
+        assert found, f"Directory not staged: {d}"

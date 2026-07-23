@@ -36,16 +36,14 @@ def _whitelist_infrastructure(repo_root):
             if pattern not in content:
                 patterns.append(pattern)
 
-    if not patterns:
+    if patterns:
+        with open(gitignore_path, "a", encoding="utf-8") as f:
+            f.write(WHITELIST_HEADER)
+            for p in patterns:
+                f.write(f"{p}\n")
+        print(f"Appended {len(patterns)} whitelist entr{'y' if len(patterns)==1 else 'ies'} to .gitignore")
+    else:
         print("Infrastructure whitelist entries already present in .gitignore")
-        return
-
-    with open(gitignore_path, "a", encoding="utf-8") as f:
-        f.write(WHITELIST_HEADER)
-        for p in patterns:
-            f.write(f"{p}\n")
-
-    print(f"Appended {len(patterns)} whitelist entr{'y' if len(patterns)==1 else 'ies'} to .gitignore")
 
     result = subprocess.run(
         ["git", "add"] + STAGE_DIRS,
