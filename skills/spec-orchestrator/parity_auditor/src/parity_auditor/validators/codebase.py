@@ -142,9 +142,9 @@ class CodebaseValidator(IValidator):
                         if "design_tokens" in file:
                             continue
                             
-                        content_lower = content.lower()
                         for color_val, desc in hardcoded_colors_flutter.items():
-                            if color_val in content_lower:
+                            pattern = re.compile(rf"\b0x{re.escape(color_val)}\b", re.IGNORECASE)
+                            if pattern.search(content):
                                 errors.append(f"Flutter File '{rel_path}' contains hardcoded alarm color '0x{color_val.upper()}' ({desc}). Reference ThemeData or design-tokens config instead.")
                                 
                         clean_content = strip_c_style_comments(content)
