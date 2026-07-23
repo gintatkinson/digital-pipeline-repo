@@ -128,13 +128,16 @@ Copy the pipeline directories and (optionally) the application templates into yo
 
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
+cp -RP ./.tmp-pipeline/app_flutter ./
+cp -RP ./.tmp-pipeline/web_react ./
 rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
