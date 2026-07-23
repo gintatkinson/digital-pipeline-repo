@@ -122,57 +122,10 @@ These rules live in the rules directory (e.g. `rules/`) and are packaged into th
 
 The pipeline requires Python 3, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter (install via `pip install -r requirements.txt`). Choose the method that fits your team's workflow.
 
-### Selecting a Version
-* **Stable Version (`master` branch)**: The default production release.
-* **Refactored Version (`refactor` branch)**: Remediated version featuring the latest geodetic model fixes, UML linter improvements, and all adversarial audit corrections.
-
----
-
 ### Direct Copy Installation
 
 Copy the pipeline directories and (optionally) the application templates into your project repository.
 
-**For Stable Version (`master`):**
-
-* **For Flutter Projects:**
-```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
-cp -RP ./.tmp-pipeline/skills ./
-cp -RP ./.tmp-pipeline/rules ./
-cp -RP ./.tmp-pipeline/.pipeline ./
-cp -RP ./.tmp-pipeline/.agents ./
-cp -RP ./.tmp-pipeline/scripts ./
-rm -rf ./.tmp-pipeline
-```
-
-* **For React Projects:**
-```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
-cp -RP ./.tmp-pipeline/skills ./
-cp -RP ./.tmp-pipeline/rules ./
-cp -RP ./.tmp-pipeline/.pipeline ./
-cp -RP ./.tmp-pipeline/.agents ./
-cp -RP ./.tmp-pipeline/scripts ./
-rm -rf ./.tmp-pipeline
-```
-
-**For Refactored Version (`refactor`):**
-
-* **For Flutter Projects:**
-```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
-cp -RP ./.tmp-pipeline/skills ./
-cp -RP ./.tmp-pipeline/rules ./
-cp -RP ./.tmp-pipeline/.pipeline ./
-cp -RP ./.tmp-pipeline/.agents ./
-cp -RP ./.tmp-pipeline/scripts ./
-rm -rf ./.tmp-pipeline
-```
-
-* **For React Projects:**
 ```bash
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
@@ -341,7 +294,7 @@ This pipeline's skills conform to the [Agent Skills specification](https://agent
 
 ### Install Skills via Tessl
 
-**For Stable Version (`master`):**
+**For Stable Version (`main`):**
 ```bash
 tessl init --agent claude-code --agent cursor --agent gemini
 tessl install github:gintatkinson/digital-pipeline-repo
