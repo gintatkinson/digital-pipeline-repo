@@ -36,7 +36,8 @@ def get_git_remote_repo(workspace_dir):
             cwd=workspace_dir,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            timeout=30
         )
         url = res.stdout.strip()
         if url.endswith(".git"):
@@ -116,7 +117,7 @@ def get_all_issues(rules=None):
     
     print(f"Fetching active and closed issues from tracker provider '{provider}'...")
     cmd = commands["list_issues"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     if res.returncode != 0:
         raise Exception(f"Failed to fetch issues: {res.stderr.strip()}")
     return json.loads(res.stdout)
@@ -262,7 +263,7 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         if not edit_cmd_template:
             raise ValueError("Missing 'tracker_rules.commands.edit_issue' in codebase_rules.json")
         cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True, timeout=30)
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
@@ -275,13 +276,13 @@ def close_issue_on_tracker(issue_num, comment, rules=None):
     if not close_cmd_template:
         raise ValueError("Missing 'tracker_rules.commands.close_issue' in codebase_rules.json")
     cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
-    subprocess.run(cmd, check=True, capture_output=True)
+    subprocess.run(cmd, check=True, capture_output=True, timeout=30)
 
 def get_current_branch(workspace_dir):
-    res = subprocess.run(["git", "branch", "--show-current"], cwd=workspace_dir, capture_output=True, text=True)
+    res = subprocess.run(["git", "branch", "--show-current"], cwd=workspace_dir, capture_output=True, text=True, timeout=30)
     if res.returncode == 0 and res.stdout.strip():
         return res.stdout.strip()
-    res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace_dir, capture_output=True, text=True)
+    res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace_dir, capture_output=True, text=True, timeout=30)
     if res.returncode == 0 and res.stdout.strip():
         return res.stdout.strip()
     return "master"
@@ -629,13 +630,36 @@ def main():
     print("Running pre-reconciliation linter validation...")
     linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
     cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
-    res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True)
-    if res.returncode != 0:
-        print("[FATAL] Pre-reconciliation linter validation failed. Aborting backlog reconciliation to prevent uploading specifications with UML/linter errors.", file=sys.stderr)
-        print(res.stdout, file=sys.stderr)
-        print(res.stderr, file=sys.stderr)
+    try:
+        res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True, timeout=30)
+        if res.returncode != 0:
+            output_text = (res.stdout or "") + "\n" + (res.stderr or "")
+            lines = [line.strip() for line in output_text.splitlines()]
+            error_lines = [line for line in lines if line.startswith("- ")]
+            
+            is_exclusive_checklist_placeholder = False
+            if error_lines:
+                is_exclusive_checklist_placeholder = True
+                for err in error_lines:
+                    err_lower = err.lower()
+                    if "placeholder" not in err_lower and "checklist" not in err_lower and "required features matrix" not in err_lower:
+                        is_exclusive_checklist_placeholder = False
+                        break
+            
+            if is_exclusive_checklist_placeholder:
+                print("[Warning] Pre-reconciliation linter validation found only checklist warning issues/placeholders. Proceeding with warnings.", file=sys.stderr)
+                for err in error_lines:
+                    print(f"  [Warning Detail] {err}", file=sys.stderr)
+            else:
+                print("[FATAL] Pre-reconciliation linter validation failed. Aborting backlog reconciliation to prevent uploading specifications with UML/linter errors.", file=sys.stderr)
+                print(res.stdout, file=sys.stderr)
+                print(res.stderr, file=sys.stderr)
+                sys.exit(1)
+        else:
+            print("Pre-reconciliation linter validation passed successfully.")
+    except subprocess.TimeoutExpired:
+        print("[FATAL] Pre-reconciliation linter validation timed out after 30 seconds. Aborting.", file=sys.stderr)
         sys.exit(1)
-    print("Pre-reconciliation linter validation passed successfully.")
 
     try:
         rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")

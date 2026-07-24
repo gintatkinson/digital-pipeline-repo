@@ -24,7 +24,7 @@ class SyncValidator(IValidator):
             return []
             
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, cwd=repo.workspace_dir)
+            res = subprocess.run(cmd, capture_output=True, text=True, cwd=repo.workspace_dir, timeout=30)
             if res.returncode != 0:
                 print(f"Warning: Failed to fetch issue backlog from remote: {res.stderr.strip()}")
                 return []
