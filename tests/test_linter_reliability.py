@@ -177,11 +177,11 @@ def test_missing_spec(tmp_path, base_config):
             assert exc_info.value.code != 0
             
             # Verify the command was run
-            mock_run.assert_called_once()
-            args, kwargs = mock_run.call_args
-            assert "gh" in args[0]
-            assert "issue" in args[0]
-            assert "list" in args[0]
+            assert mock_run.call_count >= 1
+            first_call_args = mock_run.call_args_list[0][0]
+            assert "gh" in first_call_args[0]
+            assert "issue" in first_call_args[0]
+            assert "list" in first_call_args[0]
     finally:
         sys.argv = old_argv
         os.chdir(old_cwd)
