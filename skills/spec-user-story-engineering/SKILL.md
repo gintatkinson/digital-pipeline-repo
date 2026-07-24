@@ -143,6 +143,8 @@ Normative Specification: [Normative Specification](link-to-specification)
 > **Mermaid Block Closing Constraints & Code Fence Integrity:**
 > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
 > - Ensure there are no stray backticks or unmatched code fences in the document.
+> - **Semicolon Restriction**: Do NOT use semicolons (`;`) in sequence diagram `Note` statements or message text statements. Semicolons are not allowed. Replace any semicolons (`;`) with commas, dashes, or spaces.
+
 
 
 ## Step 5: Zero-Fault Backlog Synchronization

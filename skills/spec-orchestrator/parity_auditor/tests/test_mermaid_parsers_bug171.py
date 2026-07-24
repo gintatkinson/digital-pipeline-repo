@@ -108,3 +108,16 @@ def test_sequence_diagram_note_with_semicolon_rejected():
     assert "Semicolons are not allowed in sequence diagram Note statements: 'Note over Alice, Bob: This is a note; with semicolon'" in result.parse_errors[0]
     assert "Semicolons are not allowed in sequence diagram Note statements: 'note right of Alice: Another note;'" in result.parse_errors[1]
 
+def test_sequence_diagram_message_with_semicolon_rejected():
+    parser = MermaidSequenceDiagramParser()
+    diagram = """
+    sequenceDiagram
+        Alice->>Bob: hello();
+        Bob-->>Alice: reply;
+    """
+    result = parser.parse(diagram)
+    assert len(result.parse_errors) == 2
+    assert "Semicolons are not allowed in sequence diagram message statements: 'Alice->>Bob: hello();'" in result.parse_errors[0]
+    assert "Semicolons are not allowed in sequence diagram message statements: 'Bob-->>Alice: reply;'" in result.parse_errors[1]
+
+

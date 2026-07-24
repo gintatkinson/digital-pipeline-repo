@@ -631,6 +631,8 @@ class MermaidSequenceDiagramParser(IParser):
                 receiver = msg_match.group(4)
                 act2 = msg_match.group(5)
                 msg_text = msg_match.group(6).strip()
+                if msg_text.endswith(";"):
+                    parse_errors.append(f"Semicolons are not allowed in sequence diagram message statements: '{line.strip()}'")
 
                 for participant in (sender, receiver):
                     if participant not in lifelines:
