@@ -49,7 +49,8 @@ def tag_restoration_point():
 def cleanup_workspace(destination):
     print("Cleaning up workspace...")
     to_delete_files = [".dart_tool/package_config.json.lock",
-                       ".flutter-plugins-dependencies"]
+                       ".flutter-plugins-dependencies",
+                       ".flutter-plugins"]
     for f in to_delete_files:
         path = os.path.join(destination, f)
         if os.path.isfile(path):
@@ -58,7 +59,7 @@ def cleanup_workspace(destination):
             except OSError:
                 pass
 
-    dirs_to_remove = ["build", ".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies"]
+    dirs_to_remove = ["build", ".flutter-plugins", ".flutter-plugins-dependencies"]
     for d in dirs_to_remove:
         d_path = os.path.join(destination, d)
         if os.path.isdir(d_path):

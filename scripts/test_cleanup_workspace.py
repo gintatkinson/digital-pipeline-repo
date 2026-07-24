@@ -65,12 +65,15 @@ def test_cleanup_dart_tool_and_flutter_plugins():
     tmp = tempfile.mkdtemp()
     try:
         os.makedirs(os.path.join(tmp, ".dart_tool"), exist_ok=True)
+        with open(os.path.join(tmp, ".dart_tool", "package_config.json.lock"), "w") as f:
+            f.write("{}")
         os.makedirs(os.path.join(tmp, ".flutter-plugins"), exist_ok=True)
         os.makedirs(os.path.join(tmp, ".flutter-plugins-dependencies"), exist_ok=True)
 
         cleanup_workspace(tmp)
 
-        assert not os.path.isdir(os.path.join(tmp, ".dart_tool")), "FAIL: .dart_tool not cleaned"
+        assert os.path.isdir(os.path.join(tmp, ".dart_tool")), "FAIL: .dart_tool was unexpectedly deleted"
+        assert not os.path.isfile(os.path.join(tmp, ".dart_tool", "package_config.json.lock")), "FAIL: package_config.json.lock not cleaned"
         assert not os.path.isdir(os.path.join(tmp, ".flutter-plugins")), "FAIL: .flutter-plugins not cleaned"
         assert not os.path.isdir(os.path.join(tmp, ".flutter-plugins-dependencies")), "FAIL: .flutter-plugins-dependencies not cleaned"
         print("PASS: test_cleanup_dart_tool_and_flutter_plugins")
