@@ -94,6 +94,16 @@ class MermaidFlowchartParser(IParser):
             if not line or line.lower() in ("flowchart", "graph td", "graph lr", "graph", "flowchart td", "flowchart lr"):
                 continue
 
+            if line.startswith("```"):
+                continue
+
+            if line.lower().startswith("note ") or line.lower().startswith("note\t") or line.lower() == "note":
+                is_connection = parse_connection_line(line) is not None
+                node_id, shape, label = extract_node_from_part(line)
+                is_node_def = bool(node_id and (shape or label))
+                if not (is_connection or is_node_def):
+                    continue
+
             subgraph_match = re.match(r'^subgraph\s+(?:\"([^\"]+)\"|([^\s\[\"\(]+))(?:\s+\[\s*\"([^\"]*)\"\s*\]|\s+\[([^\]]*)\]|\s+\"([^\"]*)\"|\s+(\S+))?', line, re.IGNORECASE)
             if subgraph_match:
                 sub_id = subgraph_match.group(1) or subgraph_match.group(2)
@@ -333,6 +343,17 @@ class MermaidClassDiagramParser(IParser):
             if not line or line.lower() == "classdiagram":
                 continue
 
+            if line.startswith("```"):
+                continue
+
+            if line.lower().startswith("note ") or line.lower().startswith("note\t") or line.lower() == "note":
+                is_relationship = bool(re.match(
+                    r'^\s*([a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*([a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
+                    line
+                ))
+                if not is_relationship:
+                    continue
+
             namespace_match = re.match(r'^namespace\s+([a-zA-Z0-9_\-]+)\s*\{', line, re.IGNORECASE)
             if namespace_match:
                 ns_name = namespace_match.group(1)
@@ -517,6 +538,25 @@ class MermaidSequenceDiagramParser(IParser):
             line = re.sub(r'%%.*$', '', line).strip()
             if not line or line.lower() == "sequencediagram":
                 continue
+
+            if line.startswith("```"):
+                continue
+
+            if line.lower() == "autonumber" or line.lower().startswith("autonumber "):
+                continue
+
+            if line.lower().startswith("note ") or line.lower().startswith("note\t") or line.lower() == "note":
+                is_msg = bool(re.match(
+                    r'^\s*([a-zA-Z0-9_.:]+(?:-[a-zA-Z0-9_.:]+)*)\s*(-->>|->>|-->|->|--x|-x)([+-]?)\s*([a-zA-Z0-9_.:]+(?:-[a-zA-Z0-9_.:]+)*)([+-]?)\s*:\s*(.*)$',
+                    line
+                ))
+                is_lifeline = bool(re.match(
+                    r'^\s*(actor|participant)\s+([a-zA-Z0-9_\-.:]+)(?:\s+as\s+(?:\"([^\"]*)\"|([^\s]+)))?$',
+                    line,
+                    re.IGNORECASE
+                ))
+                if not (is_msg or is_lifeline):
+                    continue
 
             lifeline_match = re.match(
                 r'^\s*(actor|participant)\s+([a-zA-Z0-9_\-.:]+)(?:\s+as\s+(?:\"([^\"]*)\"|([^\s]+)))?$',

@@ -1,0 +1,95 @@
+import os
+import sys
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+from parity_auditor.parsers.mermaid import MermaidSequenceDiagramParser, MermaidClassDiagramParser, MermaidFlowchartParser
+from parity_auditor.core.workspace import WorkspaceRepository
+
+class MockWorkspaceRules:
+    class ValidationRules:
+        def __init__(self):
+            self.visibility_prefixes = ["+", "-", "#", "~"]
+            self.relationship_connectors = "(<\\|--|\\*--|o--|-->|\\.\\.>|--)"
+    def __init__(self):
+        self.validation_rules = self.ValidationRules()
+
+class MockWorkspaceRepository:
+    def get_codebase_rules(self):
+        return MockWorkspaceRules()
+
+def test_sequence_diagram_parser_skips_code_fences_and_autonumber_and_notes():
+    parser = MermaidSequenceDiagramParser()
+    
+    diagram = """
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        Alice->>Bob: hello()
+        Note over Alice, Bob: This is a note
+        note right of Alice: Another note
+        Bob-->>Alice: reply
+    ```
+    """
+    
+    result = parser.parse(diagram)
+    
+    # Assertions
+    assert len(result.messages) == 2
+    assert result.messages[0].sender == "Alice"
+    assert result.messages[0].receiver == "Bob"
+    assert result.messages[0].operation == "hello"
+    
+    assert result.messages[1].sender == "Bob"
+    assert result.messages[1].receiver == "Alice"
+    assert result.messages[1].arrow == "-->>"
+    
+    # Verify no parse errors occurred (fences, autonumber, notes skipped successfully)
+    assert not result.parse_errors
+
+def test_class_diagram_parser_skips_code_fences_and_notes():
+    repo = MockWorkspaceRepository()
+    parser = MermaidClassDiagramParser(repo)
+    
+    diagram = """
+    ```mermaid
+    classDiagram
+        class A {
+            +String name
+        }
+        note "This is a note for class A"
+        note for A "Another note"
+        A --> B : relationship
+    ```
+    """
+    
+    result = parser.parse(diagram)
+    
+    # Assertions
+    assert "A" in result.classes
+    assert "B" in result.classes
+    assert len(result.relationships) == 1
+    assert result.relationships[0].from_class == "A"
+    assert result.relationships[0].to_class == "B"
+    assert not result.parse_errors
+
+def test_flowchart_parser_skips_code_fences_and_notes():
+    parser = MermaidFlowchartParser()
+    
+    diagram = """
+    ```mermaid
+    flowchart TD
+        A[Start] --> B(Process)
+        note "Flowchart note"
+        B --> C[End]
+    ```
+    """
+    
+    result = parser.parse(diagram)
+    
+    # Assertions
+    assert "A" in result.nodes
+    assert "B" in result.nodes
+    assert "C" in result.nodes
+    assert len(result.connections) == 2
+    assert not result.parse_errors
