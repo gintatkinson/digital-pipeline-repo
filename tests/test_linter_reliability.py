@@ -645,6 +645,75 @@ def test_reconcile_backlog_frontmatter_resolution_variations(tmp_path, base_conf
         
         with open(feat_path, "r", encoding="utf-8") as f:
             content = f.read()
-            
+        
         assert expected_line in content, f"Expected '{expected_line}' to be in resolved content, but got:\n{content}"
+
+
+def test_yaml_multiline_frontmatter_block_parsing(tmp_path, base_config):
+    # Test for Bug #182: Reconciler naive line-splitting on colons erases multiline YAML block descriptions
+    # Check that WorkspaceRepository.load_feature_files parses labels correctly even with multiline/complex frontmatter.
+    from parity_auditor.core.workspace import WorkspaceRepository
+    from parity_auditor.validators.uml import UmlValidator
+
+    ws_dir = tmp_path / "workspace"
+    os.makedirs(ws_dir / ".pipeline" / "logical-ui", exist_ok=True)
+    with open(ws_dir / ".pipeline" / "logical-ui" / "codebase_rules.json", "w", encoding="utf-8") as f:
+        json.dump(base_config, f)
+        
+    os.makedirs(ws_dir / "docs" / "features", exist_ok=True)
+    
+    # Create feature file with complex multiline YAML frontmatter containing colons
+    feat_path = ws_dir / "docs" / "features" / "feat-complex.md"
+    with open(feat_path, "w", encoding="utf-8") as f:
+        f.write("""---
+title: "Complex Feature"
+labels: ["label-1", "label-2"]
+generation_mode: subagent
+description: |
+  This is a multiline description:
+  - Part 1: Details here
+  - Part 2: More details
+---
+# Complex Feature
+
+## UML Class Diagram
+```mermaid
+classDiagram
+class DummyClass {}
+```
+""")
+    
+    # 1. Test workspace.py label parsing
+    repo = WorkspaceRepository(str(ws_dir))
+    feature_files = repo.get_feature_files(str(ws_dir / "docs" / "features"))
+    assert len(feature_files) == 1
+    assert feature_files[0].labels == ["label-1", "label-2"]
+    
+    # 2. Test uml.py frontmatter tag / interface_type parsing
+    # First test UmlValidator's subagent isolation verification
+    validator = UmlValidator()
+    errors = []
+    validator._validate_subagent_isolation(feature_files[0].content, "Feature", feature_files[0].filename, errors)
+    assert not errors, f"Expected no subagent isolation errors, got: {errors}"
+
+
+def test_convert_frontmatter_to_table_escaping(tmp_path, base_config):
+    if str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))) not in sys.path:
+        sys.path.insert(0, str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills", "spec-orchestrator", "scripts"))))
+    import reconcile_backlog
+    
+    content = """---
+title: "Pipe | Test"
+description: |
+  Line 1
+  Line 2
+---
+# Main Content"""
+    
+    result = reconcile_backlog.convert_frontmatter_to_table(content)
+    # Check that Pipe was escaped
+    assert "Pipe \\|" in result
+    # Check that newlines were replaced with <br> in description
+    assert "Line 1<br>Line 2" in result
+
 

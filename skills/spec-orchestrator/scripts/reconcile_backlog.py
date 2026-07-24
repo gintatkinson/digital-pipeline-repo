@@ -218,7 +218,10 @@ def convert_frontmatter_to_table(content):
             val = ""
         else:
             val = str(value)
-        table_lines.append(f"| **{key}** | {val} |")
+        
+        val = val.replace('\n', '<br>').replace('|', '\\|')
+        key_str = str(key).replace('\n', '<br>').replace('|', '\\|')
+        table_lines.append(f"| **{key_str}** | {val} |")
         
     table_text = "\n".join(table_lines) + "\n\n"
     return table_text + body_text
@@ -232,6 +235,8 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
+            
+        content = convert_frontmatter_to_table(content)
             
         val_rules = rules.get("validation_rules", {}) if rules else {}
         max_body_chars = val_rules.get("max_body_characters", 65536)

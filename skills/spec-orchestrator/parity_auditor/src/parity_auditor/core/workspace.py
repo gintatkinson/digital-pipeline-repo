@@ -101,11 +101,25 @@ class WorkspaceRepository:
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
             if frontmatter_match:
                 frontmatter_text = frontmatter_match.group(1)
-                for line in frontmatter_text.splitlines():
-                    if line.startswith("labels:"):
-                        labels_match = re.search(r"\[(.*?)\]", line)
-                        if labels_match:
-                            labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
+                try:
+                    import yaml
+                    data = yaml.safe_load(frontmatter_text)
+                    if isinstance(data, dict) and "labels" in data:
+                        lbls = data["labels"]
+                        if isinstance(lbls, list):
+                            labels = [str(lbl).strip() for lbl in lbls]
+                        elif isinstance(lbls, str):
+                            labels_match = re.search(r"\[(.*?)\]", lbls)
+                            if labels_match:
+                                labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
+                            else:
+                                labels = [lbl.strip() for lbl in lbls.split(",") if lbl.strip()]
+                except Exception:
+                    for line in frontmatter_text.splitlines():
+                        if line.startswith("labels:"):
+                            labels_match = re.search(r"\[(.*?)\]", line)
+                            if labels_match:
+                                labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
             
             features.append(FeatureFile(
                 filename=filename,

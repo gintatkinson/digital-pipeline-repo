@@ -128,13 +128,21 @@ class UmlValidator(IValidator):
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
             if frontmatter_match:
                 frontmatter_text = frontmatter_match.group(1)
-                for fm_line in frontmatter_text.splitlines():
-                    if ":" in fm_line:
-                        fm_parts = fm_line.split(":", 1)
-                        fm_key = fm_parts[0].strip()
-                        fm_val = fm_parts[1].strip().strip('"').strip("'")
-                        if fm_key in ("interface_type", "interface-type"):
-                            interface_type = fm_val.lower()
+                try:
+                    import yaml
+                    data = yaml.safe_load(frontmatter_text)
+                    if isinstance(data, dict):
+                        for k, v in data.items():
+                            if k in ("interface_type", "interface-type"):
+                                interface_type = str(v).lower()
+                except Exception:
+                    for fm_line in frontmatter_text.splitlines():
+                        if ":" in fm_line:
+                            fm_parts = fm_line.split(":", 1)
+                            fm_key = fm_parts[0].strip()
+                            fm_val = fm_parts[1].strip().strip('"').strip("'")
+                            if fm_key in ("interface_type", "interface-type"):
+                                interface_type = fm_val.lower()
                             
             req_key = f"feature_{interface_type}"
             required_feature_sections = required_sections.get(req_key)
@@ -581,17 +589,27 @@ class UmlValidator(IValidator):
         has_subagent_tag = False
         if frontmatter_match:
             frontmatter_text = frontmatter_match.group(1)
-            for fm_line in frontmatter_text.splitlines():
-                if ":" in fm_line:
-                    fm_parts = fm_line.split(":", 1)
-                    fm_key = fm_parts[0].strip().lower()
-                    fm_val = fm_parts[1].strip().strip('"').strip("'").lower()
-                    if fm_key in ("generation_mode", "generation-mode") and fm_val == "subagent":
+            try:
+                import yaml
+                data = yaml.safe_load(frontmatter_text)
+                if isinstance(data, dict):
+                    data_lower = {str(k).lower(): str(v).lower() for k, v in data.items() if v is not None}
+                    if data_lower.get("generation_mode") == "subagent" or data_lower.get("generation-mode") == "subagent":
                         has_subagent_tag = True
-                        break
-                    if fm_key in ("subagent_drafted", "subagent-drafted") and fm_val == "true":
+                    elif data_lower.get("subagent_drafted") == "true" or data_lower.get("subagent-drafted") == "true":
                         has_subagent_tag = True
-                        break
+            except Exception:
+                for fm_line in frontmatter_text.splitlines():
+                    if ":" in fm_line:
+                        fm_parts = fm_line.split(":", 1)
+                        fm_key = fm_parts[0].strip().lower()
+                        fm_val = fm_parts[1].strip().strip('"').strip("'").lower()
+                        if fm_key in ("generation_mode", "generation-mode") and fm_val == "subagent":
+                            has_subagent_tag = True
+                            break
+                        if fm_key in ("subagent_drafted", "subagent-drafted") and fm_val == "true":
+                            has_subagent_tag = True
+                            break
         if not has_subagent_tag:
             errors.append(f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.")
 
