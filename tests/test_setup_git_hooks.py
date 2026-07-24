@@ -130,3 +130,19 @@ def test_pipeline_dirs_staged_even_if_already_whitelisted(tmp_path):
     for d in [".pipeline", ".agents", "skills", "rules", "scripts"]:
         found = any(f.startswith(d + "/") or f == d for f in staged_files)
         assert found, f"Directory not staged: {d}"
+
+
+def test_whitelist_creates_gitignore_if_missing(tmp_path):
+    script = _make_repo(tmp_path, init_git=True)
+    gitignore = tmp_path / ".gitignore"
+    if gitignore.exists():
+        gitignore.unlink()
+
+    result = _run_script(script, tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "Created missing .gitignore file" in result.stdout
+    assert gitignore.exists(), ".gitignore file was not created"
+
+    content = gitignore.read_text(encoding="utf-8")
+    for entry in WHITELIST_ENTRIES:
+        assert entry in content, f"Missing whitelist entry: {entry}"

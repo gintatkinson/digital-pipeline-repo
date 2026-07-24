@@ -18,8 +18,9 @@ STAGE_DIRS = [".pipeline/", "skills/", "rules/", "scripts/", ".agents/"]
 def _whitelist_infrastructure(repo_root):
     gitignore_path = os.path.join(repo_root, ".gitignore")
     if not os.path.isfile(gitignore_path):
-        print(f"Warning: .gitignore not found at {gitignore_path}", file=sys.stderr)
-        return
+        with open(gitignore_path, "w", encoding="utf-8") as f:
+            pass
+        print(f"Created missing .gitignore file at {gitignore_path}")
 
     git_dir = os.path.join(repo_root, ".git")
     if not os.path.isdir(git_dir) or not os.path.isfile(os.path.join(git_dir, "HEAD")):
