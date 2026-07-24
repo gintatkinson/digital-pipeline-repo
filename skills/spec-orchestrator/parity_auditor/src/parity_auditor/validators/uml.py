@@ -769,19 +769,19 @@ class UmlValidator(IValidator):
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
                     if not method.return_type or method.return_type.lower() in ("void", "none"):
                         continue
-                    has_mult = True
+                    has_mult = False
                     if method.return_type:
                         if '[' in method.return_type or ']' in method.return_type:
-                            if not re.search(multiplicity_regex, method.return_type):
-                                has_mult = False
+                            if re.search(multiplicity_regex, method.return_type):
+                                has_mult = True
                         elif '[' in method.raw or ']' in method.raw:
                             if ")" in method.raw:
                                 return_suffix = method.raw.rsplit(")", 1)[-1]
                             else:
                                 return_suffix = method.raw
                             if '[' in return_suffix or ']' in return_suffix:
-                                if not (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
-                                    has_mult = False
+                                if (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
+                                    has_mult = True
                     if not has_mult:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
         
