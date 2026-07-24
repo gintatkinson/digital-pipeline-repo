@@ -58,9 +58,11 @@ def cleanup_workspace(destination):
             except OSError:
                 pass
 
-    build_dir = os.path.join(destination, "build")
-    if os.path.isdir(build_dir):
-        shutil.rmtree(build_dir, ignore_errors=True)
+    dirs_to_remove = ["build", ".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies"]
+    for d in dirs_to_remove:
+        d_path = os.path.join(destination, d)
+        if os.path.isdir(d_path):
+            shutil.rmtree(d_path, ignore_errors=True)
 
     for root, _, files in os.walk(destination):
         for f in files:
