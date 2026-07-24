@@ -556,6 +556,8 @@ class MermaidSequenceDiagramParser(IParser):
                     re.IGNORECASE
                 ))
                 if not (is_msg or is_lifeline):
+                    if ";" in line:
+                        parse_errors.append(f"Semicolons are not allowed in sequence diagram Note statements: '{line.strip()}'")
                     continue
 
             lifeline_match = re.match(
