@@ -1,40 +1,34 @@
-# Implementation Plan - Unify README.md Installation Instructions
+# Implementation Plan - Fix Bug #180: Semicolons in sequence diagram Note statements
 
-This plan outlines the changes to `README.md` to unify the installation instructions.
+This plan outlines the changes to fix Bug #180: "Linter fails to validate and reject semicolons in sequence diagram Note statements (False Negative)".
 
 ## Proposed Changes
 
 ### Phase 1: Codebase Modifications
 
-1. **Update `README.md`**:
-   - File: `README.md`
-   - Action:
-     Replace the Direct Copy Installation section (lines 125-141) with a single, unified copy block that:
-     1. Deletes all pipeline folders (`skills/`, `rules/`, `.pipeline/`, `.agents/`, `scripts/`) and both application templates (`app_flutter/`, `web_react/`).
-     2. Copies all pipeline folders (`skills/`, `rules/`, `.pipeline/`, `.agents/`, `scripts/`) and both application templates (`app_flutter/`, `web_react/`).
-     3. Runs `python3 scripts/setup_git_hooks.py` at the end.
-
-     The unified code block will look like this:
-     ```bash
-     git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-     rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
-     cp -RP ./.tmp-pipeline/skills ./
-     cp -RP ./.tmp-pipeline/rules ./
-     cp -RP ./.tmp-pipeline/.pipeline ./
-     cp -RP ./.tmp-pipeline/.agents ./
-     cp -RP ./.tmp-pipeline/scripts ./
-     cp -RP ./.tmp-pipeline/app_flutter ./
-     cp -RP ./.tmp-pipeline/web_react ./
-     rm -rf ./.tmp-pipeline
-     python3 scripts/setup_git_hooks.py
+1. **Update `skills/spec-orchestrator/parity_auditor/src/parity_auditor/parsers/mermaid.py`**:
+   - File: `skills/spec-orchestrator/parity_auditor/src/parity_auditor/parsers/mermaid.py`
+   - In `MermaidSequenceDiagramParser.parse()`:
+     Where Note statements are bypassed (inside the `if line.lower().startswith("note ") or ...:` block, specifically where `if not (is_msg or is_lifeline): continue` occurs), check if `";" in line`.
+     If so, append a parse error:
+     ```python
+     if ";" in line:
+         parse_errors.append(f"Semicolons are not allowed in sequence diagram Note statements: '{line.strip()}'")
      ```
 
-### Phase 2: Verification
+2. **Add unit test in `skills/spec-orchestrator/parity_auditor/tests/test_mermaid_parsers_bug171.py`**:
+   - Add a test function `test_sequence_diagram_note_with_semicolon_rejected()` that passes a diagram containing a note with a semicolon, and asserts that the parser returns a parse error: `"Semicolons are not allowed in sequence diagram Note statements:"`.
 
-1. Ensure the syntax and formatting of `README.md` remain valid.
-2. Verify `git diff origin/main` contains exactly these changes.
+### Phase 2: Verification (TDD RED-GREEN)
+
+1. **RED Phase**: Add the unit test, run it, and verify that it fails (or returns false negative without the parser change).
+2. **GREEN Phase**: Apply the parser change, run the test, and verify it passes.
+3. Run all parser tests under `skills/spec-orchestrator/parity_auditor/tests/test_mermaid_parsers_bug171.py`.
 
 ### Phase 3: Git Operations & Synchronization
 
-1. Stage, commit with message: "docs: unify installation instructions for react and flutter in README.md"
-2. Push to `origin/main`.
+1. Checkout branch `bugfix/pipeline-linter-issues`.
+2. Stage modified files (`mermaid.py`, `test_mermaid_parsers_bug171.py`).
+3. Commit changes with message: `fix(parity-auditor): reject semicolons in sequence diagram Note statements`.
+4. Push to remote origin on `bugfix/pipeline-linter-issues`.
+5. Update GitHub Issue #180 with root-cause and fix details using the `gh` CLI.
