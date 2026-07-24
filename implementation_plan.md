@@ -1,44 +1,83 @@
-# Implementation Plan - Fix Bug #179: Trailing semicolons in sequence diagram messages
+# Implementation Plan - Fix for setup_git_hooks.py Missing .gitignore (Issue #184)
 
-This plan outlines the changes to fix Bug #179: "Spec generator copies trailing semicolons from code model to sequence diagrams".
+This plan outlines the steps to implement the fix for setup_git_hooks.py to create .gitignore if it is missing, add a regression test, run verification tests, commit and push the changes, and update the GitHub issue.
 
 ## Proposed Changes
 
-### Phase 1: Codebase Modifications
+### 1. scripts/setup_git_hooks.py
 
-1. **Update `skills/spec-orchestrator/parity_auditor/src/parity_auditor/parsers/mermaid.py`**:
-   - File: `skills/spec-orchestrator/parity_auditor/src/parity_auditor/parsers/mermaid.py`
-   - In `MermaidSequenceDiagramParser.parse()`:
-     Where message statements are matched and `msg_text` is extracted (around line 633):
-     Check if the message text ends with a semicolon:
-     ```python
-     if msg_text.endswith(";"):
-         parse_errors.append(f"Semicolons are not allowed in sequence diagram message statements: '{line.strip()}'")
-     ```
+Modify `_whitelist_infrastructure` to create `.gitignore` if it does not exist, removing the warning and early return.
 
-2. **Update `skills/spec-user-story-engineering/SKILL.md`**:
-   - File: `skills/spec-user-story-engineering/SKILL.md`
-   - Add a warning:
-     ```markdown
-     > - **Semicolon Restriction**: Do NOT use semicolons (`;`) in sequence diagram `Note` statements or message text statements. Semicolons are not allowed. Replace any semicolons (`;`) with commas, dashes, or spaces.
-     ```
+```diff
+diff --git a/scripts/setup_git_hooks.py b/scripts/setup_git_hooks.py
+--- a/scripts/setup_git_hooks.py
++++ b/scripts/setup_git_hooks.py
+@@ -18,5 +18,6 @@
+ def _whitelist_infrastructure(repo_root):
+     gitignore_path = os.path.join(repo_root, ".gitignore")
+     if not os.path.isfile(gitignore_path):
+-        print(f"Warning: .gitignore not found at {gitignore_path}", file=sys.stderr)
+-        return
++        with open(gitignore_path, "w", encoding="utf-8") as f:
++            pass
++        print(f"Created missing .gitignore file at {gitignore_path}")
+```
 
-3. **Update `skills/spec-usecase-engineering/SKILL.md`**:
-   - File: `skills/spec-usecase-engineering/SKILL.md`
-   - Add the same semicolon restriction warning in the `> [!WARNING]` block.
+### 2. tests/test_setup_git_hooks.py
 
-4. **Add unit test in `skills/spec-orchestrator/parity_auditor/tests/test_mermaid_parsers_bug171.py`**:
-   - Add a test function `test_sequence_diagram_message_with_semicolon_rejected()` that parses a sequence diagram with a trailing semicolon in a message and asserts that a parse error is returned: `"Semicolons are not allowed in sequence diagram message statements:"`.
+Add the unit test `test_whitelist_creates_gitignore_if_missing` to simulate a missing `.gitignore` file and assert that it is created and whitelisted correctly.
 
-### Phase 2: Verification (TDD RED-GREEN)
+```diff
+diff --git a/tests/test_setup_git_hooks.py b/tests/test_setup_git_hooks.py
+--- a/tests/test_setup_git_hooks.py
++++ b/tests/test_setup_git_hooks.py
+@@ -131,3 +131,18 @@
+         found = any(f.startswith(d + "/") or f == d for f in staged_files)
+         assert found, f"Directory not staged: {d}"
++
++
++def test_whitelist_creates_gitignore_if_missing(tmp_path):
++    script = _make_repo(tmp_path, init_git=True)
++    gitignore = tmp_path / ".gitignore"
++    if gitignore.exists():
++        gitignore.unlink()
++
++    result = _run_script(script, tmp_path)
++    assert result.returncode == 0, result.stderr
++    assert "Created missing .gitignore file" in result.stdout
++    assert gitignore.exists(), ".gitignore file was not created"
++
++    content = gitignore.read_text(encoding="utf-8")
++    for entry in WHITELIST_ENTRIES:
++        assert entry in content, f"Missing whitelist entry: {entry}"
+```
 
-1. **RED Phase**: Run the unit tests with the new test added but before the parser fix is applied, confirming the test fails/errors out.
-2. **GREEN Phase**: Apply the parser fix, run `pytest`, and verify all tests pass.
-3. Run all tests in the workspace to make sure no regressions are introduced.
+## Verification Plan
 
-### Phase 3: Git Operations & Synchronization
+1. Run unit tests using pytest:
+   ```bash
+   python3 -m pytest tests/test_setup_git_hooks.py
+   ```
+2. Run baseline downstream verification:
+   ```bash
+   python3 scripts/verify_downstream_baseline.py app_flutter
+   ```
 
-1. Checkout branch `bugfix/pipeline-linter-issues` if not already on it.
-2. Stage and commit the changed files (`mermaid.py`, `test_mermaid_parsers_bug171.py`, `SKILL.md` files).
-3. Push the changes to the remote branch.
-4. Update GitHub Issue #179 with root cause and fix details using the `gh` CLI.
+## Git & GitHub Sync Operations
+
+1. Stage modified files:
+   ```bash
+   git add scripts/setup_git_hooks.py tests/test_setup_git_hooks.py
+   ```
+2. Commit with BDD issue mapping:
+   ```bash
+   git commit -m "fix(hooks): create missing .gitignore and whitelist infrastructure (fixes #184)"
+   ```
+3. Push to origin branch:
+   ```bash
+   git push origin bugfix/pipeline-linter-issues
+   ```
+4. Update GitHub Issue #184 with root cause analysis and fix details using:
+   ```bash
+   gh issue comment 184 --body "Root Cause: setup_git_hooks.py checked for .gitignore using os.path.isfile and exited early with a warning if not present, preventing the whitelisting of the pipeline directories.\n\nFix Details: Modified setup_git_hooks.py to initialize .gitignore if missing, and added a pytest unit test to verify this behavior."
+   ```
