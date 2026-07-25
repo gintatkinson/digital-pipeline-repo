@@ -85,6 +85,13 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 
 > **Single-agent runtimes (Cascade/Windsurf/Devin):** Ignore `[P]` markers and execute all phases sequentially. Even in single-agent environments, item-level subagent isolation must be simulated by manually resetting/clearing prior context (e.g., providing explicit instructions to ignore previous items and focus only on the current target's schema/text) for each item drafted.
 
+## Phase 0: Pre-Flight / Pre-computation
+1. **YANG Compilation (conditional)**: If `.yang` files are present in the schema directory, run the YANG-to-LUI compiler to generate the UI layout:
+   ```bash
+   python3 scripts/compile_yang.py --input schema/model.yang --output app_flutter/assets/logical-layout.json
+   ```
+   The compiler extracts hierarchy from `container`/`list` nesting, attributes from `leaf` definitions with type/range/enum constraints, and merges them into `logical-layout.json`. Detailed mapping reference is in `docs/operations/yang-compiler-guide.md`.
+
 ## Phase 1: Structural Extraction (Worker A)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `Structural Spec Worker`) with the `schema-specification-engineering` skill and the path to the target structural schema files, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `Structural Spec Worker` subagent parses the schema and identifies all Epics and Features. It dispatches a fresh context-isolated subagent for each Feature/Epic to draft its specification. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. It registers Features first using `gh issue create --body-file <local-md-file>`, runs an immediate verification check (`gh issue view <ID> --json body`) to ensure the tracker is fully populated, then injects their Issue IDs into the Epic checklists, registers Epics using `gh issue create --body-file <local-md-file>`, verifies their bodies immediately, and commits/pushes the changes.
@@ -128,12 +135,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
    ```bash
    ./skills/spec-orchestrator/scripts/reconcile_backlog.py
    ```
-2. **YANG Compilation (conditional)**: If `.yang` files are present in the schema directory, run the YANG-to-LUI compiler to generate the UI layout:
-   ```bash
-   python3 scripts/compile_yang.py --input schema/model.yang --output app_flutter/assets/logical-layout.json
-   ```
-   The compiler extracts hierarchy from `container`/`list` nesting, attributes from `leaf` definitions with type/range/enum constraints, and merges them into `logical-layout.json`. Detailed mapping reference is in `docs/operations/yang-compiler-guide.md`.
-3. **Trigger Model Coverage & UML Conformance Verification**: Run the automated UML compliance and coverage linter tool:
+2. **Trigger Model Coverage & UML Conformance Verification**: Run the automated UML compliance and coverage linter tool:
    ```bash
    ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
    ```
@@ -141,12 +143,12 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 
    > [!WARNING]
    > The `--spec-only` flag is mandatory during specification phases to prevent the verifier from checking implementation coverage (i.e. verifying that features are implemented in codebase source directories such as `app_flutter/` or `web_react/`).
-4. **Execution**: 
+3. **Execution**: 
    - The backlog script parses frontmatter using PyYAML to prevent block erasure, performs dependency issue hallucination checks, queries GitHub issues, syncs checkbox states in local markdown, and automatically closes completed Epics, User Stories, and Use Cases.
      > [!IMPORTANT]
      > **Canonical Source of Truth & Phase 4 Scope**: The tracker is the canonical source of truth and must remain fully populated at all times during the specification lifecycle. Phase 4 backlog reconciliation is a secondary verification gate (syncing checkbox lists, cross-links, and closing completed items), rather than a deferred publisher of primary issue bodies. Do not defer the publishing of primary issue bodies to Phase 4.
    - The coverage linter parses raw schemas, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage within those class diagrams, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules (isolated classes, standard primitives, lifeline aliases, open return arrow assignments, system boundary use cases, undirected actor links, correct extend arrow directionality, etc.).
-5. **Validation Gate**: Both scripts must execute successfully with exit code 0. If the YANG compiler ran, its output must also be valid JSON. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%.
+4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%.
 
 ## Phase 5: Final Reporting
 1. Summarize the end-to-end pipeline execution for the user.
