@@ -97,7 +97,7 @@ Configuration B: Production Mode (Cloud Firestore)
 ### Required User Stories
 - [ ] #0 - Collaborative Console Updates ([us-03-collaborative-sync](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
 ### Required Features
-- [ ] #44 - Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies concrete FirestoreRepositoryAdapter and compliance verification checks)
+- [x] #44 - Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies concrete FirestoreRepositoryAdapter and compliance verification checks)
 
 ## Source References
 Structural Schema: [persistence-architecture-blueprint.md:L75-80](file:///Users/perkunas/digital-pipeline-repo/docs/designs/persistence-architecture-blueprint.md#L75-L80)

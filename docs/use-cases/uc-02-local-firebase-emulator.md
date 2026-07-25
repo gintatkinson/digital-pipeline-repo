@@ -9,7 +9,7 @@ issue_id: 46
 # Use Case: Air-Gapped Local Firebase Emulator Flow
 
 ## Parent Epic
-- [ ] #43 - [Downstream Data Delivery and Local Persistence](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-43-downstream-delivery.md) (semantic linkage justification: Epic 43 governs downstream data delivery and local persistence design configurations, under which this local Firebase emulator flow is categorized.)
+- [x] #43 - [Downstream Data Delivery and Local Persistence](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-43-downstream-delivery.md) (semantic linkage justification: Epic 43 governs downstream data delivery and local persistence design configurations, under which this local Firebase emulator flow is categorized.)
 
 ## 1. Actors
 - **Primary Actor:** Operator/Engineer
@@ -95,7 +95,7 @@ stateDiagram-v2
 ### Required User Stories
 - [ ] #N/A - [Local Emulator Seeding Story](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/user-stories/us-placeholder.md) (not formally defined)
 ### Required Features
-- [ ] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (implements the bootstrapping logic, SeedingManager database purge/restoration, and connection checks for the local emulator environment)
+- [x] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (implements the bootstrapping logic, SeedingManager database purge/restoration, and connection checks for the local emulator environment)
 
 ## Source References
 Structural Schema: None defined.

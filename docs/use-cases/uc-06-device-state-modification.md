@@ -78,7 +78,7 @@ Ensures focus-loss auto-saving maps cleanly to gNMI SetRequests via absolute YAN
 
 ## 8. Realization Matrix
 ### Required Features
-- [ ] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies local SQLite persistence adapters)
+- [x] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies local SQLite persistence adapters)
 - [ ] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies implementation of focus-loss listeners and local auto-saving)
 
 ### Required User Stories
