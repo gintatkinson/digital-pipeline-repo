@@ -160,23 +160,26 @@ void main() {
         final fetcher = TileFetcher()..disable();
         final renderer = GlobeTileRenderer(fetcher: fetcher);
 
-        // Inject a zoom-6 tile at (0,0)
-        renderer.injectTileForTesting(const TileCoord(zoom: 6, x: 0, y: 0), img);
+        // Inject all four zoom-3 children of zoom-2 (0,0)
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 0, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 1, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 0, y: 1), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 1, y: 1), img);
 
-        // Zoom-6 tile has NO higher-zoom overlay (no tile above zoom 6)
+        // Zoom-3 tile has NO higher-zoom overlay (no tile above zoom 3)
         expect(
-          renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 6, x: 0, y: 0)),
+          renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 3, x: 0, y: 0)),
           isFalse,
         );
 
         // Now inject its parent at zoom 2
         renderer.injectTileForTesting(const TileCoord(zoom: 2, x: 0, y: 0), img);
 
-        // Zoom-2 tile (0,0) HAS a higher-zoom overlay — zoom-6/0/0 is its child
+        // Zoom-2 tile (0,0) HAS a higher-zoom overlay — all four zoom-3 children are loaded
         expect(
           renderer.hasHigherZoomOverlayForTesting(const TileCoord(zoom: 2, x: 0, y: 0)),
           isTrue,
-          reason: 'Zoom-2 tile (0,0) should be masked by zoom-6 child (0,0)',
+          reason: 'Zoom-2 tile (0,0) should be masked by its four zoom-3 children',
         );
 
         // Zoom-2 tile (3,3) has NO higher-zoom overlay — no child loaded for it
@@ -192,10 +195,13 @@ void main() {
         final fetcher = TileFetcher();
         final renderer = GlobeTileRenderer(fetcher: fetcher);
 
-        // Inject tiles: zoom-2 tile (0,0), its child zoom-6 tile (0,0),
+        // Inject tiles: zoom-2 tile (0,0), its four zoom-3 children,
         // and a non-overlapping zoom-2 tile (3,3)
         renderer.injectTileForTesting(const TileCoord(zoom: 2, x: 0, y: 0), img);
-        renderer.injectTileForTesting(const TileCoord(zoom: 6, x: 0, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 0, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 1, y: 0), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 0, y: 1), img);
+        renderer.injectTileForTesting(const TileCoord(zoom: 3, x: 1, y: 1), img);
         renderer.injectTileForTesting(const TileCoord(zoom: 2, x: 3, y: 3), img);
 
         int tilesDrawn = 0;
@@ -222,10 +228,10 @@ void main() {
           (lat, lng) => ProjectedPoint(ui.Offset.zero, 1.0),
         );
 
-        // We injected 3 tiles. The zoom-2 parent (0,0) is skipped because
-        // zoom-6 child (0,0) is a higher-zoom overlay; (2,3,3) is unrelated.
-        expect(tilesDrawn, equals(2),
-            reason: '2 tiles drawn — zoom-2 parent skipped due to higher-zoom overlay');
+        // We injected 6 tiles. The zoom-2 parent (0,0) is skipped because
+        // all four zoom-3 children are loaded; (2,3,3) is unrelated.
+        expect(tilesDrawn, equals(5),
+            reason: '5 tiles drawn — zoom-2 parent skipped due to higher-zoom overlay');
       });
 
       test('no false masking when tiles are at same zoom', () async {

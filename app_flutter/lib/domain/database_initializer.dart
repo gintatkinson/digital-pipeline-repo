@@ -65,10 +65,14 @@ class DatabaseInitializer {
         );
       }
     }
-    dynamic previousFactory;
+    DatabaseFactory? previousFactory;
     if (!kIsWeb && (isTest || isDesktop)) {
       sqfliteFfiInit();
-      previousFactory = databaseFactory;
+      try {
+        previousFactory = databaseFactory;
+      } catch (_) {
+        // Ignored if databaseFactory is not yet initialized
+      }
       databaseFactory = databaseFactoryFfi;
     }
 
@@ -170,7 +174,7 @@ class DatabaseInitializer {
         final count = countResult.first['count'] as int? ?? 0;
         if (count == 0) {
           if (seedStrategy != null) {
-            await seedStrategy!.seed(db);
+            await seedStrategy.seed(db);
           }
         }
       }

@@ -10,6 +10,7 @@ import 'data_source.dart';
 import 'data_sources/firebase_data_source.dart';
 import 'data_sources/sqlite_data_source.dart';
 import 'database_initializer.dart';
+import 'domain_seed_strategy.dart';
 import 'package:flutter/foundation.dart';
 import 'cesium_3d/tile_fetcher.dart';
 
@@ -201,7 +202,12 @@ class RepositoryResolver {
         }
       }
 
-    final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
+    // Initialize the SQLite database and inject DomainSeedStrategy to seed mock properties
+    final db = await DatabaseInitializer.create(
+      dbPath: dbPath,
+      seed: true,
+      seedStrategy: DomainSeedStrategy(),
+    );
     return SqliteDataSource(db);
   }
 }

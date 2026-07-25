@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/domain/domain_seed_strategy.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +21,12 @@ void main() {
       if (await file.exists()) {
         await file.delete();
       }
-      final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
+      // Inject DomainSeedStrategy to ensure the generated asset is fully populated with mock topology data
+      final db = await DatabaseInitializer.create(
+        dbPath: dbPath,
+        seed: true,
+        seedStrategy: DomainSeedStrategy(),
+      );
       await db.close();
 
       final gzFile = File('assets/properties_db.db.gz');

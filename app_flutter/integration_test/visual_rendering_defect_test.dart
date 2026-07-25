@@ -163,7 +163,7 @@ void main() {
       fail('Standard deviation of pixel color values too low: $stdDev');
     }
     
-    final rects = Scene3DViewportPainter.drawnLabelRects;
+    final List<Rect> rects = (state._viewState.drawnLabelRects as List).cast<Rect>();
     bool labelCollision = false;
     for (int i = 0; i < rects.length; i++) {
       for (int j = i + 1; j < rects.length; j++) {
