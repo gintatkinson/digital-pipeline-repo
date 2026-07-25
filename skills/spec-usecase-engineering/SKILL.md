@@ -162,7 +162,7 @@ Normative Specification: [Normative Specification](link-to-specification)
 3. **Duplicate Detection:** Before creating, query the active tracker provider for all existing use case issues to check if an issue with an identical or semantically equivalent title already exists. If found, skip creation and reuse the existing Issue ID.
 4. Register the Use Case issue natively with the active tracker provider.
    - **Crucial Verification & Body Synchronization:**
-     1. Backlog issues MUST be registered using `gh issue create --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
+     1. Backlog issues MUST be registered using `gh issue create --title "<Extract_Title_From_YAML_Metadata>" --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
      2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
         `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`

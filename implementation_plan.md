@@ -1,17 +1,21 @@
-# Implementation Plan - Fix Bug #191
+# Implementation Plan - Debug Protocol Issues
 
 ## User Request
-Execute the 7-step debug-protocol for Bug #191: "Tooling Bug: Installation instructions in README.md miss copying .gitignore".
-Task: Gather complete symptom info, reproduce the bug consistently, determine scope (isolated or systemic), and check environment (version, platform). Return reproduction steps and scope report.
+Run the 8-Step Recursive Debugging Protocol on the open bug issues in the repository backlog:
+1. Issue #206: [AUDIT] [SKILL.md]: Missing --title extraction from YAML frontmatter title field
+2. Issue #207: [AUDIT] [reconcile_backlog.py]: Placeholder-to-checklist backfill fails for epic child artifacts
+3. Issue #208: [AUDIT] [reconcile_backlog.py]: No duplicate section detection allows dual Source References in epics
+4. Issue #209: [AUDIT] [SKILL.md]: Realization Matrix cross-reference Issue IDs all default to single value
 
 ## Proposed Changes
-1. **Dispatch Step 2 Hypothesis Subagent**: Generate hypotheses.
-2. **Dispatch Step 3 Investigation Subagent**: Trace and investigate the issue.
-3. **Dispatch Step 4 Evidence Subagent**: Document evidence.
-4. **Dispatch Step 5 Root Cause Subagent**: Find root cause.
-5. **Dispatch Step 6 Fix Subagent**: Apply fix in README.md, commit, and push.
-6. **Dispatch Step 7 Verification Subagent**: Validate the fix and close issue.
+For each issue (#206, #207, #208, #209), I will dispatch the following subagents in sequence:
+1. **Step 1 — Reproduction**: Gather symptom info, reproduce the bug consistently, and check scope.
+2. **Step 2 — Hypothesis**: Generate multiple ranked hypotheses for the cause.
+3. **Step 3 — Investigation**: Trace data flow, binary-search the problem space, and gather observations.
+4. **Step 4 — Evidence**: Document all evidence, logs, and trace data.
+5. **Step 5 — Root Cause**: Identify the root cause with file:line references.
+6. **Step 6 — Fix**: Apply the minimal fix, stage, commit, and push. Update the issue.
+7. **Step 7 — Verification**: Confirm the fix, run test suites, check git diff, and close the issue.
 
 ## Verification Plan
-1. Ensure the fix code is applied.
-2. Confirm tests pass and `git diff` is empty.
+For each issue, the fix will be validated using tests, `git status`/`git diff`, and verified by checking the issue state before closing.

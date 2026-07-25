@@ -300,7 +300,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 4. **Feature Backlog Creation FIRST:**
    - Register each Feature specification with the active tracker provider, capturing the returned Issue ID/URL from the tracker.
    - **Crucial Verification & Body Synchronization:**
-     1. Backlog issues MUST be registered using `gh issue create --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
+     1. Backlog issues MUST be registered using `gh issue create --title "<Extract_Title_From_YAML_Metadata>" --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
      2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
          `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','UML Class Diagram','Acceptance Criteria']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
@@ -320,7 +320,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 6. **Epic Backlog Creation LAST:**
    - Register the Epic specification containing the fully resolved tasklist with the active tracker provider.
    - **Crucial Verification & Body Synchronization:**
-     1. Register the Epic issue using `gh issue create --body-file <local-md-file>`.
+     1. Register the Epic issue using `gh issue create --title "<Extract_Title_From_YAML_Metadata>" --body-file <local-md-file>`.
      2. Immediately after placeholder resolution, the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
          `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','System-Level UML Class Diagram','Context']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
