@@ -35,7 +35,10 @@ class SchemaCardinalityValidator(IValidator):
         if not schemas_dir_rel:
             return []
         schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel)
-        if not os.path.exists(schemas_dir) or not os.listdir(schemas_dir):
+        if not os.path.exists(schemas_dir):
+            return []
+        schema_files = [f for f in os.listdir(schemas_dir) if not f.startswith('.')]
+        if not schema_files:
             return []
 
         features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
