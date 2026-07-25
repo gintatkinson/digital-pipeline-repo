@@ -108,9 +108,9 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    interface_type: "ui" # Options: ui, api, m2m
    generation_mode: "subagent"
    labels: ["feature", "<domain-name>"]
-    schema_containers:
-      - path: "module/container-name"
-        node_type: container
+   schema_containers:
+     - path: "module/container-name"
+       node_type: container
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.

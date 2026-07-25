@@ -62,7 +62,9 @@ title: "[Use Case Title]"
 type: "use-case"
 generation_mode: "subagent"
 spec_source: "[Spec Reference]"
-schema_containers: []
+schema_containers:
+  - path: "module/container-name"
+    node_type: container
 ---
 
 # Use Case: [Title]
