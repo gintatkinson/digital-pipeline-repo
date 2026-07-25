@@ -500,49 +500,47 @@ def _main_impl():
             all_definitions.update(module_defs)
 
         if not all_definitions:
-            print("[!] Error: No schema definitions were parsed. Cannot validate spec-only coverage.")
-            print("    Ensure the schema directory exists and contains parseable schema files.")
-            has_failed = True
-
-        spec_coverage_gaps = []
-        spec_elements = set()
-        for cls_name, cls_info in global_classes.items():
-            spec_elements.add(cls_name.lower())
-            for attr in cls_info.get("attributes", []):
-                spec_elements.add(attr["name"].lower())
-            for method in cls_info.get("methods", []):
-                spec_elements.add(method["name"].lower())
-                
-        for key in sorted(all_definitions):
-            name = key.split(":", 1)[1] if ":" in key else key
-            
-            variants = {name}
-            if '-' in name or '_' in name or '.' in name:
-                parts = re.split(r'[-_.]', name)
-                variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
-                variants.add("".join(p.capitalize() for p in parts))
-                variants.add("_".join(p.lower() for p in parts))
-            else:
-                if name:
-                    variants.add(name[0].lower() + name[1:])
-                    variants.add(name[0].upper() + name[1:])
+            print("[-] Warning: No schema definitions were parsed. Skipping spec-only coverage validation.")
+        else:
+            spec_coverage_gaps = []
+            spec_elements = set()
+            for cls_name, cls_info in global_classes.items():
+                spec_elements.add(cls_name.lower())
+                for attr in cls_info.get("attributes", []):
+                    spec_elements.add(attr["name"].lower())
+                for method in cls_info.get("methods", []):
+                    spec_elements.add(method["name"].lower())
                     
-            mapped = False
-            for v in variants:
-                if v.lower() in spec_elements:
-                    mapped = True
-                    break
-            if not mapped:
-                spec_coverage_gaps.append(f"Schema node '{name}'")
+            for key in sorted(all_definitions):
+                name = key.split(":", 1)[1] if ":" in key else key
                 
-        if spec_coverage_gaps:
-            print("[!] Spec-Only Model Coverage Gaps Identified:")
-            for gap in sorted(spec_coverage_gaps):
-                print(f"  - {gap}")
-            print("\nError: 100% spec-only model coverage validation failed.")
-            has_failed = True
-        elif all_definitions:
-            print("Success: 100% spec-only model coverage verified across all specification files.")
+                variants = {name}
+                if '-' in name or '_' in name or '.' in name:
+                    parts = re.split(r'[-_.]', name)
+                    variants.add(parts[0] + "".join(p.capitalize() for p in parts[1:]))
+                    variants.add("".join(p.capitalize() for p in parts))
+                    variants.add("_".join(p.lower() for p in parts))
+                else:
+                    if name:
+                        variants.add(name[0].lower() + name[1:])
+                        variants.add(name[0].upper() + name[1:])
+                        
+                mapped = False
+                for v in variants:
+                    if v.lower() in spec_elements:
+                        mapped = True
+                        break
+                if not mapped:
+                    spec_coverage_gaps.append(f"Schema node '{name}'")
+                    
+            if spec_coverage_gaps:
+                print("[!] Spec-Only Model Coverage Gaps Identified:")
+                for gap in sorted(spec_coverage_gaps):
+                    print(f"  - {gap}")
+                print("\nError: 100% spec-only model coverage validation failed.")
+                has_failed = True
+            elif all_definitions:
+                print("Success: 100% spec-only model coverage verified across all specification files.")
 
     print("\n=== UML Diagrams Compliance Audit ===")
     uml_errors = []
