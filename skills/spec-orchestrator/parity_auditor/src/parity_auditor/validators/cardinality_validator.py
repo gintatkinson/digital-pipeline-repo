@@ -30,6 +30,14 @@ class SchemaCardinalityValidator(IValidator):
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
         rules = repo.get_codebase_rules()
         backlog_dirs = rules.backlog_directories
+        
+        schemas_dir_rel = getattr(backlog_dirs, "schemas", None)
+        if not schemas_dir_rel:
+            return []
+        schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel)
+        if not os.path.exists(schemas_dir) or not os.listdir(schemas_dir):
+            return []
+
         features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
         use_cases_dir_rel = getattr(backlog_dirs, "use_cases", None)
         use_cases_dir = (
