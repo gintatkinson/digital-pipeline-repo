@@ -199,7 +199,7 @@ def convert_frontmatter_to_table(content):
     body_text = content[match.end():]
     
     try:
-        data = yaml.safe_load(frontmatter_text)
+        data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
         if not isinstance(data, dict):
             return content
     except Exception as e:
@@ -299,7 +299,7 @@ def extract_metadata(filepath):
         match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
         if match:
             frontmatter_text = match.group(1)
-            data = yaml.safe_load(frontmatter_text)
+            data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
             if isinstance(data, dict):
                 return data
     except Exception as e:

@@ -130,7 +130,7 @@ class UmlValidator(IValidator):
                 frontmatter_text = frontmatter_match.group(1)
                 try:
                     import yaml
-                    data = yaml.safe_load(frontmatter_text)
+                    data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
                     if isinstance(data, dict):
                         for k, v in data.items():
                             if k in ("interface_type", "interface-type"):
@@ -591,7 +591,7 @@ class UmlValidator(IValidator):
             frontmatter_text = frontmatter_match.group(1)
             try:
                 import yaml
-                data = yaml.safe_load(frontmatter_text)
+                data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
                 if isinstance(data, dict):
                     data_lower = {str(k).lower(): str(v).lower() for k, v in data.items() if v is not None}
                     if data_lower.get("generation_mode") == "subagent" or data_lower.get("generation-mode") == "subagent":

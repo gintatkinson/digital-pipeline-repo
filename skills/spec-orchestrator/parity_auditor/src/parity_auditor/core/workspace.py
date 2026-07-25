@@ -103,7 +103,7 @@ class WorkspaceRepository:
                 frontmatter_text = frontmatter_match.group(1)
                 try:
                     import yaml
-                    data = yaml.safe_load(frontmatter_text)
+                    data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
                     if isinstance(data, dict) and "labels" in data:
                         lbls = data["labels"]
                         if isinstance(lbls, list):

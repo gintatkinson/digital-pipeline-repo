@@ -21,7 +21,7 @@ def _extract_frontmatter(content: str):
     if not m:
         return None
     try:
-        return yaml.safe_load(m.group(1))
+        return yaml.safe_load(m.group(1).replace('\x01', ''))
     except Exception:
         return None
 

@@ -91,7 +91,7 @@ def parse_ignore_issues(ignore_str: str) -> set:
 def _extract_issue_id_from_frontmatter(fm_text: str, issue_number: int) -> bool:
     try:
         import yaml
-        data = yaml.safe_load(fm_text)
+        data = yaml.safe_load(fm_text.replace('\x01', ''))
         if isinstance(data, dict):
             val = data.get("issue_id")
             if val is not None and int(val) == issue_number:
