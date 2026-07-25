@@ -1,69 +1,37 @@
-Verified mechanical proof.
+Bug #191 is fixed.
 
-**Tests Passed**:
+1. **Reproduction Steps Verification**: Read `README.md` and verified the `.gitignore` copy logic is present in the "Direct Copy Installation" section.
+
+2. **Grep Fix Location**:
 ```
-Cleaning up workspace...
-PASS: test_cleanup_db_journal
-Cleaning up workspace...
-PASS: test_cleanup_build_dir
-Cleaning up workspace...
-PASS: test_cleanup_db_shm_and_wal_still_work
-Cleaning up workspace...
-PASS: test_cleanup_dart_tool_and_flutter_plugins
-
-All tests passed.
+{"File":"/Users/perkunas/jail/digital-pipeline-repo/README.md","LineNumber":139,"LineContent":"if [ -f ./.gitignore ]; then"}
+{"File":"/Users/perkunas/jail/digital-pipeline-repo/README.md","LineNumber":140,"LineContent":"  cat ./.tmp-pipeline/.gitignore >> ./.gitignore"}
+{"File":"/Users/perkunas/jail/digital-pipeline-repo/README.md","LineNumber":142,"LineContent":"  cp ./.tmp-pipeline/.gitignore ./"}
 ```
 
-**Git Diff**:
-```diff
-commit f5923a43be230ae5130c44aa0e21404bfd5cda91
+3. **Test Suite**: This is a docs-only change (README.md) and there is no full test suite to run for this repository's root documentation.
+
+4. **Git Diff Output**:
+```
+commit 9a60bf73ee266d19f8538ee05183a461a764662e
 Author: gintatkinson <gintatkinson@gmail.com>
-Date:   Fri Jul 24 20:38:49 2026 +0800
+Date:   Sat Jul 25 16:17:04 2026 +0800
 
-    Fix #185: verify_downstream_baseline.py fails to remove directories during workspace cleanup
+    fix(docs): update installation instructions to copy .gitignore (fixes #191)
 
-diff --git a/scripts/test_cleanup_workspace.py b/scripts/test_cleanup_workspace.py
-index a8c72e5..100d9de 100644
---- a/scripts/test_cleanup_workspace.py
-+++ b/scripts/test_cleanup_workspace.py
-@@ -65,12 +65,15 @@ def test_cleanup_dart_tool_and_flutter_plugins():
-     tmp = tempfile.mkdtemp()
-     try:
-         os.makedirs(os.path.join(tmp, ".dart_tool"), exist_ok=True)
-+        with open(os.path.join(tmp, ".dart_tool", "package_config.json.lock"), "w") as f:
-+            f.write("{}")
-         os.makedirs(os.path.join(tmp, ".flutter-plugins"), exist_ok=True)
-         os.makedirs(os.path.join(tmp, ".flutter-plugins-dependencies"), exist_ok=True)
- 
-         cleanup_workspace(tmp)
- 
--        assert not os.path.isdir(os.path.join(tmp, ".dart_tool")), "FAIL: .dart_tool not cleaned"
-+        assert os.path.isdir(os.path.join(tmp, ".dart_tool")), "FAIL: .dart_tool was unexpectedly deleted"
-+        assert not os.path.isfile(os.path.join(tmp, ".dart_tool", "package_config.json.lock")), "FAIL: package_config.json.lock not cleaned"
-         assert not os.path.isdir(os.path.join(tmp, ".flutter-plugins")), "FAIL: .flutter-plugins not cleaned"
-         assert not os.path.isdir(os.path.join(tmp, ".flutter-plugins-dependencies")), "FAIL: .flutter-plugins-dependencies not cleaned"
-         print("PASS: test_cleanup_dart_tool_and_flutter_plugins")
-diff --git a/scripts/verify_downstream_baseline.py b/scripts/verify_downstream_baseline.py
-index dfe2083..d20bdf7 100644
---- a/scripts/verify_downstream_baseline.py
-+++ b/scripts/verify_downstream_baseline.py
-@@ -49,7 +49,8 @@ def tag_restoration_point():
- def cleanup_workspace(destination):
-     print("Cleaning up workspace...")
-     to_delete_files = [".dart_tool/package_config.json.lock",
--                       ".flutter-plugins-dependencies"]
-+                       ".flutter-plugins-dependencies",
-+                       ".flutter-plugins"]
-     for f in to_delete_files:
-         path = os.path.join(destination, f)
-         if os.path.isfile(path):
-@@ -58,7 +59,7 @@ def cleanup_workspace(destination):
-             except OSError:
-                 pass
- 
--    dirs_to_remove = ["build", ".dart_tool", ".flutter-plugins", ".flutter-plugins-dependencies"]
-+    dirs_to_remove = ["build", ".flutter-plugins", ".flutter-plugins-dependencies"]
-     for d in dirs_to_remove:
-         d_path = os.path.join(destination, d)
-         if os.path.isdir(d_path):
-```
+diff --git a/README.md b/README.md
+index b28c8d8..fab7169 100644
+--- a/README.md
++++ b/README.md
+@@ -136,6 +136,11 @@ cp -RP ./.tmp-pipeline/.agents ./
+ cp -RP ./.tmp-pipeline/scripts ./
+ cp -RP ./.tmp-pipeline/app_flutter ./
+ cp -RP ./.tmp-pipeline/web_react ./
++if [ -f ./.gitignore ]; then
++  cat ./.tmp-pipeline/.gitignore >> ./.gitignore
++else
++  cp ./.tmp-pipeline/.gitignore ./
++fi
+ rm -rf ./.tmp-pipeline
+ python3 scripts/setup_git_hooks.py
+ ```
