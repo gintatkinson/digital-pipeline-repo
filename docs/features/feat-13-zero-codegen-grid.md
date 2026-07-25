@@ -34,7 +34,7 @@ classDiagram
 }
 ```
 
-### 3. Visual Layout and Arrangement
+### 3. Visual Layout & Arrangement
 - Renders zero codegen grid inside details tab view.
 
 ### 2. Payload Schema
