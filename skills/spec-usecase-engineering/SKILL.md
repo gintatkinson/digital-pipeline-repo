@@ -48,7 +48,7 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
        - Only UML diagrams are allowed.
    - **The Realization Matrix (User Story/Feature Linking):**
      - Determine which User Stories and Features are required to fulfill this specific System Use Case.
-     - Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL.
+     - Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL. **CRITICAL: You MUST resolve the unique, specific Issue ID for EACH individual User Story and Feature. Do NOT use a single generic ID for all entries.**
      - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
    - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
@@ -126,9 +126,9 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
+- [ ] #[SpecificStoryIssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
 ### Required Features
-- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[SpecificFeatureIssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)
