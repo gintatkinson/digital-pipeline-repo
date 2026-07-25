@@ -136,6 +136,11 @@ cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
 cp -RP ./.tmp-pipeline/app_flutter ./
 cp -RP ./.tmp-pipeline/web_react ./
+if [ -f ./.gitignore ]; then
+  cat ./.tmp-pipeline/.gitignore >> ./.gitignore
+else
+  cp ./.tmp-pipeline/.gitignore ./
+fi
 rm -rf ./.tmp-pipeline
 python3 scripts/setup_git_hooks.py
 ```
