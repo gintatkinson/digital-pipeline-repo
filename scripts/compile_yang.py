@@ -385,8 +385,7 @@ def parse_yang(input_path):
     ctx.validate()
 
     # Return children that are data-definition statements
-    print(f"module.i_children: {module.i_children}"); data_defs = [c for c in module.i_children
-            if c.keyword in statements.data_definition_keywords]; print(f"data_defs: {data_defs}"); return data_defs
+    return [c for c in module.i_children if c.keyword in statements.data_definition_keywords]
 
 
 def compile_yang(input_path, output_path):
