@@ -704,7 +704,9 @@ class UmlValidator(IValidator):
                     if not attr_type:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a type.")
                         continue
-                    if attr_type not in uml_primitives and attr_type not in classes:
+                        
+                    base_type = re.sub(multiplicity_regex + r'$', '', attr_type).strip()
+                    if base_type not in uml_primitives and base_type not in classes:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' has invalid type '{attr_type}'. UML primitive types must be {', '.join(sorted(uml_primitives))} (case-sensitive), or reference another class.")
                         
             choice_classes = set()
@@ -761,7 +763,11 @@ class UmlValidator(IValidator):
                         continue
                     if attr.visibility not in visibility_prefixes:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
-                    if not attr.multiplicity:
+                    has_mult = bool(attr.multiplicity)
+                    if not has_mult and attr.type:
+                        if re.search(multiplicity_regex + r'$', attr.type):
+                            has_mult = True
+                    if not has_mult:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).")
                         
                 for method in cls_info.methods:
