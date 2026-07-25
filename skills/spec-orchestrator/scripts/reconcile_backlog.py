@@ -226,6 +226,27 @@ def convert_frontmatter_to_table(content):
     table_text = "\n".join(table_lines) + "\n\n"
     return table_text + body_text
 
+def deduplicate_markdown_sections(content):
+    lines = content.splitlines()
+    seen_headers = set()
+    output_lines = []
+    skip_section = False
+    for line in lines:
+        header_match = re.match(r'^(#+)\s+(.*)$', line)
+        if header_match:
+            header_level = header_match.group(1)
+            header_title = header_match.group(2).strip().lower()
+            norm_title = re.sub(r'^\d+\.\s*', '', header_title)
+            section_key = f"{header_level} {norm_title}"
+            if section_key in seen_headers:
+                skip_section = True
+            else:
+                seen_headers.add(section_key)
+                skip_section = False
+        if not skip_section:
+            output_lines.append(line)
+    return "\n".join(output_lines) + "\n"
+
 def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     ref_str = format_issue_reference(issue_num, tracker_rules)
@@ -237,6 +258,7 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
             content = f.read()
             
         content = convert_frontmatter_to_table(content)
+        content = deduplicate_markdown_sections(content)
             
         val_rules = rules.get("validation_rules", {}) if rules else {}
         max_body_chars = val_rules.get("max_body_characters", 65536)
