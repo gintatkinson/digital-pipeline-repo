@@ -385,8 +385,8 @@ def parse_yang(input_path):
     ctx.validate()
 
     # Return children that are data-definition statements
-    return [c for c in module.i_children
-            if c.keyword in statements.data_definition_keywords]
+    print(f"module.i_children: {module.i_children}"); data_defs = [c for c in module.i_children
+            if c.keyword in statements.data_definition_keywords]; print(f"data_defs: {data_defs}"); return data_defs
 
 
 def compile_yang(input_path, output_path):
@@ -394,6 +394,8 @@ def compile_yang(input_path, output_path):
     print(f'Compiling YANG: {input_path}')
 
     data_defs = parse_yang(input_path)
+    if not data_defs:
+        print(f"Warning: No data definitions found in YANG file: {input_path}", file=sys.stderr)
     schema_name = os.path.splitext(os.path.basename(input_path))[0]
 
     lui_json = build_lui_json(
