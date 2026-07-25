@@ -5,7 +5,7 @@ from .base import IValidator
 from ..core.workspace import WorkspaceRepository
 
 MD_CONSTRUCTS_INVALID_IN_MERMAID = re.compile(
-    r'^(#|> |[\*\-\+]\s|\[|`[^`]|!\[|\|)'
+    r'^(#|> |[\*\-\+]\s|\[[^\]]+\]\(|`[^`]|!\[|\|)'
 )
 
 class DocsValidator(IValidator):
