@@ -55,7 +55,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - *Complex container*: Split the container by its immediate child containers.
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
    - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field with the container path and `node_type`. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
-2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass ONLY the schema nodes and properties for this specific feature group. The subagent must have no visibility into other features.
+2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass the schema nodes and properties for this specific feature group, AND the Bounded Context's Epic identity (local file prefix and/or pre-assigned tracker Issue ID if available). The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
    - **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns).
@@ -323,12 +323,17 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      1. Register the Epic issue using `gh issue create --body-file <local-md-file>`.
      2. Immediately after placeholder resolution, the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
-         `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','UML Class Diagram','Acceptance Criteria']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
-         and retry/halt if this verification fails.
-     4. Before committing the generated epic markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
+         `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','System-Level UML Class Diagram','Context']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
+          and retry/halt if this verification fails.
+      4. Before committing the generated epic markdown files, the agent MUST run a check for untracked pipeline infrastructure files. If untracked files are found in `.pipeline/`, `skills/`, `rules/`, or `scripts/`, they must be staged and committed alongside the markdown files using `git add` to prevent remote divergence:
         ```bash
         UNTRACKED_INFRA=$(git ls-files --others --exclude-standard .pipeline/ skills/ rules/ scripts/)
         if [ -n "$UNTRACKED_INFRA" ]; then
           git add .pipeline/ skills/ rules/ scripts/
         fi
         ```
+
+7. **Backfill Parent Epic into Features:** After Epic issue creation, capture the returned Issue ID. For each Feature file generated under this Epic:
+   a. Verify the `## Parent Epic` checklist item references the correct Epic Issue ID.
+   b. If mismatched, replace with the correct ID and re-commit the file.
+   c. Execute `gh issue edit <FeatureID> --body-file <local-feature-md>` to sync the tracker body.

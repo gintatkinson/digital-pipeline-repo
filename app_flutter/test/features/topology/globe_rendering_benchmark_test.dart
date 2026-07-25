@@ -109,6 +109,24 @@ void main() {
         verticalExaggeration: 1.0,
       );
 
+      framePainter.state.recalculate(
+        currentCamera,
+        viewportSize,
+        topologyData,
+        framePainter.state.activeStyle,
+        framePainter.state.astronomicalBody,
+        framePainter.state.elevationActive,
+        framePainter.state.showDevices,
+        framePainter.state.showLinks,
+        framePainter.state.showLabels,
+        framePainter.state.showDropLines,
+        framePainter.state.verticalExaggeration,
+        framePainter.userRotationX,
+        framePainter.userTilt,
+        framePainter.state.tileRenderer,
+        framePainter.state.isFlying,
+      );
+
       framePainter.paint(canvas, viewportSize);
     }
 

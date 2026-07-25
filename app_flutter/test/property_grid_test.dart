@@ -170,21 +170,26 @@ void main() {
     final Finder codeField = findTextFieldByLabel('Code');
     expect(codeField, findsOneWidget);
 
+    final TextField textField = tester.widget<TextField>(codeField);
+    textField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     await tester.enterText(codeField, 'U1');
     await tester.pumpAndSettle();
 
     expect(savedData, isNull);
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    textField.focusNode!.unfocus();
     await tester.pumpAndSettle();
 
     expect(find.text('Invalid format'), findsOneWidget);
     expect(savedData, isNull);
 
+    textField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     await tester.enterText(codeField, 'FI');
     await tester.pumpAndSettle();
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    textField.focusNode!.unfocus();
     await tester.pumpAndSettle();
 
     expect(find.text('Invalid format'), findsNothing);
@@ -222,36 +227,45 @@ void main() {
     final Finder valueField = findTextFieldByLabel('Value');
     expect(valueField, findsOneWidget);
 
+    final TextField textField = tester.widget<TextField>(valueField);
+    textField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     await tester.enterText(valueField, '-1');
     await tester.pumpAndSettle();
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    textField.focusNode!.unfocus();
     await tester.pumpAndSettle();
 
     expect(find.text('Value cannot be less than 0'), findsOneWidget);
     expect(savedData, isNull);
 
+    textField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     await tester.enterText(valueField, '50');
     await tester.pumpAndSettle();
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    textField.focusNode!.unfocus();
     await tester.pumpAndSettle();
 
     expect(find.text('Value cannot be less than 0'), findsNothing);
     expect(savedData!['value'], 50);
 
+    textField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     await tester.enterText(valueField, '101');
     await tester.pumpAndSettle();
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    textField.focusNode!.unfocus();
     await tester.pumpAndSettle();
 
     expect(find.text('Value cannot be greater than 100'), findsOneWidget);
 
+    textField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     await tester.enterText(valueField, '100');
     await tester.pumpAndSettle();
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    textField.focusNode!.unfocus();
     await tester.pumpAndSettle();
 
     expect(find.text('Value cannot be greater than 100'), findsNothing);

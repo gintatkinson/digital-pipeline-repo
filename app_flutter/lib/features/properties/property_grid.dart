@@ -445,16 +445,19 @@ class _PropertyGridState extends State<PropertyGrid> {
   int? _memoColumnCount;
   double? _memoCardWidth;
   List<FieldDescriptor>? _memoFields;
+  int _memoErrorsLength = -1;
 
   Widget _LayoutMemo({
     required int columnCount,
     required double cardWidth,
     required Widget Function(int columnCount, double cardWidth) builder,
   }) {
-    if (_memoFields != _fields || _memoColumnCount != columnCount || _memoCardWidth != cardWidth) {
+    final int currentErrorsLen = _errors.length;
+    if (_memoFields != _fields || _memoColumnCount != columnCount || _memoCardWidth != cardWidth || _memoErrorsLength != currentErrorsLen) {
       _memoFields = _fields;
       _memoColumnCount = columnCount;
       _memoCardWidth = cardWidth;
+      _memoErrorsLength = currentErrorsLen;
       _layoutMemoCached = builder(columnCount, cardWidth);
     }
     return _layoutMemoCached!;

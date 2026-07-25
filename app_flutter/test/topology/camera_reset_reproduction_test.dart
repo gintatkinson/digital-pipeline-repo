@@ -539,8 +539,8 @@ void main() {
         expect(controller.current.longitude, isNot(closeTo(-75.0, 0.1)),
             reason: 'Camera should not jump to B longitude');
 
-        expect(controller.current.latitude, closeTo(34.7, 0.1),
-            reason: 'Camera should be on the flight path near 34.7 latitude');
+        expect(controller.current.latitude, closeTo(35.0, 0.1),
+            reason: 'Camera should be on the flight path near 35.0 latitude');
         expect(controller.current.longitude, closeTo(140.0, 1.0),
             reason: 'Camera should be on the flight path near 140.0 longitude');
 

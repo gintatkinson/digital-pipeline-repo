@@ -487,6 +487,20 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
                 items.append(lines[i])
         return items
 
+    PLACEHOLDER_PATTERNS = [
+        re.compile(r'^\*To be populated after Phase \d+\*$', re.IGNORECASE),
+    ]
+
+    def filter_content_lines(slice_lines):
+        filtered = []
+        for l in slice_lines:
+            stripped = l.strip()
+            if stripped and not any(p.match(stripped) for p in PLACEHOLDER_PATTERNS):
+                filtered.append(l)
+            elif not stripped:
+                filtered.append(l)
+        return filtered
+
     end_req = idx_usecases if idx_usecases != -1 else (idx_stories if idx_stories != -1 else idx_next)
     end_usecases = idx_stories if idx_stories != -1 else idx_next
     end_stories = idx_next
@@ -523,7 +537,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         return f"{indent}- [ ] {ref_str} - [{title}]({repo_base}/blob/{branch_name}/{path_part}) (semantic linkage justification)"
 
     def get_filename_key(item_str):
-        m = re.search(r'docs/(features|use-cases|user-stories)/([a-zA-Z0-9_\-]+)\.md', item_str)
+        m = re.search(r'(?:docs/)?(features|use-cases|user-stories)/([a-zA-Z0-9_\-]+)\.md', item_str)
         if m:
             return m.group(2)
         return None
@@ -576,7 +590,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         new_lines.extend(final_features)
         
         if idx_usecases != -1:
-            new_lines.extend(lines[idx_req + 1 + len(existing_features) : idx_usecases + 1])
+            new_lines.extend(filter_content_lines(lines[idx_req + 1 + len(existing_features) : idx_usecases + 1]))
         else:
             new_lines.append("")
             new_lines.append(f"{indent}### Associated Use Cases & User Stories")
@@ -586,7 +600,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         new_lines.extend(final_usecases)
         
         if idx_stories != -1:
-            new_lines.extend(lines[idx_usecases + 1 + len(existing_usecases) : idx_stories + 1])
+            new_lines.extend(filter_content_lines(lines[idx_usecases + 1 + len(existing_usecases) : idx_stories + 1]))
         else:
             new_lines.append("")
             new_lines.append(f"{indent}#### Associated User Stories")
@@ -601,7 +615,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             else:
                 start_after_stories = idx_req + 1 + len(existing_features)
         if idx_next != -1:
-            new_lines.extend(lines[start_after_stories : idx_next])
+            new_lines.extend(filter_content_lines(lines[start_after_stories : idx_next]))
             new_lines.extend(lines[idx_next:])
         else:
             new_lines.extend(lines[start_after_stories:])
