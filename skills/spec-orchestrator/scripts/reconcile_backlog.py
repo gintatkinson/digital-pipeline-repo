@@ -587,7 +587,10 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
     new_lines = []
     if idx_req != -1:
         new_lines.extend(lines[:idx_req + 1])
-        new_lines.extend(final_features)
+        if not final_features:
+            new_lines.append(f"{indent}*To be populated after Phase 3*")
+        else:
+            new_lines.extend(final_features)
         
         if idx_usecases != -1:
             new_lines.extend(filter_content_lines(lines[idx_req + 1 + len(existing_features) : idx_usecases + 1]))
@@ -597,7 +600,10 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             new_lines.append("")
             new_lines.append(f"{indent}#### Associated Use Cases")
             
-        new_lines.extend(final_usecases)
+        if not final_usecases:
+            new_lines.append(f"{indent}*To be populated after Phase 3*")
+        else:
+            new_lines.extend(final_usecases)
         
         if idx_stories != -1:
             new_lines.extend(filter_content_lines(lines[idx_usecases + 1 + len(existing_usecases) : idx_stories + 1]))
@@ -605,7 +611,10 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             new_lines.append("")
             new_lines.append(f"{indent}#### Associated User Stories")
             
-        new_lines.extend(final_stories)
+        if not final_stories:
+            new_lines.append(f"{indent}*To be populated after Phase 3*")
+        else:
+            new_lines.extend(final_stories)
         
         if idx_stories != -1:
             start_after_stories = idx_stories + 1 + len(existing_stories)
