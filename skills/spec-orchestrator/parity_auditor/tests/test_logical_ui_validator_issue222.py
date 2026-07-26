@@ -243,3 +243,75 @@ def test_logical_ui_validator_dynamic_path():
         shutil.rmtree(tmpdir)
 
 
+def test_hypothesis_1_non_dict_children():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {
+            "type": "TabbedContainer",
+            "id": "tab_container_non_dict",
+            "children": [
+                "invalid_string_child",
+                None,
+                123
+            ]
+        }
+        repo = _create_test_repo(tmpdir, layout)
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        expected_msg = "TabbedContainer 'tab_container_non_dict' contains non-TableView child 'unknown' of type 'unknown'"
+        assert any(expected_msg in err for err in errors), f"Expected error for non-dict children, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_hypothesis_2_null_or_empty_id_or_type():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        # Case 2a: type is null (None), id is null (None)
+        layout_null = {
+            "type": "TabbedContainer",
+            "id": "tab_container_null_fields",
+            "children": [
+                {"type": None, "id": None}
+            ]
+        }
+        repo = _create_test_repo(tmpdir, layout_null)
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        expected_msg_null = "TabbedContainer 'tab_container_null_fields' contains non-TableView child 'unknown' of type 'unknown'"
+        assert any(expected_msg_null in err for err in errors), f"Expected error for null type/id, got: {errors}"
+
+        # Case 2b: type is empty string, id is empty string
+        layout_empty = {
+            "type": "TabbedContainer",
+            "id": "tab_container_empty_fields",
+            "children": [
+                {"type": "", "id": ""}
+            ]
+        }
+        repo = _create_test_repo(tmpdir, layout_empty)
+        errors = validator.validate(repo)
+        expected_msg_empty = "TabbedContainer 'tab_container_empty_fields' contains non-TableView child 'unknown' of type 'unknown'"
+        assert any(expected_msg_empty in err for err in errors), f"Expected error for empty type/id, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_hypothesis_3_non_list_children():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {
+            "type": "TabbedContainer",
+            "id": "tab_container_non_list_children",
+            "children": "invalid_children_string"
+        }
+        repo = _create_test_repo(tmpdir, layout)
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        expected_msg = "TabbedContainer 'tab_container_non_list_children' contains non-TableView child 'unknown' of type 'unknown'"
+        assert any(expected_msg in err for err in errors), f"Expected error for non-list children attribute, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
