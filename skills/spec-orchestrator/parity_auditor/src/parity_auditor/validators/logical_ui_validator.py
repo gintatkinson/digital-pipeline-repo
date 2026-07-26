@@ -140,6 +140,7 @@ class LogicalUiValidator(IValidator):
                             if ds_val and ds_val.upper() != "N/A":
                                 paths = [p.strip().strip(" *`\"'") for p in ds_val.split(',')]
                                 nil_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
+                                FORBIDDEN_CHOICE_NODES = {"location-choice", "cartesian", "ellipsoid", "choice", "case"}
                                 for path in paths:
                                     if not path or path.upper() == "N/A":
                                         continue
@@ -160,6 +161,11 @@ class LogicalUiValidator(IValidator):
                                             prefix, local_name = seg_clean.split(':', 1)
                                         else:
                                             prefix, local_name = "", seg_clean
+                                        
+                                        if local_name in FORBIDDEN_CHOICE_NODES or local_name.endswith("-choice") or local_name.endswith("-case"):
+                                            errors.append(
+                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains forbidden YANG choice/case node '{local_name}'. Choice/case wrappers must be omitted from data paths."
+                                            )
                                         
                                         if prefix == "nil" or local_name in nil_elements:
                                             in_augmented_subtree = True

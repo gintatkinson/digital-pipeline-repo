@@ -601,6 +601,43 @@ This feature performs pure numerical calculation without referencing any UI conc
         shutil.rmtree(tmpdir)
 
 
+def test_issue213_yang_choice_case_validation():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-choice-test.md")
+
+        feat_choice_content = """---
+title: "Test YANG Choice Nodes"
+---
+# Feature: Test YANG Choice Nodes
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TableView
+- **Target Layout Container ID:** table1
+- **Data Source Binding:** /ietf-hardware:hardware/component/location-choice, /ietf-hardware:hardware/component/cartesian/x, /ietf-hardware:hardware/component/ellipsoid, /config/my-choice, /config/my-case, /ietf-hardware:hardware/component/valid-leaf
+"""
+        with open(os.path.join(features_dir, "feat-choice-test.md"), "w") as f:
+            f.write(feat_choice_content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        forbidden_nodes = ["location-choice", "cartesian", "ellipsoid", "my-choice", "my-case"]
+        for node in forbidden_nodes:
+            expected_msg = f"contains forbidden YANG choice/case node '{node}'. Choice/case wrappers must be omitted from data paths."
+            assert any(expected_msg in err for err in errors), f"Expected error for forbidden node '{node}', got errors: {errors}"
+
+        # Ensure valid-leaf path does not produce choice/case error
+        assert not any("valid-leaf" in err for err in errors)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 
