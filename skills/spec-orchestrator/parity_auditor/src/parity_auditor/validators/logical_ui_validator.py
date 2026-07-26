@@ -10,12 +10,12 @@ class LogicalUiValidator(IValidator):
         rules = repo.get_codebase_rules()
         backlog_dirs = rules.backlog_directories
         
-        # 1. Locate layout configuration JSON file
+        flutter_dir = rules.target_directories.flutter if (rules.target_directories and rules.target_directories.flutter) else "app_flutter"
         # Check workspace_dir / .pipeline / logical-ui / logical-layout.json first
         layout_path = os.path.join(repo.workspace_dir, ".pipeline", "logical-ui", "logical-layout.json")
         if not os.path.exists(layout_path):
-            # Check app_flutter / assets / logical-layout.json next
-            layout_path = os.path.join(repo.workspace_dir, "app_flutter", "assets", "logical-layout.json")
+            # Check flutter_dir / assets / logical-layout.json next
+            layout_path = os.path.join(repo.workspace_dir, flutter_dir, "assets", "logical-layout.json")
             
         component_types = set()
         container_ids = set()

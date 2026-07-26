@@ -168,3 +168,78 @@ def test_tabbed_container_valid_children():
     finally:
         shutil.rmtree(tmpdir)
 
+
+def test_logical_ui_validator_dynamic_path():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        custom_flutter_dir = "custom_app_flutter"
+        
+        pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+        os.makedirs(pipeline_dir, exist_ok=True)
+
+        rules = {
+            "meta": {},
+            "target_directories": {"flutter": custom_flutter_dir},
+            "flutter_rules": {
+                "file_extensions": [".dart"],
+                "exclusions": [],
+                "ui_directories": [],
+                "network_directories": [],
+                "selection_setters": [],
+                "selection_triggers": [],
+                "loop_guard_keywords": [],
+                "forbidden_words": [],
+                "forbidden_words_message": "",
+                "write_lock_keywords": [],
+                "playhead_clamp_regex": [],
+                "ffi_keywords": [],
+                "ffi_finalizer_keywords": [],
+                "ffi_refcount_keywords": [],
+                "viewport_file_patterns": [],
+                "network_file_patterns": []
+            },
+            "python_rules": {"exclusions": []},
+            "spec_rules": {
+                "design_tokens_path": ".pipeline/logical-ui/design-tokens.json",
+                "spec_files": []
+            },
+            "validation_rules": {
+                "playhead_rate_limits": [0.90, 1.10],
+                "dom_leak_patterns": [],
+                "pixel_leak_patterns": []
+            },
+            "backlog_directories": {
+                "epics": ".pipeline/backlog/epics",
+                "features": ".pipeline/backlog/features",
+                "use_cases": ".pipeline/backlog/use_cases",
+                "user_stories": ".pipeline/backlog/user_stories"
+            }
+        }
+        with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w") as f:
+            json.dump(rules, f)
+
+        assets_dir = os.path.join(tmpdir, custom_flutter_dir, "assets")
+        os.makedirs(assets_dir, exist_ok=True)
+        
+        layout = {
+            "type": "TabbedContainer",
+            "id": "details_and_relations_tab",
+            "children": [
+                {"type": "TableView", "id": "valid_child_1"}
+            ]
+        }
+        with open(os.path.join(assets_dir, "logical-layout.json"), "w") as f:
+            json.dump(layout, f)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        os.makedirs(features_dir, exist_ok=True)
+
+        repo = WorkspaceRepository(tmpdir)
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        
+        assert not any("logical-layout.json not found" in err for err in errors), f"Failed to find layout dynamically: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
