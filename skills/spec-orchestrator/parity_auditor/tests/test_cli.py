@@ -109,3 +109,37 @@ class TestAssertNoMockCli:
         workspace = str(tmp_path)
         assert_no_mock_cli(workspace)
 
+
+class TestSanitizeGithubTokenEnv:
+
+    def test_sanitize_removes_dummy_keywords_from_github_token_and_gh_token(self, monkeypatch):
+        from parity_auditor.cli import sanitize_github_token_env
+
+        keywords = ["antigravity_token", "my_dummy_key", "placeholder", "invalid_tok", "mock_secret"]
+        for kw in keywords:
+            monkeypatch.setenv("GITHUB_TOKEN", kw)
+            monkeypatch.setenv("GH_TOKEN", kw)
+            sanitize_github_token_env()
+            assert "GITHUB_TOKEN" not in os.environ, f"GITHUB_TOKEN with '{kw}' was not removed"
+            assert "GH_TOKEN" not in os.environ, f"GH_TOKEN with '{kw}' was not removed"
+
+    def test_sanitize_preserves_valid_tokens(self, monkeypatch):
+        from parity_auditor.cli import sanitize_github_token_env
+
+        valid_token = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"
+        monkeypatch.setenv("GITHUB_TOKEN", valid_token)
+        monkeypatch.setenv("GH_TOKEN", valid_token)
+        sanitize_github_token_env()
+        assert os.environ.get("GITHUB_TOKEN") == valid_token
+        assert os.environ.get("GH_TOKEN") == valid_token
+
+    def test_sanitize_handles_missing_tokens(self, monkeypatch):
+        from parity_auditor.cli import sanitize_github_token_env
+
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        sanitize_github_token_env()
+        assert "GITHUB_TOKEN" not in os.environ
+        assert "GH_TOKEN" not in os.environ
+
+

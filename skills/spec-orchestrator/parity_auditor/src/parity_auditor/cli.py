@@ -31,6 +31,19 @@ from .validators.cardinality_validator import SchemaCardinalityValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
+def sanitize_github_token_env():
+    """
+    Sanitize environment by removing dummy or placeholder GITHUB_TOKEN and GH_TOKEN
+    values that interfere with git/gh terminal operations.
+    """
+    dummy_keywords = ("antigravity", "dummy", "placeholder", "invalid", "mock")
+    for var in ("GITHUB_TOKEN", "GH_TOKEN"):
+        val = os.environ.get(var)
+        if val and any(kw in val.lower() for kw in dummy_keywords):
+            os.environ.pop(var, None)
+
+sanitize_github_token_env()
+
 def assert_no_mock_cli(workspace_dir: str = None):
     if not workspace_dir:
         curr = os.getcwd()
@@ -158,6 +171,7 @@ def _main_impl():
         - Serialises diagnostics JSON to ``.pipeline/logical-ui/`` on failure.
         - Prints audit progress and results to stdout.
     """
+    sanitize_github_token_env()
     parser = argparse.ArgumentParser(description="Model Coverage Parity Audit CLI")
     parser.add_argument("schema_dir", nargs="?", help="Path to schema directory")
     parser.add_argument("features_dir", nargs="?", help="Path to feature specs directory")
@@ -773,17 +787,16 @@ def _main_impl():
 
 def main():
     """
-    Entry point: strips dummy GITHUB_TOKEN, runs ``_main_impl()``, and
+    Entry point: strips dummy GITHUB_TOKEN and GH_TOKEN, runs ``_main_impl()``, and
     catches unhandled exceptions with a diagnostic report.
 
     Side effects:
-        - Removes ``GITHUB_TOKEN`` from the environment if it contains
-          ``dummytoken``.
+        - Removes ``GITHUB_TOKEN`` and ``GH_TOKEN`` from the environment if they contain
+          dummy token keywords.
         - Exits with code 1 on failure after writing a diagnostics JSON
           artifact.
     """
-    if "GITHUB_TOKEN" in os.environ and "dummytoken" in os.environ["GITHUB_TOKEN"]:
-        del os.environ["GITHUB_TOKEN"]
+    sanitize_github_token_env()
     try:
         _main_impl()
     except SystemExit:

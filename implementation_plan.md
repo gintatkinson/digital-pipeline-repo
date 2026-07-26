@@ -1,57 +1,75 @@
-# Implementation Plan: Enforce TabbedContainer Constraints & Revert Layout
+# Implementation Plan: Autonomous Two-Stage Resolution of All Backlogged Issues
 
-This plan details the steps to find the validation gap using the **`adversarial-code-auditor`** first, file the bug, and then execute the layout de-contamination and linter fix under the **`debug-protocol`**.
-
----
-
-## 1. Skill Matrix
-
-To execute this plan, we will utilize the following skills:
-1.  **`adversarial-code-auditor`** (`.agents/skills/adversarial-code-auditor/SKILL.md`): Used in Phase 1 to audit the validator logic, identify the gap where `TabbedContainer` children type checks are missing, and file a bug issue.
-2.  **`debug-protocol`** (`.agents/skills/debug-protocol/SKILL.md`): Used in Phase 2 to guide the subagent's systematic, step-by-step patch of the linter (`logical_ui_validator.py`) to fix the filed bug.
-3.  **`schema-specification-engineering`** (`skills/schema-specification-engineering/SKILL.md`): Used in Phase 3 to update the generator guidelines.
-4.  **`karpathy-skill`** (`.agents/skills/karpathy-skill/SKILL.md`): Enforces strict engineering guardrails.
+This plan details the technical steps for the autonomous, unattended looping and resolution of all remaining open issues in the backlog using a two-stage process: (1) **Adversarial Audit** to verify and document the defect context, and (2) **Debug Protocol** to apply the minimal fix, verify changes, commit/push, and close the issue.
 
 ---
 
-## 2. Proposed Changes
+## 1. Context & Objectives
 
-### Phase 1: Adversarial Code Audit (Find the Bugs)
-We will spawn an **Adversarial Auditor subagent** using the `adversarial-code-auditor` skill:
-*   **Audit Target**: Check `logical_ui_validator.py` against the constraint that `TabbedContainer` children in `logical-layout.json` are hardcoded to `TableView` components in the application code.
-*   **Expected Finding**: Identify that the validator permits non-`TableView` components (like `PropertyGrid`/`properties_view`) inside `TabbedContainer` without raising a compliance error.
-*   **Action**: File this bug issue (e.g. "Validator fails to enforce TableView type constraints on TabbedContainer children") upstream on `digital-pipeline-repo` using the `gh` CLI.
-
-### Phase 2: Update Validator Constraints (logical_ui_validator.py)
-We will spawn an **Upstream Debugging Specialist subagent** to resolve the filed bug:
-*   **Target File**:
-    *   [logical_ui_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/logical_ui_validator.py)
-*   **Changes**:
-    *   Add a validation check that scans the `logical-layout.json` tree. For every `TabbedContainer` component, assert that all of its `children` have a `"type"` equal to `"TableView"`.
-    *   If any non-`TableView` child (like `PropertyGrid` or `PropertiesPanel`) is found in the children of a `TabbedContainer`, return a compliance error.
-    *   Verify the fix against unit tests and close the filed issue.
-
-### Phase 3: Update Generator Mapping Guidelines (SKILL.md)
-*   **Target File**:
-    *   [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
-*   **Changes**:
-    *   Add a rule stating that since the layout does not instantiate a standalone properties tab inside the `TabbedContainer`, all geodetic and geolocation attributes must map directly to the instantiated details grid: `TableView` component with ID `components_table`.
-    *   Explicitly forbid mapping these attributes to trees, topology, or uninstantiated components.
+*   **Goal**: Sequentially resolve all open issues in the backlog without human intervention, ensuring each is fully verified, committed, pushed to the remote tracking branch, and closed.
+*   **Two-Stage Rule**: For each issue, I must first run the adversarial auditor against the target file to document the defect details, and then execute the debug protocol to apply the fix, verify it, and close the issue.
+*   **Active Backlog**: Issues 228, 227, 226, 225, 224, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 209, 208, 207.
 
 ---
 
-## 3. Verification Plan
+## 2. Proposed Loop Workflow (Unattended Execution)
 
-### 3.1 Python Unit Tests
-*   Run `PYTHONPATH=src python3 -m pytest tests/` in the `parity_auditor` directory and ensure all 32 tests pass.
+For each open issue in the backlog:
 
-### 3.2 Compilation & Packaging Build
-*   Run the compliance build to compile the Flutter application and create the release archive:
+### Stage 1: Adversarial Audit
+1.  **Retrieve Issue Details**: Fetch the issue context and target file:
     ```bash
-    python3 scripts/verify_downstream_baseline.py app_flutter
+    env -u GITHUB_TOKEN gh issue view <ISSUE_ID>
     ```
-*   Verify that `app_flutter_release.zip` is successfully created at the repository root.
+2.  **Run Audit**: Run an adversarial audit on the target file using the relevant correctness risk pillars (e.g. Memory Safety, Resource Lifecycle, Concurrency, Test Integrity, Semantic Traceability).
+3.  **Document Finding**: Draft the audit finding using the standard 7-section layout (Context, 5 Whys, Correctness Analysis, UML Diagram, Caller Impact, Proposed Correction, and Severity). Save the finding to a markdown file under `scratch/`.
 
-### 3.3 Synchronization Check
-*   Stage, commit, and push the validator and generator updates to `origin/main`.
-*   Verify that `git diff origin/main` is empty.
+### Stage 2: Debug Protocol Execution
+With the audit specification documented, execute the 8-step debugging protocol:
+1.  **Step 1-5 (Reproduction & Root Cause)**: Confirm the symptom, verify the hypothesis, and locate the exact lines causing failure.
+2.  **Step 6 (Fix)**: Design and apply the minimal fix to resolve the root cause.
+3.  **Step 7 (Verification - RED-GREEN)**:
+    *   Run pytest unit tests in `skills/spec-orchestrator/parity_auditor/` to confirm green status.
+    *   Run `verify_model_coverage.py --spec-only` to ensure compliance.
+    *   Log raw terminal outputs as verification proof.
+4.  **Step 8 (Release & Close)**:
+    *   Commit changes (`fix: resolve issue <ISSUE_ID>`).
+    *   Push to `origin/main` to synchronize changes.
+    *   Close the GitHub issue using `gh issue close <ISSUE_ID>`.
+
+---
+
+## 3. Targeted Remediation Details
+
+### Component: Parity Auditor CLI
+#### [MODIFY] [cli.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py)
+*   **Issue 228**: Downgrade the GitHub API offline error to a warning and skip the check without setting `has_failed = True` or exiting with code 1.
+*   **Verification**: Run `../../../.venv/bin/pytest tests/test_cli_offline.py`.
+
+### Component: Document Generation & Hyperlink Alignment
+#### [MODIFY] [generate_docs.py](file:///Users/perkunas/jail/digital-pipeline-repo/scratch/generate_docs.py) (If found/restored) / Spec Files
+*   **Issue 227**: Ensure `alternate-systems` has its own dedicated feature specification file (`feat-002-alternate-systems.md`) and is not collapsed under `geo-location-container` spec.
+*   **Issue 226**: Fix broken cross-document links pointing to 2-digit filenames (e.g. `feat-01-`) and align them to the standard 3-digit zero-padded format (e.g. `feat-001-`).
+
+### Component: Environment Sanitization & Security Gates
+#### [MODIFY] [reconcile_backlog.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/scripts/reconcile_backlog.py) / [bootstrap_downstream.py](file:///Users/perkunas/jail/digital-pipeline-repo/scripts/bootstrap_downstream.py)
+*   **Issue 225**: Add a validation hook to block execution if any forbidden local mock executable wrappers (such as `scratch/bin/gh`) are found.
+*   **Issue 224**: Clean the dummy `GITHUB_TOKEN` environment variable globally in bootstrap/shell setup scripts so git shell operations can use the OS keyring helper.
+
+### Component: Logical UI Validator
+#### [MODIFY] [logical_ui_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/logical_ui_validator.py)
+*   **Issue 222**: Enforce the `TableView`-only children constraint for `TabbedContainer` nodes.
+*   **Issue 221**: Fix `schema-specification-engineering` mapping template to correctly target detail grids for geodetic attributes.
+*   **Issue 220**: Enforce namespace prefixes check on prefixed elements.
+*   **Issue 219**: Bypassing enforcement of mapping geodetic attributes to `TopographicalView`.
+
+---
+
+## 4. Verification Plan
+
+*   **Pytest Suite**: Run `../../../.venv/bin/pytest` inside the parity auditor tests directory.
+*   **Linter Verification**: Run the linter check:
+    ```bash
+    ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
+    ```
+*   **Synchronization Check**: Verify that `git diff origin/main` is empty.
