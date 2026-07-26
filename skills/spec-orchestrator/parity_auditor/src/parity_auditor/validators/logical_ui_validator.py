@@ -91,9 +91,7 @@ class LogicalUiValidator(IValidator):
             match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             
             if not match:
-                has_ui_concept = bool(re.search(r"(?:interface[-_]type:\s*ui|\bui\b|\binterface\b|\blayout\b|\bview\b|\bcomponent\b|\bwidget\b|\bscreen\b)", content, re.IGNORECASE))
-                if has_ui_concept:
-                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
+                errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
             else:
                 section_content = match.group(1)
                 for line in section_content.splitlines():

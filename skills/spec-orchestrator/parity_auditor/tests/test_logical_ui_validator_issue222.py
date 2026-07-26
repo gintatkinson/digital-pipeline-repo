@@ -573,6 +573,35 @@ title: "Issue 215 NA Feature"
         shutil.rmtree(tmpdir)
 
 
+def test_issue214_unconditional_section_5_guard():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-no-ui-keywords.md")
+
+        # Feature content without any UI keywords or concept, and missing Section 5
+        feat_no_ui = """---
+title: "Pure Math Feature"
+---
+# Pure Math Feature
+This feature performs pure numerical calculation without referencing any UI concepts.
+"""
+        with open(os.path.join(features_dir, "feat-no-ui-keywords.md"), "w") as f:
+            f.write(feat_no_ui)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        expected_err = f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section."
+        assert any(expected_err in err for err in errors), f"Expected missing section error unconditionally, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 
