@@ -89,8 +89,10 @@ def normalize_title(title, rules=None):
     # Strip quotes and leading/trailing whitespace
     title = title.strip().strip('"\'')
     # Strip common prefixes (e.g., epic-01:, feat-02:, us-03:, uc-04:, etc.)
-    regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+(?:[-][-\w]+)*)?\s*[:\-]?\s*'
-    title = re.sub(regex, '', title, flags=re.IGNORECASE)
+    regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
+    stripped = re.sub(regex, '', title, flags=re.IGNORECASE)
+    if stripped.strip():
+        title = stripped
     # Normalize hyphens to spaces to handle typographic variations
     title = title.replace("-", " ")
     # Strip any remaining punctuation and normalize spacing
@@ -527,7 +529,9 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         return items
 
     PLACEHOLDER_PATTERNS = [
-        re.compile(r'^\*To be populated after Phase \d+\*$', re.IGNORECASE),
+        re.compile(r'^\s*[-*]*\s*\(?\s*\*?To be populated.*?\*?\)?\s*$', re.IGNORECASE),
+        re.compile(r'^\s*[-*]*\s*\*?TBD\*?\s*$', re.IGNORECASE),
+        re.compile(r'^\s*[-*]*\s*\*?N/A\*?\s*$', re.IGNORECASE),
     ]
 
     def filter_content_lines(slice_lines):
@@ -677,14 +681,18 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
 
 def find_workspace_dir(start_path):
     curr = os.path.abspath(start_path)
+    if os.path.isfile(curr):
+        curr = os.path.dirname(curr)
     while True:
         if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+            return curr
+        if os.path.exists(os.path.join(curr, ".git")):
             return curr
         parent = os.path.dirname(curr)
         if parent == curr:
             break
         curr = parent
-    return os.path.abspath(start_path)
+    return os.path.dirname(os.path.abspath(start_path)) if os.path.isfile(start_path) else os.path.abspath(start_path)
 
 def assert_no_mock_cli(workspace_dir=None):
     if not workspace_dir:
@@ -851,6 +859,63 @@ def main():
             usecases_dir = os.path.join(workspace_dir, usecases_rel)
             print(f"Scanning backlog files...")
 
+        # Build Epic Alias Map for robust child-to-epic title/ID resolution
+        epic_alias_map = {}
+        if os.path.exists(epics_dir):
+            for fn in os.listdir(epics_dir):
+                if fn.endswith(".md"):
+                    fp = os.path.join(epics_dir, fn)
+                    title = extract_title(fp)
+                    meta = extract_metadata(fp)
+                    canonical_norm = normalize_title(title, rules) if title else ""
+                    if not canonical_norm:
+                        canonical_norm = fn[:-3].lower()
+
+                    aliases = set()
+                    if title:
+                        aliases.add(title.strip().strip('"\'').lower())
+                        aliases.add(normalize_title(title, rules))
+                        aliases.add(re.sub(r'^\w+[- ]*\d+\s*[:\-]?\s*', '', title, flags=re.IGNORECASE).strip().lower())
+                    
+                    fn_slug = fn[:-3]
+                    aliases.add(fn_slug.lower())
+                    aliases.add(fn_slug.lower().replace("-", " "))
+                    aliases.add(normalize_title(fn_slug, rules))
+                    
+                    fm_id = meta.get("id") or meta.get("epic")
+                    if fm_id:
+                        fm_id_str = str(fm_id).strip().strip('"\'')
+                        aliases.add(fm_id_str.lower())
+                        aliases.add(fm_id_str.lower().replace("-", " "))
+                        aliases.add(normalize_title(fm_id_str, rules))
+                        
+                    for sample in [title, fn_slug, str(fm_id) if fm_id else ""]:
+                        if sample:
+                            m = re.search(r'\b(epic[- ]*\d+)\b', sample, re.IGNORECASE)
+                            if m:
+                                id_prefix = m.group(1).lower()
+                                aliases.add(id_prefix)
+                                aliases.add(id_prefix.replace("-", " "))
+                                aliases.add(id_prefix.replace(" ", "-"))
+
+                    for alias in aliases:
+                        if alias:
+                            epic_alias_map[alias] = canonical_norm
+
+        def resolve_epic_norm(epic_ref):
+            if not epic_ref:
+                return None
+            ref_str = str(epic_ref).strip().strip('"\'')
+            if ref_str.lower() in epic_alias_map:
+                return epic_alias_map[ref_str.lower()]
+            norm = normalize_title(ref_str, rules)
+            if norm in epic_alias_map:
+                return epic_alias_map[norm]
+            ref_space = ref_str.lower().replace("-", " ")
+            if ref_space in epic_alias_map:
+                return epic_alias_map[ref_space]
+            return norm
+
         # Dynamic relationship scanning
         feature_to_epic = {}
         if os.path.exists(features_dir):
@@ -860,8 +925,9 @@ def main():
                     meta = extract_metadata(fp)
                     epic_name = meta.get("epic")
                     if epic_name:
-                        epic_norm = normalize_title(epic_name, rules)
-                        feature_to_epic[fn[:-3]] = {epic_norm}
+                        resolved_epic = resolve_epic_norm(epic_name)
+                        if resolved_epic:
+                            feature_to_epic[fn[:-3]] = {resolved_epic}
 
         story_to_epic = {}
         if os.path.exists(stories_dir):
@@ -872,7 +938,9 @@ def main():
                     epic_name = meta.get("epic")
                     epics = set()
                     if epic_name:
-                        epics.add(normalize_title(epic_name, rules))
+                        resolved_epic = resolve_epic_norm(epic_name)
+                        if resolved_epic:
+                            epics.add(resolved_epic)
                     
                     with open(fp, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
@@ -892,7 +960,9 @@ def main():
                     epic_name = meta.get("epic")
                     epics = set()
                     if epic_name:
-                        epics.add(normalize_title(epic_name, rules))
+                        resolved_epic = resolve_epic_norm(epic_name)
+                        if resolved_epic:
+                            epics.add(resolved_epic)
                         
                     with open(fp, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
