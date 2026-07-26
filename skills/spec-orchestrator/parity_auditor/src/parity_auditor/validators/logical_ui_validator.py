@@ -105,6 +105,32 @@ class LogicalUiValidator(IValidator):
                         parts = line.split(":", 1)
                         if len(parts) > 1:
                             container_val = parts[1].strip().strip("*`\"'[]() ")
+                    elif "Data Source Binding" in line:
+                        parts = line.split(":", 1)
+                        if len(parts) > 1:
+                            ds_val = parts[1].strip().strip("*`\"'[]() ")
+                            if ds_val and ds_val.upper() != "N/A":
+                                paths = [p.strip().strip(" *`\"'") for p in ds_val.split(',')]
+                                nil_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
+                                for path in paths:
+                                    if not path or path.upper() == "N/A":
+                                        continue
+                                    segments = path.split('/')
+                                    for seg in segments:
+                                        seg_clean = seg.strip()
+                                        if not seg_clean:
+                                            continue
+                                        if '[' in seg_clean:
+                                            seg_clean = seg_clean.split('[', 1)[0].strip()
+                                        if ':' in seg_clean:
+                                            prefix, local_name = seg_clean.split(':', 1)
+                                        else:
+                                            prefix, local_name = "", seg_clean
+                                        
+                                        if local_name in nil_elements and prefix != "nil":
+                                            errors.append(
+                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{local_name}'. Must use 'nil:{local_name}'."
+                                            )
                             
             # Ensure specified target component is a valid layout component (if not N/A)
             if comp_val.upper() != "N/A":

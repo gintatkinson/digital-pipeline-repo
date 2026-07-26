@@ -314,4 +314,40 @@ def test_hypothesis_3_non_list_children():
         shutil.rmtree(tmpdir)
 
 
+def test_issue220_unprefixed_augmented_elements():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        
+        # Write feature file with un-prefixed augmented element 'locations' and 'rack'
+        feat_content = """---
+title: "Test Feature"
+---
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TableView
+- **Target Layout Container ID:** table1
+- **Data Source Bindings:** /network/locations/rack, /network/nil:racks, /network/locations[id=1]/rack-location
+"""
+        with open(os.path.join(features_dir, "feat-test.md"), "w") as f:
+            f.write(feat_content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        
+        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-test.md")
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '/network/locations/rack' contains un-prefixed augmented element 'locations'. Must use 'nil:locations'." in err for err in errors)
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '/network/locations/rack' contains un-prefixed augmented element 'rack'. Must use 'nil:rack'." in err for err in errors)
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '/network/locations[id=1]/rack-location' contains un-prefixed augmented element 'locations'. Must use 'nil:locations'." in err for err in errors)
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '/network/locations[id=1]/rack-location' contains un-prefixed augmented element 'rack-location'. Must use 'nil:rack-location'." in err for err in errors)
+        
+        # Verify /network/nil:racks produces NO error for 'racks'
+        assert not any("nil:racks" in err and "un-prefixed" in err for err in errors)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
