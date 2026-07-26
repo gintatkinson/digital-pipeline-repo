@@ -274,6 +274,10 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - The target LUI component (e.g. `PropertyGrid`, `TopologyMap`, `DensityTable`, `ConsoleLogger`).
      - The specific target layout container ID in `logical-layout.json`.
      - The data source bindings matching `logical-layout.json`.
+   - **Geolocation & Geodetic Semantic Mapping Rules**:
+     - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, and velocity vectors) represent child properties of concrete parent components.
+     - You MUST map these geodetic attributes to details panels and tables (such as `PropertyGrid` with container ID `properties_view`, or `TableView` with container ID `components_table`) that are actively instantiated in the layout.
+     - You are strictly forbidden from mapping these inherited attributes as standalone visual topology viewports (`TopographicalView`, `TopologyMap`) or tree selectors (`HierarchyTreeSelector`, `HierarchyTree`).
 
 ## Step 5: Local Validation & Backlog Synchronization
 
