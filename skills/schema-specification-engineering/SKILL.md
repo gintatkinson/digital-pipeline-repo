@@ -252,7 +252,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ## 5. Logical UI & Layout Bindings
    - **Target LUI Component:** [e.g. PropertyGrid, TopologyMap, DensityTable, ConsoleLogger]
    - **Target Layout Container ID:** [Specify the container ID from logical-layout.json]
-   - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json]
+   - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json. Data source bindings mapped to YANG schemas MUST strictly omit choice and case node names (e.g., use '.../location/x', not '.../location/cartesian/x').]
 
    > [!WARNING]
    > **Mermaid Block Closing Constraints & Code Fence Integrity:**
@@ -273,7 +273,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - You MUST map the feature's container and leaf nodes to:
      - The target LUI component (e.g. `PropertyGrid`, `TopologyMap`, `DensityTable`, `ConsoleLogger`).
      - The specific target layout container ID in `logical-layout.json`.
-     - The data source bindings matching `logical-layout.json`.
+     - The data source bindings matching `logical-layout.json`. Data source bindings mapped to YANG schemas MUST strictly omit choice and case node names (e.g., use '.../location/x', not '.../location/cartesian/x').
 
 ## Step 5: Local Validation & Backlog Synchronization
 

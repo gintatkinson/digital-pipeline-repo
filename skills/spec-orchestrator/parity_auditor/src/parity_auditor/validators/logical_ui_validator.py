@@ -83,6 +83,7 @@ class LogicalUiValidator(IValidator):
             
             comp_val = "N/A"
             container_val = "N/A"
+            bindings_val = ""
             
             # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
             match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
@@ -97,6 +98,10 @@ class LogicalUiValidator(IValidator):
                         parts = line.split(":", 1)
                         if len(parts) > 1:
                             container_val = parts[1].strip().strip("*`\"'[]() ")
+                    elif "Data Source Bindings" in line:
+                        parts = line.split(":", 1)
+                        if len(parts) > 1:
+                            bindings_val = parts[1].strip().strip("*`\"'[]() ")
                             
             # Ensure specified target component is a valid layout component (if not N/A)
             if comp_val.upper() != "N/A":
@@ -108,6 +113,15 @@ class LogicalUiValidator(IValidator):
                 if container_val not in container_ids:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
                     
+            if bindings_val:
+                forbidden_nodes = {"cartesian", "ellipsoid", "location-choice"}
+                paths = [p.strip() for p in bindings_val.split(',')]
+                for path in paths:
+                    segments = path.split('/')
+                    for seg in segments:
+                        if seg in forbidden_nodes:
+                            errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains forbidden choice/case node '{seg}'.")
+                            
             # Coordinate/Reference-Frame constraint:
             # If the feature file text contains coordinate/reference-frame terms and Target LUI Component is N/A
             has_coordinate_term = any(word in content.lower() for word in coordinate_keywords)
