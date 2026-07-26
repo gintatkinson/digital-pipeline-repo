@@ -64,4 +64,30 @@ void main() {
 
     await db.close();
   });
+
+  test('typeFor resolves instance node_id to underlying type descriptor', () async {
+    final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: false);
+
+    await db.insert('type_definitions', {
+      'type_name': 'ManagedElement',
+      'display_name': 'Managed Element',
+      'icon_name': 'router',
+    });
+
+    await db.insert('instances', {
+      'id': 'Master_1',
+      'parent_node_id': 'root',
+      'type_name': 'ManagedElement',
+      'data_json': '{}',
+    });
+
+    final dataSource = SqliteDataSource(db);
+    final descriptor = await dataSource.typeFor('Master_1');
+
+    expect(descriptor, isNotNull);
+    expect(descriptor!.typeName, equals('ManagedElement'));
+    expect(descriptor.displayName, equals('Managed Element'));
+
+    await db.close();
+  });
 }

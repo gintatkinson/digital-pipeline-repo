@@ -104,8 +104,24 @@ class SqliteDataSource implements DataSource {
   @override
   Future<TypeDescriptor?> typeFor(String typeName) async {
     try {
-      final rows = await _db.query('type_definitions',
+      var rows = await _db.query('type_definitions',
           where: 'type_name = ?', whereArgs: [typeName]);
+      if (rows.isEmpty) {
+        // Fallback: resolve instance nodeId to its underlying type_name
+        List<Map<String, dynamic>> instanceRows = [];
+        try {
+          instanceRows = await _db.query('instances',
+              columns: ['type_name'], where: 'node_id = ?', whereArgs: [typeName]);
+        } catch (_) {
+          instanceRows = await _db.query('instances',
+              columns: ['type_name'], where: 'id = ?', whereArgs: [typeName]);
+        }
+        if (instanceRows.isNotEmpty && instanceRows.first['type_name'] != null) {
+          final resolvedType = instanceRows.first['type_name'] as String;
+          rows = await _db.query('type_definitions',
+              where: 'type_name = ?', whereArgs: [resolvedType]);
+        }
+      }
       if (rows.isEmpty) return null;
       return _buildType(rows.first);
     } catch (e, stackTrace) {

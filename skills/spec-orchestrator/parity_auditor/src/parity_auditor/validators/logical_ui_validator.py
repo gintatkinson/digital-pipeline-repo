@@ -36,16 +36,17 @@ class LogicalUiValidator(IValidator):
                         node_id = node.get("id")
                         if isinstance(node_id, str):
                             container_ids.add(node_id)
-                            
+
                         if isinstance(node_type, str) and node_type == "TabbedContainer":
+                            container_id_str = node_id if (isinstance(node_id, str) and node_id) else "unknown"
                             children = node.get("children", [])
                             if isinstance(children, list):
                                 for child in children:
                                     if isinstance(child, dict):
-                                        child_type = child.get("type")
+                                        child_type = child.get("type", "unknown")
                                         child_id = child.get("id", "unknown")
                                         if child_type != "TableView":
-                                            tabbed_container_errors.append(f"TabbedContainer '{node_id}' contains non-TableView child '{child_id}' of type '{child_type}'")
+                                            tabbed_container_errors.append(f"TabbedContainer '{container_id_str}' contains non-TableView child '{child_id}' of type '{child_type}'")
                             
                         # Recurse on values
                         for val in node.values():
