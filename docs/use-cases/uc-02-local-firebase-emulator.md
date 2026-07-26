@@ -93,7 +93,7 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #N/A - [Local Emulator Seeding Story](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/user-stories/us-placeholder.md) (not formally defined)
+- [ ] #2 - Local Emulator Seeding Story ([us-02-emulator-seeding](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-02-emulator-seeding.md)) (Verifies local emulator seeding capability)
 ### Required Features
 - [x] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (implements the bootstrapping logic, SeedingManager database purge/restoration, and connection checks for the local emulator environment)
 

@@ -46,10 +46,15 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
        - *UML Use Case Diagram*: Illustrate system boundary, actors, relationships, and linkages. Group all use case nodes inside system boundary, place actors outside. Use case nodes must be stadium/oval shapes. Actor links must be undirected associations. Dotted/dashed arrows must use correct, parsable syntax.
        - *UML State Machine Diagram*: Show transition logic from preconditions to final postconditions.
        - Only UML diagrams are allowed.
-   - **The Realization Matrix (User Story/Feature Linking):**
-     - Determine which User Stories and Features are required to fulfill this specific System Use Case.
-     - Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL. **CRITICAL: You MUST resolve the unique, specific Issue ID for EACH individual User Story and Feature. Do NOT use a single generic ID for all entries.**
-     - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
+    - **The Realization Matrix (User Story/Feature Linking):**
+      - Determine which User Stories and Features are required to fulfill this specific System Use Case.
+      - Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL. **CRITICAL: You MUST resolve the unique, specific Issue ID for EACH individual User Story and Feature. Do NOT use a single generic ID for all entries.**
+      - **Issue ID Resolution Procedure:**
+        1. *Feature Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in the target `docs/features/feat-XX-name.md` file.
+        2. *User Story Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in `docs/user-stories/us-XX-name.md` or query `gh issue list`.
+        3. *Epic Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in `docs/epics/epic-XX-name.md` or query `gh issue list`.
+        4. *Prohibited Defaulting*: Using a single generic ID (e.g. `#0`, `#44`, `#N/A`, `#[StoryID]`) across multiple Realization Matrix entries is strictly prohibited. Each entry MUST reference its actual resolved Issue ID.
+      - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
    - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 

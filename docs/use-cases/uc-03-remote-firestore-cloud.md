@@ -9,7 +9,7 @@ issue_id: 47
 # Use Case: Shared Cloud Sync via Remote Firestore Flow
 
 ## Parent Epic
-- [ ] #0 - Standalone Persistence Epic (https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-00-persistence.md) (Aggregates all persistence layers and adapters for React and Flutter desktop configurations)
+- [ ] #43 - Standalone Persistence Epic (https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/epics/epic-43-downstream-delivery.md) (Aggregates all persistence layers and adapters for React and Flutter desktop configurations)
 
 ## 1. Actors
 - **Primary Actor:** Operator/Engineer
@@ -95,7 +95,7 @@ Configuration B: Production Mode (Cloud Firestore)
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #0 - Collaborative Console Updates ([us-03-collaborative-sync](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
+- [ ] #3 - Collaborative Console Updates ([us-03-collaborative-sync](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
 ### Required Features
 - [x] #44 - Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies concrete FirestoreRepositoryAdapter and compliance verification checks)
 

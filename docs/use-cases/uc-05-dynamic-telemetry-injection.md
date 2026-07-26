@@ -80,7 +80,7 @@ Ensures zero-code-gen dynamically loaded UI dashboards can safely map, display, 
 - [x] #57 - Off-Thread Telemetry Processing and Worker Isolation ([feat-15-off-thread-telemetry](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-15-off-thread-telemetry.md)) (Verifies unpacking and buffering of gNMI streams)
 
 ### Required User Stories
-- [ ] #0 - Telemetry injection ([us-05-injection](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-05-injection.md)) (Verifies telemetry injection capability)
+- [ ] #5 - Telemetry injection ([us-05-injection](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-05-injection.md)) (Verifies telemetry injection capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`
