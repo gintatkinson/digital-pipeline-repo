@@ -356,7 +356,8 @@ def test_issue219_geodetic_mapping_to_forbidden_topology():
             "type": "TopographicalView",
             "id": "topology_pane",
             "children": [
-                {"type": "PropertyGrid", "id": "properties_view"}
+                {"type": "PropertyGrid", "id": "properties_view"},
+                {"type": "HierarchyTree", "id": "tree_view"}
             ]
         }
         repo = _create_test_repo(tmpdir, layout)
@@ -365,7 +366,7 @@ def test_issue219_geodetic_mapping_to_forbidden_topology():
         rel_path_invalid = os.path.join(".pipeline", "backlog", "features", "feat-invalid-geodetic.md")
         rel_path_valid = os.path.join(".pipeline", "backlog", "features", "feat-valid-geodetic.md")
 
-        # Feature mapping geodetic attributes to TopographicalView / topology_pane -> INVALID
+        # Feature mapping geodetic attributes to non-spatial HierarchyTree component -> INVALID
         invalid_content = """---
 title: "Invalid Geodetic Mapping Feature"
 ---
@@ -373,8 +374,8 @@ title: "Invalid Geodetic Mapping Feature"
 Contains latitude and longitude coordinates.
 
 ## 5. Logical UI & Layout Bindings
-- **Target LUI Component:** TopographicalView
-- **Target Layout Container ID:** topology_pane
+- **Target LUI Component:** HierarchyTree
+- **Target Layout Container ID:** tree_view
 """
         with open(os.path.join(features_dir, "feat-invalid-geodetic.md"), "w") as f:
             f.write(invalid_content)
@@ -396,9 +397,9 @@ Contains latitude and longitude coordinates.
         validator = LogicalUiValidator()
         errors = validator.validate(repo)
 
-        expected_err = f"Logical UI Compliance: Feature '{rel_path_invalid}' erroneously maps geodetic attribute(s) to forbidden topology component 'TopographicalView' or container ID 'topology_pane'."
+        expected_err = f"Logical UI Compliance: Feature '{rel_path_invalid}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView')."
         assert any(expected_err in err for err in errors), f"Expected error '{expected_err}', got: {errors}"
-        assert not any("feat-valid-geodetic.md" in err and "erroneously maps geodetic attribute" in err for err in errors), f"Unexpected error for valid feature: {errors}"
+        assert not any("feat-valid-geodetic.md" in err and "contains spatial/geodetic attributes" in err for err in errors), f"Unexpected error for valid feature: {errors}"
     finally:
         shutil.rmtree(tmpdir)
 

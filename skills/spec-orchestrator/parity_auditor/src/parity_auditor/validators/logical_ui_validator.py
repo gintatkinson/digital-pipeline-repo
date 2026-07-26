@@ -189,17 +189,14 @@ class LogicalUiValidator(IValidator):
                 if container_val not in container_ids:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
 
-            # Enforce that geodetic attributes are not erroneously mapped to forbidden topology components or container IDs
-            FORBIDDEN_TOPOLOGY_COMPONENTS = {"TopographicalView", "TopologyMap", "GeoSpatialViewer", "HierarchyTreeSelector", "HierarchyTree"}
-            FORBIDDEN_TOPOLOGY_CONTAINERS = {"topology_pane", "resource_tree", "navigation_tree", "map_viewport"}
+            # Enforce that geodetic/spatial features map to valid spatial view components
+            VALID_SPATIAL_COMPONENTS = {"TopologyMap", "TopographicalView", "GeoSpatialViewer", "PropertyGrid", "TableView", "N/A"}
             GEODETIC_REGEX = re.compile(r"\b(?:location|velocity|geo-location|geodetic|latitude|longitude|altitude|elevation|datum|position|spatial|reference-frame|geodetic-system|coordinates|velocity\s+vectors)\b", re.IGNORECASE)
 
-            forbidden_comp_matched = [c for c in specified_components if c in FORBIDDEN_TOPOLOGY_COMPONENTS]
-            if forbidden_comp_matched or container_val in FORBIDDEN_TOPOLOGY_CONTAINERS:
-                if GEODETIC_REGEX.search(content):
-                    comp_name_to_report = forbidden_comp_matched[0] if forbidden_comp_matched else (sorted(specified_components)[0] if specified_components else "N/A")
+            if GEODETIC_REGEX.search(content):
+                if any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components):
                     errors.append(
-                        f"Logical UI Compliance: Feature '{rel_path}' erroneously maps geodetic attribute(s) to forbidden topology component '{comp_name_to_report}' or container ID '{container_val}'."
+                        f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView')."
                     )
 
         return errors
