@@ -115,6 +115,11 @@ class LogicalUiValidator(IValidator):
                                 for path in paths:
                                     if not path or path.upper() == "N/A":
                                         continue
+                                    if ' ' in path or not (path.startswith('/') or path.startswith('schema:') or path.startswith('provider:') or path.upper() == 'N/A'):
+                                        errors.append(
+                                            f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains plain-text English instead of valid schema path."
+                                        )
+                                        continue
                                     segments = path.split('/')
                                     for seg in segments:
                                         seg_clean = seg.strip()

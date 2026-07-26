@@ -403,6 +403,38 @@ Contains latitude and longitude coordinates.
         shutil.rmtree(tmpdir)
 
 
+def test_issue218_plain_text_data_source_binding():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-plain-text.md")
+
+        content = """---
+title: "Plain Text Binding Feature"
+---
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TableView
+- **Target Layout Container ID:** table1
+- **Data Source Bindings:** Plain text description, /valid/schema/path, invalid_no_prefix, schema:valid_schema
+"""
+        with open(os.path.join(features_dir, "feat-plain-text.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding 'Plain text description' contains plain-text English instead of valid schema path." in err for err in errors)
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding 'invalid_no_prefix' contains plain-text English instead of valid schema path." in err for err in errors)
+        assert not any("contains plain-text English" in err and "/valid/schema/path" in err for err in errors)
+        assert not any("contains plain-text English" in err and "schema:valid_schema" in err for err in errors)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 
