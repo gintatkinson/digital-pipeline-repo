@@ -349,5 +349,60 @@ title: "Test Feature"
         shutil.rmtree(tmpdir)
 
 
+def test_issue219_geodetic_mapping_to_forbidden_topology():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {
+            "type": "TopographicalView",
+            "id": "topology_pane",
+            "children": [
+                {"type": "PropertyGrid", "id": "properties_view"}
+            ]
+        }
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        rel_path_invalid = os.path.join(".pipeline", "backlog", "features", "feat-invalid-geodetic.md")
+        rel_path_valid = os.path.join(".pipeline", "backlog", "features", "feat-valid-geodetic.md")
+
+        # Feature mapping geodetic attributes to TopographicalView / topology_pane -> INVALID
+        invalid_content = """---
+title: "Invalid Geodetic Mapping Feature"
+---
+# Invalid Feature
+Contains latitude and longitude coordinates.
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TopographicalView
+- **Target Layout Container ID:** topology_pane
+"""
+        with open(os.path.join(features_dir, "feat-invalid-geodetic.md"), "w") as f:
+            f.write(invalid_content)
+
+        # Feature mapping geodetic attributes to PropertyGrid / properties_view -> VALID
+        valid_content = """---
+title: "Valid Geodetic Mapping Feature"
+---
+# Valid Feature
+Contains latitude and longitude coordinates.
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** PropertyGrid
+- **Target Layout Container ID:** properties_view
+"""
+        with open(os.path.join(features_dir, "feat-valid-geodetic.md"), "w") as f:
+            f.write(valid_content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        expected_err = f"Logical UI Compliance: Feature '{rel_path_invalid}' erroneously maps geodetic attribute(s) to forbidden topology component 'TopographicalView' or container ID 'topology_pane'."
+        assert any(expected_err in err for err in errors), f"Expected error '{expected_err}', got: {errors}"
+        assert not any("feat-valid-geodetic.md" in err and "erroneously maps geodetic attribute" in err for err in errors), f"Unexpected error for valid feature: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 

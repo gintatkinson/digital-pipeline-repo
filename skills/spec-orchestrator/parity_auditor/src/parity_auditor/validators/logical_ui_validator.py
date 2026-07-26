@@ -141,6 +141,18 @@ class LogicalUiValidator(IValidator):
             if container_val.upper() != "N/A":
                 if container_val not in container_ids:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
-                
+
+            # Enforce that geodetic attributes are not erroneously mapped to forbidden topology components or container IDs
+            FORBIDDEN_TOPOLOGY_COMPONENTS = {"TopographicalView", "TopologyMap", "GeoSpatialViewer", "HierarchyTreeSelector", "HierarchyTree"}
+            FORBIDDEN_TOPOLOGY_CONTAINERS = {"topology_pane", "resource_tree", "navigation_tree", "map_viewport"}
+            GEODETIC_REGEX = re.compile(r"\b(?:location|velocity|geo-location|geodetic|latitude|longitude|altitude|elevation|datum|position|spatial|reference-frame|geodetic-system|coordinates|velocity\s+vectors)\b", re.IGNORECASE)
+
+            if comp_val in FORBIDDEN_TOPOLOGY_COMPONENTS or container_val in FORBIDDEN_TOPOLOGY_CONTAINERS:
+                if GEODETIC_REGEX.search(content):
+                    errors.append(
+                        f"Logical UI Compliance: Feature '{rel_path}' erroneously maps geodetic attribute(s) to forbidden topology component '{comp_val}' or container ID '{container_val}'."
+                    )
+
         return errors
+
 
