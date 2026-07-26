@@ -1,4 +1,4 @@
-```yaml
+---
 name: adversarial-code-auditor
 version: "3.2"
 description: "Pre-emptive adversarial audit against four correctness risk pillars."
@@ -8,7 +8,7 @@ metadata:
   category: auditing
   risk: low
 
-```
+---
 
 # Adversarial Code Auditor
 

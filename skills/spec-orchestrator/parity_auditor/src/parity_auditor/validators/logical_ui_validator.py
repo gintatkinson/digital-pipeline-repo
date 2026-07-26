@@ -66,6 +66,7 @@ class LogicalUiValidator(IValidator):
             
         errors = []
         if not os.path.exists(features_dir):
+            errors.append(f"Logical UI Compliance: features directory not found at {features_dir}")
             return errors
             
         feature_files = repo.get_feature_files(features_dir)
@@ -73,7 +74,7 @@ class LogicalUiValidator(IValidator):
         coordinate_keywords = [
             "astronomical-body", "geodetic-datum", "coordinate", 
             "latitude", "longitude", "trajectory", "orbit", 
-            "elevation", "geo-location"
+            "elevation", "geo-location", "x", "y", "z"
         ]
         
         for feat in feature_files:
@@ -84,11 +85,14 @@ class LogicalUiValidator(IValidator):
             comp_val = "N/A"
             container_val = "N/A"
             
+            data_source_bindings = []
+            
             # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
             match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             if match:
                 section_content = match.group(1)
-                for line in section_content.splitlines():
+                lines = section_content.splitlines()
+                for i, line in enumerate(lines):
                     if "Target LUI Component" in line:
                         parts = line.split(":", 1)
                         if len(parts) > 1:
@@ -97,6 +101,21 @@ class LogicalUiValidator(IValidator):
                         parts = line.split(":", 1)
                         if len(parts) > 1:
                             container_val = parts[1].strip().strip("*`\"'[]() ")
+                    elif "Data Source Bindings" in line:
+                        parts = line.split(":", 1)
+                        if len(parts) > 1 and parts[1].strip():
+                            data_source_bindings.append(parts[1].strip().strip("*`\"'[]() "))
+                        else:
+                            j = i + 1
+                            while j < len(lines):
+                                next_line = lines[j].strip()
+                                if next_line.startswith("-"):
+                                    data_source_bindings.append(next_line.lstrip("-").strip().strip("*`\"'[]() "))
+                                    j += 1
+                                elif not next_line:
+                                    j += 1
+                                else:
+                                    break
                             
             # Ensure specified target component is a valid layout component (if not N/A)
             if comp_val.upper() != "N/A":
@@ -108,13 +127,18 @@ class LogicalUiValidator(IValidator):
                 if container_val not in container_ids:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
                     
+            forbidden_nodes = {"cartesian", "ellipsoid", "location-choice"}
+            for binding in data_source_bindings:
+                for f_node in forbidden_nodes:
+                    if f_node in binding:
+                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' contains forbidden YANG choice/case node '{f_node}' in Data Source Binding '{binding}'.")
+                    
             # Coordinate/Reference-Frame constraint:
-            # If the feature file text contains coordinate/reference-frame terms and Target LUI Component is N/A
-            has_coordinate_term = any(word in content.lower() for word in coordinate_keywords)
-            if has_coordinate_term and comp_val.upper() == "N/A":
+            has_coordinate_term = any(re.search(rf"\b{word}\b", content.lower()) for word in coordinate_keywords)
+            if has_coordinate_term and comp_val not in {"TopologyMap", "TopographicalView"}:
                 errors.append(
                     f"Logical UI Compliance: Feature '{rel_path}' contains geodetic/coordinate concepts but "
-                    f"'Target LUI Component' is N/A. Demanding mapping to a visual coordinate component (e.g. TopologyMap or TopographicalView)."
+                    f"'Target LUI Component' is '{comp_val}'. Demanding mapping to a visual coordinate component (e.g. TopologyMap or TopographicalView)."
                 )
                 
         return errors
