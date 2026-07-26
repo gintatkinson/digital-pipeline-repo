@@ -250,7 +250,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    Normative Specification: [Normative Specification](link-to-specification)
 
    ## 5. Logical UI & Layout Bindings
-   - **Target LUI Component:** [e.g. PropertyGrid, TopologyMap, DensityTable, ConsoleLogger]
+   - **Target LUI Component:** [e.g. PropertyGrid, TableView, DensityTable, DataCard, TimeSeriesChart]
    - **Target Layout Container ID:** [Specify the container ID from logical-layout.json]
    - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json]
 
@@ -271,13 +271,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 4. **Logical UI & Layout Bindings Block (MANDATORY):**
    - Every feature specification markdown file MUST contain a `## 5. Logical UI & Layout Bindings` section at the end of the file.
    - You MUST map the feature's container and leaf nodes to:
-     - The target LUI component (e.g. `PropertyGrid`, `TopologyMap`, `DensityTable`, `ConsoleLogger`).
+     - The target LUI component (e.g. `PropertyGrid`, `TableView`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`).
      - The specific target layout container ID in `logical-layout.json`.
      - The data source bindings matching `logical-layout.json`.
    - **Geolocation & Geodetic Semantic Mapping Rules**:
-     - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, and velocity vectors) represent child properties of concrete parent components.
+     - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, velocity, geo-location, geodetic, latitude, longitude, altitude, elevation, datum, position, and spatial) represent child properties of concrete parent components.
      - You MUST map these geodetic attributes to details panels and tables (such as `PropertyGrid` with container ID `properties_view`, or `TableView` with container ID `components_table`) that are actively instantiated in the layout.
-     - You are strictly forbidden from mapping these inherited attributes as standalone visual topology viewports (`TopographicalView`, `TopologyMap`) or tree selectors (`HierarchyTreeSelector`, `HierarchyTree`).
+     - You are strictly forbidden from mapping these inherited attributes as standalone visual topology viewports (`TopographicalView`, `TopologyMap`, `GeoSpatialViewer`), tree selectors (`HierarchyTreeSelector`, `HierarchyTree`), or topology container IDs (`topology_pane`, `resource_tree`, `navigation_tree`, `map_viewport`).
 
 ## Step 5: Local Validation & Backlog Synchronization
 

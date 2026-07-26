@@ -109,8 +109,8 @@ classDiagram
 ---
 
 ## 5. Logical UI & Layout Bindings
-- **Target LUI Component**: TopologyMap
-- **Target Layout Container ID**: topology_pane
+- **Target LUI Component**: PropertyGrid
+- **Target Layout Container ID**: properties_view
 
 ## Source References
 - **Project Constitution**: [constitution.md:L88-94](../../.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)
