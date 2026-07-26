@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0.0",
-    "schema_name": "systems_topology_dashboard"
+    "schema_name": "generic_dashboard"
   },
   "theme": {
     "modes": ["light", "dark", "system"],
@@ -98,50 +98,7 @@
               "props": {
                 "tab_position": "bottom"
               },
-              "children": [
-                {
-                  "type": "TableView",
-                  "id": "components_table",
-                  "props": {
-                    "label": "token:layout.labels.components",
-                    "sortable": true,
-                    "filterable": true,
-                    "high_density": true,
-                    "display_all_attributes": true
-                  },
-                  "bindings": {
-                    "data_source": "token:layout.data_sources.components"
-                  }
-                },
-                {
-                  "type": "TableView",
-                  "id": "relation_a_table",
-                  "props": {
-                    "label": "token:layout.labels.relation_a",
-                    "sortable": true,
-                    "filterable": true,
-                    "high_density": true,
-                    "display_all_attributes": true
-                  },
-                  "bindings": {
-                    "data_source": "token:layout.data_sources.relation_a"
-                  }
-                },
-                {
-                  "type": "TableView",
-                  "id": "relation_b_table",
-                  "props": {
-                    "label": "token:layout.labels.relation_b",
-                    "sortable": true,
-                    "filterable": true,
-                    "high_density": true,
-                    "display_all_attributes": true
-                  },
-                  "bindings": {
-                    "data_source": "token:layout.data_sources.relation_b"
-                  }
-                }
-              ]
+              "children": []
             }
           ]
         }

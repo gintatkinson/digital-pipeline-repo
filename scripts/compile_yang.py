@@ -279,14 +279,8 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
 
     layout_rules = codebase_rules.get('layout_rules', {})
     details_tabs = layout_rules.get('details_tabs')
-    if not details_tabs:
-        details_tabs = [
-            {
-                "type": "TableView",
-                "id": "properties_table",
-                "props": { "title": "Properties" }
-            }
-        ]
+    if details_tabs is None:
+        details_tabs = []
 
     return {
         'meta': {
