@@ -199,8 +199,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             all_deps_closed = False
 
     if updated_content != content:
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(updated_content)
+        updated_content = write_markdown_file(filepath, updated_content)
             
     return updated_content, (has_deps and all_deps_closed)
 
@@ -260,6 +259,12 @@ def deduplicate_markdown_sections(content):
         if not skip_section:
             output_lines.append(line)
     return "\n".join(output_lines) + "\n"
+
+def write_markdown_file(filepath, content):
+    deduped_content = deduplicate_markdown_sections(content)
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(deduped_content)
+    return deduped_content
 
 def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
@@ -465,9 +470,7 @@ def resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_title
                 
     if updated:
         new_content = "\n".join(lines) + "\n"
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(new_content)
-        return new_content
+        return write_markdown_file(filepath, new_content)
         
     return content
 
@@ -669,8 +672,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
 
     new_content = "\n".join(new_lines) + "\n"
     if new_content != content:
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(new_content)
+        write_markdown_file(filepath, new_content)
         print(f"  [Reconcile Checklist] Updated checklists in {os.path.basename(filepath)}")
 
 def find_workspace_dir(start_path):
