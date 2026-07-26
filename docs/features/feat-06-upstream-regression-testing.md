@@ -9,7 +9,7 @@ spec_source: "Project Constitution"
 # Feature: Upstream Ingestion and Auto-Regression Testing
 
 ## Parent Epic
-- [ ] #[EpicID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [ ] #[EpicID] - [Epic Title](../epics/epic-XX-name.md) (semantic linkage justification)
 
 ## Description
 Ensures that filed bugs are ingested into the upstream repository's test suite to verify fixes and prevent future regression of reported tooling issues.

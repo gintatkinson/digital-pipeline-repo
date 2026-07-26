@@ -62,8 +62,8 @@ classDiagram
 ---
 
 ## Source References
-- **Project Constitution**: [constitution.md:L88-94](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L88-L94)
-- **Adversarial Audit Synthesis**: [adversarial_audit_synthesis.md:L44](file:///Users/perkunas/digital-pipeline-repo/docs/decisions/adversarial_audit_synthesis.md#L44)
+- **Project Constitution**: [constitution.md:L88-94](../../.pipeline/constitution.md#L88-L94)
+- **Adversarial Audit Synthesis**: [adversarial_audit_synthesis.md:L44](../decisions/adversarial_audit_synthesis.md#L44)
 """
 
 def generate_docs():

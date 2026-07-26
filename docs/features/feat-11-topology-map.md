@@ -87,5 +87,5 @@ classDiagram
 - **Target Layout Container ID**: topology_pane
 
 ## Source References
-- **Project Constitution**: [constitution.md:L105-112](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L105-L112) (Section 1.11 Multi-Dimensional Canvas Compliance)
-- **React Profile**: [react.md:L89-115](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md#L89-L115) (Section 3 GPGPU Telemetry Canvas Structure)
+- **Project Constitution**: [constitution.md:L105-112](../../.pipeline/constitution.md#L105-L112) (Section 1.11 Multi-Dimensional Canvas Compliance)
+- **React Profile**: [react.md:L89-115](../../.pipeline/profiles/react.md#L89-L115) (Section 3 GPGPU Telemetry Canvas Structure)

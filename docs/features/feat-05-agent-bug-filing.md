@@ -9,7 +9,7 @@ spec_source: "Project Constitution"
 # Feature: Execution Agent Auto-Bug-Filing Interface
 
 ## Parent Epic
-- [ ] #[EpicID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [ ] #[EpicID] - [Epic Title](../epics/epic-XX-name.md) (semantic linkage justification)
 
 ## Description
 To prevent execution agents from halting silently without reporting bugs, this feature updates downstream agent coordinator instructions to automatically parse diagnostic payloads and submit them as upstream issues.

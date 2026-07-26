@@ -9,7 +9,7 @@ spec_source: "Project Constitution"
 # Feature: Tooling-Side Automatic Diagnostic Payload Generation
 
 ## Parent Epic
-- [ ] #[EpicID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [ ] #[EpicID] - [Epic Title](../epics/epic-XX-name.md) (semantic linkage justification)
 
 ## Description
 When linter or reconciler tooling commands fail during pipeline runs, downstream execution agents need a structured, machine-readable reproduction case to file bugs upstream. This feature automates the collection and serialization of diagnostic data and snippets when a tool fails.

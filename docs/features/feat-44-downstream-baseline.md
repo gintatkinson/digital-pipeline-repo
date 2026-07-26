@@ -113,7 +113,7 @@ classDiagram
 - **Target Layout Container ID**: topology_pane
 
 ## Source References
-- **Project Constitution**: [constitution.md:L88-94](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)
-- **Project Constitution**: [constitution.md:L196-203](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L196-L203) (Section 3.7 Strict Planning Mode Gate)
-- **React Profile**: [react.md:L21-30](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md#L21-L30) (Section 1 General Architecture & Platform Rules)
-- **React Profile**: [react.md:L36-44](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md#L36-L44) (Section 2 Coding Standards & UI Patterns)
+- **Project Constitution**: [constitution.md:L88-94](../../.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)
+- **Project Constitution**: [constitution.md:L196-203](../../.pipeline/constitution.md#L196-L203) (Section 3.7 Strict Planning Mode Gate)
+- **React Profile**: [react.md:L21-30](../../.pipeline/profiles/react.md#L21-L30) (Section 1 General Architecture & Platform Rules)
+- **React Profile**: [react.md:L36-44](../../.pipeline/profiles/react.md#L36-L44) (Section 2 Coding Standards & UI Patterns)

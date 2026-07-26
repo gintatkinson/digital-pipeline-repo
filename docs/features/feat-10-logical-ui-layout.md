@@ -90,5 +90,5 @@ classDiagram
 ---
 
 ## Source References
-- **Project Constitution**: [constitution.md:L95-103](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L95-L103) (Section 1.10 Layout Engine Compliance)
-- **React Profile**: [react.md:L51-87](file:///Users/perkunas/digital-pipeline-repo/.pipeline/profiles/react.md#L51-L87) (Section 2 Visual Layout & Structure)
+- **Project Constitution**: [constitution.md:L95-103](../../.pipeline/constitution.md#L95-L103) (Section 1.10 Layout Engine Compliance)
+- **React Profile**: [react.md:L51-87](../../.pipeline/profiles/react.md#L51-L87) (Section 2 Visual Layout & Structure)
