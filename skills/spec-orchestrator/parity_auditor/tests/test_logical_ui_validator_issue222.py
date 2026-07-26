@@ -509,6 +509,71 @@ title: "Test Feature Issue 216"
         shutil.rmtree(tmpdir)
 
 
+def test_issue215_component_extraction_and_validation():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        
+        # 1. Feature using markdown table, markdown links, backticks, and comma separation with invalid components
+        feat_table_content = """---
+title: "Issue 215 Table Feature"
+---
+## 5. Logical UI & Layout Bindings
+| Target LUI Component | [TableView](http://example.com/tv), `InvalidTableComp`, `AnotherInvalid` |
+| Target Layout Container ID | table1 |
+"""
+        with open(os.path.join(features_dir, "feat-table.md"), "w") as f:
+            f.write(feat_table_content)
+
+        # 2. Feature using list format with comma-separated components and markdown link
+        feat_list_content = """---
+title: "Issue 215 List Feature"
+---
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TableView, [UnmappedComp](http://link)
+- **Target Layout Container ID:** table1
+"""
+        with open(os.path.join(features_dir, "feat-list.md"), "w") as f:
+            f.write(feat_list_content)
+
+        # 3. Feature specifying N/A component
+        feat_na_content = """---
+title: "Issue 215 NA Feature"
+---
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** N/A
+- **Target Layout Container ID:** N/A
+"""
+        with open(os.path.join(features_dir, "feat-na.md"), "w") as f:
+            f.write(feat_na_content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        rel_table = os.path.join(".pipeline", "backlog", "features", "feat-table.md")
+        rel_list = os.path.join(".pipeline", "backlog", "features", "feat-list.md")
+        rel_na = os.path.join(".pipeline", "backlog", "features", "feat-na.md")
+
+        # Table feature assertions
+        assert any(f"Logical UI Compliance: Feature '{rel_table}' specifies invalid component type 'InvalidTableComp'. It must be instantiated in logical-layout.json." in err for err in errors)
+        assert any(f"Logical UI Compliance: Feature '{rel_table}' specifies invalid component type 'AnotherInvalid'. It must be instantiated in logical-layout.json." in err for err in errors)
+        assert not any(f"Feature '{rel_table}' specifies invalid component type 'TableView'" in err for err in errors)
+
+        # List feature assertions
+        assert any(f"Logical UI Compliance: Feature '{rel_list}' specifies invalid component type 'UnmappedComp'. It must be instantiated in logical-layout.json." in err for err in errors)
+        assert not any(f"Feature '{rel_list}' specifies invalid component type 'TableView'" in err for err in errors)
+
+        # N/A feature assertions (no component error for N/A)
+        assert not any(f"Feature '{rel_na}' specifies invalid component type" in err for err in errors)
+
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 

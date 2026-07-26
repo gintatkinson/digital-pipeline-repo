@@ -84,7 +84,7 @@ class LogicalUiValidator(IValidator):
             # Use relative path starting with features directory to match doc-checking patterns
             rel_path = os.path.join(backlog_dirs.features, feat.filename)
             
-            comp_val = "N/A"
+            specified_components = set()
             container_val = "N/A"
             
             # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
@@ -98,13 +98,43 @@ class LogicalUiValidator(IValidator):
                 section_content = match.group(1)
                 for line in section_content.splitlines():
                     if "Target LUI Component" in line:
-                        parts = line.split(":", 1)
-                        if len(parts) > 1:
-                            comp_val = parts[1].strip().strip("*`\"'[]() ")
+                        raw_val = ""
+                        if "|" in line:
+                            cells = [c.strip() for c in line.split("|")]
+                            for idx, cell in enumerate(cells):
+                                cell_clean = re.sub(r'[*`]', '', cell).strip().lower()
+                                if "target lui component" in cell_clean:
+                                    if idx + 1 < len(cells):
+                                        raw_val = cells[idx + 1]
+                                    break
+                        elif ":" in line:
+                            parts = line.split(":", 1)
+                            if len(parts) > 1:
+                                raw_val = parts[1]
+                        
+                        if raw_val:
+                            cleaned = re.sub(r'\[([^\]]+)\](?:\([^)]*\))?', r'\1', raw_val)
+                            for item in cleaned.split(','):
+                                token = item.strip().strip("*`\"'[]() ")
+                                if token:
+                                    specified_components.add(token)
                     elif "Target Layout Container ID" in line:
-                        parts = line.split(":", 1)
-                        if len(parts) > 1:
-                            container_val = parts[1].strip().strip("*`\"'[]() ")
+                        raw_container = ""
+                        if "|" in line:
+                            cells = [c.strip() for c in line.split("|")]
+                            for idx, cell in enumerate(cells):
+                                cell_clean = re.sub(r'[*`]', '', cell).strip().lower()
+                                if "target layout container id" in cell_clean:
+                                    if idx + 1 < len(cells):
+                                        raw_container = cells[idx + 1]
+                                    break
+                        elif ":" in line:
+                            parts = line.split(":", 1)
+                            if len(parts) > 1:
+                                raw_container = parts[1]
+                        if raw_container:
+                            cleaned = re.sub(r'\[([^\]]+)\](?:\([^)]*\))?', r'\1', raw_container)
+                            container_val = cleaned.strip().strip("*`\"'[]() ")
                     elif "Data Source Binding" in line:
                         parts = line.split(":", 1)
                         if len(parts) > 1:
@@ -145,9 +175,10 @@ class LogicalUiValidator(IValidator):
                                             )
                             
             # Ensure specified target component is a valid layout component (if not N/A)
-            if comp_val.upper() != "N/A":
-                if comp_val not in component_types:
-                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{comp_val}'. It must be instantiated in logical-layout.json.")
+            for c in sorted(specified_components):
+                if c.upper() != "N/A":
+                    if c not in component_types:
+                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{c}'. It must be instantiated in logical-layout.json.")
                     
             # Ensure specified target container ID is valid (if not N/A)
             if container_val.upper() != "N/A":
@@ -159,10 +190,12 @@ class LogicalUiValidator(IValidator):
             FORBIDDEN_TOPOLOGY_CONTAINERS = {"topology_pane", "resource_tree", "navigation_tree", "map_viewport"}
             GEODETIC_REGEX = re.compile(r"\b(?:location|velocity|geo-location|geodetic|latitude|longitude|altitude|elevation|datum|position|spatial|reference-frame|geodetic-system|coordinates|velocity\s+vectors)\b", re.IGNORECASE)
 
-            if comp_val in FORBIDDEN_TOPOLOGY_COMPONENTS or container_val in FORBIDDEN_TOPOLOGY_CONTAINERS:
+            forbidden_comp_matched = [c for c in specified_components if c in FORBIDDEN_TOPOLOGY_COMPONENTS]
+            if forbidden_comp_matched or container_val in FORBIDDEN_TOPOLOGY_CONTAINERS:
                 if GEODETIC_REGEX.search(content):
+                    comp_name_to_report = forbidden_comp_matched[0] if forbidden_comp_matched else (sorted(specified_components)[0] if specified_components else "N/A")
                     errors.append(
-                        f"Logical UI Compliance: Feature '{rel_path}' erroneously maps geodetic attribute(s) to forbidden topology component '{comp_val}' or container ID '{container_val}'."
+                        f"Logical UI Compliance: Feature '{rel_path}' erroneously maps geodetic attribute(s) to forbidden topology component '{comp_name_to_report}' or container ID '{container_val}'."
                     )
 
         return errors
