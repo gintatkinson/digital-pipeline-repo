@@ -88,7 +88,7 @@ class LogicalUiValidator(IValidator):
             container_val = "N/A"
             
             # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
-            match = re.search(r"##\s*(?:\d+\.\s*)?Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+            match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             
             if not match:
                 has_ui_concept = bool(re.search(r"(?:interface[-_]type:\s*ui|\bui\b|\binterface\b|\blayout\b|\bview\b|\bcomponent\b|\bwidget\b|\bscreen\b)", content, re.IGNORECASE))

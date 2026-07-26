@@ -434,6 +434,51 @@ title: "Plain Text Binding Feature"
         shutil.rmtree(tmpdir)
 
 
+def test_issue217_strict_section_5_header_numbering():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        rel_path_unnumbered = os.path.join(".pipeline", "backlog", "features", "feat-unnumbered.md")
+        rel_path_numbered = os.path.join(".pipeline", "backlog", "features", "feat-numbered.md")
+
+        # Feature with unnumbered header
+        content_unnumbered = """---
+title: "Unnumbered Header UI Feature"
+interface_type: ui
+---
+## Logical UI & Layout Bindings
+- **Target LUI Component:** TableView
+- **Target Layout Container ID:** table1
+"""
+        with open(os.path.join(features_dir, "feat-unnumbered.md"), "w") as f:
+            f.write(content_unnumbered)
+
+        # Feature with correctly numbered section 5 header
+        content_numbered = """---
+title: "Numbered Header UI Feature"
+interface_type: ui
+---
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TableView
+- **Target Layout Container ID:** table1
+"""
+        with open(os.path.join(features_dir, "feat-numbered.md"), "w") as f:
+            f.write(content_numbered)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        expected_err = f"Logical UI Compliance: Feature '{rel_path_unnumbered}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section."
+        assert any(expected_err in err for err in errors), f"Expected missing section error for unnumbered header, got errors: {errors}"
+        assert not any("feat-numbered.md" in err for err in errors), f"Unexpected error for valid numbered feature: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 
