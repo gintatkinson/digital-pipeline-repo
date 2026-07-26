@@ -478,6 +478,38 @@ interface_type: ui
         shutil.rmtree(tmpdir)
 
 
+def test_issue216_augmented_subtree_child_segments():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        
+        # Write feature file with un-prefixed child segment under nil: subtree
+        feat_content = """---
+title: "Test Feature Issue 216"
+---
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TableView
+- **Target Layout Container ID:** table1
+- **Data Source Bindings:** /network/nil:locations/chassis, /network/nil:locations/nil:rack, /network/nil:locations/other:chassis
+"""
+        with open(os.path.join(features_dir, "feat-issue216.md"), "w") as f:
+            f.write(feat_content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        
+        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-issue216.md")
+        assert any(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '/network/nil:locations/chassis' contains un-prefixed augmented child segment 'chassis' under augmented subtree. Must use 'nil:chassis'." in err for err in errors)
+        assert not any("/network/nil:locations/nil:rack" in err for err in errors)
+        assert not any("/network/nil:locations/other:chassis" in err for err in errors)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 

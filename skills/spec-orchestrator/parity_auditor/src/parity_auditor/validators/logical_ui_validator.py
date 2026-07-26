@@ -121,6 +121,7 @@ class LogicalUiValidator(IValidator):
                                         )
                                         continue
                                     segments = path.split('/')
+                                    in_augmented_subtree = False
                                     for seg in segments:
                                         seg_clean = seg.strip()
                                         if not seg_clean:
@@ -132,9 +133,15 @@ class LogicalUiValidator(IValidator):
                                         else:
                                             prefix, local_name = "", seg_clean
                                         
-                                        if local_name in nil_elements and prefix != "nil":
+                                        if prefix == "nil" or local_name in nil_elements:
+                                            in_augmented_subtree = True
+                                            if local_name in nil_elements and prefix != "nil":
+                                                errors.append(
+                                                    f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{local_name}'. Must use 'nil:{local_name}'."
+                                                )
+                                        elif in_augmented_subtree and prefix == "":
                                             errors.append(
-                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{local_name}'. Must use 'nil:{local_name}'."
+                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented child segment '{local_name}' under augmented subtree. Must use 'nil:{local_name}'."
                                             )
                             
             # Ensure specified target component is a valid layout component (if not N/A)
