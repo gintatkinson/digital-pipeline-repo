@@ -74,7 +74,7 @@ class LogicalUiValidator(IValidator):
         coordinate_keywords = [
             "astronomical-body", "geodetic-datum", "coordinate", 
             "latitude", "longitude", "trajectory", "orbit", 
-            "elevation", "geo-location", "x", "y", "z"
+            "elevation", "geo-location"
         ]
         
         for feat in feature_files:
@@ -85,14 +85,16 @@ class LogicalUiValidator(IValidator):
             comp_val = "N/A"
             container_val = "N/A"
             
-            data_source_bindings = []
-            
             # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
-            match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
-            if match:
+            match = re.search(r"##\s*(?:5\.\s*)?Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+            
+            if not match:
+                has_ui_concept = bool(re.search(r"(?:interface[-_]type:\s*ui|\bui\b|\binterface\b|\blayout\b|\bview\b|\bcomponent\b|\bwidget\b|\bscreen\b)", content, re.IGNORECASE))
+                if has_ui_concept:
+                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
+            else:
                 section_content = match.group(1)
-                lines = section_content.splitlines()
-                for i, line in enumerate(lines):
+                for line in section_content.splitlines():
                     if "Target LUI Component" in line:
                         parts = line.split(":", 1)
                         if len(parts) > 1:
@@ -103,38 +105,33 @@ class LogicalUiValidator(IValidator):
                             container_val = parts[1].strip().strip("*`\"'[]() ")
                     elif "Data Source Bindings" in line:
                         parts = line.split(":", 1)
-                        if len(parts) > 1 and parts[1].strip():
-                            data_source_bindings.append(parts[1].strip().strip("*`\"'[]() "))
-                        else:
-                            j = i + 1
-                            while j < len(lines):
-                                next_line = lines[j].strip()
-                                if next_line.startswith("-"):
-                                    data_source_bindings.append(next_line.lstrip("-").strip().strip("*`\"'[]() "))
-                                    j += 1
-                                elif not next_line:
-                                    j += 1
-                                else:
-                                    break
+                        if len(parts) > 1:
+                            ds_val = parts[1].strip().strip("*`\"'[]() ")
+                            paths = [p.strip() for p in ds_val.split(',')]
+                            augmented_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
+                            forbidden_nodes = {"cartesian", "ellipsoid", "location-choice"}
+                            for path in paths:
+                                segments = path.split('/')
+                                for seg in segments:
+                                    seg_clean = seg.strip()
+                                    if seg_clean in forbidden_nodes:
+                                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains forbidden choice/case node '{seg_clean}'.")
+                                    if seg_clean in augmented_elements:
+                                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{seg_clean}'. Must use 'nil:{seg_clean}'.")
                             
             # Ensure specified target component is a valid layout component (if not N/A)
             if comp_val.upper() != "N/A":
-                if comp_val not in component_types and comp_val not in allowed_component_names:
-                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{comp_val}'.")
+                if comp_val not in component_types:
+                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{comp_val}'. It must be instantiated in logical-layout.json.")
                     
             # Ensure specified target container ID is valid (if not N/A)
             if container_val.upper() != "N/A":
                 if container_val not in container_ids:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
                     
-            forbidden_nodes = {"cartesian", "ellipsoid", "location-choice"}
-            for binding in data_source_bindings:
-                for f_node in forbidden_nodes:
-                    if f_node in binding:
-                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' contains forbidden YANG choice/case node '{f_node}' in Data Source Binding '{binding}'.")
-                    
             # Coordinate/Reference-Frame constraint:
-            has_coordinate_term = any(re.search(rf"\b{word}\b", content.lower()) for word in coordinate_keywords)
+            # If the feature file text contains coordinate/reference-frame terms and Target LUI Component is N/A
+            has_coordinate_term = any(re.search(rf"\b{re.escape(word)}\b", content, re.IGNORECASE) for word in coordinate_keywords)
             if has_coordinate_term and comp_val not in {"TopologyMap", "TopographicalView"}:
                 errors.append(
                     f"Logical UI Compliance: Feature '{rel_path}' contains geodetic/coordinate concepts but "
