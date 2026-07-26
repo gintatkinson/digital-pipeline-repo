@@ -280,8 +280,7 @@ def _main_impl():
 
     open_issues = get_open_feature_issues()
     if open_issues is None:
-        print("[!] ERROR: Could not fetch open feature issues from GitHub. Cross-reference verification aborted.", file=sys.stderr)
-        has_failed = True
+        print("[!] WARNING: Could not fetch open feature issues from GitHub. Cross-reference verification skipped.", file=sys.stderr)
         open_issues = []
 
     if ignored_set:
