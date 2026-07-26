@@ -19,6 +19,7 @@ class LogicalUiValidator(IValidator):
             
         component_types = set()
         container_ids = set()
+        tabbed_container_errors = []
         
         if os.path.exists(layout_path):
             try:
@@ -35,6 +36,16 @@ class LogicalUiValidator(IValidator):
                         node_id = node.get("id")
                         if isinstance(node_id, str):
                             container_ids.add(node_id)
+                            
+                        if isinstance(node_type, str) and node_type == "TabbedContainer":
+                            children = node.get("children", [])
+                            if isinstance(children, list):
+                                for child in children:
+                                    if isinstance(child, dict):
+                                        child_type = child.get("type")
+                                        child_id = child.get("id", "unknown")
+                                        if child_type != "TableView":
+                                            tabbed_container_errors.append(f"TabbedContainer '{node_id}' contains non-TableView child '{child_id}' of type '{child_type}'")
                             
                         # Recurse on values
                         for val in node.values():
@@ -65,6 +76,7 @@ class LogicalUiValidator(IValidator):
             features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
             
         errors = []
+        errors.extend(tabbed_container_errors)
         if not os.path.exists(features_dir):
             errors.append(f"Logical UI Compliance: features directory not found at {features_dir}")
             return errors
