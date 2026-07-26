@@ -637,6 +637,27 @@ title: "Test YANG Choice Nodes"
         shutil.rmtree(tmpdir)
 
 
+def test_issue212_missing_features_dir():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        # Remove the features directory created by _create_test_repo
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        if os.path.exists(features_dir):
+            shutil.rmtree(features_dir)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        expected_err = f"Logical UI Compliance: features directory not found at {features_dir}"
+        assert any(expected_err in err for err in errors), f"Expected missing features dir error '{expected_err}', got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
 
 
 
