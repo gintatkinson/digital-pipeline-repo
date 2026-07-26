@@ -320,8 +320,14 @@ class MermaidClassDiagramParser(IParser):
                     return_type = right_part[1:].strip()
                     method_name = left_part
                 elif right_part:
-                    return_type = right_part
-                    method_name = left_part
+                    # If right_part has multiplicity and left_part has a type prefix, parse cleanly
+                    left_parts = left_part.split()
+                    if len(left_parts) > 1:
+                        method_name = left_parts[-1].strip()
+                        return_type = f"{' '.join(left_parts[:-1]).strip()} {right_part}"
+                    else:
+                        method_name = left_part
+                        return_type = right_part
                 else:
                     left_parts = left_part.split()
                     if len(left_parts) > 1:

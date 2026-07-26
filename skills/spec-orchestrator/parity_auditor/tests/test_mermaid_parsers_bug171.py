@@ -121,3 +121,22 @@ def test_sequence_diagram_message_with_semicolon_rejected():
     assert "Semicolons are not allowed in sequence diagram message statements: 'Bob-->>Alice: reply;'" in result.parse_errors[1]
 
 
+def test_class_diagram_method_multiplicity_parser_bug223():
+    repo = MockWorkspaceRepository()
+    parser = MermaidClassDiagramParser(repo)
+    
+    diagram = """
+    classDiagram
+        class Node {
+            +Boolean setLocation(Real lat, Real lon) [1]
+        }
+    """
+    result = parser.parse(diagram)
+    assert "Node" in result.classes
+    methods = result.classes["Node"].methods
+    assert len(methods) == 1
+    assert methods[0].name == "setLocation"
+    assert methods[0].return_type == "Boolean [1]"
+
+
+
