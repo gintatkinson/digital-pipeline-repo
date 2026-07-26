@@ -126,6 +126,11 @@ def test_method_return_void_skipped():
     class Node {
         +String id [1]
         +void save()
+        +save()
+        +save() : void
+        +save() : none
+        +save() : None
+        +void save(String path)
     }
     class Container {
         +String name [1]
@@ -136,8 +141,8 @@ def test_method_return_void_skipped():
         repo = WorkspaceRepository(tmpdir)
         validator = UmlValidator()
         errors = validator.validate(repo)
-        multiplicity_errors = [e for e in errors if "save" in e and "multiplicity" in e]
-        assert len(multiplicity_errors) == 0, f"void method should not trigger multiplicity error, got: {errors}"
+        actual_errors = [e for e in errors if not e.startswith("Warning:")]
+        assert len(actual_errors) == 0, f"void method signatures should not trigger errors, got: {actual_errors}"
     finally:
         import shutil
         shutil.rmtree(tmpdir)
