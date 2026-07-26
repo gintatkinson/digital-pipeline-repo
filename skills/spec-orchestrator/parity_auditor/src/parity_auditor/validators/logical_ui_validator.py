@@ -86,7 +86,7 @@ class LogicalUiValidator(IValidator):
             container_val = "N/A"
             
             # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
-            match = re.search(r"##\s*(?:5\.\s*)?Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+            match = re.search(r"##\s*(?:\d+\.\s*)?Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             
             if not match:
                 has_ui_concept = bool(re.search(r"(?:interface[-_]type:\s*ui|\bui\b|\binterface\b|\blayout\b|\bview\b|\bcomponent\b|\bwidget\b|\bscreen\b)", content, re.IGNORECASE))
@@ -107,17 +107,30 @@ class LogicalUiValidator(IValidator):
                         parts = line.split(":", 1)
                         if len(parts) > 1:
                             ds_val = parts[1].strip().strip("*`\"'[]() ")
+                            if ds_val.upper() == "N/A":
+                                continue
                             paths = [p.strip() for p in ds_val.split(',')]
-                            augmented_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
+                            nil_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
+                            geo_elements = {"geo-location", "reference-frame", "geodetic-system", "velocity"}
                             forbidden_nodes = {"cartesian", "ellipsoid", "location-choice"}
+                            placeholder_words = {"from", "logical-layout.json", "container", "choice", "placeholder", "tbd"}
                             for path in paths:
+                                if not path: continue
+                                if not (path.startswith("schema:") or path.startswith("provider:") or path.startswith("/")):
+                                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' must start with 'schema:', 'provider:', or '/'.")
+                                path_lower = path.lower()
+                                for word in placeholder_words:
+                                    if word in path_lower:
+                                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains invalid plain-text placeholder '{word}'.")
                                 segments = path.split('/')
                                 for seg in segments:
                                     seg_clean = seg.strip()
                                     if seg_clean in forbidden_nodes:
                                         errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains forbidden choice/case node '{seg_clean}'.")
-                                    if seg_clean in augmented_elements:
+                                    if seg_clean in nil_elements:
                                         errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{seg_clean}'. Must use 'nil:{seg_clean}'.")
+                                    if seg_clean in geo_elements:
+                                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed module element '{seg_clean}'. Must use 'geo:{seg_clean}'.")
                             
             # Ensure specified target component is a valid layout component (if not N/A)
             if comp_val.upper() != "N/A":
@@ -132,10 +145,12 @@ class LogicalUiValidator(IValidator):
             # Coordinate/Reference-Frame constraint:
             # If the feature file text contains coordinate/reference-frame terms and Target LUI Component is N/A
             has_coordinate_term = any(re.search(rf"\b{re.escape(word)}\b", content, re.IGNORECASE) for word in coordinate_keywords)
-            if has_coordinate_term and comp_val not in {"TopologyMap", "TopographicalView"}:
-                errors.append(
-                    f"Logical UI Compliance: Feature '{rel_path}' contains geodetic/coordinate concepts but "
-                    f"'Target LUI Component' is '{comp_val}'. Demanding mapping to a visual coordinate component (e.g. TopologyMap or TopographicalView)."
-                )
+            if has_coordinate_term and comp_val.upper() != "N/A":
+                valid_geodetic_components = {"PropertyGrid", "TableView", "DensityTable"}
+                if comp_val not in valid_geodetic_components:
+                    errors.append(
+                        f"Logical UI Compliance: Feature '{rel_path}' contains geodetic/coordinate concepts but "
+                        f"'Target LUI Component' is '{comp_val}'. Geolocation attributes must reside in details panels or tables, not topology or tree selectors."
+                    )
                 
         return errors
