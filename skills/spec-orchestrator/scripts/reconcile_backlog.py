@@ -18,6 +18,7 @@ import json
 import sys
 import yaml
 import traceback
+import shutil
 
 def load_codebase_rules(workspace_dir):
     rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
@@ -670,11 +671,33 @@ def find_workspace_dir(start_path):
         curr = parent
     return os.path.abspath(start_path)
 
+def assert_no_mock_cli(workspace_dir=None):
+    if not workspace_dir:
+        workspace_dir = find_workspace_dir(os.getcwd())
+    workspace_dir = os.path.abspath(workspace_dir)
+    scratch_dir = os.path.abspath(os.path.join(workspace_dir, "scratch"))
+    scratch_bin = os.path.join(scratch_dir, "bin")
+    forbidden_cmds = ["gh", "git", "flutter"]
+
+    for cmd in forbidden_cmds:
+        binary_path = os.path.join(scratch_bin, cmd)
+        if os.path.exists(binary_path):
+            print(f"[FATAL] Zero-mocking policy violation: Forbidden mock CLI binary detected at {binary_path}", file=sys.stderr)
+            sys.exit(1)
+
+        resolved = shutil.which(cmd)
+        if resolved:
+            resolved_abs = os.path.abspath(resolved)
+            if resolved_abs.startswith(scratch_dir + os.sep) or resolved_abs == scratch_dir:
+                print(f"[FATAL] Zero-mocking policy violation: Forbidden mock CLI binary detected at {resolved_abs}", file=sys.stderr)
+                sys.exit(1)
+
 def main():
     if "GITHUB_TOKEN" in os.environ and "dummytoken" in os.environ["GITHUB_TOKEN"]:
         del os.environ["GITHUB_TOKEN"]
     script_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_dir = find_workspace_dir(script_dir)
+    assert_no_mock_cli(workspace_dir)
 
     # Programmatic gate: Run linter before proceeding with reconciliation
     print("Running pre-reconciliation linter validation...")

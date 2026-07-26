@@ -85,3 +85,27 @@ class TestIsPresentInCodebase:
         assert result is True, (
             "name used as a real code declaration should be found"
         )
+
+
+class TestAssertNoMockCli:
+
+    def test_assert_no_mock_cli_detects_scratch_bin_binary(self, tmp_path, capsys):
+        from parity_auditor.cli import assert_no_mock_cli
+        workspace = str(tmp_path)
+        scratch_bin = os.path.join(workspace, "scratch", "bin")
+        os.makedirs(scratch_bin, exist_ok=True)
+        mock_gh = os.path.join(scratch_bin, "gh")
+        with open(mock_gh, "w") as f:
+            f.write("#!/bin/sh\necho mock")
+
+        with pytest.raises(SystemExit) as exc_info:
+            assert_no_mock_cli(workspace)
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "[FATAL] Zero-mocking policy violation" in captured.err
+
+    def test_assert_no_mock_cli_passes_when_clean(self, tmp_path):
+        from parity_auditor.cli import assert_no_mock_cli
+        workspace = str(tmp_path)
+        assert_no_mock_cli(workspace)
+

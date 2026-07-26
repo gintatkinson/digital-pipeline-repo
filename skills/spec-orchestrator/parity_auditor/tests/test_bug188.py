@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from unittest.mock import MagicMock
 from parity_auditor.validators.cardinality_validator import SchemaCardinalityValidator
 from parity_auditor.core.models import CodebaseRules, BacklogDirectories

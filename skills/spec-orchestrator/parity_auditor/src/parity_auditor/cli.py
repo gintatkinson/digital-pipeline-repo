@@ -12,6 +12,7 @@ import sys
 import re
 import argparse
 import json
+import shutil
 from typing import Dict, Set, List
 
 from .core.workspace import WorkspaceRepository
@@ -30,7 +31,40 @@ from .validators.cardinality_validator import SchemaCardinalityValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
-def get_open_feature_issues():
+def assert_no_mock_cli(workspace_dir: str = None):
+    if not workspace_dir:
+        curr = os.getcwd()
+        while True:
+            if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
+                workspace_dir = curr
+                break
+            parent = os.path.dirname(curr)
+            if parent == curr:
+                break
+            curr = parent
+        if not workspace_dir:
+            workspace_dir = os.getcwd()
+
+    workspace_dir = os.path.abspath(workspace_dir)
+    scratch_dir = os.path.abspath(os.path.join(workspace_dir, "scratch"))
+    scratch_bin = os.path.join(scratch_dir, "bin")
+    forbidden_cmds = ["gh", "git", "flutter"]
+
+    for cmd in forbidden_cmds:
+        binary_path = os.path.join(scratch_bin, cmd)
+        if os.path.exists(binary_path):
+            print(f"[FATAL] Zero-mocking policy violation: Forbidden mock CLI binary detected at {binary_path}", file=sys.stderr)
+            sys.exit(1)
+
+        resolved = shutil.which(cmd)
+        if resolved:
+            resolved_abs = os.path.abspath(resolved)
+            if resolved_abs.startswith(scratch_dir + os.sep) or resolved_abs == scratch_dir:
+                print(f"[FATAL] Zero-mocking policy violation: Forbidden mock CLI binary detected at {resolved_abs}", file=sys.stderr)
+                sys.exit(1)
+
+
+def get_open_feature_issues(workspace_dir: str = None):
     """
     Fetch open feature issues from GitHub via ``gh issue list``.
 
@@ -40,6 +74,7 @@ def get_open_feature_issues():
         List of issue dicts with 'number' and 'title' keys, or None when the
         ``gh`` CLI is unavailable, returns a non-zero exit code, or times out.
     """
+    assert_no_mock_cli(workspace_dir)
     import subprocess
     import json
     try:
@@ -163,6 +198,7 @@ def _main_impl():
         workspace_dir = os.getcwd()
         
     workspace_dir = os.path.abspath(workspace_dir)
+    assert_no_mock_cli(workspace_dir)
     
     # 2. Initialize WorkspaceRepository with the determined workspace_dir
     repo = WorkspaceRepository(workspace_dir)
@@ -278,7 +314,7 @@ def _main_impl():
         else:
             ignored_set.update(parse_ignore_issues(str(rule_ignore)))
 
-    open_issues = get_open_feature_issues()
+    open_issues = get_open_feature_issues(workspace_dir)
     if open_issues is None:
         print("[!] WARNING: Could not fetch open feature issues from GitHub. Cross-reference verification skipped.", file=sys.stderr)
         open_issues = []
