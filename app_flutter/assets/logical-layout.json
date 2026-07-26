@@ -132,16 +132,6 @@
                   "bindings": {
                     "data_source": "token:layout.data_sources.relation_b"
                   }
-                },
-                {
-                  "type": "PropertyGrid",
-                  "id": "properties_view",
-                  "props": {
-                    "label": "token:layout.labels.properties"
-                  },
-                  "bindings": {
-                    "data_source": "schema:generic-topology/topology/component[@id='active_focused_element']/geo:geo-location"
-                  }
                 }
               ]
             }

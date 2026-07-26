@@ -1,21 +1,57 @@
-# Implementation Plan - Debug Protocol Issues
+# Implementation Plan: Enforce TabbedContainer Constraints & Revert Layout
 
-## User Request
-Run the 8-Step Recursive Debugging Protocol on the open bug issues in the repository backlog:
-1. Issue #206: [AUDIT] [SKILL.md]: Missing --title extraction from YAML frontmatter title field
-2. Issue #207: [AUDIT] [reconcile_backlog.py]: Placeholder-to-checklist backfill fails for epic child artifacts
-3. Issue #208: [AUDIT] [reconcile_backlog.py]: No duplicate section detection allows dual Source References in epics
-4. Issue #209: [AUDIT] [SKILL.md]: Realization Matrix cross-reference Issue IDs all default to single value
+This plan details the steps to find the validation gap using the **`adversarial-code-auditor`** first, file the bug, and then execute the layout de-contamination and linter fix under the **`debug-protocol`**.
 
-## Proposed Changes
-For each issue (#206, #207, #208, #209), I will dispatch the following subagents in sequence:
-1. **Step 1 — Reproduction**: Gather symptom info, reproduce the bug consistently, and check scope.
-2. **Step 2 — Hypothesis**: Generate multiple ranked hypotheses for the cause.
-3. **Step 3 — Investigation**: Trace data flow, binary-search the problem space, and gather observations.
-4. **Step 4 — Evidence**: Document all evidence, logs, and trace data.
-5. **Step 5 — Root Cause**: Identify the root cause with file:line references.
-6. **Step 6 — Fix**: Apply the minimal fix, stage, commit, and push. Update the issue.
-7. **Step 7 — Verification**: Confirm the fix, run test suites, check git diff, and close the issue.
+---
 
-## Verification Plan
-For each issue, the fix will be validated using tests, `git status`/`git diff`, and verified by checking the issue state before closing.
+## 1. Skill Matrix
+
+To execute this plan, we will utilize the following skills:
+1.  **`adversarial-code-auditor`** (`.agents/skills/adversarial-code-auditor/SKILL.md`): Used in Phase 1 to audit the validator logic, identify the gap where `TabbedContainer` children type checks are missing, and file a bug issue.
+2.  **`debug-protocol`** (`.agents/skills/debug-protocol/SKILL.md`): Used in Phase 2 to guide the subagent's systematic, step-by-step patch of the linter (`logical_ui_validator.py`) to fix the filed bug.
+3.  **`schema-specification-engineering`** (`skills/schema-specification-engineering/SKILL.md`): Used in Phase 3 to update the generator guidelines.
+4.  **`karpathy-skill`** (`.agents/skills/karpathy-skill/SKILL.md`): Enforces strict engineering guardrails.
+
+---
+
+## 2. Proposed Changes
+
+### Phase 1: Adversarial Code Audit (Find the Bugs)
+We will spawn an **Adversarial Auditor subagent** using the `adversarial-code-auditor` skill:
+*   **Audit Target**: Check `logical_ui_validator.py` against the constraint that `TabbedContainer` children in `logical-layout.json` are hardcoded to `TableView` components in the application code.
+*   **Expected Finding**: Identify that the validator permits non-`TableView` components (like `PropertyGrid`/`properties_view`) inside `TabbedContainer` without raising a compliance error.
+*   **Action**: File this bug issue (e.g. "Validator fails to enforce TableView type constraints on TabbedContainer children") upstream on `digital-pipeline-repo` using the `gh` CLI.
+
+### Phase 2: Update Validator Constraints (logical_ui_validator.py)
+We will spawn an **Upstream Debugging Specialist subagent** to resolve the filed bug:
+*   **Target File**:
+    *   [logical_ui_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/logical_ui_validator.py)
+*   **Changes**:
+    *   Add a validation check that scans the `logical-layout.json` tree. For every `TabbedContainer` component, assert that all of its `children` have a `"type"` equal to `"TableView"`.
+    *   If any non-`TableView` child (like `PropertyGrid` or `PropertiesPanel`) is found in the children of a `TabbedContainer`, return a compliance error.
+    *   Verify the fix against unit tests and close the filed issue.
+
+### Phase 3: Update Generator Mapping Guidelines (SKILL.md)
+*   **Target File**:
+    *   [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/schema-specification-engineering/SKILL.md)
+*   **Changes**:
+    *   Add a rule stating that since the layout does not instantiate a standalone properties tab inside the `TabbedContainer`, all geodetic and geolocation attributes must map directly to the instantiated details grid: `TableView` component with ID `components_table`.
+    *   Explicitly forbid mapping these attributes to trees, topology, or uninstantiated components.
+
+---
+
+## 3. Verification Plan
+
+### 3.1 Python Unit Tests
+*   Run `PYTHONPATH=src python3 -m pytest tests/` in the `parity_auditor` directory and ensure all 32 tests pass.
+
+### 3.2 Compilation & Packaging Build
+*   Run the compliance build to compile the Flutter application and create the release archive:
+    ```bash
+    python3 scripts/verify_downstream_baseline.py app_flutter
+    ```
+*   Verify that `app_flutter_release.zip` is successfully created at the repository root.
+
+### 3.3 Synchronization Check
+*   Stage, commit, and push the validator and generator updates to `origin/main`.
+*   Verify that `git diff origin/main` is empty.
