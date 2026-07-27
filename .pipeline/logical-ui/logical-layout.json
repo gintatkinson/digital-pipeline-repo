@@ -93,15 +93,32 @@
               }
             },
             {
-              "type": "TabbedContainer",
-              "id": "details_and_relations_tab",
+              "type": "SplitWorkspace",
+              "id": "lower_split",
               "props": {
-                "tab_position": "bottom"
+                "axis": "horizontal",
+                "resizable": true,
+                "default_ratio": "token:layout_properties.default_ratio",
+                "reconfigurable": true,
+                "min_size_pixels": "spacing.layout-min-pane-size"
               },
               "children": [
                 {
-                  "type": "PropertyGrid",
-                  "id": "properties_view"
+                  "type": "TableView",
+                  "id": "elements_view"
+                },
+                {
+                  "type": "TabbedContainer",
+                  "id": "details_and_relations_tab",
+                  "props": {
+                    "tab_position": "bottom"
+                  },
+                  "children": [
+                    {
+                      "type": "PropertyGrid",
+                      "id": "properties_view"
+                    }
+                  ]
                 }
               ]
             }
