@@ -836,6 +836,47 @@ class UmlValidator(IValidator):
                     if not real_attributes and not cls_info.methods:
                         errors.append(f"{doc_type} {filename} subsystem component class '{cls_name}' is empty. Subsystem components must define at least one attribute or operation.")
 
+            # Validate schema containers
+            import yaml
+            schema_containers = []
+            try:
+                frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+                if frontmatter_match:
+                    fm_data = yaml.safe_load(frontmatter_match.group(1).replace('\x01', ''))
+                    if isinstance(fm_data, dict):
+                        schema_containers = fm_data.get("schema_containers", [])
+            except Exception:
+                pass
+
+            if schema_containers:
+                classes_lower_map = {c.lower(): c for c in classes.keys()}
+                for path in schema_containers:
+                    cleaned_path = re.sub(r"^[^:]+:", "", path)
+                    segments = [s for s in cleaned_path.split("/") if s]
+                    
+                    expected_classes = []
+                    for seg in segments:
+                        seg_parts = re.split(r'[-_]', seg)
+                        expected_class = "".join(p.capitalize() for p in seg_parts if p)
+                        expected_classes.append((seg, expected_class))
+                        
+                    all_exist = True
+                    for seg, exp_cls in expected_classes:
+                        if exp_cls.lower() not in classes_lower_map:
+                            errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container path segment '{seg}' in path '{path}'.")
+                            all_exist = False
+                            
+                    if all_exist:
+                        for i in range(len(expected_classes) - 1):
+                            seg_i, cls_i = expected_classes[i]
+                            seg_next, cls_next = expected_classes[i+1]
+                            
+                            actual_cls_i = classes_lower_map[cls_i.lower()]
+                            actual_cls_next = classes_lower_map[cls_next.lower()]
+                            
+                            if actual_cls_next not in adj.get(actual_cls_i, set()):
+                                errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing relationship between class '{actual_cls_i}' and class '{actual_cls_next}' representing adjacent schema container path segments '{seg_i}' and '{seg_next}' in path '{path}'.")
+
         
     def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:
         """
