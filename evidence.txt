@@ -1,37 +1,15 @@
-Bug #191 is fixed.
+# Debugging Protocol - Step 4: Evidence Dossier
 
-1. **Reproduction Steps Verification**: Read `README.md` and verified the `.gitignore` copy logic is present in the "Direct Copy Installation" section.
+## Task Context
+UML intermediate container validation is missing.
 
-2. **Grep Fix Location**:
-```
-{"File":"/Users/perkunas/jail/digital-pipeline-repo/README.md","LineNumber":139,"LineContent":"if [ -f ./.gitignore ]; then"}
-{"File":"/Users/perkunas/jail/digital-pipeline-repo/README.md","LineNumber":140,"LineContent":"  cat ./.tmp-pipeline/.gitignore >> ./.gitignore"}
-{"File":"/Users/perkunas/jail/digital-pipeline-repo/README.md","LineNumber":142,"LineContent":"  cp ./.tmp-pipeline/.gitignore ./"}
-```
+## Documented Evidence
+- **Step 1 Findings**: Failed RED tests proving that no validation occurs for UML intermediate containers.
+- **Step 2 Findings**: Hypothesis 1 selected as the most likely root cause: Missing `schema_containers` logic in `UmlValidator`.
+- **Step 3 Investigation**: 
+  - Confirmed that `_validate_class_diagram()` receives `content`, making it possible to extract `schema_containers`.
+  - Confirmed that `parsed_cd` natively contains `.classes` (where keys are class names) and `.relationships` (which have `from_class` and `to_class`).
 
-3. **Test Suite**: This is a docs-only change (README.md) and there is no full test suite to run for this repository's root documentation.
-
-4. **Git Diff Output**:
-```
-commit 9a60bf73ee266d19f8538ee05183a461a764662e
-Author: gintatkinson <gintatkinson@gmail.com>
-Date:   Sat Jul 25 16:17:04 2026 +0800
-
-    fix(docs): update installation instructions to copy .gitignore (fixes #191)
-
-diff --git a/README.md b/README.md
-index b28c8d8..fab7169 100644
---- a/README.md
-+++ b/README.md
-@@ -136,6 +136,11 @@ cp -RP ./.tmp-pipeline/.agents ./
- cp -RP ./.tmp-pipeline/scripts ./
- cp -RP ./.tmp-pipeline/app_flutter ./
- cp -RP ./.tmp-pipeline/web_react ./
-+if [ -f ./.gitignore ]; then
-+  cat ./.tmp-pipeline/.gitignore >> ./.gitignore
-+else
-+  cp ./.tmp-pipeline/.gitignore ./
-+fi
- rm -rf ./.tmp-pipeline
- python3 scripts/setup_git_hooks.py
- ```
+## Tracked Hypotheses
+- **Hypothesis 1 (Missing schema_containers logic in UmlValidator)**: ACTIVE. Evidence strongly supports this as the root cause, since the necessary data structures (`content` and `parsed_cd`) are present but validation logic is missing.
+- **Hypothesis: Parser limitations**: RULED OUT. Investigation confirmed `parsed_cd` successfully parses and contains `.classes` and `.relationships`, so the parser is fully capable of extracting the required data.

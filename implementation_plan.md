@@ -1,25 +1,28 @@
-# Implementation Plan - Dynamic Geolocation & Motion Telemetry Blueprint
+# Implementation Plan - UML Intermediate Container validation
 
-This plan outlines the creation of the functional solution blueprint for dynamic geolocation and motion telemetry to act as a normative specification for specification engineering.
+This plan implements a validation check in the specification auditor to prevent hierarchy collapse or missing intermediate containers in UML class diagrams relative to frontmatter `schema_containers` paths.
 
 ## 1. Context & Goal
-Create a comprehensive, normative specification document `docs/requirements/dynamic-geolocation-motion-blueprint.md` detailing the modeling and requirements for moving platforms (rail, vehicle, marine, air, and space) using velocity vectors, temporal metadata, and alternative reference frames.
+Issue #49 in the downstream project identifies that `feat-07-locations-container.md` has a direct `Locations *-- Rack` relationship, but fails to model the intermediate `Racks` container class. This collapses the schema hierarchy.
+To prevent this in the pipeline, we will add a validation rule to `UmlValidator` in `uml.py` that verifies:
+1.  Every segment in a `schema_containers` path has a corresponding class node in the class diagram (allowing CamelCase conversion).
+2.  Adjacent segments in a `schema_containers` path have an explicit relationship between their corresponding classes in the class diagram.
 
 ## 2. Proposed Changes
 
-### [NEW] [dynamic-geolocation-motion-blueprint.md](file:///Users/perkunas/jail/digital-pipeline-repo/docs/requirements/dynamic-geolocation-motion-blueprint.md)
-Create a new normative specification containing:
-1.  **Objective & Scope**: Overview of kinematic location telemetry.
-2.  **Structural Models (UML)**: Define `GeoLocation`, `Velocity`, `ReferenceFrame`, `TemporalMetadata`, and polymorphic `Location` models.
-3.  **Transport Domain Specifications**:
-    *   **Rail Use Case**: 1D linear referencing combined with 3D GPS track matching.
-    *   **Vehicle Use Case**: Urban canyon telemetry with dynamic coordinate accuracy degradation.
-    *   **Marine Use Case**: Nautical navigation with tidal/elevation variations.
-    *   **Air Use Case**: Flight path dynamics with high-frequency vertical velocity (`vUp`).
-    *   **Space Use Case**: Orbit telemetry using Cartesian coordinates ($X, Y, Z$) relative to planetary reference frames (Earth, Moon, Mars).
-4.  **Acceptance Scenarios**: Given-When-Then BDD scenarios for all 5 domains.
-5.  **Source References**: RFC 9179, WGS-84, and ISO 6709 standards.
+### [MODIFY] [uml.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py)
+Extend `_validate_class_diagram` to:
+- Parse `schema_containers` from the frontmatter.
+- For each path, extract segments (removing module prefix).
+- Verify segment CamelCase classes are present in the diagram classes.
+- Verify adjacent segment classes have a defined relationship in the diagram.
+
+### [NEW] [test_uml_hierarchy_validation.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_uml_hierarchy_validation.py)
+Add a test suite verifying:
+- **RED Phase**: A feature file with `Locations *-- Rack` but missing `Racks` (and missing relationship) correctly flags errors.
+- **GREEN Phase**: A feature file with complete `Locations *-- Racks` and `Racks *-- Rack` chain passes.
 
 ## 3. Verification Plan
-1.  **Linter Verification**: Run the spec linter (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only`) to ensure no syntax errors.
-2.  **UML Diagram Check**: Ensure all Mermaid diagrams in the blueprint render cleanly and adhere to class diagram syntax rules.
+- **Step 1 (RED)**: Run pytest on the new test file before applying the fix. Assert it fails.
+- **Step 2 (GREEN)**: Apply the fix. Run pytest on all tests. Assert all 88 tests pass.
+- **Step 3 (Remote Sync)**: Push changes and verify `git diff origin/main` is empty.
