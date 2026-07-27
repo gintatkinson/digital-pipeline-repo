@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:app_flutter/domain/column_model.dart';
+import 'package:app_flutter/features/tables/models/column_model.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 
 /// Renders tabular data from a [TablesViewModel] as a horizontally

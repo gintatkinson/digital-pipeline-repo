@@ -1,4 +1,4 @@
-import 'type_descriptor.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 
 class ColumnModel {
   final String key;

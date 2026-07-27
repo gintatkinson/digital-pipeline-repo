@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:app_flutter/domain/column_model.dart';
+import 'package:app_flutter/features/tables/models/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/instance_record.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';

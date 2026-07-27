@@ -1,4 +1,4 @@
-import 'package:app_flutter/domain/column_model.dart';
+import 'package:app_flutter/features/tables/models/column_model.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:flutter_test/flutter_test.dart';
 

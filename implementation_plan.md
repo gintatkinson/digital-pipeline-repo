@@ -1,20 +1,42 @@
-# Implementation Plan - CMM Level 3 / Scrum Issue Lifecycle Constitution Update
+# Implementation Plan - Refactor ColumnModel to Feature Layer
 
-This plan adds a formal process section to the Project Constitution to align our issue lifecycle with CMM Level 3 (Separation of Verification & Validation) executed in Scrum style (with the Product Owner/customer controlling final validation acceptance).
+This plan migrates `ColumnModel` from the domain layer to the tables feature layer inside `app_flutter` to restore proper architectural encapsulation and separation of presentation concerns.
 
-## 1. Context & Goal
-To prevent issues from being closed prematurely without explicit user approval, we will codify a CMM Level 3 / Scrum issue state flow:
-1.  **Verification (Done by Developer / Linter)**: The issue is marked as `Fixed / Resolved` (not `Closed`) once the fix is merged and automated tests pass.
-2.  **Validation (Done by Product Owner / Customer)**: The issue is transitioned to `Closed` ONLY upon explicit verification and sign-off by the PO/customer in the chat.
+## 1. Proposed Changes
 
-## 2. Proposed Changes
+### [NEW] [column_model.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/tables/models/column_model.dart)
+Move `app_flutter/lib/domain/column_model.dart` to `app_flutter/lib/features/tables/models/column_model.dart`.
+Ensure the package import `import 'type_descriptor.dart';` is adjusted if relative path resolves differently.
+*   Note: Since `type_descriptor.dart` was in `lib/domain/`, the new import in `column_model.dart` should be `import '../../../domain/type_descriptor.dart';` (or package-relative: `import 'package:app_flutter/domain/type_descriptor.dart';`). We will use package-relative for cleanliness.
 
-### [MODIFY] [constitution.md](file:///Users/perkunas/jail/digital-pipeline-repo/.pipeline/constitution.md)
-Append a new section `## CMMI Level 3 & Scrum Issue Lifecycle Rules` at the end of the file:
-*   Define the separate states: `New`, `Active`, `In Progress`, `Verifying`, `Fixed / Resolved`, and `Closed`.
-*   Establish that the `Fixed / Resolved` state is the final state for the implementation loop.
-*   Enforce that transitioning to `Closed` requires explicit PO/Customer validation approval.
+### [NEW] [column_model_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/features/tables/models/column_model_test.dart)
+Move `app_flutter/test/domain/column_model_test.dart` to `app_flutter/test/features/tables/models/column_model_test.dart`.
+Update imports to reference `package:app_flutter/features/tables/models/column_model.dart`.
 
-## 3. Verification Plan
-*   **Linter verification**: Run `./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only` to ensure the updated constitution file complies with formatting rules.
-*   **Git check**: Verify that the diff matches our intent and has zero trailing modifications.
+### [DELETE] [column_model.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/column_model.dart)
+Delete the old file from the domain layer.
+
+### [DELETE] [column_model_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/domain/column_model_test.dart)
+Delete the old test file.
+
+### [MODIFY] [table_view_widget.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/tables/table_view_widget.dart)
+Update import path from `package:app_flutter/domain/column_model.dart` to `package:app_flutter/features/tables/models/column_model.dart`.
+
+### [MODIFY] [tables_view_model.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/tables/view_models/tables_view_model.dart)
+Update import path to `package:app_flutter/features/tables/models/column_model.dart`.
+
+### [MODIFY] [table_view_widget_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/features/tables/table_view_widget_test.dart)
+Update import path to `package:app_flutter/features/tables/models/column_model.dart`.
+
+### [MODIFY] [tables_view_model_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/features/tables/view_models/tables_view_model_test.dart)
+Update import path to `package:app_flutter/features/tables/models/column_model.dart`.
+
+## 2. Verification Plan
+1.  **Linter check**: Run `cd app_flutter && flutter analyze` to ensure zero compilation or import resolution errors.
+2.  **Unit & Widget tests**: Run `cd app_flutter && flutter test` to ensure all 273 tests pass successfully.
+3.  **Spec linter check**: Run `./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only` to ensure no specifications are impacted.
+
+## 3. Finalization
+1. Commit changes: `git commit -m "refactor: move ColumnModel to tables feature layer in app_flutter"`
+2. Push to `origin/main`
+3. Verify `git diff origin/main` is empty.
