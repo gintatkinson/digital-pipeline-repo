@@ -569,12 +569,31 @@ def _main_impl():
             if features:
                 for feat in features:
                     all_spec_contents.append(feat.content)
+                    if hasattr(feat, "frontmatter") and isinstance(feat.frontmatter, dict):
+                        for container in feat.frontmatter.get("schema_containers", []):
+                            path = container.get("path", "")
+                            if path:
+                                leaf = path.split("/")[-1]
+                                spec_elements.add(leaf.lower())
             if epics_dir and os.path.exists(epics_dir):
                 for ep_file in os.listdir(epics_dir):
                     if ep_file.endswith(".md"):
                         try:
                             with open(os.path.join(epics_dir, ep_file), "r", encoding="utf-8") as f:
-                                all_spec_contents.append(f.read())
+                                content = f.read()
+                                all_spec_contents.append(content)
+                                
+                                import yaml
+                                frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+                                if frontmatter_match:
+                                    frontmatter_text = frontmatter_match.group(1).replace('\x01', '')
+                                    data = yaml.safe_load(frontmatter_text)
+                                    if isinstance(data, dict):
+                                        for container in data.get("schema_containers", []):
+                                            path = container.get("path", "")
+                                            if path:
+                                                leaf = path.split("/")[-1]
+                                                spec_elements.add(leaf.lower())
                         except Exception:
                             pass
 
@@ -590,6 +609,8 @@ def _main_impl():
                     
             for key in sorted(all_definitions):
                 name = key.split(":", 1)[1] if ":" in key else key
+                if "/" in name:
+                    name = name.split("/")[-1]
                 
                 variants = {name}
                 if '-' in name or '_' in name or '.' in name:
