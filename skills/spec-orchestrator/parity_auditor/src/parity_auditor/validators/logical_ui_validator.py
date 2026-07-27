@@ -37,6 +37,7 @@ class LogicalUiValidator(IValidator):
                         if isinstance(node_id, str):
                             container_ids.add(node_id)
 
+                        ALLOWED_TABBED_CHILD_TYPES = {"TableView", "PropertyGrid", "DensityTable"}
                         if isinstance(node_type, str) and node_type == "TabbedContainer":
                             container_id_str = node_id if (isinstance(node_id, str) and node_id) else "unknown"
                             children = node.get("children")
@@ -51,7 +52,7 @@ class LogicalUiValidator(IValidator):
                                         raw_id = child.get("id")
                                         child_type = raw_type if (isinstance(raw_type, str) and raw_type) else "unknown"
                                         child_id = raw_id if (isinstance(raw_id, str) and raw_id) else "unknown"
-                                        if child_type != "TableView":
+                                        if child_type not in ALLOWED_TABBED_CHILD_TYPES:
                                             tabbed_container_errors.append(f"TabbedContainer '{container_id_str}' contains non-TableView child '{child_id}' of type '{child_type}'")
                             
                         # Recurse on values

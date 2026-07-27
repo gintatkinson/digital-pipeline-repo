@@ -67,7 +67,7 @@ def _create_test_repo(tmpdir, layout):
 def test_tabbed_container_non_tableview_direct_children():
     tmpdir = tempfile.mkdtemp()
     try:
-        non_tableview_types = ["PropertyGrid", "HierarchyTree", "ContextualPanel"]
+        non_tableview_types = ["HierarchyTree", "ContextualPanel"]
         for child_type in non_tableview_types:
             layout = {
                 "type": "TabbedContainer",
@@ -139,12 +139,12 @@ def test_tabbed_container_invalid_or_missing_children():
         layout_missing_container_id = {
             "type": "TabbedContainer",
             "children": [
-                {"type": "PropertyGrid", "id": "prop_grid"}
+                {"type": "ContextualPanel", "id": "ctx_panel"}
             ]
         }
         repo = _create_test_repo(tmpdir, layout_missing_container_id)
         errors = validator.validate(repo)
-        expected_msg = "TabbedContainer 'unknown' contains non-TableView child 'prop_grid' of type 'PropertyGrid'"
+        expected_msg = "TabbedContainer 'unknown' contains non-TableView child 'ctx_panel' of type 'ContextualPanel'"
         assert any(expected_msg in err for err in errors), f"Expected error for container missing id, got: {errors}"
     finally:
         shutil.rmtree(tmpdir)
