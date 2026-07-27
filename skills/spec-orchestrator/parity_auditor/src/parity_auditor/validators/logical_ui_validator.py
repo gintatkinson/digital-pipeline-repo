@@ -19,6 +19,7 @@ class LogicalUiValidator(IValidator):
             
         component_types = set()
         container_ids = set()
+        container_to_type = {}
         tabbed_container_errors = []
         
         if os.path.exists(layout_path):
@@ -36,6 +37,8 @@ class LogicalUiValidator(IValidator):
                         node_id = node.get("id")
                         if isinstance(node_id, str):
                             container_ids.add(node_id)
+                            if isinstance(node_type, str):
+                                container_to_type[node_id] = node_type
 
                         ALLOWED_TABBED_CHILD_TYPES = {"TableView", "PropertyGrid", "DensityTable"}
                         if isinstance(node_type, str) and node_type == "TabbedContainer":
@@ -189,6 +192,14 @@ class LogicalUiValidator(IValidator):
             if container_val.upper() != "N/A":
                 if container_val not in container_ids:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
+                else:
+                    expected_type = container_to_type.get(container_val)
+                    if expected_type and specified_components:
+                        for c in sorted(specified_components):
+                            if c.upper() != "N/A" and c != expected_type:
+                                errors.append(
+                                    f"Logical UI Compliance: Feature '{rel_path}' specifies component type '{c}' but target container '{container_val}' is of type '{expected_type}'."
+                                )
 
             # Enforce that geodetic/spatial features map to valid spatial view components
             VALID_SPATIAL_COMPONENTS = {"TopologyMap", "TopographicalView", "GeoSpatialViewer", "PropertyGrid", "TableView", "N/A"}
