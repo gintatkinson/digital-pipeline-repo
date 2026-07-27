@@ -790,6 +790,23 @@ class UmlValidator(IValidator):
                                     has_mult = True
                     if not has_mult:
                         errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
+
+            for cls_name, cls_info in classes.items():
+                is_component = any("<<component>>" in (a.name or "") or "<<component>>" in (a.raw or "") for a in cls_info.attributes)
+                if not is_component:
+                    if "<<component>>" in cls_name or "&lt;&lt;component&gt;&gt;" in cls_name:
+                        is_component = True
+                if not is_component:
+                    for line in diagram_full.splitlines():
+                        line_clean = line.strip()
+                        if ("<<component>>" in line_clean or "&lt;&lt;component&gt;&gt;" in line_clean) and cls_name in line_clean:
+                            is_component = True
+                            break
+                if is_component:
+                    real_attributes = [a for a in cls_info.attributes if not (a.raw and "<<" in a.raw and ">>" in a.raw)]
+                    if not real_attributes and not cls_info.methods:
+                        errors.append(f"{doc_type} {filename} subsystem component class '{cls_name}' is empty. Subsystem components must define at least one attribute or operation.")
+
         
     def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:
         """
