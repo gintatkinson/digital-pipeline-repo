@@ -1,28 +1,27 @@
-# Implementation Plan - UML Intermediate Container validation
+# Implementation Plan - YANG Case/Choice Coverage Linter Fix
 
-This plan implements a validation check in the specification auditor to prevent hierarchy collapse or missing intermediate containers in UML class diagrams relative to frontmatter `schema_containers` paths.
+This plan covers auditing the model coverage validator for the YANG case/choice coverage gap, filing a formal issue via the adversarial auditor, and resolving it via the debug protocol.
 
 ## 1. Context & Goal
-Issue #49 in the downstream project identifies that `feat-07-locations-container.md` has a direct `Locations *-- Rack` relationship, but fails to model the intermediate `Racks` container class. This collapses the schema hierarchy.
-To prevent this in the pipeline, we will add a validation rule to `UmlValidator` in `uml.py` that verifies:
-1.  Every segment in a `schema_containers` path has a corresponding class node in the class diagram (allowing CamelCase conversion).
-2.  Adjacent segments in a `schema_containers` path have an explicit relationship between their corresponding classes in the class diagram.
+The model coverage parity validator (`cli.py`) does not read frontmatter `schema_containers` when validating spec-only model coverage. This causes structural YANG wrapper nodes (like `choice` and `case` nodes: `cartesian`, `ellipsoid`, `velocity`) to be flagged as uncovered gaps because they are forbidden from appearing in UML class diagrams and layout bindings.
+
+We will:
+1.  **Audit & File Bug**: Spawn an adversarial auditor subagent to scan `cli.py` under the `Semantic Traceability` pillar and create a GitHub issue on `digital-pipeline-repo`.
+2.  **TDD Debug & Fix**: Spawn a debug subagent to:
+    *   Add a reproduction test (`test_cli_coverage_choice_case.py`) asserting that mapped frontmatter `schema_containers` nodes are recognized as covered (RED).
+    *   Patch `cli.py` to parse frontmatter and include these leaf segments in `spec_elements` (GREEN).
+    *   Verify all linter tests pass.
+    *   Commit and push changes upstream.
 
 ## 2. Proposed Changes
 
-### [MODIFY] [uml.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py)
-Extend `_validate_class_diagram` to:
-- Parse `schema_containers` from the frontmatter.
-- For each path, extract segments (removing module prefix).
-- Verify segment CamelCase classes are present in the diagram classes.
-- Verify adjacent segment classes have a defined relationship in the diagram.
+### [MODIFY] [cli.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py)
+Update the specification coverage loop to parse `schema_containers` from the frontmatter of all specs, adding their leaf segments to `spec_elements`.
 
-### [NEW] [test_uml_hierarchy_validation.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_uml_hierarchy_validation.py)
-Add a test suite verifying:
-- **RED Phase**: A feature file with `Locations *-- Rack` but missing `Racks` (and missing relationship) correctly flags errors.
-- **GREEN Phase**: A feature file with complete `Locations *-- Racks` and `Racks *-- Rack` chain passes.
+### [NEW] [test_cli_coverage_choice_case.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_cli_coverage_choice_case.py)
+Add unit tests verifying that choice/case nodes mapped in frontmatter are correctly marked as covered by the linter.
 
 ## 3. Verification Plan
-- **Step 1 (RED)**: Run pytest on the new test file before applying the fix. Assert it fails.
-- **Step 2 (GREEN)**: Apply the fix. Run pytest on all tests. Assert all 88 tests pass.
-- **Step 3 (Remote Sync)**: Push changes and verify `git diff origin/main` is empty.
+- **Pre-Fix Failure**: Verify the new unit test fails.
+- **Post-Fix Success**: Run all 90+ tests to confirm they pass.
+- **Downstream Verification**: Run `flutter analyze` and `flutter test` to ensure zero compilation drift.
