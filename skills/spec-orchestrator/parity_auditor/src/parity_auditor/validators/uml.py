@@ -555,7 +555,10 @@ class UmlValidator(IValidator):
                 continue
                 
             self._validate_subagent_isolation(content, "Epic", filename, errors)
-            self._validate_placeholders_and_links(content, "Epic", filename, errors, checkbox_syntax_regex)
+            self._validate_placeholders_and_links(
+                content, "Epic", filename, errors, checkbox_syntax_regex,
+                has_usecases=bool(usecase_files), has_userstories=bool(story_files)
+            )
                 
             validate_dotted_links(content, "Epic", filename, errors)
             validate_forbidden_diagram_types(content, "Epic", filename, errors)
@@ -613,11 +616,30 @@ class UmlValidator(IValidator):
         if not has_subagent_tag:
             errors.append(f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.")
 
-    def _validate_placeholders_and_links(self, content: str, doc_type: str, filename: str, errors: List[str], checkbox_syntax_regex: str):
+    def _validate_placeholders_and_links(
+        self,
+        content: str,
+        doc_type: str,
+        filename: str,
+        errors: List[str],
+        checkbox_syntax_regex: str,
+        has_usecases: bool = False,
+        has_userstories: bool = False
+    ):
         if "IssueID" in content:
             errors.append(f"{doc_type} {filename} contains unresolved placeholder 'IssueID' or '#[IssueID]'.")
             
+        PLACEHOLDER_STUBS = ["*(none registered)*", "*to be populated*", "*tbd*", "*n/a*"]
+
         if doc_type == "Epic":
+            if has_usecases or has_userstories:
+                for line in content.splitlines():
+                    line_clean = line.strip().lower()
+                    if any(stub in line_clean for stub in PLACEHOLDER_STUBS):
+                        errors.append(
+                            f"Epic {filename} contains unpopulated placeholder '{line.strip()}' in checklist when matching Use Cases or User Stories exist in workspace."
+                        )
+
             req_match = re.search(r"##\s+2\.\s+Requirements\s+&\s+Checklist(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             if req_match:
                 req_section = req_match.group(1)
@@ -625,6 +647,13 @@ class UmlValidator(IValidator):
                 for cb in checkboxes:
                     if not re.search(r"\[[^\]]+\]\(https?://[^)]+\)", cb):
                         errors.append(f"Epic {filename} checklist item '{cb.strip()}' must be a valid markdown link pointing to the feature file absolute URL.")
+        elif doc_type in ("Use Case", "User Story"):
+            for line in content.splitlines():
+                line_clean = line.strip().lower()
+                if any(stub in line_clean for stub in PLACEHOLDER_STUBS):
+                    errors.append(
+                        f"{doc_type} {filename} contains unpopulated placeholder '{line.strip()}' in realization matrix. All realization items must be explicitly registered."
+                    )
 
     def _validate_class_diagram(self, doc_type: str, filename: str, content: str, errors: List[str], class_parser, val_rules, uml_primitives, visibility_prefixes, relationship_connectors, choice_stereotypes, multiplicity_regex):
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
