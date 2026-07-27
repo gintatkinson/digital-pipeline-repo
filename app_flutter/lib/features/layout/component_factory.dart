@@ -105,11 +105,11 @@ class ComponentFactory {
       case 'SidebarLayout':
         final childrenList = node['children'] as List<dynamic>? ?? [];
         final sidebarChild = childrenList.firstWhere(
-          (c) => c['type'] == 'HierarchyTreeSelector',
+          (c) => c['type'] == 'HierarchyTreeSelector' || c['type'] == 'HierarchyTree',
           orElse: () => null,
         );
         final splitWorkspaceChild = childrenList.firstWhere(
-          (c) => c['type'] == 'SplitWorkspace',
+          (c) => c['type'] == 'SplitWorkspace' || c['type'] == 'ResizableSplitter',
           orElse: () => null,
         );
             return SplitWorkspace(
@@ -126,6 +126,7 @@ class ComponentFactory {
               paintLeadingOnTop: true,
             );
       case 'HierarchyTreeSelector':
+      case 'HierarchyTree':
         final tree = SidebarTree(
           workerResult: workerResult,
           onViewSelected: onViewSelected,
@@ -138,28 +139,39 @@ class ComponentFactory {
         }
         return tree;
       case 'SplitWorkspace':
+      case 'ResizableSplitter':
         final childrenList = node['children'] as List<dynamic>? ?? [];
-        final topoChild = childrenList.firstWhere(
-          (c) => c['type'] == 'TopographicalView',
-          orElse: () => null,
-        );
-        final tabbedChild = childrenList.firstWhere(
-          (c) => c['type'] == 'TabbedContainer',
-          orElse: () => null,
-        );
-        return SplitWorkspace(
-          leading: topoChild != null
+        final Widget leadingWidget;
+        final Widget trailingWidget;
+        if (childrenList.length >= 2) {
+          leadingWidget = build(childrenList[0] as Map<String, dynamic>, parentWidth, parentHeight, context);
+          trailingWidget = build(childrenList[1] as Map<String, dynamic>, parentWidth, parentHeight, context);
+        } else {
+          final topoChild = childrenList.firstWhere(
+            (c) => c['type'] == 'TopographicalView' || c['type'] == 'TopologyMap',
+            orElse: () => null,
+          );
+          final tabbedChild = childrenList.firstWhere(
+            (c) => c['type'] == 'TabbedContainer',
+            orElse: () => null,
+          );
+          leadingWidget = topoChild != null
               ? build(topoChild as Map<String, dynamic>, parentWidth, parentHeight, context)
-              : const SizedBox.shrink(),
-          trailing: tabbedChild != null
+              : const SizedBox.shrink();
+          trailingWidget = tabbedChild != null
               ? build(tabbedChild as Map<String, dynamic>, parentWidth, parentHeight, context)
-              : const SizedBox.shrink(),
+              : const SizedBox.shrink();
+        }
+        return SplitWorkspace(
+          leading: leadingWidget,
+          trailing: trailingWidget,
           direction: preferredSplitAxis ?? _parseAxis(node),
           minFirstPaneSize: minPaneSize,
           initialRatio: defaultRatio(),
           splitterKey: const Key('horizontal_splitter'),
         );
       case 'TopographicalView':
+      case 'TopologyMap':
         final treeData = treeViewModel?.treeData ?? [];
         final panelOpacity = context.watch<ThemeController>().panelOpacity;
         return TopographicalView(
@@ -179,6 +191,7 @@ class ComponentFactory {
       case 'TabbedContainer':
         return _TabbedContainerHost(currentView: currentView);
       case 'TableView':
+      case 'DensityTable':
         final id = node['id'] as String? ?? '';
         return _TableViewContainer(
           tabId: id,
