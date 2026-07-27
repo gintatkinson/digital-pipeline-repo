@@ -398,7 +398,16 @@ def parse_yang(input_path):
     ctx.validate()
 
     # Return children that are data-definition statements
-    return [c for c in module.i_children if c.keyword in statements.data_definition_keywords]
+    data_defs = [c for c in module.i_children if c.keyword in statements.data_definition_keywords]
+    if not data_defs:
+        groupings = module.search('grouping')
+        for g in groupings:
+            g_children = getattr(g, 'i_children', None) or g.substmts
+            for c in g_children:
+                if c.keyword in statements.data_definition_keywords:
+                    data_defs.append(c)
+
+    return data_defs
 
 
 def compile_yang(input_path, output_path):

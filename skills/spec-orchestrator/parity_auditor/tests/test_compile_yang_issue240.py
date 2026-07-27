@@ -133,3 +133,44 @@ def test_build_lui_json_uses_normative_names_and_nested_splitters():
     tabbed_container = lower_splitter["children"][1]
     assert tabbed_container["type"] == "TabbedContainer"
     assert tabbed_container["id"] == "details_and_relations_tab"
+
+
+def test_parse_yang_with_only_groupings():
+    import tempfile
+    from compile_yang import parse_yang, build_lui_json
+
+    yang_content = """module test-grouping-unit {
+  yang-version 1.1;
+  namespace "urn:ietf:params:xml:ns:yang:test-grouping-unit";
+  prefix tgu;
+
+  grouping location-group {
+    container location {
+      leaf latitude {
+        type string;
+      }
+      leaf longitude {
+        type string;
+      }
+    }
+  }
+}"""
+
+    with tempfile.NamedTemporaryFile(suffix=".yang", mode="w", delete=False) as f:
+        f.write(yang_content)
+        temp_path = f.name
+
+    try:
+        data_defs = parse_yang(temp_path)
+        assert len(data_defs) == 1
+        assert data_defs[0].keyword == "container"
+        assert data_defs[0].arg == "location"
+
+        lui_json = build_lui_json(data_defs)
+        assert len(lui_json["attributes"]) == 2
+        assert lui_json["attributes"][0]["key"] == "location/latitude"
+        assert lui_json["attributes"][1]["key"] == "location/longitude"
+    finally:
+        import os
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
