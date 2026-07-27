@@ -250,11 +250,6 @@
         "type": "TableView",
         "id": "relation_b_table",
         "props": { "label": "token:layout.labels.relation_b" }
-      },
-      {
-        "type": "PropertyGrid",
-        "id": "properties_view",
-        "props": { "label": "token:layout.labels.properties" }
       }
     ]
   }
