@@ -1,27 +1,20 @@
-# Implementation Plan - YANG Case/Choice Coverage Linter Fix
+# Implementation Plan - CMM Level 3 / Scrum Issue Lifecycle Constitution Update
 
-This plan covers auditing the model coverage validator for the YANG case/choice coverage gap, filing a formal issue via the adversarial auditor, and resolving it via the debug protocol.
+This plan adds a formal process section to the Project Constitution to align our issue lifecycle with CMM Level 3 (Separation of Verification & Validation) executed in Scrum style (with the Product Owner/customer controlling final validation acceptance).
 
 ## 1. Context & Goal
-The model coverage parity validator (`cli.py`) does not read frontmatter `schema_containers` when validating spec-only model coverage. This causes structural YANG wrapper nodes (like `choice` and `case` nodes: `cartesian`, `ellipsoid`, `velocity`) to be flagged as uncovered gaps because they are forbidden from appearing in UML class diagrams and layout bindings.
-
-We will:
-1.  **Audit & File Bug**: Spawn an adversarial auditor subagent to scan `cli.py` under the `Semantic Traceability` pillar and create a GitHub issue on `digital-pipeline-repo`.
-2.  **TDD Debug & Fix**: Spawn a debug subagent to:
-    *   Add a reproduction test (`test_cli_coverage_choice_case.py`) asserting that mapped frontmatter `schema_containers` nodes are recognized as covered (RED).
-    *   Patch `cli.py` to parse frontmatter and include these leaf segments in `spec_elements` (GREEN).
-    *   Verify all linter tests pass.
-    *   Commit and push changes upstream.
+To prevent issues from being closed prematurely without explicit user approval, we will codify a CMM Level 3 / Scrum issue state flow:
+1.  **Verification (Done by Developer / Linter)**: The issue is marked as `Fixed / Resolved` (not `Closed`) once the fix is merged and automated tests pass.
+2.  **Validation (Done by Product Owner / Customer)**: The issue is transitioned to `Closed` ONLY upon explicit verification and sign-off by the PO/customer in the chat.
 
 ## 2. Proposed Changes
 
-### [MODIFY] [cli.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py)
-Update the specification coverage loop to parse `schema_containers` from the frontmatter of all specs, adding their leaf segments to `spec_elements`.
-
-### [NEW] [test_cli_coverage_choice_case.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_cli_coverage_choice_case.py)
-Add unit tests verifying that choice/case nodes mapped in frontmatter are correctly marked as covered by the linter.
+### [MODIFY] [constitution.md](file:///Users/perkunas/jail/digital-pipeline-repo/.pipeline/constitution.md)
+Append a new section `## CMMI Level 3 & Scrum Issue Lifecycle Rules` at the end of the file:
+*   Define the separate states: `New`, `Active`, `In Progress`, `Verifying`, `Fixed / Resolved`, and `Closed`.
+*   Establish that the `Fixed / Resolved` state is the final state for the implementation loop.
+*   Enforce that transitioning to `Closed` requires explicit PO/Customer validation approval.
 
 ## 3. Verification Plan
-- **Pre-Fix Failure**: Verify the new unit test fails.
-- **Post-Fix Success**: Run all 90+ tests to confirm they pass.
-- **Downstream Verification**: Run `flutter analyze` and `flutter test` to ensure zero compilation drift.
+*   **Linter verification**: Run `./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only` to ensure the updated constitution file complies with formatting rules.
+*   **Git check**: Verify that the diff matches our intent and has zero trailing modifications.

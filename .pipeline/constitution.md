@@ -145,3 +145,17 @@ last_updated: "2026-06-29"
 - Prior to integrating any downstream application implementation, the project MUST be bootstrapped and verified.
 - The downstream project must be initialized using the configured bootstrap script.
 - Baseline conformance must be verified using the configured verification script, which asserts that all baseline files are present, validates type compatibility, and compiles/tests the project with a clean exit code.
+
+## CMMI Level 3 & Scrum Issue Lifecycle Rules
+
+### Separation of Verification and Validation
+- **Verification (Process Quality Gate)**: Conducted by the development subagent and pipeline. The issue is resolved when the code compiles, the linter passes, and all unit/integration tests pass. The issue moves to the `Fixed / Resolved` state.
+- **Validation (Product Owner/Customer Approval Gate)**: Conducted by the Product Owner or Customer. The issue is moved to the `Closed` state ONLY after explicit verification, testing, and acceptance by the Product Owner/Customer in the chat.
+
+### Issue States and Transition Protocols
+- `New`: The issue is registered in the backlog.
+- `Active`: The issue is scheduled and prioritized for work.
+- `In Progress`: Active code or specification changes are underway.
+- `Verifying`: Code changes are in peer review (PR) and automated tests are executing.
+- `Fixed / Resolved`: Development work is complete, tests have passed, and the fix is integrated into `main`. The issue remains in this state awaiting customer feedback.
+- `Closed`: The issue is archived. This state is unreachable without explicit Product Owner/Customer validation approval.
