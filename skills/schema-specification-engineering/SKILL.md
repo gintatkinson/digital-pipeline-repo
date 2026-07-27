@@ -54,7 +54,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - *Nested lists*: Split nested lists with >= 5 leaves into child Features.
      - *Complex container*: Split the container by its immediate child containers.
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
-   - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field with the container path and `node_type`. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
+   - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field using the fully-qualified schema container path format: `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `ietf-geo-location:geo-location/reference-frame/geodetic-system` or `ietf-geo-location:geo-location/location/ellipsoid`). All intermediate parent containers and choice/case wrapper nodes MUST be preserved in the path. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
 2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass the schema nodes and properties for this specific feature group, AND the Bounded Context's Epic identity (local file prefix and/or pre-assigned tracker Issue ID if available). The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
@@ -67,6 +67,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
      - *UML Classifier Mapping*: Feature specifications must map to a primary UML Class or DataType representing the schema entity, and MUST illustrate its relationship (e.g. composition `*--` or aggregation `o--`) to its parent container class or its child components to ensure no isolated classes exist. Classes that will cross serialization boundaries (Web Workers via `structuredClone`, Flutter Isolates via `SendPort`) MUST be modeled as pure data classes (DTOs) without methods. Service methods (e.g. `save()`, `validate()`) MUST be placed in separate service/repository classes that are NOT transferred across threads.
      - *Choice/Case Representation*: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
+     - *Feature Guard vs. Data Leaf Disambiguation*: YANG `feature` declarations and `if-feature` substatements (e.g., `if-feature "alternate-systems"`) are conditional compilation guards (`<<feature_guard>>`), NOT data leaves or class attributes. They MUST be extracted as stereotyped constraint notes or class notes, and MUST NOT be rendered as data leaf attributes on UML class diagrams.
      - *UML Standard Primitive Types*: All attributes in class diagrams must use standard capitalized UML primitives (`String`, `Integer`, `Real`, `Boolean`) instead of format-specific or custom types.
      - *Visibility & Multiplicity*: Every attribute/operation must use visibility indicators (`+`/`-`) and standard multiplicities (e.g. `[1]`, `[0..1]`, `[0..*]`).
      - *UML Constraints*: Schema-level constraints must map to standard text notes or separate tables. Curly braces '{}' inside class member lines are strictly prohibited due to Mermaid parse conflicts (they crash GitHub and Mermaid CLI renderers). Use parentheses '(default: earth)' or simple brackets '[default: earth]' if constraints must be inline.
@@ -109,12 +110,12 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    generation_mode: "subagent"
    labels: ["feature", "<domain-name>"]
    schema_containers:
-     - path: "module/container-name"
+     - path: "<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>"
        node_type: container
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
-    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the container path and `node_type` (e.g. `- path: "module/ellipsoid", node_type: container`). Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
+    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ```markdown
