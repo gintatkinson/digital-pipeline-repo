@@ -1,65 +1,50 @@
-# Walkthrough: Parity Auditor Validation Engine Fixes (Issues 58-63)
+# Walkthrough: Parity Auditor & Backlog Resolution Loop (Issues 207-230)
 
-This walkthrough summarizes the changes implemented to address the 6 custom linter defects (Issues #58 through #63) in the `parity_auditor` package.
-
----
-
-## 1. Changes Made
-
-### Component: Pytest Harness Configuration
-
-#### [conftest.py](file:///Users/perkunas/jail/digital-pipeline-repo/tests/conftest.py) [NEW]
-* Created configuration to dynamically inject the `parity_auditor` package path to `sys.path`, allowing the linter test suites to execute out-of-the-box.
-
-### Component: Parity Auditor Core Validators
-
-#### [uml.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py) [MODIFY]
-* **Programmatic `epics_dir` overrides (Issue #58)**: Updated `UmlValidator.validate()` to check `kwargs.get("epics_dir")` before falling back to default rules config.
-* **Prose Dotted Link False Positives (Issue #63)**: Restricted Mermaid dotted link check to the extracted `mermaid_content` blocks instead of searching raw markdown files globally.
-* **Unbracketed Return Multiplicity (Issue #61)**: Assumed unbracketed single returns or `void`/`none` methods have a default multiplicity of `[1]`, preventing false-positive errors on methods without brackets.
-
-### Component: Parity Auditor CLI & Coverage Engine
-
-#### [cli.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py) [MODIFY]
-* **Epic Compilation Bypass (Issue #59)**: Evaluated both features and epics availability before deciding to skip coverage checks, ensuring epics are compiled even if no feature files exist.
-* **Contextual Matching for Coverage (Issue #62)**: Introduced `is_present_in_codebase` helper utilizing contextual regex patterns (e.g. `obj.id`, `this.id`, `Type id`, `id: value`) to protect common words from triggering global false-positive coverage matches.
-* **Workspace Resolution Isolation**: Prioritized `os.getcwd()` over `script_dir` to ensure the linter resolves configuration paths isolated from the test environment directory structure.
+This walkthrough summarizes the changes implemented to address the backlog linter issues (Issues #207 through #230) in the `parity_auditor` package and the project's documentation/backlog scripts.
 
 ---
 
-## 2. Verification & Synchronization
+## 1. Summary of Resolved Issues
 
-* **Unit Tests**: Executed `python3 -m pytest tests/` in the workspace. All 16 linter reliability unit tests passed successfully.
-* **Remote Synchronization**: Checked `git status` and verified that all changes are successfully committed and pushed to `origin/feat/58-63-linter-fixes` (working tree is clean, `git diff` is empty).
-* **Commit details**:
-  * **SHA**: `2fcdd6c74a7b506a112e390da44d152a3416203c`
-  * **Message**: `fix: Issue #58 Epic UML class diagram validation bypass in linter`
+### Issue 228: GitHub Offline Validation Warning
+* **Defect**: Local spec audits exited with code 1 if the GitHub API was offline.
+* **Fix**: Modified `cli.py` to downgrade the offline failure to a warning and continue validation instead of crashing.
+* **Verification**: Added `test_cli_offline.py` regression tests.
 
+### Issue 227: Dedicated Spec for alternate-systems
+* **Defect**: The `alternate-systems` feature statement was missing its own dedicated specification file, breaking the 1:1 mapping standard.
+* **Fix**: Added a dedicated `feat-002-alternate-systems.md` specification file.
 
----
+### Issue 226: 3-Digit Hyperlink Padding Alignment
+* **Defect**: Internal cross-document markdown hyperlinks pointed to 2-digit padded filenames (e.g. `feat-01-`) instead of the active 3-digit format (`feat-001-`).
+* **Fix**: Updated all static internal markdown cross-references to use the standard 3-digit zero-padded format.
 
-# Walkthrough Addendum: Epic Checklist Truncation Fix (Issue #16)
+### Issue 225: Zero-Mocking CLI Guard
+* **Defect**: Downstream scripts could construct local mock executables (like `scratch/bin/gh`) to bypass credential blockers.
+* **Fix**: Implemented a validation hook in the linter bootstrap to reject the build if any mock CLI binaries are detected.
 
-This section documents the fix for Issue #16 where content between the end of the user stories checklist and the next H2 section in Epic specification files was being truncated during backlog reconciliation.
+### Issue 224: Sandbox GITHUB_TOKEN Sanitization
+* **Defect**: Git terminal operations failed due to default dummy environment tokens.
+* **Fix**: Sanitized environment variables globally in scripts to allow falling back to system keychain helpers.
 
-## 1. Changes Made
+### Issue 222: TabbedContainer Children Constraints
+* **Defect**: `LogicalUiValidator` failed to enforce that only `TableView` nodes can be children of `TabbedContainer`.
+* **Fix**: Refactored `logical_ui_validator.py` to enforce strict child type checking.
 
-### Component: Backlog Reconciliation Script
-
-#### [reconcile_backlog.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/scripts/reconcile_backlog.py) [MODIFY]
-* **Preserve Section 2 Post-Checklist Content**: Updated `reconcile_epic_checklists` to compute `start_after_stories = idx_stories + 1 + len(existing_stories) if idx_stories != -1 else len(lines)`.
-* **Correct Slicing**: Appended `lines[start_after_stories : idx_next]` to `new_lines` when `idx_next != -1` prior to extending with `lines[idx_next:]`. This preserves non-checklist content (subheadings, notes, etc.) located between the user stories checklist and the next H2 header.
-
-### Component: Unit Tests
-
-#### [test_linter_reliability.py](file:///Users/perkunas/jail/digital-pipeline-repo/tests/test_linter_reliability.py) [MODIFY]
-* **Add Regression Test**: Added `test_reconcile_epic_checklist_preserves_custom_content` to verify that custom non-checklist paragraphs and headings under section 2 of Epics are preserved after backlog reconciliation.
+### Issues 207-221: Backlog & Mapping Fixes
+* **Fixes**: Cleaned up title normalization in reconciliation scripts, enforced namespace prefixes, resolved geodetic mapping constraints, and aligned UI component specifications.
 
 ---
 
 ## 2. Verification & Synchronization
 
-* **Linter Validation Gate**: Ran `python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only` and verified 100% success.
-* **Unit Tests**: Executed `python3 -m pytest tests/` with all 17 tests passing successfully.
-* **Backlog Reconciliation**: Ran `python3 skills/spec-orchestrator/scripts/reconcile_backlog.py` to verify full synchronization.
-* **Remote Synchronization**: Stage, commit, and pushed changes successfully to `origin/feat/58-63-linter-fixes`.
+* **Unit Tests**: Ran python pytest suite:
+  ```bash
+  ../../../.venv/bin/pytest
+  ```
+  All tests passed successfully.
+* **Model Validation**: Checked model coverage:
+  ```bash
+  ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
+  ```
+* **Git Status**: Confirmed `git diff origin/main` is empty. All commits have been successfully pushed to the remote tracking repository.
