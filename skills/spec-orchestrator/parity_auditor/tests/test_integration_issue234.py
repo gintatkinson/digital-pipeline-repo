@@ -136,11 +136,11 @@ def test_component_container_type_mismatch_propertygrid_on_components_table():
         shutil.rmtree(tmpdir)
 
 
-def test_component_container_type_mismatch_topographicalview_on_topology_pane():
+def test_component_container_type_mismatch_topology_map_on_topology_pane():
     tmpdir = tempfile.mkdtemp()
     try:
-        # Case A: PropertyGrid specified on topology_pane (which is TopographicalView)
-        feature_content_a = """# Feature: Mismatch PropertyGrid on TopographicalView Container
+        # Case A: PropertyGrid specified on topology_pane (which is TopologyMap)
+        feature_content_a = """# Feature: Mismatch PropertyGrid on TopologyMap Container
 
 ## 5. Logical UI & Layout Bindings
 - **Target LUI Component**: PropertyGrid
@@ -153,16 +153,16 @@ def test_component_container_type_mismatch_topographicalview_on_topology_pane():
 
         mismatch_errors_a = [
             e for e in errors_a
-            if "specifies component type 'PropertyGrid'" in e and "topology_pane" in e and "TopographicalView" in e
+            if "specifies component type 'PropertyGrid'" in e and "topology_pane" in e and "TopologyMap" in e
         ]
         assert len(mismatch_errors_a) == 1, f"Expected 1 mismatch error for topology_pane, got: {errors_a}"
 
-        # Case B: TopographicalView specified on components_table (which is TableView)
+        # Case B: TopologyMap specified on components_table (which is TableView)
         feat_path = os.path.join(tmpdir, ".pipeline", "backlog", "features", "feat-001-test.md")
-        feature_content_b = """# Feature: Mismatch TopographicalView on TableView Container
+        feature_content_b = """# Feature: Mismatch TopologyMap on TableView Container
 
 ## 5. Logical UI & Layout Bindings
-- **Target LUI Component**: TopographicalView
+- **Target LUI Component**: TopologyMap
 - **Target Layout Container ID**: components_table
 - **Data Source Binding**: /schema:test/system
 """
@@ -174,7 +174,7 @@ def test_component_container_type_mismatch_topographicalview_on_topology_pane():
 
         mismatch_errors_b = [
             e for e in errors_b
-            if "specifies component type 'TopographicalView'" in e and "components_table" in e and "TableView" in e
+            if "specifies component type 'TopologyMap'" in e and "components_table" in e and "TableView" in e
         ]
         assert len(mismatch_errors_b) == 1, f"Expected 1 mismatch error for components_table, got: {errors_b}"
     finally:

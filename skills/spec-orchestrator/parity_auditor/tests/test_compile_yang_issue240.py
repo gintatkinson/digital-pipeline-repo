@@ -71,3 +71,65 @@ def test_sanitize_mermaid_diagrams_fixes_line_wrapped_arrows():
     assert "A ->> B: reply" in sanitized
     assert "A --> B: done" in sanitized
     assert "A ->>\n    B: message" not in sanitized
+
+
+def test_resolve_type_with_typedef_chain():
+    from compile_yang import resolve_type
+
+    # Bottom level: built-in int32 with range constraint
+    typedef_base = MockNode("typedef", "my-base-type")
+    range_stmt = MockNode("range", "1..10")
+    type_stmt_base = MockNode("type", "int32", children=[range_stmt])
+    typedef_base.i_children = [type_stmt_base]
+
+    # Mid level: typedef inheriting my-base-type
+    typedef_outer = MockNode("typedef", "my-outer-type")
+    type_stmt_outer = MockNode("type", "my-base-type")
+    type_stmt_outer.i_typedef = typedef_base
+    typedef_outer.i_children = [type_stmt_outer]
+
+    # Leaf level: leaf referencing my-outer-type with pattern constraint
+    leaf_type = MockNode("type", "my-outer-type")
+    leaf_type.i_typedef = typedef_outer
+    pattern_stmt = MockNode("pattern", "[0-9]+")
+    leaf_type.substmts = [pattern_stmt]
+
+    # Resolve
+    res = resolve_type(leaf_type)
+    assert res["lui_type"] == "int"
+    assert res["minValue"] == 1
+    assert res["maxValue"] == 10
+    assert res["pattern"] == "[0-9]+"
+
+
+def test_build_lui_json_uses_normative_names_and_nested_splitters():
+    from compile_yang import build_lui_json
+
+    res = build_lui_json([])
+    layout = res["layout"]["root_container"]
+
+    assert layout["type"] == "SidebarLayout"
+
+    sidebar = layout["children"][0]
+    assert sidebar["type"] == "HierarchyTree"
+    assert sidebar["id"] == "resource_tree"
+
+    workspace = layout["children"][1]
+    assert workspace["type"] == "ResizableSplitter"
+    assert workspace["id"] == "workspace_split"
+
+    top_pane = workspace["children"][0]
+    assert top_pane["type"] == "TopologyMap"
+    assert top_pane["id"] == "topology_pane"
+
+    lower_splitter = workspace["children"][1]
+    assert lower_splitter["type"] == "ResizableSplitter"
+    assert lower_splitter["id"] == "lower_split"
+
+    elements_table = lower_splitter["children"][0]
+    assert elements_table["type"] == "DensityTable"
+    assert elements_table["id"] == "elements_view"
+
+    tabbed_container = lower_splitter["children"][1]
+    assert tabbed_container["type"] == "TabbedContainer"
+    assert tabbed_container["id"] == "details_and_relations_tab"

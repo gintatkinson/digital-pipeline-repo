@@ -76,41 +76,47 @@ def resolve_type(type_stmt):
     if type_stmt is None:
         return result
 
-    # Walk through typedef layers to reach the base type.
-    # Unresolved statements carry children in ``substmts``;
-    # validated statements carry them in ``i_children``.
     current = type_stmt
     visited = set()
-    while current.keyword == 'typedef':
+    while current is not None:
         if id(current) in visited:
             break
         visited.add(id(current))
+
+        # Collect constraints from the current type stmt level
         children = getattr(current, 'i_children', None) or current.substmts
-        next_type = None
-        for c in children:
-            if c.keyword == 'type':
-                next_type = c
-                break
-        if next_type is None:
+        for child in children:
+            if child.keyword == 'range':
+                lo, hi = _parse_range(child.arg)
+                if result['minValue'] is None:
+                    result['minValue'] = lo
+                if result['maxValue'] is None:
+                    result['maxValue'] = hi
+            elif child.keyword == 'pattern':
+                if result['pattern'] is None:
+                    result['pattern'] = child.arg
+            elif child.keyword == 'enum':
+                if result['options'] is None:
+                    result['options'] = []
+                if child.arg not in result['options']:
+                    result['options'].append(child.arg)
+
+        # Move to next type stmt via i_typedef
+        if getattr(current, 'i_typedef', None) is not None:
+            typedef_stmt = current.i_typedef
+            typedef_children = getattr(typedef_stmt, 'i_children', None) or typedef_stmt.substmts
+            next_type = None
+            for c in typedef_children:
+                if c.keyword == 'type':
+                    next_type = c
+                    break
+            current = next_type
+        else:
             break
-        current = next_type
 
-    type_name = current.arg
-    result['lui_type'] = YANG_TO_LUI_TYPE.get(type_name, 'string')
-
-    # Collect constraints from the type's children
-    children = getattr(current, 'i_children', None) or current.substmts
-    for child in children:
-        if child.keyword == 'range':
-            lo, hi = _parse_range(child.arg)
-            result['minValue'] = lo
-            result['maxValue'] = hi
-        elif child.keyword == 'pattern':
-            result['pattern'] = child.arg
-        elif child.keyword == 'enum':
-            if result['options'] is None:
-                result['options'] = []
-            result['options'].append(child.arg)
+    if current is not None:
+        type_name = current.arg
+        result['lui_type'] = YANG_TO_LUI_TYPE.get(type_name, 'string')
 
     return result
 
@@ -302,7 +308,7 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
                 'id': 'main_shell',
                 'children': [
                     {
-                        'type': 'HierarchyTreeSelector',
+                        'type': 'HierarchyTree',
                         'id': 'resource_tree',
                         'props': {
                             'hierarchy': hierarchy,
@@ -312,7 +318,7 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
                         },
                     },
                     {
-                        'type': 'SplitWorkspace',
+                        'type': 'ResizableSplitter',
                         'id': 'workspace_split',
                         'props': {
                             'axis': 'horizontal',
@@ -320,13 +326,27 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
                         },
                         'children': [
                             {
-                                'type': 'TopographicalView',
+                                'type': 'TopologyMap',
                                 'id': 'topology_pane',
                             },
                             {
-                                'type': 'TabbedContainer',
-                                'id': 'details_and_relations_tab',
-                                'children': details_tabs,
+                                'type': 'ResizableSplitter',
+                                'id': 'lower_split',
+                                'props': {
+                                    'axis': 'horizontal',
+                                    'resizable': True,
+                                },
+                                'children': [
+                                    {
+                                        'type': 'DensityTable',
+                                        'id': 'elements_view',
+                                    },
+                                    {
+                                        'type': 'TabbedContainer',
+                                        'id': 'details_and_relations_tab',
+                                        'children': details_tabs,
+                                    },
+                                ],
                             },
                         ],
                     },

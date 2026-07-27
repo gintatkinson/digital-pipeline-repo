@@ -115,9 +115,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
-    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
-
-2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
+    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) !=2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ```markdown
     ---
     title: "[Epic Title]"
@@ -132,17 +130,17 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification and clause references)
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) (semantic linkage justification)
+    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) (semantic linkage justification and clause references)
 
     #### Associated User Stories
-    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
+    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification and clause references)
 
-    ## 3. Architecture and System Interaction Diagrams
+    ## 3. Architecture
 
     ### Subsystem Component Definition
     Define the subsystem representing the Epic as a UML Component specifying provided/required interfaces and operations.
@@ -162,32 +160,38 @@ For each Bounded Context, partition its subtree into cohesive functional feature
             <<component>>
         }
         class FeatureClassifier1 {
-            +String attributeOne [1]
-            -Boolean attributeTwo [0..1]
+            +String attributeOne "[1]"
+            -Boolean attributeTwo "[0..1]"
         }
         class FeatureClassifier2 {
-            +Integer attributeThree [0..*]
+            +Integer attributeThree "[0..*]"
             +Boolean operationOne(String input)
         }
         SubsystemComponent *-- FeatureClassifier1
         SubsystemComponent *-- FeatureClassifier2
     ```
 
-    ## 4. State Machine Definitions
+    ## State Machine Definitions
 
     ## System State Machine Diagram
     ```mermaid
     stateDiagram-v2
         [*] --> InitialState
-        InitialState --> [*] : Event / Action
+        InitialState --> [*] : operationOne(input) / Action
     ```
 
-    ## 5. Specification Context
+    ## 4. Operational Considerations
+    [Operational considerations and deployment scenarios]
+
+    ## 5. Security & Governance
+    [Security, access control, and governance considerations]
+
+    ## Specification Context
     [Verbatim schema grouping/container descriptions from the normative specification]
 
     ## 6. Source References
-    Structural Schema: [Schema File Name]
-    Normative Specification: [RFC/Standard Name]
+    Structural Schema: [Schema File Name] (Clause: [Clause Number])
+    Normative Specification: [RFC/Standard Name] (Clause: [Clause Number])
     ```
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
@@ -212,33 +216,55 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      ```mermaid
      classDiagram
          class ParentContainer {
-             +FeatureClassifier featureClassifier [1]
          }
          class FeatureClassifier {
-             +String primaryAttribute [1]
-              -Boolean optionalAttribute [0..1] (constraintText)
-             +Integer listAttribute [0..*]
+             +String primaryAttribute "[1]"
+              -Boolean optionalAttribute "[0..1]" (constraintText)
+             +Integer listAttribute "[0..*]"
              +Boolean doSomething(String param)
          }
-         ParentContainer *-- FeatureClassifier
+         ParentContainer *-- FeatureClassifier : featureClassifier
      ```
 
      ## Interface Requirements
-     ### 1. Test Data Shape / Payload Schema (JSON Example)
+
+     <!-- For UI Interfaces (interface_type: ui) -->
+     ### 1. Test Data Shape
      ```json
      {
-       "example_key": "example_value"
+       "primaryAttribute": "example_value",
+       "optionalAttribute": true,
+       "listAttribute": [1, 2, 3]
      }
      ```
 
      ### 2. Validation & Constraints
      - [Field constraints, ranges, patterns, protocol/payload limits]
 
-     ### 3. Visual Layout / Logical Operations & Interface Messages
-      - [For UI: abstract grouping, zoning, hierarchy guidelines. Enforce CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, layout containment parameters (restricting containment to outer layout splitters and forbidding it on scrollable child panels), and valid DOM nesting for tree structures (recursive lists nested inside parent list-items). For API/M2M: logical methods, operations, abstract paths, or channels]
+     ### 3. Visual Layout & Arrangement
+     - [For UI: abstract grouping, zoning, hierarchy guidelines. Enforce CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, layout containment parameters (restricting containment to outer layout splitters and forbidding it on scrollable child panels), and valid DOM nesting for tree structures (recursive lists nested inside parent list-items).]
 
-     ### 4. Interactive Flow & States / Logical Exception States & Validation Failures
-     - [For UI: states, errors, loading. Mandate computed-style assertions (such as verifying scroll dimensions or highlight colors) in the test guidelines for visual or active selection states. For API/M2M: logical error states, timeouts, exception flows]
+     ### 4. Interactive Flow & States
+     - [For UI: states, errors, loading. Mandate computed-style assertions (such as verifying scroll dimensions or highlight colors) in the test guidelines for visual or active selection states.]
+
+     <!-- OR For API or M2M Interfaces (interface_type: api or m2m) -->
+     ### 1. Payload Schema
+     ```json
+     {
+       "primaryAttribute": "example_value",
+       "optionalAttribute": true,
+       "listAttribute": [1, 2, 3]
+     }
+     ```
+
+     ### 2. Validation & Constraints
+     - [Field constraints, ranges, patterns, protocol/payload limits]
+
+     ### 3. Logical Operations & Interface Messages
+     - [For API/M2M: logical methods, operations, abstract paths, or channels]
+
+     ### 4. Logical Exception States & Validation Failures
+     - [For API/M2M: logical error states, timeouts, exception flows]
 
    ## Given-When-Then Acceptance Criteria
    [BDD scenarios]
@@ -246,11 +272,11 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ## Specification Context (Verbatim)
    [Raw normative specification context paragraphs]
 
-   ## 4. Source References
-   Structural Schema: [Target Schema File](link-to-schema)
-   Normative Specification: [Normative Specification](link-to-specification)
+   ## Source References
+   Structural Schema: [Target Schema File](link-to-schema) (Clause: [Clause Number])
+   Normative Specification: [Normative Specification](link-to-specification) (Clause: [Clause Number])
 
-   ## 5. Logical UI & Layout Bindings
+   ## Logical UI & Layout Bindings
    - **Target LUI Component:** [e.g. PropertyGrid, TableView, DensityTable, DataCard, TimeSeriesChart]
    - **Target Layout Container ID:** [Specify the container ID from logical-layout.json]
    - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json]
@@ -261,16 +287,16 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     > - Ensure there are no stray backticks or unmatched code fences in the document.
 
 3. **Source References Block (CRITICAL):**
-   - At the bottom of every feature markdown file, you MUST append a `## 4. Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
+   - At the bottom of every feature markdown file, you MUST append a `## Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
    ```markdown
-   ## 4. Source References
-   Structural Schema: [Target Schema File](link-to-schema)
-   Normative Specification: [Normative Specification](link-to-specification)
+   ## Source References
+   Structural Schema: [Target Schema File](link-to-schema) (Clause: [Clause Number])
+   Normative Specification: [Normative Specification](link-to-specification) (Clause: [Clause Number])
    ```
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 
 4. **Logical UI & Layout Bindings Block (MANDATORY):**
-   - Every feature specification markdown file MUST contain a `## 5. Logical UI & Layout Bindings` section at the end of the file.
+   - Every feature specification markdown file MUST contain a `## Logical UI & Layout Bindings` section at the end of the file.
    - You MUST map the feature's container and leaf nodes to:
      - The target LUI component (e.g. `PropertyGrid`, `TableView`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`).
      - The specific target layout container ID in `logical-layout.json`.
