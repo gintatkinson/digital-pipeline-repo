@@ -360,11 +360,26 @@ class MermaidClassDiagramParser(IParser):
                     line
                 ))
                 if not is_relationship:
-                    note_match = re.match(r'^\s*note\s+(?:for\s+([a-zA-Z0-9_\-.:]+)\s*)?(?::|"\s*|\'\s*)?\s*(.*?)\s*["\']?\s*$', line, re.IGNORECASE)
+                    note_match = re.match(r'^\s*note\s+(?:for\s+([a-zA-Z0-9_\-.:]+)\s*)?(.*)$', line, re.IGNORECASE)
                     if note_match:
                         target_cls = note_match.group(1)
-                        note_text = note_match.group(2).strip('"\': ')
-                        if note_text:
+                        content_part = note_match.group(2).strip()
+                        if content_part.startswith(':'):
+                            content_part = content_part[1:].strip()
+                        
+                        has_error = False
+                        if content_part.startswith('"'):
+                            if not content_part.endswith('"') or len(content_part) < 2:
+                                has_error = True
+                        elif content_part.startswith("'"):
+                            if not content_part.endswith("'") or len(content_part) < 2:
+                                has_error = True
+                        
+                        if has_error:
+                            parse_errors.append(f"Syntax error: note directive has unbalanced quotes — '{line.strip()}'")
+                        
+                        note_text = content_part.strip('"\': ')
+                        if note_text and not has_error:
                             if target_cls:
                                 if target_cls not in classes:
                                     current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
@@ -419,7 +434,14 @@ class MermaidClassDiagramParser(IParser):
                 to_cls = rel_match.group(5)
                 label = rel_match.group(6)
                 if label:
-                    label = label.strip()
+                    label_str = label.strip()
+                    if ' ' in label_str or ':' in label_str:
+                        if not (label_str.startswith('"') and label_str.endswith('"') and len(label_str) >= 2):
+                            parse_errors.append(f"Syntax error: relationship label containing spaces or colons must be double-quoted — '{line.strip()}'")
+                    if label_str.startswith('"') and label_str.endswith('"') and len(label_str) >= 2:
+                        label = label_str[1:-1].strip()
+                    else:
+                        label = label_str
 
                 for cls_name in (from_cls, to_cls):
                     if cls_name not in classes:

@@ -139,4 +139,48 @@ def test_class_diagram_method_multiplicity_parser_bug223():
     assert methods[0].return_type == "Boolean [1]"
 
 
+def test_class_diagram_invalid_relationship_labels_and_notes():
+    repo = MockWorkspaceRepository()
+    parser = MermaidClassDiagramParser(repo)
+    
+    # 1. Invalid relationship label with spaces (unquoted)
+    diagram1 = """
+    classDiagram
+        Locations *-- Racks : YANG path: locations slash racks
+    """
+    res1 = parser.parse(diagram1)
+    assert len(res1.parse_errors) == 1
+    assert "Syntax error: relationship label containing spaces or colons must be double-quoted" in res1.parse_errors[0]
+
+    # 2. Valid relationship label with spaces (double-quoted)
+    diagram2 = """
+    classDiagram
+        Locations *-- Racks : "YANG path: locations slash racks"
+    """
+    res2 = parser.parse(diagram2)
+    assert len(res2.parse_errors) == 0
+    assert len(res2.relationships) == 1
+    assert res2.relationships[0].label == "YANG path: locations slash racks"
+
+    # 3. Invalid note directive with unbalanced quote
+    diagram3 = """
+    classDiagram
+        note for Racks "unclosed quote
+    """
+    res3 = parser.parse(diagram3)
+    assert len(res3.parse_errors) == 1
+    assert "Syntax error: note directive has unbalanced quotes" in res3.parse_errors[0]
+
+    # 4. Valid note directive with balanced quotes
+    diagram4 = """
+    classDiagram
+        note for Racks "balanced quote"
+    """
+    res4 = parser.parse(diagram4)
+    assert len(res4.parse_errors) == 0
+    assert "Racks" in res4.classes
+    assert res4.classes["Racks"].notes == ["balanced quote"]
+
+
+
 
