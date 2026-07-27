@@ -49,8 +49,7 @@ YANG_TO_LUI_TYPE = {
 # Node keywords that are traversed when extracting hierarchy / attributes
 CONTAINER_OR_LIST = {'container', 'list'}
 LEAF_OR_CHOICE = {'leaf', 'leaf-list', 'choice', 'case', 'uses', 'augment', 'anyxml'}
-
-
+LEAF_NODES = {'leaf', 'leaf-list', 'anyxml'}
 def resolve_type(type_stmt):
     """
     Resolve a ``type`` substatement to its base LUI type and any
@@ -165,7 +164,7 @@ def build_attributes(data_nodes, parent_path=''):
                     if getattr(node, 'i_is_validated', False)
                     else node.substmts)
 
-        if node.keyword in LEAF_OR_CHOICE:
+        if node.keyword in LEAF_NODES:
             type_stmt = node.search_one('type')
             info = resolve_type(type_stmt)
 
@@ -197,7 +196,7 @@ def build_attributes(data_nodes, parent_path=''):
             subs = [c for c in children
                     if c.keyword in (LEAF_OR_CHOICE | CONTAINER_OR_LIST |
                                      {'choice', 'case', 'uses', 'augment'})]
-            attrs.extend(build_attributes(subs, current_path))
+            attrs.extend(build_attributes(subs, parent_path))
 
     return attrs
 

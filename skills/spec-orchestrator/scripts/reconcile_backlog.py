@@ -308,10 +308,63 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
     pattern = r'file://(/[^\s\)\>"\']+)'
     return re.sub(pattern, replacer, content)
 
+def sanitize_mermaid_diagrams(content):
+    if not content or "```mermaid" not in content:
+        return content
+
+    lines = content.splitlines()
+    in_mermaid = False
+    sanitized_lines = []
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        if stripped.startswith("```mermaid"):
+            in_mermaid = True
+            sanitized_lines.append(line)
+            i += 1
+            continue
+        elif in_mermaid and stripped.startswith("```"):
+            in_mermaid = False
+            sanitized_lines.append(line)
+            i += 1
+            continue
+
+        if in_mermaid and i + 1 < len(lines):
+            next_line = lines[i + 1]
+            next_stripped = next_line.strip()
+            if not next_stripped.startswith("```"):
+                arrow_match = re.search(r'(-+>+|=+>+|--|-\.->?|-\.)\s*$', stripped)
+                starts_with_gt = next_stripped.startswith('>')
+
+                if arrow_match or starts_with_gt:
+                    arrow_op = arrow_match.group(1) if arrow_match else ""
+                    rest_next = next_stripped
+
+                    if starts_with_gt:
+                        if arrow_op == "->":
+                            line = re.sub(r'->\s*$', '->>', line)
+                        elif arrow_op == "--":
+                            line = re.sub(r'--\s*$', '-->', line)
+                        rest_next = re.sub(r'^>\s*', '', next_stripped)
+
+                    joined = f"{line.rstrip()} {rest_next}"
+                    sanitized_lines.append(joined)
+                    i += 2
+                    continue
+
+        sanitized_lines.append(line)
+        i += 1
+
+    return "\n".join(sanitized_lines) + ("\n" if content.endswith("\n") else "")
+
 def write_markdown_file(filepath, content, workspace_dir=None, rules=None):
     if workspace_dir is None:
         workspace_dir = find_workspace_dir(filepath)
     sanitized_content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
+    sanitized_content = sanitize_mermaid_diagrams(sanitized_content)
     deduped_content = deduplicate_markdown_sections(sanitized_content)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(deduped_content)
@@ -329,6 +382,7 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
             
         workspace_dir = find_workspace_dir(filepath)
         content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
+        content = sanitize_mermaid_diagrams(content)
         content = convert_frontmatter_to_table(content)
         content = deduplicate_markdown_sections(content)
             
