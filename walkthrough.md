@@ -1,33 +1,21 @@
-# Walkthrough - UML Intermediate Container validation
+# Walkthrough - YANG Case/Choice Coverage Linter Fix
 
-I have implemented and verified the UML intermediate container path validation rule in the pipeline's spec-orchestrator.
+I have audited, reported, and fixed the YANG case/choice coverage validation gap in the spec-only model coverage checker.
 
-## Changes Made
+## Actions Executed
 
-### Spec Auditor Linter
-#### [uml.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py)
-*   Enhanced `_validate_class_diagram` to parse `schema_containers` from markdown frontmatter.
-*   For each schema container path, computed the expected CamelCase class names for all path segments.
-*   Asserted that the UML class diagram contains class nodes for all segments.
-*   Asserted that adjacent segments are connected by a direct relationship in the class diagram, preventing hierarchy collapse.
+### 1. Adversarial Audit & Bug Creation
+*   Spawned an adversarial auditor subagent to scan `cli.py` under the `Semantic Traceability` pillar.
+*   Documented the root cause: YANG structural case/choice wrapper nodes (like `cartesian`, `ellipsoid`, and `velocity`) are forbidden from UML class diagrams/bindings, but since the linter only scanned UML elements to check coverage, it reported them as uncovered gaps.
+*   Filed the bug on GitHub: [Issue #254](https://github.com/gintatkinson/digital-pipeline-repo/issues/254) with severity `Important`.
 
-### Automated Tests
-#### [test_uml_hierarchy_validation.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_uml_hierarchy_validation.py)
-*   Created a new test suite that tests:
-    *   **RED Phase**: Mock feature files with collapsed hierarchies (missing intermediate container classes or relationships) are correctly caught.
-    *   **GREEN Phase**: A feature file with a complete container path hierarchy and relationships passes validation successfully.
+### 2. TDD Debug & Fix (RED-GREEN Cycle)
+*   Created a new reproduction test file [`test_cli_coverage_choice_case.py`](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_cli_coverage_choice_case.py) asserting that mapped frontmatter `schema_containers` are correctly marked as covered (RED phase).
+*   Modified [`cli.py`](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py) to parse spec markdown frontmatter and extract the leaf nodes of all `schema_containers` paths, registering them in `spec_elements` (GREEN phase).
+*   Verified that the reproduction test passes.
 
-## Verification Results
-
-### Linter Tests
-*   Executed `.venv/bin/pytest skills/spec-orchestrator/parity_auditor/tests`
-*   **Result**: 90 tests passed cleanly (including 3 new hierarchy verification tests).
-
-### Downstream Baseline Compilation
-*   Analyzed and tested the desktop client app:
-    *   `cd app_flutter && flutter analyze && flutter test`
-*   **Result**: 273/273 tests passed cleanly.
-
-### Remote Synchronization
-*   Pushed all commits upstream.
-*   `git diff origin/main` is empty.
+### 3. Verification & Reconciliation
+*   Ran all linter tests: `pytest` passed successfully (`91 passed`).
+*   Ran Flutter build verification: `flutter analyze && flutter test` passed successfully (`273 passed`).
+*   Executed backlog reconciliation: `reconcile_backlog.py` completed.
+*   Pushed all commits upstream. `git diff origin/main` is empty.
