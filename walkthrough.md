@@ -1,21 +1,17 @@
-# Walkthrough - YANG Case/Choice Coverage Linter Fix
+# Walkthrough - CMM Level 3 / Scrum Issue Lifecycle Constitution Update
 
-I have audited, reported, and fixed the YANG case/choice coverage validation gap in the spec-only model coverage checker.
+I have updated the Project Constitution to integrate the CMMI Level 3 / Scrum issue lifecycle model.
 
-## Actions Executed
+## Changes Executed
 
-### 1. Adversarial Audit & Bug Creation
-*   Spawned an adversarial auditor subagent to scan `cli.py` under the `Semantic Traceability` pillar.
-*   Documented the root cause: YANG structural case/choice wrapper nodes (like `cartesian`, `ellipsoid`, and `velocity`) are forbidden from UML class diagrams/bindings, but since the linter only scanned UML elements to check coverage, it reported them as uncovered gaps.
-*   Filed the bug on GitHub: [Issue #254](https://github.com/gintatkinson/digital-pipeline-repo/issues/254) with severity `Important`.
+### 1. Constitution Update
+#### [.pipeline/constitution.md](file:///Users/perkunas/jail/digital-pipeline-repo/.pipeline/constitution.md)
+*   Appended the section `## CMMI Level 3 & Scrum Issue Lifecycle Rules` to the document.
+*   Codified the division between **Verification** (developer proving task is resolved/fixed via test gates) and **Validation** (the Product Owner/customer validating and closing the issue).
+*   Formally established that transitioning to `Closed` is blocked without explicit Product Owner/Customer validation approval.
 
-### 2. TDD Debug & Fix (RED-GREEN Cycle)
-*   Created a new reproduction test file [`test_cli_coverage_choice_case.py`](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_cli_coverage_choice_case.py) asserting that mapped frontmatter `schema_containers` are correctly marked as covered (RED phase).
-*   Modified [`cli.py`](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py) to parse spec markdown frontmatter and extract the leaf nodes of all `schema_containers` paths, registering them in `spec_elements` (GREEN phase).
-*   Verified that the reproduction test passes.
-
-### 3. Verification & Reconciliation
-*   Ran all linter tests: `pytest` passed successfully (`91 passed`).
-*   Ran Flutter build verification: `flutter analyze && flutter test` passed successfully (`273 passed`).
-*   Executed backlog reconciliation: `reconcile_backlog.py` completed.
-*   Pushed all commits upstream. `git diff origin/main` is empty.
+## Verification & Synchronization
+*   **Linter Checks**: Passed successfully (`verify_model_coverage.py --spec-only`).
+*   **Flutter Compile / Test Gate**: Checked downstream client app (`cd app_flutter && flutter analyze && flutter test`), resulting in `273/273 passed`.
+*   **Backlog Reconciliation**: Backlog state synchronized via `reconcile_backlog.py`.
+*   **Remote Synchronization**: Pushed changes upstream. `git diff origin/main` is empty.
