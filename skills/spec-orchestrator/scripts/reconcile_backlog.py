@@ -489,15 +489,21 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
     
     for idx, line in enumerate(lines):
         line_clean = line.strip()
-        if line_clean.startswith("## 2. Requirements & Checklist"):
+        if line_clean.startswith("## 2. Requirements & Checklist") or (line_clean.startswith("## 2.") and "Checklist" in line_clean):
             idx_req = idx
-        elif line_clean.startswith("#### Associated Use Cases"):
+        elif re.match(r'^#{3,4}\s+Associated\s+Use\s+Cases(?!\s*(?:&|and)\s*User\s+Stories)', line_clean, re.IGNORECASE):
             idx_usecases = idx
-        elif line_clean.startswith("#### Associated User Stories"):
+        elif re.match(r'^#{3,4}\s+Associated\s+User\s+Stories', line_clean, re.IGNORECASE):
             idx_stories = idx
         elif idx_req != -1 and line_clean.startswith("## ") and idx > idx_req and not line_clean.startswith("## 2."):
             if idx_next == -1:
                 idx_next = idx
+
+    if idx_usecases == -1:
+        for idx, line in enumerate(lines):
+            if re.match(r'^#{3,4}\s+Associated\s+Use\s+Cases', line.strip(), re.IGNORECASE):
+                idx_usecases = idx
+                break
 
     def extract_items_from_range(start_idx, end_idx):
         items = []
@@ -506,8 +512,10 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         limit = end_idx if end_idx != -1 else len(lines)
         for i in range(start_idx + 1, limit):
             l = lines[i].strip()
-            if l.startswith("#"):
+            if l.startswith("## "):
                 break
+            if l.startswith("### ") or l.startswith("#### "):
+                continue
             if l.startswith("- [ ]") or l.startswith("- [x]") or l.startswith("- [X]"):
                 l_lower = l.lower()
                 ignore_exact = {
@@ -568,7 +576,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
     
     def format_item(item_type, filename, title, issue_num):
         tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-        ref_str = format_issue_reference(issue_num, tracker_rules) if issue_num else tracker_rules.get("issue_id_placeholder", "#[IssueID]")
+        ref_str = format_issue_reference(issue_num, tracker_rules) if (issue_num and issue_num != 0) else tracker_rules.get("issue_id_placeholder", "#[IssueID]")
         
         if item_type == "feature":
             path_part = f"docs/features/{filename}.md"
@@ -585,13 +593,39 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             return m.group(2)
         return None
 
+    def sanitize_existing_item(item, title_map, child_list):
+        tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+        placeholder = tracker_rules.get("issue_id_placeholder", "#[IssueID]")
+        if "#0" in item or "#[" in item:
+            title = None
+            m_title = re.search(r'\[([^\]]+)\]\(', item)
+            if m_title:
+                title = m_title.group(1)
+            else:
+                key = get_filename_key(item)
+                if key and child_list:
+                    for fn, t in child_list:
+                        if fn == key:
+                            title = t
+                            break
+            issue_num = None
+            if title:
+                issue_num = title_map.get(normalize_title(title, rules))
+            if issue_num and issue_num != 0:
+                ref_str = format_issue_reference(issue_num, tracker_rules)
+                item = re.sub(r'#0\b|#\[(?:IssueID|FeatureIssueID|UseCaseIssueID|StoryIssueID)\]', ref_str, item)
+            else:
+                item = re.sub(r'#0\b', placeholder, item)
+        return item
+
     final_features = []
     seen_feats = set()
     for item in existing_features:
         key = get_filename_key(item)
+        sanitized = sanitize_existing_item(item, feature_titles, child_features)
         if key:
             seen_feats.add(key)
-            final_features.append(item)
+        final_features.append(sanitized)
             
     for fn, title in child_features:
         if fn not in seen_feats:
@@ -603,9 +637,10 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
     seen_ucs = set()
     for item in existing_usecases:
         key = get_filename_key(item)
+        sanitized = sanitize_existing_item(item, usecase_titles, child_usecases)
         if key:
             seen_ucs.add(key)
-            final_usecases.append(item)
+        final_usecases.append(sanitized)
             
     for fn, title in child_usecases:
         if fn not in seen_ucs:
@@ -617,15 +652,42 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
     seen_stories = set()
     for item in existing_stories:
         key = get_filename_key(item)
+        sanitized = sanitize_existing_item(item, story_titles, child_stories)
         if key:
             seen_stories.add(key)
-            final_stories.append(item)
+        final_stories.append(sanitized)
             
     for fn, title in child_stories:
         if fn not in seen_stories:
             issue_num = story_titles.get(normalize_title(title, rules))
             final_stories.append(format_item("user-story", fn, title, issue_num))
             seen_stories.add(fn)
+
+    def is_item_or_placeholder(line):
+        l = line.strip()
+        if not l:
+            return False
+        if l.startswith("- [ ]") or l.startswith("- [x]") or l.startswith("- [X]"):
+            return True
+        if any(p.match(l) for p in PLACEHOLDER_PATTERNS):
+            return True
+        return False
+
+    def filter_non_item_lines(slice_lines):
+        filtered = []
+        prev_blank = False
+        for l in slice_lines:
+            if is_item_or_placeholder(l):
+                continue
+            stripped = l.strip()
+            if not stripped:
+                if not prev_blank:
+                    filtered.append(l)
+                    prev_blank = True
+            else:
+                filtered.append(l)
+                prev_blank = False
+        return filtered
 
     new_lines = []
     if idx_req != -1:
@@ -636,8 +698,12 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             new_lines.extend(final_features)
         
         if idx_usecases != -1:
-            new_lines.extend(filter_content_lines(lines[idx_req + 1 + len(existing_features) : idx_usecases + 1]))
+            end_req = idx_usecases
+            new_lines.extend(filter_non_item_lines(lines[idx_req + 1 : end_req]))
+            new_lines.append(lines[idx_usecases])
         else:
+            end_req = idx_stories if idx_stories != -1 else (idx_next if idx_next != -1 else len(lines))
+            new_lines.extend(filter_non_item_lines(lines[idx_req + 1 : end_req]))
             new_lines.append("")
             new_lines.append(f"{indent}### Associated Use Cases & User Stories")
             new_lines.append("")
@@ -649,8 +715,14 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             new_lines.extend(final_usecases)
         
         if idx_stories != -1:
-            new_lines.extend(filter_content_lines(lines[idx_usecases + 1 + len(existing_usecases) : idx_stories + 1]))
+            end_usecases = idx_stories
+            start_usecases = idx_usecases if idx_usecases != -1 else idx_req
+            new_lines.extend(filter_non_item_lines(lines[start_usecases + 1 : end_usecases]))
+            new_lines.append(lines[idx_stories])
         else:
+            end_usecases = idx_next if idx_next != -1 else len(lines)
+            start_usecases = idx_usecases if idx_usecases != -1 else idx_req
+            new_lines.extend(filter_non_item_lines(lines[start_usecases + 1 : end_usecases]))
             new_lines.append("")
             new_lines.append(f"{indent}#### Associated User Stories")
             
@@ -659,18 +731,12 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         else:
             new_lines.extend(final_stories)
         
-        if idx_stories != -1:
-            start_after_stories = idx_stories + 1 + len(existing_stories)
-        else:
-            if idx_usecases != -1:
-                start_after_stories = idx_usecases + 1 + len(existing_usecases)
-            else:
-                start_after_stories = idx_req + 1 + len(existing_features)
+        start_after_stories = idx_stories if idx_stories != -1 else (idx_usecases if idx_usecases != -1 else idx_req)
         if idx_next != -1:
-            new_lines.extend(filter_content_lines(lines[start_after_stories : idx_next]))
+            new_lines.extend(filter_non_item_lines(lines[start_after_stories + 1 : idx_next]))
             new_lines.extend(lines[idx_next:])
         else:
-            new_lines.extend(lines[start_after_stories:])
+            new_lines.extend(filter_non_item_lines(lines[start_after_stories + 1 :]))
     else:
         return
 
