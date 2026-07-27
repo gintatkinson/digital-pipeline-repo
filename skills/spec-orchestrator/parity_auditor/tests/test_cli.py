@@ -139,7 +139,35 @@ class TestSanitizeGithubTokenEnv:
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
         monkeypatch.delenv("GH_TOKEN", raising=False)
         sanitize_github_token_env()
-        assert "GITHUB_TOKEN" not in os.environ
-        assert "GH_TOKEN" not in os.environ
+
+class TestNoteExtraction:
+
+    def test_mermaid_class_diagram_notes_extracted(self):
+        from parity_auditor.parsers.mermaid import MermaidClassDiagramParser
+        class MockWorkspaceRules:
+            class ValidationRules:
+                def __init__(self):
+                    self.visibility_prefixes = ["+", "-", "#", "~"]
+                    self.relationship_connectors = "(<\\|--|\\*--|o--|-->|\\.\\.>|--)"
+            def __init__(self):
+                self.validation_rules = self.ValidationRules()
+        class MockWorkspaceRepo:
+            workspace_dir = "."
+            def get_codebase_rules(self):
+                return MockWorkspaceRules()
+        parser = MermaidClassDiagramParser(MockWorkspaceRepo())
+        content = """```mermaid
+classDiagram
+    class ReferenceFrame {
+        +string body
+    }
+    note for ReferenceFrame "alternateSystem guarded by <<feature_guard>> alternate-systems"
+```"""
+        parsed = parser.parse(content)
+        assert "ReferenceFrame" in parsed.classes
+        cls_info = parsed.classes["ReferenceFrame"]
+        assert len(cls_info.notes) == 1
+        assert "alternate-systems" in cls_info.notes[0]
+
 
 

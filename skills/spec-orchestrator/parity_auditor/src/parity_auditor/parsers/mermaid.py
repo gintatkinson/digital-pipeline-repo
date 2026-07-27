@@ -360,6 +360,19 @@ class MermaidClassDiagramParser(IParser):
                     line
                 ))
                 if not is_relationship:
+                    note_match = re.match(r'^\s*note\s+(?:for\s+([a-zA-Z0-9_\-.:]+)\s*)?(?::|"\s*|\'\s*)?\s*(.*?)\s*["\']?\s*$', line, re.IGNORECASE)
+                    if note_match:
+                        target_cls = note_match.group(1)
+                        note_text = note_match.group(2).strip('"\': ')
+                        if note_text:
+                            if target_cls:
+                                if target_cls not in classes:
+                                    current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
+                                    classes[target_cls] = ClassInfo(name=target_cls, namespace=current_ns, attributes=[], methods=[], notes=[])
+                                classes[target_cls].notes.append(note_text)
+                            elif block_stack and block_stack[-1]["type"] == "class":
+                                current_cls = block_stack[-1]["name"]
+                                classes[current_cls].notes.append(note_text)
                     continue
 
             namespace_match = re.match(r'^namespace\s+([a-zA-Z0-9_\-]+)\s*\{', line, re.IGNORECASE)

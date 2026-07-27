@@ -868,8 +868,14 @@ class UmlValidator(IValidator):
                         global_classes[class_name] = {
                             "name": class_name,
                             "attributes": [],
-                            "methods": []
+                            "methods": [],
+                            "notes": []
                         }
+                    if "notes" not in global_classes[class_name]:
+                        global_classes[class_name]["notes"] = []
+                    for note in getattr(class_info, "notes", []):
+                        if note not in global_classes[class_name]["notes"]:
+                            global_classes[class_name]["notes"].append(note)
                     existing_attrs = {a["name"] for a in global_classes[class_name]["attributes"]}
                     for attr in class_info.attributes:
                         if attr.name and "<<" in attr.name and ">>" in attr.name:
@@ -910,8 +916,14 @@ class UmlValidator(IValidator):
                             global_classes[class_name] = {
                                 "name": class_name,
                                 "attributes": [],
-                                "methods": []
+                                "methods": [],
+                                "notes": []
                             }
+                        if "notes" not in global_classes[class_name]:
+                            global_classes[class_name]["notes"] = []
+                        for note in getattr(class_info, "notes", []):
+                            if note not in global_classes[class_name]["notes"]:
+                                global_classes[class_name]["notes"].append(note)
                         existing_attrs = {a["name"] for a in global_classes[class_name]["attributes"]}
                         for attr in class_info.attributes:
                             if attr.name and "<<" in attr.name and ">>" in attr.name:

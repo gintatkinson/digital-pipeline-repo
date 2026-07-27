@@ -228,6 +228,7 @@ class ClassInfo:
     namespace: Optional[str] = None
     attributes: List[ClassAttribute] = field(default_factory=list)
     methods: List[ClassMethod] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
 
 @dataclass
 class ClassRelationship:

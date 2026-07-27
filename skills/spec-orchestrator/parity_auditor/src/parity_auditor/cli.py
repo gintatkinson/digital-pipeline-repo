@@ -559,6 +559,34 @@ def _main_impl():
                     spec_elements.add(attr["name"].lower())
                 for method in cls_info.get("methods", []):
                     spec_elements.add(method["name"].lower())
+                for note in cls_info.get("notes", []):
+                    note_str = str(note)
+                    spec_elements.add(note_str.lower())
+                    for tok in re.findall(r'[a-zA-Z0-9_.-]+', note_str):
+                        spec_elements.add(tok.lower())
+
+            all_spec_contents = []
+            if features:
+                for feat in features:
+                    all_spec_contents.append(feat.content)
+            if epics_dir and os.path.exists(epics_dir):
+                for ep_file in os.listdir(epics_dir):
+                    if ep_file.endswith(".md"):
+                        try:
+                            with open(os.path.join(epics_dir, ep_file), "r", encoding="utf-8") as f:
+                                all_spec_contents.append(f.read())
+                        except Exception:
+                            pass
+
+            for content in all_spec_contents:
+                for match in re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL):
+                    diagram_code = match.group(1)
+                    for line in diagram_code.splitlines():
+                        line_strip = re.sub(r'%%.*$', '', line).strip()
+                        if line_strip.lower().startswith("note"):
+                            spec_elements.add(line_strip.lower())
+                            for tok in re.findall(r'[a-zA-Z0-9_.-]+', line_strip):
+                                spec_elements.add(tok.lower())
                     
             for key in sorted(all_definitions):
                 name = key.split(":", 1)[1] if ":" in key else key
