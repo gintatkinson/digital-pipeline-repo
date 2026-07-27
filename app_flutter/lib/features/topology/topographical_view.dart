@@ -6,7 +6,7 @@ import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:app_flutter/features/layout/split_workspace.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 /// The top-level topology view: breadcrumb header + split workspace
 /// (topology map + detail child) or standalone topology map.

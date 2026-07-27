@@ -13,8 +13,8 @@ import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
-import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/data/data_sources/sqlite_data_source.dart';
+import 'package:app_flutter/data/database_initializer.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 
 void main() {

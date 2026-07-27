@@ -16,12 +16,12 @@ import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
-import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
+import 'package:app_flutter/data/data_sources/sqlite_data_source.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/camera_controller.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
-import 'package:app_flutter/domain/database_initializer.dart';
-import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
-import 'package:app_flutter/domain/cesium_3d/globe_tile_renderer.dart';
+import 'package:app_flutter/data/database_initializer.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/globe_tile_renderer.dart';
 import 'dart:math' as math;
 
 void main() {

@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:app_flutter/features/topology/scene_3d_viewport_classes.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
-import 'package:app_flutter/domain/cesium_3d/projected_point.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/projected_point.dart';
 
 void main() {
   late Database db;

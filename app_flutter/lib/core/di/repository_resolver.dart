@@ -6,13 +6,13 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'data_source.dart';
-import 'data_sources/firebase_data_source.dart';
-import 'data_sources/sqlite_data_source.dart';
-import 'database_initializer.dart';
-import 'domain_seed_strategy.dart';
+import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/data/data_sources/firebase_data_source.dart';
+import 'package:app_flutter/data/data_sources/sqlite_data_source.dart';
+import 'package:app_flutter/data/database_initializer.dart';
+import 'package:app_flutter/data/seeds/domain_seed_strategy.dart';
 import 'package:flutter/foundation.dart';
-import 'cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
 
 
 /// Resolves the data-access backend at app startup.

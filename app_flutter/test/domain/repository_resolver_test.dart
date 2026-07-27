@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:app_flutter/domain/repository_resolver.dart';
-import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/core/di/repository_resolver.dart';
+import 'package:app_flutter/data/database_initializer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

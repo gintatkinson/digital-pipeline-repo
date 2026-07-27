@@ -2,9 +2,9 @@
 import 'dart:ffi';
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
-import 'package:app_flutter/domain/cesium_3d/native/bridge_bindings.dart';
-import 'package:app_flutter/domain/cesium_3d/native/error_handler.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/native/bridge_bindings.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/native/error_handler.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 // ignore: unused_element
 const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';

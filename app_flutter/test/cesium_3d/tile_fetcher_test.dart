@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

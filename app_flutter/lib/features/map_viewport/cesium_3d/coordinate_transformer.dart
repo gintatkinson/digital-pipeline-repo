@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 class CoordinateTransformer {
   /// Transforms ECEF coordinates to local coordinates.

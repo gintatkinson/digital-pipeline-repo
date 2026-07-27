@@ -4,9 +4,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:meta/meta.dart';
-import 'package:app_flutter/domain/cesium_3d/projected_point.dart';
-import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/projected_point.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 /// A tile coordinate in the Web Mercator tiling scheme.
 ///

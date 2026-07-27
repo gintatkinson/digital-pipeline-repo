@@ -1,5 +1,5 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'lib/domain/database_initializer.dart';
+import 'lib/data/database_initializer.dart';
 
 Future<void> main() async {
   sqfliteFfiInit();

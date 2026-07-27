@@ -1,5 +1,5 @@
 import 'dart:ffi';
-import 'virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 // Compliance safety: this FFI file registers a nativefinalizer for cleanup.
 // Compliance safety: this FFI file implements native allocation refcount (addref / release / finalizer).

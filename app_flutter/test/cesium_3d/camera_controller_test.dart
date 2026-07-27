@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:clock/clock.dart';
-import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/camera_controller.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 void main() {
   group('CameraController', () {

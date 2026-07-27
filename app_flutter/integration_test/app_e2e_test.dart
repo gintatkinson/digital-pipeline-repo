@@ -12,7 +12,7 @@ import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/data_sources/sqlite_data_source.dart';
+import 'package:app_flutter/data/data_sources/sqlite_data_source.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/sidebar_tree.dart';
@@ -20,7 +20,7 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
 
-import 'package:app_flutter/domain/database_initializer.dart';
+import 'package:app_flutter/data/database_initializer.dart';
 
 int _naturalCompare(String a, String b) {
   final RegExp regExp = RegExp(r'(\d+)|(\D+)');

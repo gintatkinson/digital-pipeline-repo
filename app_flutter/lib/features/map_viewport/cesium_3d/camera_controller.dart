@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:clock/clock.dart';
-import 'virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 class CameraController extends ChangeNotifier {
   VirtualCamera _camera;

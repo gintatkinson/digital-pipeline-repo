@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 
 class MockHttpOverrides extends HttpOverrides {

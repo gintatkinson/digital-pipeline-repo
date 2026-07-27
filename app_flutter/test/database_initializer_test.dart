@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import '../lib/domain/database_initializer.dart' as di;
+import '../lib/data/database_initializer.dart' as di;
 
 void main() {
   test('Run database initializer', () async {

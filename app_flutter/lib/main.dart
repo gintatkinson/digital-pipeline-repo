@@ -6,7 +6,7 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/repository_resolver.dart';
+import 'package:app_flutter/core/di/repository_resolver.dart';
 import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/app/app.dart';
 

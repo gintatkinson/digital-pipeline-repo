@@ -5,11 +5,11 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app_flutter/domain/cesium_3d/camera_controller.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
-import 'package:app_flutter/domain/cesium_3d/globe_tile_renderer.dart';
-import 'package:app_flutter/domain/cesium_3d/projected_point.dart';
-import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/camera_controller.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/globe_tile_renderer.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/projected_point.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'mesh_geometry_validator.dart';
 

@@ -5,10 +5,10 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:app_flutter/domain/cesium_3d/globe_tile_renderer.dart';
-import 'package:app_flutter/domain/cesium_3d/projected_point.dart';
-import 'package:app_flutter/domain/cesium_3d/tile_fetcher.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/globe_tile_renderer.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/projected_point.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 import 'package:flutter_test/flutter_test.dart';

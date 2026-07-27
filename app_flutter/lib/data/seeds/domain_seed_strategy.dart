@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'database_initializer.dart';
+import 'package:app_flutter/data/database_initializer.dart';
 
 /// Concrete implementation of [SeedStrategy] that seeds the database with domain-specific mock data.
 ///

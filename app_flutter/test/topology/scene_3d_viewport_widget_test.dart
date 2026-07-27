@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
-import 'package:app_flutter/domain/cesium_3d/virtual_camera.dart';
+import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
 void main() {
   testWidgets('Double tap triggers Timer.periodic preventing idle state', (WidgetTester tester) async {
