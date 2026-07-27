@@ -1,28 +1,33 @@
-# Walkthrough: UML Intermediate Container Validation Fix
+# Walkthrough - UML Intermediate Container validation
 
-## Overview
-This walkthrough covers the atomic bug fix for issue #49 (hierarchy collapse in intermediate schema containers). The `UmlValidator` was previously ignoring the `schema_containers` YAML frontmatter, resulting in downstream hierarchy collapse when intermediate models (e.g., `Racks`) were omitted from Mermaid class diagrams.
+I have implemented and verified the UML intermediate container path validation rule in the pipeline's spec-orchestrator.
 
-This task was executed rigorously following the **8-step Recursive Debugging Protocol**:
+## Changes Made
 
-## 1. Reproduction (Step 1)
-- Created the test file `test_uml_hierarchy_validation.py`.
-- Mocked a missing intermediate container class and missing relationships.
-- Verified that `UmlValidator` silently ignored the structural issues, failing the validation assertions in our RED test phase.
+### Spec Auditor Linter
+#### [uml.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py)
+*   Enhanced `_validate_class_diagram` to parse `schema_containers` from markdown frontmatter.
+*   For each schema container path, computed the expected CamelCase class names for all path segments.
+*   Asserted that the UML class diagram contains class nodes for all segments.
+*   Asserted that adjacent segments are connected by a direct relationship in the class diagram, preventing hierarchy collapse.
 
-## 2. Hypothesis & Investigation (Steps 2-3)
-- Selected **Hypothesis 1**: The frontmatter parsing logic was missing the extraction of `schema_containers`.
-- **Trace**: Verified that the `parsed_cd` object returned by the Mermaid parser correctly exposed `.classes` and `.relationships` properties, proving that a data structures-based validation was fully achievable without hitting parser limitations.
+### Automated Tests
+#### [test_uml_hierarchy_validation.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/tests/test_uml_hierarchy_validation.py)
+*   Created a new test suite that tests:
+    *   **RED Phase**: Mock feature files with collapsed hierarchies (missing intermediate container classes or relationships) are correctly caught.
+    *   **GREEN Phase**: A feature file with a complete container path hierarchy and relationships passes validation successfully.
 
-## 3. Evidence & Root Cause (Steps 4-5)
-- Documented findings in `evidence.txt`.
-- Applied the **5 Whys** and pinpointed the root cause to lines `692-693` in `uml.py`, where `classes` and `relationships` were being processed completely separately from the overall semantic structure defined in the `schema_containers` path.
+## Verification Results
 
-## 4. Fix & Verification (Steps 6-7)
-- In `_validate_class_diagram`, added logic to extract `schema_containers` using `yaml.safe_load`.
-- Splitted the path segments, generated expected CamelCase class names, and verified both their existence in `parsed_cd.classes` and their correct adjacency in `parsed_cd.relationships`.
-- **Proof**: Re-ran the newly created unit tests, resulting in a 100% GREEN pass. Ran the complete 90-test suite across `parity_auditor` to ensure zero regressions.
+### Linter Tests
+*   Executed `.venv/bin/pytest skills/spec-orchestrator/parity_auditor/tests`
+*   **Result**: 90 tests passed cleanly (including 3 new hierarchy verification tests).
 
-## 5. Synchronization (Step 8)
-- Changes were staged, committed as `fix(uml): implement intermediate container hierarchy validation (fixes #49)`, and successfully pushed to `origin/main`.
-- Clean working directory verified with `git diff origin/main`.
+### Downstream Baseline Compilation
+*   Analyzed and tested the desktop client app:
+    *   `cd app_flutter && flutter analyze && flutter test`
+*   **Result**: 273/273 tests passed cleanly.
+
+### Remote Synchronization
+*   Pushed all commits upstream.
+*   `git diff origin/main` is empty.
