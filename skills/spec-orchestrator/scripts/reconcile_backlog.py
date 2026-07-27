@@ -72,7 +72,9 @@ def get_upstream_repository(rules, workspace_dir):
     git_repo = get_git_remote_repo(workspace_dir)
     if git_repo:
         return git_repo
-    return rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
+    if rules and isinstance(rules, dict):
+        return rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
+    return "gintatkinson/digital-pipeline-repo"
 
 def format_issue_reference(issue_id, tracker_rules):
     issue_id_str = str(issue_id)
@@ -262,8 +264,55 @@ def deduplicate_markdown_sections(content):
             output_lines.append(line)
     return "\n".join(output_lines) + "\n"
 
-def write_markdown_file(filepath, content):
-    deduped_content = deduplicate_markdown_sections(content)
+def sanitize_source_references(content, workspace_dir=None, rules=None):
+    if not content:
+        return content
+
+    if workspace_dir is None:
+        workspace_dir = find_workspace_dir(os.getcwd())
+
+    upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/digital-pipeline-repo"
+    branch = get_current_branch(workspace_dir)
+    if not branch or branch == "HEAD":
+        branch = "main"
+
+    github_base = f"https://github.com/{upstream_repo}/blob/{branch}"
+
+    abs_workspace = os.path.abspath(workspace_dir).rstrip("/\\")
+    real_workspace = os.path.realpath(workspace_dir).rstrip("/\\")
+    repo_name = upstream_repo.split("/")[-1] if "/" in upstream_repo else upstream_repo
+
+    def replacer(match):
+        full_uri = match.group(0)
+        path_part = match.group(1)
+
+        if abs_workspace != "/" and path_part.startswith(abs_workspace):
+            rel = path_part[len(abs_workspace):].lstrip("/")
+            return f"{github_base}/{rel}"
+        elif real_workspace != "/" and path_part.startswith(real_workspace):
+            rel = path_part[len(real_workspace):].lstrip("/")
+            return f"{github_base}/{rel}"
+
+        repo_substr = f"/{repo_name}/"
+        if repo_substr in path_part:
+            rel = path_part.split(repo_substr, 1)[1]
+            return f"{github_base}/{rel}"
+
+        parts = path_part.split("/")
+        if len(parts) > 3 and parts[1] in ("Users", "home"):
+            rel = "/".join(parts[3:])
+            return f"{github_base}/{rel}"
+
+        return full_uri
+
+    pattern = r'file://(/[^\s\)\>"\']+)'
+    return re.sub(pattern, replacer, content)
+
+def write_markdown_file(filepath, content, workspace_dir=None, rules=None):
+    if workspace_dir is None:
+        workspace_dir = find_workspace_dir(filepath)
+    sanitized_content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
+    deduped_content = deduplicate_markdown_sections(sanitized_content)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(deduped_content)
     return deduped_content
@@ -278,6 +327,8 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
             
+        workspace_dir = find_workspace_dir(filepath)
+        content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
         content = convert_frontmatter_to_table(content)
         content = deduplicate_markdown_sections(content)
             
