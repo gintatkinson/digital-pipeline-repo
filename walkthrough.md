@@ -1,50 +1,28 @@
-# Walkthrough: Parity Auditor & Backlog Resolution Loop (Issues 207-230)
+# Walkthrough: UML Intermediate Container Validation Fix
 
-This walkthrough summarizes the changes implemented to address the backlog linter issues (Issues #207 through #230) in the `parity_auditor` package and the project's documentation/backlog scripts.
+## Overview
+This walkthrough covers the atomic bug fix for issue #49 (hierarchy collapse in intermediate schema containers). The `UmlValidator` was previously ignoring the `schema_containers` YAML frontmatter, resulting in downstream hierarchy collapse when intermediate models (e.g., `Racks`) were omitted from Mermaid class diagrams.
 
----
+This task was executed rigorously following the **8-step Recursive Debugging Protocol**:
 
-## 1. Summary of Resolved Issues
+## 1. Reproduction (Step 1)
+- Created the test file `test_uml_hierarchy_validation.py`.
+- Mocked a missing intermediate container class and missing relationships.
+- Verified that `UmlValidator` silently ignored the structural issues, failing the validation assertions in our RED test phase.
 
-### Issue 228: GitHub Offline Validation Warning
-* **Defect**: Local spec audits exited with code 1 if the GitHub API was offline.
-* **Fix**: Modified `cli.py` to downgrade the offline failure to a warning and continue validation instead of crashing.
-* **Verification**: Added `test_cli_offline.py` regression tests.
+## 2. Hypothesis & Investigation (Steps 2-3)
+- Selected **Hypothesis 1**: The frontmatter parsing logic was missing the extraction of `schema_containers`.
+- **Trace**: Verified that the `parsed_cd` object returned by the Mermaid parser correctly exposed `.classes` and `.relationships` properties, proving that a data structures-based validation was fully achievable without hitting parser limitations.
 
-### Issue 227: Dedicated Spec for alternate-systems
-* **Defect**: The `alternate-systems` feature statement was missing its own dedicated specification file, breaking the 1:1 mapping standard.
-* **Fix**: Added a dedicated `feat-002-alternate-systems.md` specification file.
+## 3. Evidence & Root Cause (Steps 4-5)
+- Documented findings in `evidence.txt`.
+- Applied the **5 Whys** and pinpointed the root cause to lines `692-693` in `uml.py`, where `classes` and `relationships` were being processed completely separately from the overall semantic structure defined in the `schema_containers` path.
 
-### Issue 226: 3-Digit Hyperlink Padding Alignment
-* **Defect**: Internal cross-document markdown hyperlinks pointed to 2-digit padded filenames (e.g. `feat-01-`) instead of the active 3-digit format (`feat-001-`).
-* **Fix**: Updated all static internal markdown cross-references to use the standard 3-digit zero-padded format.
+## 4. Fix & Verification (Steps 6-7)
+- In `_validate_class_diagram`, added logic to extract `schema_containers` using `yaml.safe_load`.
+- Splitted the path segments, generated expected CamelCase class names, and verified both their existence in `parsed_cd.classes` and their correct adjacency in `parsed_cd.relationships`.
+- **Proof**: Re-ran the newly created unit tests, resulting in a 100% GREEN pass. Ran the complete 90-test suite across `parity_auditor` to ensure zero regressions.
 
-### Issue 225: Zero-Mocking CLI Guard
-* **Defect**: Downstream scripts could construct local mock executables (like `scratch/bin/gh`) to bypass credential blockers.
-* **Fix**: Implemented a validation hook in the linter bootstrap to reject the build if any mock CLI binaries are detected.
-
-### Issue 224: Sandbox GITHUB_TOKEN Sanitization
-* **Defect**: Git terminal operations failed due to default dummy environment tokens.
-* **Fix**: Sanitized environment variables globally in scripts to allow falling back to system keychain helpers.
-
-### Issue 222: TabbedContainer Children Constraints
-* **Defect**: `LogicalUiValidator` failed to enforce that only `TableView` nodes can be children of `TabbedContainer`.
-* **Fix**: Refactored `logical_ui_validator.py` to enforce strict child type checking.
-
-### Issues 207-221: Backlog & Mapping Fixes
-* **Fixes**: Cleaned up title normalization in reconciliation scripts, enforced namespace prefixes, resolved geodetic mapping constraints, and aligned UI component specifications.
-
----
-
-## 2. Verification & Synchronization
-
-* **Unit Tests**: Ran python pytest suite:
-  ```bash
-  ../../../.venv/bin/pytest
-  ```
-  All tests passed successfully.
-* **Model Validation**: Checked model coverage:
-  ```bash
-  ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
-  ```
-* **Git Status**: Confirmed `git diff origin/main` is empty. All commits have been successfully pushed to the remote tracking repository.
+## 5. Synchronization (Step 8)
+- Changes were staged, committed as `fix(uml): implement intermediate container hierarchy validation (fixes #49)`, and successfully pushed to `origin/main`.
+- Clean working directory verified with `git diff origin/main`.
