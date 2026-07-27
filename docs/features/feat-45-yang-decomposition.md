@@ -110,5 +110,5 @@ Normative Specification: [RFC 7950 - YANG 1.1 Data Modeling Language](https://to
 
 ## 5. Logical UI & Layout Bindings
 - **Target LUI Component:** PropertyGrid
-- **Target Layout Container ID:** topology_pane
+- **Target Layout Container ID:** properties_view
 - **Data Source Bindings:** `/api/v1/decompiler/jobs`

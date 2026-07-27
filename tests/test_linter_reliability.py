@@ -353,8 +353,8 @@ def test_logical_ui_validator(tmp_path, base_config):
                 "id": "main_shell",
                 "children": [
                     {
-                        "type": "CustomTopologyView",
-                        "id": "my_topology_pane"
+                        "type": "TopographicalView",
+                        "id": "topology_pane"
                     }
                 ]
             }
@@ -375,8 +375,31 @@ type: "feature"
 # Valid Feature
 
 ## 5. Logical UI & Layout Bindings
-- **Target LUI Component**: CustomTopologyView
-- **Target Layout Container ID**: my_topology_pane
+- **Target LUI Component**: TopographicalView
+- **Target Layout Container ID**: topology_pane
+""")
+
+    # Write non-ui feature file without logical ui section
+    with open(features_dir / "feat-api.md", "w", encoding="utf-8") as f:
+        f.write("""---
+title: "API Feature"
+type: "feature"
+interface_type: "api"
+---
+# API Feature
+""")
+
+    # Write topology map alias feature file
+    with open(features_dir / "feat-topology-map.md", "w", encoding="utf-8") as f:
+        f.write("""---
+title: "Topology Map Feature"
+type: "feature"
+---
+# Topology Map Feature
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component**: TopologyMap
+- **Target Layout Container ID**: topology_pane
 """)
         
     # 3. Write feature file with invalid component/container
@@ -419,12 +442,16 @@ We track latitude and longitude coordinates.
     assert len(invalid_container_err) == 1
     
     # Assert coordinate errors for feat-coord-invalid.md
-    coord_err = [e for e in errors if "feat-coord-invalid.md" in e and "contains geodetic/coordinate concepts but" in e]
+    coord_err = [e for e in errors if "feat-coord-invalid.md" in e and ("contains spatial/geodetic" in e or "contains geodetic/coordinate" in e)]
     assert len(coord_err) == 1
     
-    # Assert no errors for feat-valid.md
+    # Assert no errors for feat-valid.md, feat-api.md, feat-topology-map.md
     valid_err = [e for e in errors if "feat-valid.md" in e]
     assert len(valid_err) == 0
+    api_err = [e for e in errors if "feat-api.md" in e]
+    assert len(api_err) == 0
+    topmap_err = [e for e in errors if "feat-topology-map.md" in e]
+    assert len(topmap_err) == 0
 
 def test_programmatic_epics_dir_override(tmp_path, base_config):
     ws_dir = setup_workspace(tmp_path, base_config)

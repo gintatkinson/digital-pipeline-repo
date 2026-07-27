@@ -23,20 +23,20 @@ issue_id: 46
 Application boot/bootstrap routine starts or Operator updates properties.
 
 ## 4. Main Success Scenario (Basic Flow)
-1. Bootstrapping mechanism loads settings and initializes [FirestoreRepositoryAdapter](file:///Users/perkunas/digital-pipeline-repo/docs/designs/persistence-architecture-blueprint.md#L32-L37).
+1. Bootstrapping mechanism loads settings and initializes [FirestoreRepositoryAdapter](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md#L32-L37).
 2. Adapter connects to local emulator suite sandbox at `http://127.0.0.1:8080`.
-3. [SeedingManager](file:///Users/perkunas/digital-pipeline-repo/docs/features/feat-44-downstream-baseline.md#L29-L32) purges legacy test records from local database.
-4. [SeedingManager](file:///Users/perkunas/digital-pipeline-repo/docs/features/feat-44-downstream-baseline.md#L29-L32) sends REST payloads to seed baseline records.
+3. [SeedingManager](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md#L29-L32) purges legacy test records from local database.
+4. [SeedingManager](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md#L29-L32) sends REST payloads to seed baseline records.
 5. UI component queries the emulator database to fetch seeded nodes.
 6. Operator updates properties and adapter saves them to the emulator.
 
 ## 5. Alternate and Exception Flows
 - **5a. Emulator offline / Unreachable (Branches from Basic Flow step 2):**
-  1. [FirestoreRepositoryAdapter](file:///Users/perkunas/digital-pipeline-repo/docs/designs/persistence-architecture-blueprint.md#L32-L37) detects a connection timeout or failure.
+  1. [FirestoreRepositoryAdapter](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md#L32-L37) detects a connection timeout or failure.
   2. System catches the connection failure, raises a boot compliance error, aborts the launch sequence, and displays the error console.
   *Guarantees:* Aborts launch, displays error console, rolls back to uninitialized state.
 - **5b. Seed data validation constraints failed (Branches from Basic Flow step 4):**
-  1. [SeedingManager](file:///Users/perkunas/digital-pipeline-repo/docs/features/feat-44-downstream-baseline.md#L29-L32) detects a schema validation constraint error (e.g. Latitude > 90.0).
+  1. [SeedingManager](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md#L29-L32) detects a schema validation constraint error (e.g. Latitude > 90.0).
   2. System rejects the database write operations, throws a validation constraint error, aborts seeding, and halts application startup.
   *Guarantees:* Rejects write, rolls back any partial database changes, halts startup, and notifies Operator.
 - **5c. Zero-Mocking Policy Violation (Branches from Basic Flow step 1):**
@@ -93,10 +93,10 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #2 - Local Emulator Seeding Story ([us-02-emulator-seeding](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-02-emulator-seeding.md)) (Verifies local emulator seeding capability)
+- [x] #2 - Local Emulator Seeding Story ([us-02-emulator-seeding](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-02-emulator-seeding.md)) (Verifies local emulator seeding capability)
 ### Required Features
 - [x] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (implements the bootstrapping logic, SeedingManager database purge/restoration, and connection checks for the local emulator environment)
 
 ## Source References
 Structural Schema: None defined.
-Normative Specification: [Persistence Architecture Blueprint](file:///Users/perkunas/digital-pipeline-repo/docs/designs/persistence-architecture-blueprint.md)
+Normative Specification: [Persistence Architecture Blueprint](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md)

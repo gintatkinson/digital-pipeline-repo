@@ -72,3 +72,9 @@ Uses the output schema of the compiler (`logical-layout.json`) loaded dynamicall
 - Given active layout config
 - When grid is loaded
 - Then component renders successfully.
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** PropertyGrid
+- **Target Layout Container ID:** properties_view
+- **Data Source Bindings:** `/api/v1/properties`
+

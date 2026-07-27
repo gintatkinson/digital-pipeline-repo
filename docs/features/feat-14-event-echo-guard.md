@@ -67,3 +67,9 @@ For DOM operations updating CSS layouts directly without triggering component re
 - Given duplicate event
 - When verified
 - Then event is blocked.
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** PropertyGrid
+- **Target Layout Container ID:** properties_view
+- **Data Source Bindings:** `/api/v1/events`
+

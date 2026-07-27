@@ -92,3 +92,10 @@ classDiagram
 ## Source References
 - **Project Constitution**: [constitution.md:L95-103](../../.pipeline/constitution.md#L95-L103) (Section 1.10 Layout Engine Compliance)
 - **React Profile**: [react.md:L51-87](../../.pipeline/profiles/react.md#L51-L87) (Section 2 Visual Layout & Structure)
+
+## 5. Logical UI & Layout Bindings
+- **Target LUI Component:** TopographicalView
+- **Target Layout Container ID:** topology_pane
+- **Data Source Bindings:** `/api/v1/layout`
+
+

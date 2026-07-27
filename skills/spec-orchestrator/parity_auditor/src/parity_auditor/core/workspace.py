@@ -98,22 +98,25 @@ class WorkspaceRepository:
                 continue
 
             labels = []
+            frontmatter_dict = {}
             frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
             if frontmatter_match:
                 frontmatter_text = frontmatter_match.group(1)
                 try:
                     import yaml
                     data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
-                    if isinstance(data, dict) and "labels" in data:
-                        lbls = data["labels"]
-                        if isinstance(lbls, list):
-                            labels = [str(lbl).strip() for lbl in lbls]
-                        elif isinstance(lbls, str):
-                            labels_match = re.search(r"\[(.*?)\]", lbls)
-                            if labels_match:
-                                labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
-                            else:
-                                labels = [lbl.strip() for lbl in lbls.split(",") if lbl.strip()]
+                    if isinstance(data, dict):
+                        frontmatter_dict = data
+                        if "labels" in data:
+                            lbls = data["labels"]
+                            if isinstance(lbls, list):
+                                labels = [str(lbl).strip() for lbl in lbls]
+                            elif isinstance(lbls, str):
+                                labels_match = re.search(r"\[(.*?)\]", lbls)
+                                if labels_match:
+                                    labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
+                                else:
+                                    labels = [lbl.strip() for lbl in lbls.split(",") if lbl.strip()]
                 except Exception:
                     for line in frontmatter_text.splitlines():
                         if line.startswith("labels:"):
@@ -124,7 +127,8 @@ class WorkspaceRepository:
             features.append(FeatureFile(
                 filename=filename,
                 labels=labels,
-                content=content
+                content=content,
+                frontmatter=frontmatter_dict
             ))
         self._feature_files = features
         return self._feature_files

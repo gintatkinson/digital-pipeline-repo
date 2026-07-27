@@ -98,7 +98,12 @@
               "props": {
                 "tab_position": "bottom"
               },
-              "children": []
+              "children": [
+                {
+                  "type": "PropertyGrid",
+                  "id": "properties_view"
+                }
+              ]
             }
           ]
         }

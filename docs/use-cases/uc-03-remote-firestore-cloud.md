@@ -9,7 +9,7 @@ issue_id: 47
 # Use Case: Shared Cloud Sync via Remote Firestore Flow
 
 ## Parent Epic
-- [ ] #43 - Standalone Persistence Epic (https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/epics/epic-43-downstream-delivery.md) (Aggregates all persistence layers and adapters for React and Flutter desktop configurations)
+- [x] #43 - Standalone Persistence Epic (https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/epics/epic-43-downstream-delivery.md) (Aggregates all persistence layers and adapters for React and Flutter desktop configurations)
 
 ## 1. Actors
 - **Primary Actor:** Operator/Engineer
@@ -95,10 +95,10 @@ Configuration B: Production Mode (Cloud Firestore)
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #3 - Collaborative Console Updates ([us-03-collaborative-sync](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
+- [x] #3 - Collaborative Console Updates ([us-03-collaborative-sync](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
 ### Required Features
 - [x] #44 - Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies concrete FirestoreRepositoryAdapter and compliance verification checks)
 
 ## Source References
-Structural Schema: [persistence-architecture-blueprint.md:L75-80](file:///Users/perkunas/digital-pipeline-repo/docs/designs/persistence-architecture-blueprint.md#L75-L80)
-Normative Specification: [constitution.md:L88-94](file:///Users/perkunas/digital-pipeline-repo/.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)
+Structural Schema: [persistence-architecture-blueprint.md:L75-80](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md#L75-L80)
+Normative Specification: [constitution.md:L88-94](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)

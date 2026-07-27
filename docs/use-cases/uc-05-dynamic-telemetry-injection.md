@@ -76,7 +76,7 @@ Ensures zero-code-gen dynamically loaded UI dashboards can safely map, display, 
 ## 8. Realization Matrix
 ### Required Features
 - [x] #54 - YANG-to-JSON Build-Time Schema Compiler ([feat-12-yang-compiler](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-12-yang-compiler.md)) (Verifies compilation of the runtime layouts)
-- [ ] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies rendering of the form widgets dynamically)
+- [x] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies rendering of the form widgets dynamically)
 - [x] #57 - Off-Thread Telemetry Processing and Worker Isolation ([feat-15-off-thread-telemetry](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-15-off-thread-telemetry.md)) (Verifies unpacking and buffering of gNMI streams)
 
 ### Required User Stories

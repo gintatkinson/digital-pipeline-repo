@@ -296,3 +296,4 @@ class FeatureFile:
     filename: str
     labels: List[str]
     content: str
+    frontmatter: Dict[str, Any] = field(default_factory=dict)

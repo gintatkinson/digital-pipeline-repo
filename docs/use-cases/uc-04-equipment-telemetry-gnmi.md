@@ -74,4 +74,4 @@ Deployments utilize gNMI Protobuf streams over HTTP/2 transport to capture high-
 - [ ] Persistence Architecture Blueprint ([blueprint](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md)) (Verifies gNMI/Protobuf repository adapter structure)
 
 ### Required User Stories
-- [ ] #4 - Telemetry streaming ([us-04-streaming](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-04-streaming.md)) (Verifies telemetry streaming capability)
+- [x] #4 - Telemetry streaming ([us-04-streaming](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-04-streaming.md)) (Verifies telemetry streaming capability)

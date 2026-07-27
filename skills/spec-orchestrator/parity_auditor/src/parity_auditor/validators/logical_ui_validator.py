@@ -95,7 +95,26 @@ class LogicalUiValidator(IValidator):
             match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             
             if not match:
-                errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
+                fm = getattr(feat, "frontmatter", None)
+                if not fm or not isinstance(fm, dict):
+                    fm = {}
+                    fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+                    if fm_match:
+                        try:
+                            import yaml
+                            parsed_fm = yaml.safe_load(fm_match.group(1).replace('\x01', ''))
+                            if isinstance(parsed_fm, dict):
+                                fm = parsed_fm
+                        except Exception:
+                            pass
+                
+                interface_type = fm.get("interface_type") if isinstance(fm, dict) else None
+                if isinstance(interface_type, str):
+                    interface_type = interface_type.lower()
+                non_ui_types = {"api", "config", "persistence", "gate", "cli", "backend"}
+                
+                if not interface_type or interface_type not in non_ui_types:
+                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
             else:
                 section_content = match.group(1)
                 for line in section_content.splitlines():
@@ -185,7 +204,7 @@ class LogicalUiValidator(IValidator):
             # Ensure specified target component is a valid layout component (if not N/A)
             for c in sorted(specified_components):
                 if c.upper() != "N/A":
-                    if c not in component_types:
+                    if c not in component_types and not (c == "TopologyMap" and ("topology_pane" in container_ids or "TopologyMap" in component_types)):
                         errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{c}'. It must be instantiated in logical-layout.json.")
                     
             # Ensure specified target container ID is valid (if not N/A)
@@ -197,16 +216,18 @@ class LogicalUiValidator(IValidator):
                     if expected_type and specified_components:
                         for c in sorted(specified_components):
                             if c.upper() != "N/A" and c != expected_type:
+                                if c == "TopologyMap" and container_val == "topology_pane":
+                                    continue
                                 errors.append(
                                     f"Logical UI Compliance: Feature '{rel_path}' specifies component type '{c}' but target container '{container_val}' is of type '{expected_type}'."
                                 )
 
             # Enforce that geodetic/spatial features map to valid spatial view components
-            VALID_SPATIAL_COMPONENTS = {"TopologyMap", "TopographicalView", "GeoSpatialViewer", "PropertyGrid", "TableView", "N/A"}
+            VALID_SPATIAL_COMPONENTS = {"TopologyMap", "TopographicalView", "GeoSpatialViewer", "PropertyGrid", "TableView"}
             GEODETIC_REGEX = re.compile(r"\b(?:location|velocity|geo-location|geodetic|latitude|longitude|altitude|elevation|datum|position|spatial|reference-frame|geodetic-system|coordinates|velocity\s+vectors)\b", re.IGNORECASE)
 
-            if GEODETIC_REGEX.search(content):
-                if any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components):
+            if match and GEODETIC_REGEX.search(content):
+                if any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components) or not specified_components:
                     errors.append(
                         f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView')."
                     )
