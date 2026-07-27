@@ -264,6 +264,13 @@ def deduplicate_markdown_sections(content):
             output_lines.append(line)
     return "\n".join(output_lines) + "\n"
 
+def rewrite_header_repository_urls(content, active_repo):
+    if not content or not active_repo:
+        return content
+    pattern = r'https://github\.com/[^/]+/[^/]+/blob/'
+    replacement = f'https://github.com/{active_repo}/blob/'
+    return re.sub(pattern, replacement, content)
+
 def sanitize_source_references(content, workspace_dir=None, rules=None):
     if not content:
         return content
@@ -272,6 +279,7 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
         workspace_dir = find_workspace_dir(os.getcwd())
 
     upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/digital-pipeline-repo"
+    content = rewrite_header_repository_urls(content, upstream_repo)
     branch = get_current_branch(workspace_dir)
     if not branch or branch == "HEAD":
         branch = "main"

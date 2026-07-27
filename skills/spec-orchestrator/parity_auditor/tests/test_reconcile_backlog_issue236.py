@@ -7,7 +7,7 @@ SCRIPT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..",
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from reconcile_backlog import sanitize_source_references, write_markdown_file, sync_issue_body_to_tracker, get_upstream_repository
+from reconcile_backlog import sanitize_source_references, write_markdown_file, sync_issue_body_to_tracker, get_upstream_repository, rewrite_header_repository_urls
 
 def test_sanitize_source_references_converts_workstation_file_uris():
     content = (
@@ -74,3 +74,19 @@ def test_get_upstream_repository_prioritizes_git_remote_over_rules_meta(monkeypa
 
     repo = get_upstream_repository(rules, "/Users/perkunas/jail/3dgs-026")
     assert repo == "gintatkinson/3dgs-026"
+
+def test_rewrite_header_repository_urls_rewrites_legacy_urls_to_active_repo():
+    content = (
+        "# Feature 03: Header Links\n\n"
+        "- **Parent Epic**: [Epic 01](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/epics/epic-01.md)\n"
+        "- **Legacy Spec Link**: https://github.com/legacy-org/old-pipeline-repo/blob/master/docs/features/feat-01.md\n"
+    )
+
+    active_repo = "gintatkinson/3dgs-026"
+    rewritten = rewrite_header_repository_urls(content, active_repo)
+
+    assert "https://github.com/gintatkinson/digital-pipeline-repo/blob/" not in rewritten
+    assert "https://github.com/legacy-org/old-pipeline-repo/blob/" not in rewritten
+    assert "https://github.com/gintatkinson/3dgs-026/blob/main/docs/epics/epic-01.md" in rewritten
+    assert "https://github.com/gintatkinson/3dgs-026/blob/master/docs/features/feat-01.md" in rewritten
+
