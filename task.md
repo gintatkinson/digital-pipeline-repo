@@ -1,6 +1,6 @@
-# Task Checklist: Topology 3D Model Integration
+# Task Checklist: Relocate Solution Specification Document
 
-- [x] Phase 1: Implement `nodeModels` mapping and loading pipeline in `SceneViewState`
-- [x] Phase 2: Update `TopologyLayer.paint` to render 3D assets or fall back to 2D circles
-- [x] Phase 3: Implement integration tests for success and failure rendering flows
-- [x] Run tests and verify baseline compilation passes
+- [x] Relocate `solution_definition.md` to `docs/designs/`
+- [x] Delete duplicate `solution_definition.md` from workspace root
+- [x] Verify relocation via `git status`
+- [x] Generate walkthrough report

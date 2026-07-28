@@ -1,31 +1,21 @@
-# Walkthrough - Clean Architecture Domain Layer Refactoring
+# Walkthrough - Relocate Solution Specification Document
 
-I have successfully refactored `app_flutter` to comply with Clean Architecture by moving data and presentation concerns out of the domain layer and resolving all import paths across the codebase.
+This walkthrough summarizes the execution and verification of the restructuring plan for the Solution Specification document.
 
-## Relocations Executed
+---
 
-The following directories and files have been migrated to their proper layers:
+## Changes Executed
 
-| Target Component | Migrated Path | Target Layer |
-| :--- | :--- | :--- |
-| **Cesium 3D Graphics** | `lib/domain/cesium_3d/` $\rightarrow$ [`lib/features/map_viewport/cesium_3d/`](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/features/map_viewport/cesium_3d/) | Presentation / Rendering |
-| **Concrete Data Sources** | `lib/domain/data_sources/` $\rightarrow$ [`lib/data/data_sources/`](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/data/data_sources/) | Data / Infrastructure |
-| **Database Initializer** | `lib/domain/database_initializer.dart` $\rightarrow$ [`lib/data/database_initializer.dart`](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/data/database_initializer.dart) | Data / Setup |
-| **Domain Seed Strategy** | `lib/domain/domain_seed_strategy.dart` $\rightarrow$ [`lib/data/seeds/domain_seed_strategy.dart`](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/data/seeds/domain_seed_strategy.dart) | Data / Seeds |
-| **Repository Resolver** | `lib/domain/repository_resolver.dart` $\rightarrow$ [`lib/core/di/repository_resolver.dart`](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/core/di/repository_resolver.dart) | Core / DI / Config |
-
-### Core Domain Entities Retained:
-Only abstract contracts and entity models remain in [`lib/domain/`](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/):
-*   `lib/domain/data_source.dart` (Abstract Interface)
-*   `lib/domain/instance_record.dart` (Core Entity Model)
-*   `lib/domain/type_descriptor.dart` (Core Schema Entity)
-*   `lib/domain/validation.dart` (Schema Validation Logic)
+1.  **Relocated Solution Specification**:
+    Created the new document at the correct destination: [`solution_definition.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/designs/solution_definition.md).
+2.  **Cleaned Root Directory**:
+    Deleted the duplicate file from the workspace root directory: `solution_definition.md` (root).
+3.  **Updated Implementation Plan**:
+    Updated the active [Implementation Plan](file:///Users/perkunas/jail/digital-pipeline-repo/implementation_plan.md) to record this restructuring.
 
 ---
 
 ## Verification Results
-*   **Flutter Analyze**: Passed successfully with 0 errors or warnings.
-*   **Flutter Test Suite**: Run complete, `273/273 tests` passed successfully.
-*   **Spec-Only Validator**: Passed successfully.
-*   **Backlog Reconciliation**: Backlog state synchronized via `reconcile_backlog.py`.
-*   **Remote Synchronization**: Committed and pushed changes. `git diff origin/main` is empty.
+
+*   **File Presence**: Verified that `docs/designs/solution_definition.md` is present and untracked in git.
+*   **Root Cleanliness**: Verified that `git status` lists no duplicate or stray `solution_definition.md` at the workspace root.
