@@ -47,7 +47,7 @@ flowchart TD
 ---
 
 ## 3. Firestore Schema & Document Structure
-To persist the geodetic models, data is stored in two root collections: `nodes` and `links`.
+To persist the geometry models, data is stored in two root collections: `nodes` and `links`.
 
 ### 1. `nodes` Collection
 * **Document ID:** `uuid` (string, e.g. `node-01`)
@@ -59,15 +59,15 @@ To persist the geodetic models, data is stored in two root collections: `nodes` 
     "type": "ROUTER",
     "referenceFrame": {
       "astronomicalBody": "earth",
-      "geodeticSystem": {
-        "datum": "wgs-84",
+      "geometrySystem": {
+        "datum": "geometry",
         "coordAccuracy": 1.5,
-        "heightAccuracy": 2.0
+        "dim_2Accuracy": 2.0
       }
     },
-    "latitude": 35.6762,
-    "longitude": 139.6503,
-    "height": 40.5,
+    "dim_0": 35.6762,
+    "dim_1": 139.6503,
+    "dim_2": 40.5,
     "validityLimit": "2026-12-31T23:59:59Z"
   }
   ```
@@ -106,9 +106,9 @@ export class FirestoreRepositoryAdapter implements LocationRepository {
     return {
       id: snap.id,
       name: data.name,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      altitude: data.height,
+      dim_0: data.dim_0,
+      dim_1: data.dim_1,
+      dim_2: data.dim_2,
       validUntil: new Date(data.validityLimit)
     };
   }
@@ -124,9 +124,9 @@ export class FirestoreRepositoryAdapter implements LocationRepository {
     const docRef = doc(this.firestoreDb, 'nodes', loc.id);
     await setDoc(docRef, {
       name: loc.name,
-      latitude: loc.latitude,
-      longitude: loc.longitude,
-      height: loc.altitude,
+      dim_0: loc.dim_0,
+      dim_1: loc.dim_1,
+      dim_2: loc.dim_2,
       validityLimit: loc.validUntil.toISOString()
     }, { merge: true });
   }
@@ -169,9 +169,9 @@ connectFirestoreEmulator(db, '127.0.0.1', 8080);
 async function seed() {
   await setDoc(doc(db, 'nodes', 'node-01'), {
     name: "Tokyo-Gateway-01",
-    latitude: 35.6762,
-    longitude: 139.6503,
-    height: 40.5
+    dim_0: 35.6762,
+    dim_1: 139.6503,
+    dim_2: 40.5
   });
   console.log("Mock data seeded successfully.");
 }

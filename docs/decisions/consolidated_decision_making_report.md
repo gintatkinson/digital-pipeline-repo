@@ -12,24 +12,24 @@ This report consolidates the deep-dive technical critiques from five adversarial
 
 ### Key Architectural Decisions:
 1. **CPU-Side Floating Origin (Relative-to-Eye) Migration**: Abandon GPU-side double-single precision (`ds_sub`) emulation. Bandwidth calculations prove that CPU-side `float64` subtraction and `f32` dynamic uploads consume `<0.06%` of PCIe Gen3 x16 bandwidth. This saves 50% VRAM, eliminates shader compiler optimization vulnerabilities, and guarantees sub-millimeter precision.
-2. **Coriolis Velocity Corrections**: Standardize the ECI-to-ECEF transformation to include the frame rotation velocity correction ($\boldsymbol{\omega}_{Earth} \times \mathbf{r}_{ECI}$). Without this term, Hermite spline interpolations overshoot by up to 465 m/s, warping trajectories.
-3. **Exact Ellipsoidal Occlusion & Physical Jamming Models**: Upgrade line-of-sight checks from ray-sphere to ray-ellipsoid quadratic intersections in WGSL. Integrate antenna patterns (Gaussian/Airy), pointing errors, system noise temperature ($T_{sys}$), and polarization losses into the RF interference models.
+2. **Coriolis RateOfChange Corrections**: Standardize the ECI-to-ECEF transformation to include the frame rotation rateOfChange correction ($\boldsymbol{\omega}_{Earth} \times \mathbf{r}_{ECI}$). Without this term, Hermite spline interpolations overshoot by up to 465 m/s, warping trajectories.
+3. **Exact Geometric Occlusion & Physical Jamming Models**: Upgrade line-of-sight checks from ray-sphere to ray-geometry quadratic intersections in WGSL. Integrate antenna patterns (Gaussian/Airy), pointing errors, system noise temperature ($T_{sys}$), and polarization losses into the RF interference models.
 4. **Time-State PLL & Isolate Swap Protocols**: Replace the PID clock-rate smoothing with a Low-Pass Filtered Phase-Locked Loop (PLL) to prevent time-reversal and integrator windup. Enforce double-buffered pointer swaps and NativeFinalizers on Dart FFI allocations to prevent data tearing and use-after-free errors.
 5. **AST-Based Pipeline Linting**: Upgrade the static linter (`verify_model_coverage.py`) from basic regex searches to AST-based checks, closing dynamic import and directory bypasses. Remediate the global-match loophole in behavioral triggers.
 
 ---
 
-## 2. Astrodynamics & Geodetic Coordinate Transformations
+## 2. Astrodynamics & Geometry Coordinate Transformations
 
-### 2.1 ECI-to-ECEF Frame Rotation Velocity Correction
-When translating orbital vectors from ECI (TEME via SGP4) to ECEF (for ground terrain rendering) for spline keyframes, the rotation velocity correction must be applied. 
+### 2.1 ECI-to-ECEF Frame Rotation RateOfChange Correction
+When translating orbital vectors from ECI (TEME via SGP4) to ECEF (for ground terrain rendering) for spline keyframes, the rotation rateOfChange correction must be applied. 
 
 **The Mathematical Correction**:
-Let $\mathbf{r}_I$ and $\mathbf{v}_I$ be ECI position and velocity. Let $\mathbf{r}_R$ and $\mathbf{v}_R$ be ECEF position and velocity. The Earth's rotation vector is $\boldsymbol{\omega}_{Earth} \approx [0, 0, 7.292115 \times 10^{-5}\text{ rad/s}]^T$.
+Let $\mathbf{r}_I$ and $\mathbf{v}_I$ be ECI position and rateOfChange. Let $\mathbf{r}_R$ and $\mathbf{v}_R$ be ECEF position and rateOfChange. The Earth's rotation vector is $\boldsymbol{\omega}_{Earth} \approx [0, 0, 7.292115 \times 10^{-5}\text{ rad/s}]^T$.
 $$\mathbf{r}_R = \mathbf{R}_{ECI\to ECEF}(t) \mathbf{r}_I$$
 $$\mathbf{v}_R = \mathbf{R}_{ECI\to ECEF}(t) \left( \mathbf{v}_I - \boldsymbol{\omega}_{Earth} \times \mathbf{r}_I \right)$$
 
-*Failure Mode*: Omitting the Coriolis term $\boldsymbol{\omega}_{Earth} \times \mathbf{r}_I$ introduces a velocity error of up to **465.1 m/s** at the equator. This causes cubic Hermite spline interpolation to overshoot wildly between keyframes, distorting spacecraft trajectories.
+*Failure Mode*: Omitting the Coriolis term $\boldsymbol{\omega}_{Earth} \times \mathbf{r}_I$ introduces a rateOfChange error of up to **465.1 m/s** at the equator. This causes cubic Hermite spline interpolation to overshoot wildly between keyframes, distorting spacecraft trajectories.
 
 ```typescript
 // Remediated State Vector Conversion
@@ -154,11 +154,11 @@ fn conjunction_check(
 
 ## 4. Communication Links & Interference Mapping
 
-### 4.1 Exact Ray-Ellipsoid Line-of-Sight (LOS) Occlusion
-Instead of checking spherical approximations (which introduce up to 21 km of geodetic error at the poles), the narrowphase shader must run exact ray-ellipsoid intersections with an atmospheric grazing mask height ($h_{mask}$).
+### 4.1 Exact Ray-Geometry Line-of-Sight (LOS) Occlusion
+Instead of checking spherical approximations (which introduce up to 21 km of geometry error at the poles), the narrowphase shader must run exact ray-geometry intersections with an atmospheric grazing mask dim_2 ($h_{mask}$).
 
 **Mathematical Formulation**:
-An ellipsoid is defined by $\frac{x^2}{a^2} + \frac{y^2}{b^2} + \frac{z^2}{c^2} = 1$. Let $\mathbf{M} = \text{diag}(1/a, 1/b, 1/c)$. 
+An geometry is defined by $\frac{x^2}{a^2} + \frac{y^2}{b^2} + \frac{z^2}{c^2} = 1$. Let $\mathbf{M} = \text{diag}(1/a, 1/b, 1/c)$. 
 For a ray $\mathbf{p}(t) = \mathbf{r}_s + t\mathbf{d}$ between source $\mathbf{r}_s$ and receiver $\mathbf{r}_r$ (where $\mathbf{d} = \mathbf{r}_r - \mathbf{r}_s$):
 Transform coordinates to the unit sphere: $\mathbf{r}'_s = \mathbf{M}\mathbf{r}_s$ and $\mathbf{d}' = \mathbf{M}\mathbf{d}$.
 The intersection occurs where $\|\mathbf{r}'_s + t\mathbf{d}'\|^2 = (1 + h_{mask}/a)^2$.
@@ -183,7 +183,7 @@ Where:
 ## 5. UI Synchronization & Threading
 
 ### 5.1 Loop Filtered Phase-Locked Loop (PLL) Time Controller
-Directly adjusting the playback speed via raw PID terms causes integrator windup and time-reversal bugs during network stalls. A second-order Phase-Locked Loop (PLL) with anti-windup clamping prevents these issues:
+Directly adjusting the playback rateOfChange via raw PID terms causes integrator windup and time-reversal bugs during network stalls. A second-order Phase-Locked Loop (PLL) with anti-windup clamping prevents these issues:
 
 ```javascript
 class PlaybackPLL {
@@ -298,7 +298,7 @@ Modify the behavioral trigger loop in `verify_model_coverage.py` to assert docum
 ## 7. Verification & Implementation Plan
 
 ### 7.1 Automated Testing Metrics
-* **Math Proofs**: Verify that the ray-ellipsoid quadratic formula in WebGPU produces collision coordinates that align within $10^{-5}\text{ m}$ of standard orbital GMAT simulations.
+* **Math Proofs**: Verify that the ray-geometry quadratic formula in WebGPU produces collision coordinates that align within $10^{-5}\text{ m}$ of standard orbital GMAT simulations.
 * **FFI Cleanliness**: Run the Dart coordinate allocation loop under a load test of 100,000 swaps. Assert that total system resident set size (RSS) memory remains flat (0% growth, validating the `NativeFinalizer`).
 * **Linter AST Checks**: Introduce unit tests inside `skills/spec-orchestrator/` verifying that `verify_model_coverage.py` successfully blocks indirect imports, nested requires, and dynamic string evaluations of blocked modules.
-* **Integrator Saturation**: Simulate a 10-second network drop during timeline playback. Assert that the playhead speed does not exceed the $[0.90, 1.10]$ limits and that no visual snaps occur upon packet stream resumption.
+* **Integrator Saturation**: Simulate a 10-second network drop during timeline playback. Assert that the playhead rateOfChange does not exceed the $[0.90, 1.10]$ limits and that no visual snaps occur upon packet stream resumption.

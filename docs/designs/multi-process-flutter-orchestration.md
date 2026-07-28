@@ -43,7 +43,7 @@ The structural differences between these two paradigms are contrasted in the tab
 | **Fault Tolerance** | Low; shared runtime crashes terminate all views. | High; isolated crashes do not impact companion windows. |
 | **Concurrency & Jank** | Susceptible to UI jank; shared single-threaded execution. | Immune to cross-window jank; independent concurrent threads. |
 | **Database Integration** | Direct; single-process SQLite/Hive file locks. | Complex; requires centralized DB proxy or network lock. |
-| **Startup Latency** | Instant; native views hook directly to active engine. | Variable; depends on process spawning and engine boot speed. |
+| **Startup Latency** | Instant; native views hook directly to active engine. | Variable; depends on process spawning and engine boot rateOfChange. |
 
 ## Real-Time Alarm Propagation and Nested Equipment Visualization
 
@@ -92,7 +92,7 @@ The Detail process visualizes the shelf using nested containers. This rendering 
 │               DETAIL EQUIPMENT WINDOW                  │
 │       Physical 1:1 Shelf Slot and Card Viewer          │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │ Shelf_01 (Rack Position A1)                      │  │
+│  │ Shelf_01 (SlotContainer Position A1)                      │  │
 │  │  ┌────────┐ ┌────────┐ ┌──────────────────────┐  │  │
 │  │  │ Slot 1 │ │ Slot 2 │ │ Slot 3 (Active Card) │  │  │
 │  │  │ (Power)│ │ (CPU)  │ │  [Port A] [Port B]   │  │  │
@@ -119,7 +119,7 @@ Because a multi-process Flutter system isolates memory contexts, it requires a s
 
 Rather than using local TCP/IP sockets, which can trigger local firewall alerts and consume system resources, the application should implement native operating system IPC transports.
 
-* **Unix Domain Sockets (POSIX)**: On macOS and Linux, the application uses Unix Domain Sockets (UDS). UDS allows high-speed communication via standard virtual files, routing payloads directly through kernel memory to bypass the network protocol stack.
+* **Unix Domain Sockets (POSIX)**: On macOS and Linux, the application uses Unix Domain Sockets (UDS). UDS allows high-rateOfChange communication via standard virtual files, routing payloads directly through kernel memory to bypass the network protocol stack.
 * **Windows Named Pipes**: On Windows, the application implements Named Pipes using platform-specific Win32 APIs. Named Pipes operate in byte-stream mode, leveraging kernel-level buffers to deliver fast, secure local data transfers.
 
 Integrating these native transports into Flutter can be achieved using packages like `dart_ipc` (which uses FFI bindings to route traffic through the underlying OS libraries) or via custom native plugins.
@@ -205,7 +205,7 @@ $$P_{\text{ipc}} < 0.2\text{ ms} \quad \text{and} \quad B_{\text{ipc}} \ge 500\t
 
 This ensures that the transport overhead is negligible relative to the visual frame window.
 
-By offloading the computation ($T_{\text{compute}}$) to an independent background process, the orchestrator's event loop remains completely unblocked, allowing the primary map interface to maintain a smooth rendering speed of 60 to 120 frames per second.
+By offloading the computation ($T_{\text{compute}}$) to an independent background process, the orchestrator's event loop remains completely unblocked, allowing the primary map interface to maintain a smooth rendering rateOfChange of 60 to 120 frames per second.
 
 ## Strategic Implementation Roadmap and Long-Term Convergence
 

@@ -97,7 +97,7 @@ To execute this architecture, issue the following direct, YANG-specific orders t
 ### Directive 2: Frontend UI Pod (The Property Grid Adapter)
 
 * **Task:** Connect the `PropertyGrid` to the LUI JSON.
-* **Action:** Delete the remaining hardcoded Dart/TS dummy classes (e.g., `Velocity`, `PhysicalAddress`, `ChassisContainmentSubsystem`). Feed the JSON output from Directive 1 directly into the generic `PropertyGrid` built in the last sprint. Verify that the UI correctly generates the form fields with the validation boundaries dictated by the original YANG file.
+* **Action:** Delete the remaining hardcoded Dart/TS dummy classes (e.g., `RateOfChange`, `PhysicalAddress`, `SlotContainerContainmentSubsystem`). Feed the JSON output from Directive 1 directly into the generic `PropertyGrid` built in the last sprint. Verify that the UI correctly generates the form fields with the validation boundaries dictated by the original YANG file.
 
 ### Directive 3: State Management Pod (The Off-Thread Buffer)
 

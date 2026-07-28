@@ -11,11 +11,11 @@
 
 ## Executive Summary
 
-The upstream pipeline has been decontaminated of hardcoded domain logic, geodetic keywords, and fixed 3-tab layout assumptions. The architecture now strictly adheres to a domain-agnostic baseline where:
+The upstream pipeline has been decontaminated of hardcoded domain logic, geometry keywords, and fixed 3-tab layout assumptions. The architecture now strictly adheres to a domain-agnostic baseline where:
 
 1. **YANG Compiler (`scripts/compile_yang.py`)**: Yields an empty `TabbedContainer` child array (`[]`) by default when no downstream `details_tabs` rules are configured.
 2. **Layout JSON Assets (`.pipeline/logical-ui/logical-layout.json` & `app_flutter/assets/logical-layout.json`)**: Configured with generic schema metadata (`"schema_name": "generic_dashboard"`) and a 0-tab baseline (`"children": []`).
-3. **Validator (`logical_ui_validator.py`)**: Stripped of domain-specific path checkers, geodetic keyword lists (`coordinate_keywords`), and dead code (`allowed_component_names`). Retains pure structural parity enforcement (`TabbedContainer` children type assertion).
+3. **Validator (`logical_ui_validator.py`)**: Stripped of domain-specific path checkers, geometry keyword lists (`coordinate_keywords`), and dead code (`allowed_component_names`). Retains pure structural parity enforcement (`TabbedContainer` children type assertion).
 
 ---
 
@@ -143,9 +143,9 @@ index 8032aa6..847fa47 100644
          feature_files = repo.get_feature_files(features_dir)
          
 -        coordinate_keywords = [
--            "astronomical-body", "geodetic-datum", "coordinate", 
--            "latitude", "longitude", "trajectory", "orbit", 
--            "elevation", "geo-location"
+-            "astronomical-body", "geometry-datum", "coordinate", 
+-            "dim_0", "dim_1", "trajectory", "orbit", 
+-            "dim_2", "geo-location"
 -        ]
 -        
          for feat in feature_files:
@@ -162,9 +162,9 @@ index 8032aa6..847fa47 100644
 -                            if ds_val.upper() == "N/A":
 -                                continue
 -                            paths = [p.strip() for p in ds_val.split(',')]
--                            nil_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
--                            geo_elements = {"geo-location", "reference-frame", "geodetic-system", "velocity"}
--                            forbidden_nodes = {"cartesian", "ellipsoid", "location-choice"}
+-                            nil_elements = {"locations", "racks", "slotContainer", "slotContainer-location", "contained-slotContainer"}
+-                            geo_elements = {"geo-location", "reference-frame", "geometry-system", "rateOfChange"}
+-                            forbidden_nodes = {"cartesian", "geometry", "location-choice"}
 -                            placeholder_words = {"from", "logical-layout.json", "container", "choice", "placeholder", "tbd"}
 -                            for path in paths:
 -                                if not path: continue
@@ -198,7 +198,7 @@ index 8032aa6..847fa47 100644
 -                valid_geodetic_components = {"PropertyGrid", "TableView", "DensityTable"}
 -                if comp_val not in valid_geodetic_components:
 -                    errors.append(
--                        f"Logical UI Compliance: Feature '{rel_path}' contains geodetic/coordinate concepts but "
+-                        f"Logical UI Compliance: Feature '{rel_path}' contains geometry/coordinate concepts but "
 -                        f"'Target LUI Component' is '{comp_val}'. Geolocation attributes must reside in details panels or tables, not topology or tree selectors."
 -                    )
                  

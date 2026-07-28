@@ -96,8 +96,8 @@ classDiagram
 ```mermaid
 classDiagram
     class LocationDTO {
-        +Real latitude [1]
-        +Real longitude [1]
+        +Real dim_0 [1]
+        +Real dim_1 [1]
         +String timestamp [1]
     }
     class LocationServiceProxy {

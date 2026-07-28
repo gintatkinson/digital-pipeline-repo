@@ -1,5 +1,5 @@
 ---
-title: "Feature 02: Alternate Coordinate and Geodetic Systems"
+title: "Feature 02: Alternate Coordinate and Geometry Systems"
 type: "feature"
 interface_type: "api"
 generation_mode: "subagent"
@@ -7,7 +7,7 @@ spec_source: "Project Constitution"
 issue_id: 2
 ---
 
-# Feature 02: Alternate Coordinate and Geodetic Systems
+# Feature 02: Alternate Coordinate and Geometry Systems
 
 ## UML Class Diagram
 ```mermaid
@@ -19,7 +19,7 @@ classDiagram
     }
     class ReferenceFrame {
         +String alternateSystem [1]
-        +String geodeticDatum [1]
+        +String geometryDatum [1]
     }
     ReferenceFrame "1" --> "0..1" AlternateSystem : usesAlternateSystem
 ```
@@ -31,7 +31,7 @@ classDiagram
 {
   "systemId": "UTM-ZONE-54N",
   "epsgCode": "EPSG:32654",
-  "projectionParameters": "+proj=utm +zone=54 +datum=WGS84 +units=m +no_defs"
+  "projectionParameters": "+proj=utm +zone=54 +datum=Geometry +units=m +no_defs"
 }
 ```
 
@@ -43,9 +43,9 @@ classDiagram
 - **Then** the system resolves the matching EPSG transformation parameter set and converts coordinates accordingly.
 
 ### 3. Logical Operations & Interface Messages
-1. Retrieve active geodetic reference frame parameters.
+1. Retrieve active geometry reference frame parameters.
 2. Query alternate system projection definitions by EPSG code.
-3. Transform geodetic coordinates to alternate spatial frame representations.
+3. Transform geometry coordinates to alternate spatial frame representations.
 
 ### 4. Logical Exception States & Validation Failures
 1. Unsupported EPSG Code: If the alternate system EPSG code cannot be resolved, the parser raises a spatial coordinate conversion exception.

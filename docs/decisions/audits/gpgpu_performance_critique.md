@@ -85,10 +85,10 @@ If the trajectories or splines utilize standard `vec3<f32>` structures:
 ```wgsl
 struct TrajectoryPoint {
     position: vec3<f32>,
-    velocity: vec3<f32>,
+    rateOfChange: vec3<f32>,
 }
 ```
-Under WGSL/std430 rules, a `vec3<f32>` has an alignment of 16 bytes and a size of 12 bytes. This forces the compiler to insert 4 bytes of padding after `position` and `velocity`, making the size of `TrajectoryPoint` **32 bytes**, not 24 bytes.
+Under WGSL/std430 rules, a `vec3<f32>` has an alignment of 16 bytes and a size of 12 bytes. This forces the compiler to insert 4 bytes of padding after `position` and `rateOfChange`, making the size of `TrajectoryPoint` **32 bytes**, not 24 bytes.
 If the CPU-side code packs the buffer as a flat array of 6 floats (24 bytes):
 `[pos.x, pos.y, pos.z, vel.x, vel.y, vel.z]`
 The GPU will read `vel.x` as padding, leading to massive memory misalignment and visual corruption (vertices receiving incorrect coordinate components).
@@ -251,14 +251,14 @@ fn conjunction_distance_write(@builtin(global_invocation_id) global_id: vec3<u32
 ```
 
 ### Remediation 5: Hardware Sampler-Based Geoid Undulation
-Convert the EGM96/2008 geoid height grid into a 16-bit float (`r16float`) 2D GPU Texture. Use a hardware sampler to perform the bilinear interpolation for free:
+Convert the EGM96/2008 geoid dim_2 grid into a 16-bit float (`r16float`) 2D GPU Texture. Use a hardware sampler to perform the bilinear interpolation for free:
 
 ```wgsl
 @group(0) @binding(0) var geoid_texture: texture_2d<f32>;
 @group(0) @binding(1) var geoid_sampler: sampler;
 
 fn get_geoid_undulation(lat: f32, lon: f32) -> f32 {
-    // Map geodetic coordinates to normalized texture coordinates [0.0, 1.0]
+    // Map geometry coordinates to normalized texture coordinates [0.0, 1.0]
     let u = (lon + 180.0) / 360.0;
     let v = (90.0 - lat) / 180.0;
     

@@ -53,7 +53,7 @@ Note: `logical-layout.json` already references these via `"token:layout.labels.e
 |-----------|-------------|----------|--------|
 | `lib/features/topology/topology_map.dart:378` | `'Play'` / `'Pause'` | UI label | `strings.json` |
 | `lib/features/topology/topology_map.dart:386` | `'t:'` | UI label | `strings.json` |
-| `lib/features/topology/topology_map.dart:414` | `'Speed:'` | UI label | `strings.json` |
+| `lib/features/topology/topology_map.dart:414` | `'RateOfChange:'` | UI label | `strings.json` |
 | `lib/features/topology/topology_map.dart:423` | `'0.5x'` | UI label | `strings.json` |
 | `lib/features/topology/topology_map.dart:424` | `'1.0x'` | UI label | `strings.json` |
 | `lib/features/topology/topology_map.dart:425` | `'2.0x'` | UI label | `strings.json` |
@@ -102,7 +102,7 @@ Values like `"Category A"`, `"Item A1"`, etc. are in a data file (JSON), not cod
 | `test/layout_test.dart:97` | `'Active View: Item'` | Test assertion | Update to use keys |
 | `test/layout_test.dart:117` | `'Status'` | Test fixture | `test/helpers/test_data.dart` |
 | `test/layout_test.dart:124` | `'Activity'` | Test fixture | `test/helpers/test_data.dart` |
-| `test/topology_map_test.dart:9-56` | `'Ingestion'`, `'Metrics'`, `'Location'`, `'Chassis'` | Test fixture | `test/helpers/test_data.dart` |
+| `test/topology_map_test.dart:9-56` | `'Ingestion'`, `'Metrics'`, `'Location'`, `'SlotContainer'` | Test fixture | `test/helpers/test_data.dart` |
 | `test/topology_map_test.dart:116` | `'t:'` | Test assertion | Update to use keys |
 | `test/topology_map_test.dart:215` | `'Play'` | Test assertion | Update to use keys |
 | `test/widget_test.dart:44` | `'Console'` | Test assertion | Update to use keys |
@@ -219,7 +219,7 @@ void main() async {
   "topology.play": "Play",
   "topology.pause": "Pause",
   "topology.timeLabel": "t:",
-  "topology.speedLabel": "Speed:",
+  "topology.speedLabel": "RateOfChange:",
 
   "properties.otherSection": "Other",
   "properties.activeReference": "Active Reference",
@@ -287,7 +287,7 @@ Create these files only (no existing code modified):
 - `topology_map.dart:378` → `StringResources.get('topology.play/pause')`
 - `topology_map.dart:386` → `StringResources.get('topology.timeLabel')`
 - `topology_map.dart:414` → `StringResources.get('topology.speedLabel')`
-- `topology_map.dart:423-426` → `StringResources.get('topology.speed.*')`
+- `topology_map.dart:423-426` → `StringResources.get('topology.rateOfChange.*')`
 - `layout_config_service.dart:45-47` → keep as fallback but source from `strings.json` instead of literal
 
 #### Phase 4 — Error messages
@@ -375,6 +375,6 @@ exit 0
 | **Total** | **~4 hours** | All phases independently testable; rollback possible per phase |
 
 **Notes:**
-- Phase 3 is the heaviest because it touches the topology playback panel (Play/Pause/Speed labels) and the property grid validation templates.
+- Phase 3 is the heaviest because it touches the topology playback panel (Play/Pause/RateOfChange labels) and the property grid validation templates.
 - Phase 5 can be done in parallel with Phase 3 (different files, no merge conflicts expected).
 - Phase 6 is optional but recommended before merging Phase 2–5 to prevent regression.

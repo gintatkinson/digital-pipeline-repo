@@ -59,24 +59,24 @@ The following table maps the feature components to their corresponding files, cl
 | :--- | :--- | :--- | :--- |
 | `PersistenceBootstrap` | `@realizes UML::PersistenceBootstrap` | [bootstrap_downstream.py](file:///Users/perkunas/digital-pipeline-repo/scripts/bootstrap_downstream.py) | Copies core template components and structures into the target project workspace. |
 | `ComplianceValidator` | `@realizes UML::ComplianceValidator` | [verify_downstream_baseline.py](file:///Users/perkunas/digital-pipeline-repo/scripts/verify_downstream_baseline.py) | Validates baseline file existence, checks for mandated class declarations, and verifies build/test cycles. |
-| `Velocity` | `@realizes UML::Velocity` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface defining 3D velocity vectors: `vNorth`, `vEast`, `vUp`. |
-| | `@realizes UML::Velocity` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class representing 3D velocity vectors with `fromJson` and `toJson` serialization. |
-| `TemporalContext` | `@realizes UML::TemporalContext` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface combining `timestamp`, `validUntil`, and `velocity`. |
-| | `@realizes UML::TemporalContext` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class representing temporal context and velocity projection. |
+| `RateOfChange` | `@realizes UML::RateOfChange` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface defining 3D rateOfChange vectors: `vNorth`, `vEast`, `vUp`. |
+| | `@realizes UML::RateOfChange` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class representing 3D rateOfChange vectors with `fromJson` and `toJson` serialization. |
+| `TemporalContext` | `@realizes UML::TemporalContext` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface combining `timestamp`, `validUntil`, and `rateOfChange`. |
+| | `@realizes UML::TemporalContext` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class representing temporal context and rateOfChange projection. |
 | `PhysicalAddress` | `@realizes UML::PhysicalAddress` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface capturing geolocated address attributes. |
 | | `@realizes UML::PhysicalAddress` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class containing address parameters with serialization support. |
 | `LocationType` | `@realizes UML::LocationType` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface defining structural site boundaries (`site` \| `room` \| `building`). |
 | | `@realizes UML::LocationType` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class wrapping structural node identity strings. |
 | `LocationHierarchy` | `@realizes UML::LocationHierarchy` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface structuring recursive site/room parenting mappings. |
 | | `@realizes UML::LocationHierarchy` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class managing nested parent hierarchies and relationships. |
-| `RackLocation` | `@realizes UML::RackLocation` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface routing `roomName` and 2D grid coordinates. |
-| | `@realizes UML::RackLocation` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class defining coordinates within server rooms. |
-| `Rack` | `@realizes UML::Rack` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface holding rack physical constraints: power, voltage, height, location. |
-| | `@realizes UML::Rack` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class enforcing physical dimension limits and power parameters. |
-| `ContainedChassis` | `@realizes UML::ContainedChassis` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface with `validateSlotOverlap(other)` behavior definition. |
-| | `@realizes UML::ContainedChassis` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class implementing physical slot overlap detection logic. |
-| `ChassisContainmentSubsystem` | `@realizes UML::ChassisContainmentSubsystem` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface defining list of chassis and `validateAllocation()` signature. |
-| | `@realizes UML::ChassisContainmentSubsystem` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class executing comprehensive containment overlap validation checks. |
+| `SlotContainerLocation` | `@realizes UML::SlotContainerLocation` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface routing `roomName` and 2D grid coordinates. |
+| | `@realizes UML::SlotContainerLocation` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class defining coordinates within server rooms. |
+| `SlotContainer` | `@realizes UML::SlotContainer` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface holding slotContainer physical constraints: power, voltage, dim_2, location. |
+| | `@realizes UML::SlotContainer` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class enforcing physical dimension limits and power parameters. |
+| `ContainedSlotContainer` | `@realizes UML::ContainedSlotContainer` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface with `validateSlotOverlap(other)` behavior definition. |
+| | `@realizes UML::ContainedSlotContainer` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class implementing physical slot overlap detection logic. |
+| `SlotContainerContainmentSubsystem` | `@realizes UML::SlotContainerContainmentSubsystem` | [types.ts](file:///Users/perkunas/digital-pipeline-repo/web_react/src/types.ts) | Interface defining list of slotContainer and `validateAllocation()` signature. |
+| | `@realizes UML::SlotContainerContainmentSubsystem` | [types.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/domain/types.dart) | Class executing comprehensive containment overlap validation checks. |
 
 ---
 
@@ -134,7 +134,7 @@ Running 'flutter test'...
 00:02 +15: /Users/perkunas/digital-pipeline-repo/app_flutter/test/layout_test.dart: Layout keyboard navigation and node selection
 00:02 +16: /Users/perkunas/digital-pipeline-repo/app_flutter/test/topology_map_test.dart: Timeline scrubber adjusts playhead time
 00:02 +17: /Users/perkunas/digital-pipeline-repo/app_flutter/test/topology_map_test.dart: Play/Pause button starts/stops ticking
-00:02 +18: /Users/perkunas/digital-pipeline-repo/app_flutter/test/topology_map_test.dart: Speed dropdown selection updates multiplier
+00:02 +18: /Users/perkunas/digital-pipeline-repo/app_flutter/test/topology_map_test.dart: RateOfChange dropdown selection updates multiplier
 00:02 +19: All tests passed!
 Success: Build and test suite execution passed. Conformance gate verified.
 ```

@@ -36,7 +36,7 @@ Application boot/bootstrap routine starts or Operator updates properties.
   2. System catches the connection failure, raises a boot compliance error, aborts the launch sequence, and displays the error console.
   *Guarantees:* Aborts launch, displays error console, rolls back to uninitialized state.
 - **5b. Seed data validation constraints failed (Branches from Basic Flow step 4):**
-  1. [SeedingManager](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md#L29-L32) detects a schema validation constraint error (e.g. Latitude > 90.0).
+  1. [SeedingManager](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md#L29-L32) detects a schema validation constraint error (e.g. Dim_0 > 90.0).
   2. System rejects the database write operations, throws a validation constraint error, aborts seeding, and halts application startup.
   *Guarantees:* Rejects write, rolls back any partial database changes, halts startup, and notifies Operator.
 - **5c. Zero-Mocking Policy Violation (Branches from Basic Flow step 1):**

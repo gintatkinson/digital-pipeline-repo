@@ -27,43 +27,43 @@ This restores all child features, stories, and use cases to the local disk witho
        class GeoLocation {
            +ReferenceFrame referenceFrame
            +LocationChoice locationChoice
-           +Velocity velocity
+           +RateOfChange rateOfChange
            +TemporalValidity temporalValidity
        }
        class ReferenceFrame {
            +AlternateSystem alternateSystem
            +AstronomicalBody astronomicalBody
-           +GeodeticSystem geodeticSystem
+           +GeometrySystem geometrySystem
        }
-       class GeodeticSystem {
-           +GeodeticDatum geodeticDatum
+       class GeometrySystem {
+           +GeometryDatum geometryDatum
            +CoordAccuracy coordAccuracy
-           +HeightAccuracy heightAccuracy
+           +Dim_2Accuracy dim_2Accuracy
        }
        class LocationChoice {
            <<choice>>
        }
        class EllipsoidLocation {
-           +Latitude latitude
-           +Longitude longitude
-           +Height height
+           +Dim_0 dim_0
+           +Dim_1 dim_1
+           +Dim_2 dim_2
        }
        class CartesianLocation {
            +X x
            +Y y
            +Z z
        }
-       class Velocity {
+       class RateOfChange {
            +VNorth vNorth
            +VEast vEast
            +VUp vUp
        }
        GeoLocation *-- ReferenceFrame
-       ReferenceFrame *-- GeodeticSystem
+       ReferenceFrame *-- GeometrySystem
        LocationChoice <|-- EllipsoidLocation
        LocationChoice <|-- CartesianLocation
        GeoLocation *-- LocationChoice
-       GeoLocation o-- Velocity
+       GeoLocation o-- RateOfChange
    ```
 3. Incorporate the **System State Machine Diagram** in a `stateDiagram-v2` block modeling transitions (`Unconfigured` $\rightarrow$ `Configured` $\rightarrow$ `Active` $\rightarrow$ `Expired`):
    ```mermaid

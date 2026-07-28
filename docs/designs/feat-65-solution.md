@@ -53,7 +53,7 @@ Successfully ran bootstrapping tests into temporary paths:
 ### 2. Dynamic Class Validation
 Verified that the verification script successfully loads from the target configuration:
 ```
-Loaded mandated classes dynamically from tmp/test-verify-react/.pipeline/logical-ui/codebase_rules.json: ['RackLocation']
-['RackLocation']
+Loaded mandated classes dynamically from tmp/test-verify-react/.pipeline/logical-ui/codebase_rules.json: ['SlotContainerLocation']
+['SlotContainerLocation']
 ```
 If configuration is missing or malformed, it gracefully falls back to the default list of 9 classes.

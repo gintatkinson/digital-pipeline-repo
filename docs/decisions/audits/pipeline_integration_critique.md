@@ -122,13 +122,13 @@ for trigger in triggers:
 This logic contains a **major loophole**:
 - `found_match` is evaluated as a global boolean across **all** files in the directory.
 - If **any single file** in the directory satisfies the terms, the rule is marked complete.
-- Therefore, if the schema defines multiple trigger nodes (e.g., `latitude`, `longitude`, `altitude`, `velocity`, `trajectory`, `trajectory-vector`, `orbital-parameters`), the developer only has to document **one** of these nodes in a single User Story or Use Case to pass the linter. The other six nodes can remain entirely undocumented.
+- Therefore, if the schema defines multiple trigger nodes (e.g., `dim_0`, `dim_1`, `dim_2`, `rateOfChange`, `trajectory`, `trajectory-vector`, `orbital-parameters`), the developer only has to document **one** of these nodes in a single User Story or Use Case to pass the linter. The other six nodes can remain entirely undocumented.
 
 ### 4.2 Loophole Flow
 ```mermaid
 graph TD
     A[Start Behavioral Audit] --> B[Parse Schema Nodes]
-    B --> C{Contains any of Latitude/Longitude/Altitude/etc.?}
+    B --> C{Contains any of Dim_0/Dim_1/Dim_2/etc.?}
     C -- No --> D[Pass/Skip Trigger]
     C -- Yes --> E[Scan User Stories Directory]
     E --> F[Check user-story-1.md]

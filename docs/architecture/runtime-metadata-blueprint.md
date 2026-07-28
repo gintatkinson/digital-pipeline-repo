@@ -17,8 +17,8 @@ Each data source returns one `TypeDescriptor` per object type. The client render
 /// Describes one object type known to the connected data source.
 /// The client uses this to render trees, property forms, tables, and graphs.
 abstract class TypeDescriptor {
-  String get typeName;          // "Chassis", "Sensor", "FlightRoute"
-  String get displayName;       // "Chassis", "Sensor", "Flight Route"
+  String get typeName;          // "SlotContainer", "Sensor", "FlightRoute"
+  String get displayName;       // "SlotContainer", "Sensor", "Flight Route"
   IconData get icon;            // Icon resolved at runtime
   List<FieldDescriptor> get fields;
   List<TypeRelationDescriptor> get childTypes;   // tree hierarchy
@@ -149,11 +149,11 @@ App starts
   │
   ├── 2. dataSource.discoverTypes() → TypeDescriptor[]
   │     │
-  │     ├── typeName: "Chassis"
+  │     ├── typeName: "SlotContainer"
   │     ├── icon: Icons.dns
   │     ├── fields: [FieldDescriptor(key:"maxVoltage", type:double, ...), ...]
   │     ├── childTypes: [TypeRelation(relation:"contains", targetType:"Sensor"), ...]
-  │     └── parentTypes: [TypeRelation(relation:"contained_by", targetType:"Rack"), ...]
+  │     └── parentTypes: [TypeRelation(relation:"contained_by", targetType:"SlotContainer"), ...]
   │
   ├── 3. TypeDescriptor[] → build tree (TreeViewModel)
   │     │
@@ -174,7 +174,7 @@ App starts
 
 | Current | Problem | TypeDescriptor fix |
 |---|---|---|
-| `switch (node.id)` on 6 hardcoded IDs (`Ingestion`, `Metrics`, `Location`, `Chassis`, `Epics`, `Traceability`) to pick `IconData` (lines 26-48) | New object types require code changes + recompile | `typeDescriptor.icon` — every type knows its own icon |
+| `switch (node.id)` on 6 hardcoded IDs (`Ingestion`, `Metrics`, `Location`, `SlotContainer`, `Epics`, `Traceability`) to pick `IconData` (lines 26-48) | New object types require code changes + recompile | `typeDescriptor.icon` — every type knows its own icon |
 | Parent nodes get `Icons.folder` / `Icons.folder_open` (lines 23-24) | Assumes all expandable nodes are folders | `typeDescriptor.icon` applies uniformly; parent/child distinction is a tree-state concern, not icon concern |
 
 ### `app_flutter/lib/features/properties/property_grid.dart`
@@ -210,7 +210,7 @@ App starts
 
 | Current | Problem | DataSource fix |
 |---|---|---|
-| `fetchProperties(String nodeId)` — no type awareness | Tree could mix Sensors and Chassis; properties are fetched blind | `dataSource.fetchProperties(typeName, instanceId)` — scoped by type |
+| `fetchProperties(String nodeId)` — no type awareness | Tree could mix Sensors and SlotContainer; properties are fetched blind | `dataSource.fetchProperties(typeName, instanceId)` — scoped by type |
 | `fetchElements(String parentNodeId)` — generic child fetch | No way to distinguish "contains" vs "connected_to" vs "depends_on" | `dataSource.fetchChildren(typeName, parentId, relationName)` — named relations |
 | No schema discovery methods | Client cannot know what fields exist | `dataSource.discoverTypes()` + `typeFor()` |
 
@@ -329,8 +329,8 @@ class FirebaseDataSource implements DataSource {
   }
 
   // Each type document in Firestore:
-  // collection("schema").document("Chassis") → {
-  //   displayName: "Chassis",
+  // collection("schema").document("SlotContainer") → {
+  //   displayName: "SlotContainer",
   //   icon: "dns",
   //   fields: [
   //     { key: "maxVoltage", label: "Max Voltage (V)", fieldType: "double", ... }
@@ -349,7 +349,7 @@ class GrpcDataSource implements DataSource {
   // Uses protobuf reflection or FileDescriptorSet to build TypeDescriptors.
   //
   // The .proto file defines the schema:
-  //   message Chassis {
+  //   message SlotContainer {
   //     string id = 1;
   //     double max_voltage = 2 [(constraint) = "min:0, max:10000"];
   //     double max_allocated_power = 3 [(constraint) = "min:0"];
@@ -386,8 +386,8 @@ class RestDataSource implements DataSource {
     // GET /api/schema/types → {
     //   "types": [
     //     {
-    //       "typeName": "Chassis",
-    //       "displayName": "Chassis",
+    //       "typeName": "SlotContainer",
+    //       "displayName": "SlotContainer",
     //       "icon": "dns",
     //       "fields": [...],
     //       "childTypes": [...]

@@ -8,8 +8,8 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 *Audited by: Pipeline Schema & Feature Extractor Auditor*
 
 ### Root Cause 1: Lack of Parent-Child Nesting Mandate in UML Class Diagrams
-* **Observation**: In `feat-06-velocity-vector.md` and other features, Class Diagrams show isolated classes (e.g. `velocity` or `GeodeticSystem` in `feat-02`) with no relationships.
-* **Why**: The Class Diagram template and guidelines in [schema-specification-engineering/SKILL.md](../../skills/schema-specification-engineering/SKILL.md) only instruct translating the immediate container class. They do not explicitly require showing parent-child composition (e.g. `geo-location *-- velocity`) or cross-container associations (e.g. `velocity`'s dependency on `reference-frame`).
+* **Observation**: In `feat-06-rateOfChange-vector.md` and other features, Class Diagrams show isolated classes (e.g. `rateOfChange` or `GeometrySystem` in `feat-02`) with no relationships.
+* **Why**: The Class Diagram template and guidelines in [schema-specification-engineering/SKILL.md](../../skills/schema-specification-engineering/SKILL.md) only instruct translating the immediate container class. They do not explicitly require showing parent-child composition (e.g. `geo-location *-- rateOfChange`) or cross-container associations (e.g. `rateOfChange`'s dependency on `reference-frame`).
 * **Fix**: Update the `SKILL.md` UML Class Diagram guidelines to explicitly mandate that the diagram **must** show the class's nesting relationship to its parent container (up to the root container) and any dependencies on other containers.
 
 ### Root Cause 2: Underspecified "Test Data Shape"
@@ -33,7 +33,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 * **Fix**: Update the sequence diagram requirements to explicitly show validation checks (calling a validator helper/service), business logic calculations, and parameters/returns.
 
 ### Root Cause 2: Missing Stories for Algorithmic & Derived States
-* **Observation**: There is no User Story covering the derivation/calculation of speed and heading, even though it is a prominent part of Epic 3.
+* **Observation**: There is no User Story covering the derivation/calculation of rateOfChange and heading, even though it is a prominent part of Epic 3.
 * **Why**: The story skill only instructs extracting "distinct deployment scenarios" from operational chapters. Mathematical derivations are typically defined in separate technical/algorithmic sections of normative specifications, which the sub-agent skips. There is no behavioral story trigger for derived/calculated values.
 * **Fix**: Introduce an **Algorithmic Story Extraction Trigger** to force story generation for derived/calculated values.
 
@@ -43,7 +43,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 *Audited by: Pipeline Use Case & Traceability Auditor*
 
 ### Root Cause 1: Title-Only and State-Open-Only GitHub Queries in the Skill File
-* **Observation**: Use Case `uc-02-derive-speed-and-heading.md` links to User Story `us-04-track-velocity-vector.md` in its realization matrix, but `us-04` contains no logic for speed and heading calculation.
+* **Observation**: Use Case `uc-02-derive-rateOfChange-and-heading.md` links to User Story `us-04-track-rateOfChange-vector.md` in its realization matrix, but `us-04` contains no logic for rateOfChange and heading calculation.
 * **Why**:
   1. In [spec-usecase-engineering/SKILL.md](../../skills/spec-usecase-engineering/SKILL.md) (Step 3), the agent is instructed to run `gh issue list --label "user-story" --state "open" --json number,title`. This only fetches the `number` and `title` of User Stories, forcing it to make matches based purely on lexical similarity of titles.
   2. The `--state "open"` filter prevents the agent from finding or linking to any User Stories that have already been closed/completed, even if they are the correct implementations. This leads to artificial matches where the agent maps to whichever open issues happen to be left in the queue.
@@ -153,7 +153,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 +## Step 1: Context Ingestion (Operational Text & Schemas)
 +1. Ingest the target normative specification document AND the target structural schemas (e.g., YANG, OpenAPI, Protobuf).
 +2. **Scan the structural schema definitions** (specifically node descriptions, comments, type restrictions, and validation constraints) to identify:
-+   - Any derived, calculated, or computed data fields (e.g., speed and heading derived from a velocity vector).
++   - Any derived, calculated, or computed data fields (e.g., rateOfChange and heading derived from a rateOfChange vector).
 +   - Any mathematical formulas, equations, unit conversions, or derivations.
 +   - Any temporal attributes or state lifecycles.
 +3. Target and analyze the following operational chapters of the normative specification:
@@ -169,7 +169,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 +
 +### Behavioral Extraction Triggers (Mandatory User Stories)
 +An agent MUST extract a separate, dedicated User Story if the normative text or structural schema meets any of the following triggers:
-+- **Algorithmic/Calculation Trigger**: If the specification or schema defines any mathematical formula, equation, conversion, or derivation (e.g., deriving speed and heading from a velocity vector), it MUST have a dedicated User Story mapping the calculation behavior.
++- **Algorithmic/Calculation Trigger**: If the specification or schema defines any mathematical formula, equation, conversion, or derivation (e.g., deriving rateOfChange and heading from a rateOfChange vector), it MUST have a dedicated User Story mapping the calculation behavior.
 +  - Story format: `As a [System/Actor], I need to calculate [Derived Value] from [Input Values] using [Formula] so that [Outcome].`
 +  - BDD scenarios must cover edge cases, rounding, division by zero, and invalid inputs.
 +- **Temporal/State Lifecycle Trigger**: If the schema defines temporal attributes (`timestamp`, `valid-until`) or implies state-decay lifecycles, it MUST have a dedicated User Story detailing the transition to expired/stale state and postconditions for stale data access.

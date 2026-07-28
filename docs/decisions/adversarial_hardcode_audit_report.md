@@ -32,7 +32,7 @@ This report compiles the exhaustive findings from the 5 concurrent adversarial s
     *   **Hardcoded Actors & Registries (Lines 43, 87, 88, 91)**: Assumes default roles like `DataProvider` and participant classes like `ComponentRegistry` or `InputValidator`.
     *   **Hardcoded Sequence Methods & Classes (Lines 47, 89, 93, 94)**: Uses specific math utility classes like `CalculationEngine` and method signatures like `registerData(identifier: string, value: int32)`, `validateBounds(value: int32)`, and `validationResult(isValid: boolean)`.
     *   **Hardcoded Statuses (Lines 97, 99, 102)**: Hardcodes returns like `SUCCESS`, `INVALID_VALUE`, and `MISSING_FIELDS`.
-    *   **Standard Terms (Lines 17, 27, 58)**: Refers to `IETF RFC`, `3GPP TS`, `CAMARA API Doc`, `YANG`, `OpenAPI`, `Protobuf`, and geographic standard names like `WGS84`.
+    *   **Standard Terms (Lines 17, 27, 58)**: Refers to `IETF RFC`, `3GPP TS`, `CAMARA API Doc`, `YANG`, `OpenAPI`, `Protobuf`, and geographic standard names like `Geometry`.
 
 ---
 

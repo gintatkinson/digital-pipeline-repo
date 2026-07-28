@@ -14,7 +14,7 @@ issue_id: 10
 classDiagram
     class Layout {
         +String activeView [1]
-        +Integer splitterHeight [1]
+        +Integer splitterDim_2 [1]
         +onViewChange(String view)
     }
     class HierarchyTreeSelector {
@@ -85,7 +85,7 @@ classDiagram
 #### Scenario 3: Prevent Propagation on Splitter Pointer Events
 - **Given** the layout splitter bar is mounted.
 - **When** the user triggers pointer interactions to drag and resize the splitter pane.
-- **Then** the layout event handlers capture pointer inputs, adjust height values, and explicitly block event propagation to isolate parent reflows.
+- **Then** the layout event handlers capture pointer inputs, adjust dim_2 values, and explicitly block event propagation to isolate parent reflows.
 
 ---
 

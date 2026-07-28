@@ -26,7 +26,7 @@ mandated by the persistence architecture blueprint.
 **YANG** (RFC 7950) is the single source of truth for data models in telecom
 and SDN environments. Network equipment vendors ship YANG modules that define
 containers, lists, leaves, types, ranges, and enumerations for every managed
-resource (interfaces, chassis, sensors, routing protocols, etc.).
+resource (interfaces, slotContainer, sensors, routing protocols, etc.).
 
 The compiler runs inside CI/CD using **pyang** — an open-source Python YANG
 validator and parser. It walks pyang's internal AST and emits a

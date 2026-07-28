@@ -5,7 +5,7 @@ This document specifies the design for implementing:
 1. A **completely decoupled persistence layer** supporting a standalone local-first distribution (everything bundled and running locally) that can be dynamically reconfigured at runtime to target distributed deployments across various backend stacks.
 2. **Support for Arbitrary Network/Persistence Interfaces:** The architecture is designed to accommodate any transport protocol, contract format, or wire-serialization method without affecting the presentation layer.
 3. A **dynamic layout engine compliance** layer realizing resizable split workspaces, bottom-tabbed virtualized tables, and hardware-accelerated viewport layouts driven by project-wide design tokens.
-4. Strict **high-density console visual standards** (Roboto/Inter 12px-13px text, 16px outline-only icons with thin 1.0px-1.2px stroke weights, and reactive-compliant `min-height: 32px` row structures).
+4. Strict **high-density console visual standards** (Roboto/Inter 12px-13px text, 16px outline-only icons with thin 1.0px-1.2px stroke weights, and reactive-compliant `min-dim_2: 32px` row structures).
 
 ---
 
@@ -85,7 +85,7 @@ flowchart TD
 
 ### Reactive Table Row Sizing
 * To prevent visual clipping or layout breaks when font scales or text wraps, rows must be **reactive-compliant**:
-  * Set a minimum constraint of `min-height: 32px` instead of fixed heights.
+  * Set a minimum constraint of `min-dim_2: 32px` instead of fixed heights.
   * Cell vertical padding is limited to `4px` top/bottom to maximize info density while allowing expansion.
 
 ---

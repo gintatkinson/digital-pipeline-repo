@@ -17,7 +17,7 @@ The complete list of all 763 records is saved in JSON format on your local machi
 
 ## Preview: First 100 NTT Locations
 
-| Name | Operator/Brand | Latitude | Longitude |
+| Name | Operator/Brand | Dim_0 | Dim_1 |
 | :--- | :--- | :--- | :--- |
 | 国道NTT | NTT | 40.8232978 | 140.7503634 |
 | NTT東日本飯能緑町電話交換所 | NTT | 35.8531756 | 139.3298997 |

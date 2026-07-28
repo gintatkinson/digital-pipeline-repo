@@ -25,7 +25,7 @@ The most severe findings include:
 
 ### 1.1. PID Clock-Rate Smoothing Loop Instability Math & Time-Reversal Hazard
 
-The proposal suggests driving the client-side playhead $t_{play}$ via a PID controller that dynamically adjusts the playback clock speed factor $r(t) = 1.0 \pm 0.05$ to match a target delay offset:
+The proposal suggests driving the client-side playhead $t_{play}$ via a PID controller that dynamically adjusts the playback clock rateOfChange factor $r(t) = 1.0 \pm 0.05$ to match a target delay offset:
 $$t_{target}(t) = t_{stream\_max}(t) - \Delta t_{buffer}$$
 
 Let the error function be:
@@ -38,7 +38,7 @@ Where $t_{play}(t) = \int_{0}^{t} r(\tau) d\tau + t_{play}(0)$.
 1. **Time-Reversal Risk**: If $e(t)$ becomes highly negative (e.g., during a network freeze where $t_{stream\_max}$ stops advancing, but $t_{play}$ continues forward), the proportional ($K_p e(t)$) and integral ($K_i \int e(\tau) d\tau$) terms will output negative values. If not clamped strictly to a positive lower bound (e.g., $r(t) \ge 0.0$), the rate $r(t)$ will drop below zero, forcing $t_{play}$ to run **backwards**. 
 2. **Integrator Windup & Saturation Oscillations**: Clamping $r(t) \in [0.95, 1.05]$ solves time-reversal but introduces non-linear windup. During a network freeze, the controller saturates at $r(t) = 0.95$. The integral term will accumulate a massive negative value:
    $$\lim_{t \to t_{freeze}} \int_{0}^{t} e(\tau) d\tau = -\infty$$
-   When the stream resumes and a burst of queued packets arrives, $t_{stream\_max}$ and $t_{target}$ jump forward. The error $e(t)$ becomes positive, but the saturated negative integral term prevents $r(t)$ from increasing immediately. Playback remains stuck at $0.95 \times$ speed for several frames (or seconds) until the error integrates enough to cancel the windup, followed by a violent snap to $1.05 \times$. This creates extreme visual judder.
+   When the stream resumes and a burst of queued packets arrives, $t_{stream\_max}$ and $t_{target}$ jump forward. The error $e(t)$ becomes positive, but the saturated negative integral term prevents $r(t)$ from increasing immediately. Playback remains stuck at $0.95 \times$ rateOfChange for several frames (or seconds) until the error integrates enough to cancel the windup, followed by a violent snap to $1.05 \times$. This creates extreme visual judder.
 3. **Derivative Kick from Out-of-Order Packets**: A late-arriving packet with a high timestamp causes a step-discontinuity in $t_{stream\_max}(t)$. The derivative term $K_d \frac{de(t)}{dt}$ evaluates to a Dirac delta impulse $\delta(t)$, causing the playback rate $r(t)$ to instantly saturate at $1.05$, causing a sudden frame jump.
 
 #### Remediations:
@@ -51,7 +51,7 @@ Where $t_{play}(t) = \int_{0}^{t} r(\tau) d\tau + t_{play}(0)$.
 
 ### 1.2. Inter-Thread Drift & Temporal Boundary Race Conditions
 
-The proposal relies on `isTemporalBoundary = true` to flush velocity registers and prevent acceleration spikes in spline engines during transitions (e.g., historical scrub to live).
+The proposal relies on `isTemporalBoundary = true` to flush rateOfChange registers and prevent acceleration spikes in spline engines during transitions (e.g., historical scrub to live).
 
 #### The Flaws:
 1. **Asynchronous Frame Mismatch**: Web Workers and the Main Thread operate on separate event loops. If the UI dispatches a state transition and sets `isTemporalBoundary = true`, there is a non-zero propagation delay before the Worker processes the message. During this window, the main thread may render 1-2 frames using the *old* spline coefficients with the *new* clock offset, resulting in coordinate spikes (e.g., rendering the aircraft at coordinate $(0,0,0)$ or light-years away for a single frame).
@@ -76,7 +76,7 @@ To optimize CPU performance, network payloads are micro-batched (e.g., aggregate
 #### Remediations:
 * **Adaptive Jitter Buffer**: Dynamically adjust $\Delta t_{buffer}$ based on the rolling standard deviation of network arrival times ($\sigma_{network}$):
   $$\Delta t_{buffer} = 3 \cdot \sigma_{network} + \Delta t_{batch}$$
-* **Intra-Batch Spline Extrapolation**: If the queue starves, transition smoothly from interpolation to linear dead reckoning (extrapolation) using the last known velocity vector, applying a damping factor to decelerate the node if the starvation persists.
+* **Intra-Batch Spline Extrapolation**: If the queue starves, transition smoothly from interpolation to linear dead reckoning (extrapolation) using the last known rateOfChange vector, applying a damping factor to decelerate the node if the starvation persists.
 
 ---
 
@@ -90,7 +90,7 @@ When a late packet ($t_{packet} \ge t_{play} - t_{threshold}$) arrives, the prop
 
 #### Remediations:
 * **Double-Buffered Coefficient Trees**: Read spline coefficients from an immutable buffer. When a recalculation occurs, generate a new buffer and swap the reference atomically.
-* **Extended Invalidation Window**: When a segment is modified, invalidate and recalculate tangents for the $N-1$ and $N+1$ neighboring segments to preserve $\mathcal{C}^1$ (velocity) and $\mathcal{C}^2$ (acceleration) continuity.
+* **Extended Invalidation Window**: When a segment is modified, invalidate and recalculate tangents for the $N-1$ and $N+1$ neighboring segments to preserve $\mathcal{C}^1$ (rateOfChange) and $\mathcal{C}^2$ (acceleration) continuity.
 
 ---
 
@@ -252,7 +252,7 @@ class PlaybackPLL {
     if (Math.abs(error) > 1000) { // 1 second threshold
       this.t_play = t_target;
       this.phaseErrorAccumulator = 0;
-      return 1.0; // Return nominal speed
+      return 1.0; // Return nominal rateOfChange
     }
 
     this.phaseErrorAccumulator += error * dt_wall;

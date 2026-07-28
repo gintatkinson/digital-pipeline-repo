@@ -20,7 +20,7 @@ classDiagram
     }
     class PlaybackController {
         +Real currentTimeIndex [1]
-        +Real playbackSpeedMultiplier [1]
+        +Real playbackRateOfChangeMultiplier [1]
         +Boolean isPlaying [1]
         +setPlayhead(Real timeIndex)
         +togglePlayback()
@@ -65,8 +65,8 @@ classDiagram
 ```
 
 ### 3. Visual Layout & Arrangement
-- **Volumetric Bounds Viewport**: Hardware-accelerated canvas viewport container spanning the entire top pane height.
-- **Timeline Overlay**: Timeline overlay at the bottom showing play/pause controls, slider playhead scrubber, and speed multipliers.
+- **Volumetric Bounds Viewport**: Hardware-accelerated canvas viewport container spanning the entire top pane dim_2.
+- **Timeline Overlay**: Timeline overlay at the bottom showing play/pause controls, slider playhead scrubber, and rateOfChange multipliers.
 
 ### 4. Interactive Flow & States
 

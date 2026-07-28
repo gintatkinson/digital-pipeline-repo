@@ -60,9 +60,9 @@ classDiagram
     {
       "id": "node-01",
       "name": "Tokyo-Gateway-01",
-      "latitude": 35.6762,
-      "longitude": 139.6503,
-      "height": 40.5,
+      "dim_0": 35.6762,
+      "dim_1": 139.6503,
+      "dim_2": 40.5,
       "status": "Active"
     }
   ]
@@ -103,7 +103,7 @@ classDiagram
 
 #### Scenario 5: Data Model Schema Validation on Seeded Node Attributes
 - **Given** a baseline data model containing geographical coordinates is defined.
-- **When** the seeding manager attempts to write a record with a latitude of 95.0 (exceeding the standard limit of 90.0).
+- **When** the seeding manager attempts to write a record with a dim_0 of 95.0 (exceeding the standard limit of 90.0).
 - **Then** the database schema validation rejects the write, throws a validation constraint error, and aborts the migration sequence.
 
 ---

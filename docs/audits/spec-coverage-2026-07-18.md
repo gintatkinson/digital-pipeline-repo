@@ -106,6 +106,6 @@ A total of **24 specifications** (18 Features, 6 Use Cases) were audited across 
 ## 4. Next Recommended Actions
 
 1.  **gNMI Telemetry Integration (High Priority):** Implement the gNMI/Protobuf telemetry client socket flow in the background worker (resolves `UC-04` and `UC-05` telemetry mock gaps).
-2.  **Temporal & Geodetic Validation (Medium Priority):** Add validation logic for geodetic coordinates and temporal context boundary conditions (resolves `Feat-03` and `Feat-05` gaps).
+2.  **Temporal & Geometry Validation (Medium Priority):** Add validation logic for geometry coordinates and temporal context boundary conditions (resolves `Feat-03` and `Feat-05` gaps).
 3.  **Automated Bug Filing Script (Medium Priority):** Write a script to automate the execution of `gh issue create` upon detecting new files under `.pipeline/diagnostics/` (resolves `Feat-05` auto-bug-filing gap).
 4.  **Epic Linkage Lint Verification (Low Priority):** Add a custom regex rule to `UmlValidator` or `DocsValidator` to check for parent epic links in feature spec markdown files (resolves `Feat-18` gap).

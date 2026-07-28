@@ -11,17 +11,17 @@ The back-propagation brings over the core geospatial 3D visualization capabiliti
 ### Key New Files
 
 * **[app_flutter/lib/domain/cesium_3d/](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/)**:
-  - [camera_controller.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/camera_controller.dart): Manages the virtual camera's coordinates (latitude, longitude, altitude) and orientation angles (heading, pitch, roll), providing methods for dragging, rotating, zooming, and flying to focal nodes.
+  - [camera_controller.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/camera_controller.dart): Manages the virtual camera's coordinates (dim_0, dim_1, dim_2) and orientation angles (heading, pitch, roll), providing methods for dragging, rotating, zooming, and flying to focal nodes.
   - [cesium_3d_native.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/cesium_3d_native.dart): Dart interface exposing functions executed in the native C++ library.
   - [cesium_engine.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/cesium_engine.dart): Integrates native geocentric rendering with the Flutter viewport.
-  - [coordinate_transformer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/coordinate_transformer.dart): Performs geodetic-to-screen coordinate projections.
+  - [coordinate_transformer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/coordinate_transformer.dart): Performs geometry-to-screen coordinate projections.
   - [globe_tile_renderer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart): Renders terrain mesh geometries, overlays map imagery textures, and performs view-frustum culling.
   - [tile_fetcher.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/tile_fetcher.dart): Controls the asynchronous queue for fetching and caching tile layers.
   - [virtual_camera.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/virtual_camera.dart): Encapsulates projection and view matrices representing the current viewport viewport.
   - [native/bridge_bindings.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/native/bridge_bindings.dart), [native/error_handler.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/native/error_handler.dart), [native/native_resource.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/native/native_resource.dart): Handles FFI binding execution, runtime error translation, and finalization for native memory/resource cleanup.
 
 * **[app_flutter/integration_test/](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/)**:
-  - [globe_camera_drag_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/globe_camera_drag_test.dart): Verifies panning behavior changes the camera's geodetic longitude while leaving altitude constant.
+  - [globe_camera_drag_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/globe_camera_drag_test.dart): Verifies panning behavior changes the camera's geometry dim_1 while leaving dim_2 constant.
   - [globe_camera_rotation_visual_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/globe_camera_rotation_visual_test.dart): Confirms that Ctrl+Drag changes the camera heading and rotates 2D screen projected coordinate points.
   - [globe_camera_reset_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/globe_camera_reset_test.dart): Tests camera reset/re-centering triggers.
 
@@ -43,7 +43,7 @@ The back-propagation brings over the core geospatial 3D visualization capabiliti
 
 * **[app_flutter/lib/domain/database_initializer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/database_initializer.dart)**:
   - Configured optimized index layouts on the instances schema (`idx_instances_parent_type` and `idx_instances_type_name`).
-  - Added dynamic limits for seeding master database records (capping at 20 in testing context to speed up test execution, vs. 1000 in normal application runs).
+  - Added dynamic limits for seeding master database records (capping at 20 in testing context to rateOfChange up test execution, vs. 1000 in normal application runs).
   - Implemented safe database resource releases (`db.close()`) inside initializer catch blocks.
 
 ---
@@ -73,7 +73,7 @@ State controllers operating with asynchronous loading dependencies are vulnerabl
 
 ### Robust Test Coverage & Visual Validation
 The full suite of 221 tests (including unit, widget, and end-to-end integration tests) ensures complete verification coverage across the app. This includes:
-- **Interactive Gestures**: `globe_camera_rotation_visual_test.dart` and `globe_camera_drag_test.dart` simulate user interaction (left-click drags, key bindings like Ctrl) and assert physical geodetic parameters change as expected.
+- **Interactive Gestures**: `globe_camera_rotation_visual_test.dart` and `globe_camera_drag_test.dart` simulate user interaction (left-click drags, key bindings like Ctrl) and assert physical geometry parameters change as expected.
 - **FFI Boundary Robustness**: Fuzzers stress the FFI interfaces to guarantee zero memory access violations or segmentation faults under corrupt coordinate inputs.
 
 ### Web Contexts & Database Performance Synchronization

@@ -37,7 +37,7 @@ We define exactly seven core platform-agnostic components:
 1. **HierarchyTree**: Virtualized tree nested selector supporting focus navigation (`ArrowUp`/`ArrowDown`), folder expansion/collapse, and strict ARIA roles.
 2. **ResizableSplitter**: High-performance multi-pane splitter enforcing minimum dimensions (150px), snap-to-edge, and reconfigurable positions without state loss.
 3. **NavigationBreadcrumbs**: Responsive breadcrumb path collapsing middle segments into ellipses (`...`) when widths are exceeded.
-4. **PropertyGrid**: A high-speed key-value display that compiles dynamic JSON schemas into flat, pre-compiled layout descriptors once.
+4. **PropertyGrid**: A high-rateOfChange key-value display that compiles dynamic JSON schemas into flat, pre-compiled layout descriptors once.
 5. **TopologyMap**: A 3D/4D spatial-temporal canvas (WebGL/WebGPU/Impeller) rendering objects in 3D coordinate space, tracking dynamic trajectories, displaying volumetric bounds, and hosting timeline playback controls.
 6. **DensityTable**: A high-density virtualized table dynamically displaying all configured and allowed attributes, properties, and child elements for the associated managed object or element based on its data schema. Supports integration within a bottom-docked `TabbedContainer` hosting multiple tabbed lists (e.g. Elements, Alarms, Events) for the active selected object.
 7. **ContextualPanel**: Slide-out drawer capturing key events like `Escape` for dismissal.
@@ -189,7 +189,7 @@ To support these movements and trajectories, the framework implements a 4D Spati
 
 ### 9.2. UI Control & Navigation (Timeline Scrubber & 3D Canvas)
 1. **Interactive Timeline Playback**: The UI shell provides a global simulation/playback controller (play, pause, fast-forward, timeline slider). Modifying the slider updates a global `simulation_time` context variable.
-2. **Dynamic Trajectory Projection**: The `TopographicalView` rendering engine maps latitude, longitude, altitude, and timestamps to draw 3D coordinate paths and predict future conjunctions/positions based on motion vectors.
+2. **Dynamic Trajectory Projection**: The `TopographicalView` rendering engine maps dim_0, dim_1, dim_2, and timestamps to draw 3D coordinate paths and predict future conjunctions/positions based on motion vectors.
 3. **Synchronization across Splits**: Selecting a point along an object's trajectory updates the active timeline, updating the dynamic attributes in the `PropertyGrid` and `TableView` to show the telemetry states corresponding to that specific space-time coordinate.
 
 ### 9.3. GPGPU Trajectory Computation
