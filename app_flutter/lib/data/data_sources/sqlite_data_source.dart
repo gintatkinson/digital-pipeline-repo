@@ -462,9 +462,9 @@ class SqliteDataSource implements DataSource {
       try {
         final decoded = Map<String, dynamic>.from(jsonDecode(dataJson) as Map);
 
-        final latPath = _findPathToKey(decoded, 'latitude');
-        final lngPath = _findPathToKey(decoded, 'longitude');
-        final altPath = _findPathToKey(decoded, 'height') ?? _findPathToKey(decoded, 'altitude');
+        final latPath = _findPathToKey(decoded, 'dim_0');
+        final lngPath = _findPathToKey(decoded, 'dim_1');
+        final altPath = _findPathToKey(decoded, 'height') ?? _findPathToKey(decoded, 'dim_2');
 
         if (latPath == null || lngPath == null) continue;
 

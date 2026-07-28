@@ -11,50 +11,50 @@ class Ellipsoid {
   static const double wgs84EquatorialRadius = 6378137.0;
 }
 
-enum AltitudeMode {
+enum Dim_2Mode {
   absolute,
   clampToGround,
   relativeToGround,
 }
 
 class VirtualCamera {
-  final double latitude;
-  final double longitude;
-  final double altitude;
+  final double dim_0;
+  final double dim_1;
+  final double dim_2;
   final double heading;
   final double pitch;
   final double roll;
 
   /// Public factory constructor preserving runtime exception behavior.
   factory VirtualCamera({
-    required double latitude,
-    required double longitude,
-    required double altitude,
+    required double dim_0,
+    required double dim_1,
+    required double dim_2,
     required double heading,
     required double pitch,
     required double roll,
   }) {
-    if (latitude.isNaN || latitude.isInfinite ||
-        longitude.isNaN || longitude.isInfinite ||
-        altitude.isNaN || altitude.isInfinite ||
+    if (dim_0.isNaN || dim_0.isInfinite ||
+        dim_1.isNaN || dim_1.isInfinite ||
+        dim_2.isNaN || dim_2.isInfinite ||
         heading.isNaN || heading.isInfinite ||
         pitch.isNaN || pitch.isInfinite ||
         roll.isNaN || roll.isInfinite) {
       throw CoordinateValidationException('Coordinates and orientation values must be finite numbers.');
     }
-    if (latitude < -90.0 || latitude > 90.0) {
-      throw CoordinateValidationException('Latitude must be in the range [-90.0, 90.0].');
+    if (dim_0 < -90.0 || dim_0 > 90.0) {
+      throw CoordinateValidationException('Dim_0 must be in the range [-90.0, 90.0].');
     }
-    if (longitude < -180.0 || longitude > 180.0) {
-      throw CoordinateValidationException('Longitude must be in the range [-180.0, 180.0].');
+    if (dim_1 < -180.0 || dim_1 > 180.0) {
+      throw CoordinateValidationException('Dim_1 must be in the range [-180.0, 180.0].');
     }
-    if (altitude < -100.0) {
-      throw CoordinateValidationException('Altitude must be greater than or equal to -100.0 meters.');
+    if (dim_2 < -100.0) {
+      throw CoordinateValidationException('Dim_2 must be greater than or equal to -100.0 meters.');
     }
     return VirtualCamera.raw(
-      latitude: latitude,
-      longitude: longitude,
-      altitude: altitude,
+      dim_0: dim_0,
+      dim_1: dim_1,
+      dim_2: dim_2,
       heading: heading,
       pitch: pitch,
       roll: roll,
@@ -63,9 +63,9 @@ class VirtualCamera {
 
   /// Internal const constructor for compile-time optimization.
   const VirtualCamera.raw({
-    required this.latitude,
-    required this.longitude,
-    required this.altitude,
+    required this.dim_0,
+    required this.dim_1,
+    required this.dim_2,
     required this.heading,
     required this.pitch,
     required this.roll,
@@ -73,27 +73,27 @@ class VirtualCamera {
 
   /// A static constant representing a default camera at origin.
   static const zero = VirtualCamera.raw(
-    latitude: 0.0,
-    longitude: 0.0,
-    altitude: 0.0,
+    dim_0: 0.0,
+    dim_1: 0.0,
+    dim_2: 0.0,
     heading: 0.0,
     pitch: 0.0,
     roll: 0.0,
   );
 
   /// Creates a copy of VirtualCamera with clamped values if they exceed boundaries.
-  /// Clamps altitude to at least -100.0, latitude to [-90, 90], and longitude to [-180, 180].
+  /// Clamps dim_2 to at least -100.0, dim_0 to [-90, 90], and dim_1 to [-180, 180].
   factory VirtualCamera.clamped({
-    required double latitude,
-    required double longitude,
-    required double altitude,
+    required double dim_0,
+    required double dim_1,
+    required double dim_2,
     required double heading,
     required double pitch,
     required double roll,
   }) {
-    final double lat = (latitude.isNaN || latitude.isInfinite) ? 0.0 : latitude;
-    final double lng = (longitude.isNaN || longitude.isInfinite) ? 0.0 : longitude;
-    final double alt = (altitude.isNaN || altitude.isInfinite) ? 0.0 : altitude;
+    final double lat = (dim_0.isNaN || dim_0.isInfinite) ? 0.0 : dim_0;
+    final double lng = (dim_1.isNaN || dim_1.isInfinite) ? 0.0 : dim_1;
+    final double alt = (dim_2.isNaN || dim_2.isInfinite) ? 0.0 : dim_2;
     final double head = (heading.isNaN || heading.isInfinite) ? 0.0 : heading;
     final double pit = (pitch.isNaN || pitch.isInfinite) ? 0.0 : pitch;
     final double rl = (roll.isNaN || roll.isInfinite) ? 0.0 : roll;
@@ -102,9 +102,9 @@ class VirtualCamera {
     final double clampedLng = lng.clamp(-180.0, 180.0);
     final double clampedAlt = alt < -100.0 ? -100.0 : alt;
     return VirtualCamera(
-      latitude: clampedLat,
-      longitude: clampedLng,
-      altitude: clampedAlt,
+      dim_0: clampedLat,
+      dim_1: clampedLng,
+      dim_2: clampedAlt,
       heading: head,
       pitch: pit,
       roll: rl,
@@ -115,9 +115,9 @@ class VirtualCamera {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! VirtualCamera) return false;
-    return other.latitude == latitude &&
-        other.longitude == longitude &&
-        other.altitude == altitude &&
+    return other.dim_0 == dim_0 &&
+        other.dim_1 == dim_1 &&
+        other.dim_2 == dim_2 &&
         other.heading == heading &&
         other.pitch == pitch &&
         other.roll == roll;
@@ -126,23 +126,23 @@ class VirtualCamera {
   bool isSpatiallyEquivalentTo(
     VirtualCamera other, {
     double epsilonCoordinate = 1e-7,
-    double epsilonAltitude = 1e-3,
+    double epsilonDim_2 = 1e-3,
     double epsilonOrientation = 1e-3,
   }) {
     if (identical(this, other)) return true;
-    return (latitude - other.latitude).abs() <= epsilonCoordinate &&
-           (longitude - other.longitude).abs() <= epsilonCoordinate &&
-           (altitude - other.altitude).abs() <= epsilonAltitude &&
+    return (dim_0 - other.dim_0).abs() <= epsilonCoordinate &&
+           (dim_1 - other.dim_1).abs() <= epsilonCoordinate &&
+           (dim_2 - other.dim_2).abs() <= epsilonDim_2 &&
            (heading - other.heading).abs() <= epsilonOrientation &&
            (pitch - other.pitch).abs() <= epsilonOrientation &&
            (roll - other.roll).abs() <= epsilonOrientation;
   }
 
   @override
-  int get hashCode => Object.hash(latitude, longitude, altitude, heading, pitch, roll);
+  int get hashCode => Object.hash(dim_0, dim_1, dim_2, heading, pitch, roll);
 
   @override
   String toString() {
-    return 'VirtualCamera(latitude: $latitude, longitude: $longitude, altitude: $altitude, heading: $heading, pitch: $pitch, roll: $roll)';
+    return 'VirtualCamera(dim_0: $dim_0, dim_1: $dim_1, dim_2: $dim_2, heading: $heading, pitch: $pitch, roll: $roll)';
   }
 }

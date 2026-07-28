@@ -21,16 +21,16 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 
 extension VirtualCameraNormalization on VirtualCamera {
-  /// Ensures the camera altitude is normalized to absolute ECEF coordinates 
+  /// Ensures the camera dim_2 is normalized to absolute ECEF coordinates 
   /// (relative to the Earth's center rather than the surface).
-  VirtualCamera toAbsoluteWgs84() {
-    if (altitude >= Ellipsoid.wgs84EquatorialRadius) {
+  VirtualCamera toAbsoluteSpherical() {
+    if (dim_2 >= Ellipsoid.wgs84EquatorialRadius) {
       return this;
     }
     return VirtualCamera.raw(
-      latitude: latitude,
-      longitude: longitude,
-      altitude: Ellipsoid.wgs84EquatorialRadius + altitude,
+      dim_0: dim_0,
+      dim_1: dim_1,
+      dim_2: Ellipsoid.wgs84EquatorialRadius + dim_2,
       heading: heading,
       pitch: pitch,
       roll: roll,
@@ -94,7 +94,7 @@ class CoordinateTransformer {
     required this.screenCenter,
     required this.rotationAngle,
     required this.tilt,
-  }) : absoluteCamera = camera.toAbsoluteWgs84() {
+  }) : absoluteCamera = camera.toAbsoluteSpherical() {
     _precomputeCameraBasis();
   }
 
@@ -102,7 +102,7 @@ class CoordinateTransformer {
     final double radLng = -rotationAngle;
     final double radLat = -tilt;
 
-    _cRad = absoluteCamera.altitude;
+    _cRad = absoluteCamera.dim_2;
     _r2 = Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
     _d2 = _cRad * _cRad;
 
@@ -126,7 +126,7 @@ class CoordinateTransformer {
   }
 
   /// Projects a 3D geocoordinate into a 2D screen offset.
-  ProjectedPoint projectWgs84ToScreen({
+  ProjectedPoint projectSphericalToScreen({
     required double latRad,
     required double lngRad,
     required double heightMeters,
@@ -368,7 +368,7 @@ class SceneViewState extends ChangeNotifier {
     GlobeTileRenderer? tileRenderer,
     bool isFlying,
   ) {
-    final VirtualCamera absoluteCamera = camera.toAbsoluteWgs84();
+    final VirtualCamera absoluteCamera = camera.toAbsoluteSpherical();
     final bool cameraUnchanged = _lastRecalculatedCamera != null &&
         _lastRecalculatedCamera!.isSpatiallyEquivalentTo(absoluteCamera);
     final bool topologyUnchanged = _lastRecalculatedTopology != null &&
@@ -410,8 +410,8 @@ class SceneViewState extends ChangeNotifier {
     finalLabelPositions.clear();
 
     final Offset center = Offset(size.width * 0.45, size.height * 0.5);
-    final double baseRotation = -(camera.longitude * math.pi / 180.0);
-    final double baseTilt = -(camera.latitude * math.pi / 180.0);
+    final double baseRotation = -(camera.dim_1 * math.pi / 180.0);
+    final double baseTilt = -(camera.dim_0 * math.pi / 180.0);
     final double rotationAngle = baseRotation + userRotationX;
     final double tilt = baseTilt + userTilt;
 
@@ -424,10 +424,10 @@ class SceneViewState extends ChangeNotifier {
     );
 
     horizonPath = transformer.generateHorizonPath();
-    earthCenterProj = transformer.projectWgs84ToScreen(latRad: 0.0, lngRad: 0.0, heightMeters: -Ellipsoid.wgs84EquatorialRadius, clampToHorizon: false);
+    earthCenterProj = transformer.projectSphericalToScreen(latRad: 0.0, lngRad: 0.0, heightMeters: -Ellipsoid.wgs84EquatorialRadius, clampToHorizon: false);
     projectedCenter = earthCenterProj!.offset;
 
-    final double cRad = transformer.absoluteCamera.altitude;
+    final double cRad = transformer.absoluteCamera.dim_2;
     final double f = size.shortestSide * 1.2;
     final double radDiff = cRad * cRad - Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
     projectedRadius = Ellipsoid.wgs84EquatorialRadius * f / math.sqrt(radDiff <= 0.0 ? 1.0 : radDiff);
@@ -493,7 +493,7 @@ class SceneViewState extends ChangeNotifier {
 
       debugCapturedHeights[id] = finalHeight;
 
-      final proj = transformer.projectWgs84ToScreen(latRad: latRad, lngRad: currentLngRad, heightMeters: finalHeight);
+      final proj = transformer.projectSphericalToScreen(latRad: latRad, lngRad: currentLngRad, heightMeters: finalHeight);
       
       if (proj.z >= 0) {
         projectedNodes[id] = proj;

@@ -116,8 +116,8 @@ class _TopographicalViewState extends State<TopographicalView> {
   }
 
   VirtualCamera _calculateCameraForView(String viewId) {
-    double latitude;
-    double longitude;
+    double dim_1;
+    double dim_0;
 
     TopologyNode? activeNode;
     print("TopographicalView: topologyData has ${widget.topologyData.nodes.length} nodes");
@@ -133,26 +133,26 @@ class _TopographicalViewState extends State<TopographicalView> {
       final double lngVal = activeNode.resolveCoordinate('x', widget.topologyData.coordinateMapping);
       print("TopographicalView: resolved $viewId to lat=$latVal, lng=$lngVal");
       if (latVal == 0.0 && lngVal == 0.0) {
-        latitude = 35.6074;
-        longitude = 140.1063;
+        dim_1 = 35.6074;
+        dim_0 = 140.1063;
       } else {
-        latitude = latVal;
-        longitude = lngVal;
+        dim_1 = latVal;
+        dim_0 = lngVal;
       }
     } else {
       print("TopographicalView: $viewId not found in topologyData");
-      latitude = 35.6074;
-      longitude = 140.1063;
+      dim_1 = 35.6074;
+      dim_0 = 140.1063;
     }
 
-    latitude = latitude.clamp(-90.0, 90.0);
-    longitude = longitude.clamp(-180.0, 180.0);
+    dim_1 = dim_1.clamp(-90.0, 90.0);
+    dim_0 = dim_0.clamp(-180.0, 180.0);
 
-    print("TopographicalView: final camera lat=$latitude, lng=$longitude");
+    print("TopographicalView: final camera lat=$dim_1, lng=$dim_0");
     return VirtualCamera(
-      latitude: latitude,
-      longitude: longitude,
-      altitude: 500.0,
+      dim_0: dim_1,
+      dim_1: dim_0,
+      dim_2: 500.0,
       heading: 0.0,
       pitch: -89.9,
       roll: 0.0,

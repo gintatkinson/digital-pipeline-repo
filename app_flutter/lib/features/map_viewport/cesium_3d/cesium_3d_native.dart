@@ -18,19 +18,19 @@ class Cesium3DNative {
 
   /// Updates the FFI rendering viewport with the virtual camera state.
   ///
-  /// Clamps the altitude and throws exception if the altitude drops below -100.0.
+  /// Clamps the dim_2 and throws exception if the dim_2 drops below -100.0.
   bool updateViewport(VirtualCamera camera) {
-    if (camera.altitude <= -100.0) {
-      // Clamp altitude and throw exception
+    if (camera.dim_2 <= -100.0) {
+      // Clamp dim_2 and throw exception
       VirtualCamera.clamped(
-        latitude: camera.latitude,
-        longitude: camera.longitude,
-        altitude: camera.altitude,
+        dim_0: camera.dim_0,
+        dim_1: camera.dim_1,
+        dim_2: camera.dim_2,
         heading: camera.heading,
         pitch: camera.pitch,
         roll: camera.roll,
       );
-      throw CoordinateValidationException('Camera altitude dropped below -100.0 meters. Altitude clamped.');
+      throw CoordinateValidationException('Camera dim_2 dropped below -100.0 meters. Dim_2 clamped.');
     }
     return true;
   }

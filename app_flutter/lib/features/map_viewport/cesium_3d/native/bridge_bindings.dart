@@ -9,13 +9,13 @@ const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release 
 
 final class BridgeCamera extends Struct {
   @Double()
-  external double latitude;
+  external double dim_0;
 
   @Double()
-  external double longitude;
+  external double dim_1;
 
   @Double()
-  external double altitude;
+  external double dim_2;
 
   @Double()
   external double heading;

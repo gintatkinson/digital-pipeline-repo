@@ -60,9 +60,9 @@ class CesiumEngine {
 
   void updateCamera(VirtualCamera camera) {
     final native = calloc<BridgeCamera>();
-    native.ref.latitude = camera.latitude;
-    native.ref.longitude = camera.longitude;
-    native.ref.altitude = camera.altitude;
+    native.ref.dim_0 = camera.dim_0;
+    native.ref.dim_1 = camera.dim_1;
+    native.ref.dim_2 = camera.dim_2;
     native.ref.heading = camera.heading;
     native.ref.pitch = camera.pitch;
     native.ref.roll = camera.roll;

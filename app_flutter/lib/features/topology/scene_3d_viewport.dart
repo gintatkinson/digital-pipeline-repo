@@ -127,7 +127,7 @@ class GlobeLayer extends SceneLayer {
     canvas.drawPath(state.horizonPath!, spherePaint);
 
     _gridPaint.color = gridColor;
-    const double earthRadius = Ellipsoid.wgs84EquatorialRadius;
+    const double referenceRadius = Ellipsoid.wgs84EquatorialRadius;
 
     const int numMeridians = 12;
     const int meridianSteps = 30;
@@ -139,8 +139,8 @@ class GlobeLayer extends SceneLayer {
         final double lat1 = -math.pi / 2 + j * meridianLatStep;
         final double lat2 = -math.pi / 2 + (j + 1) * meridianLatStep;
         
-        final ProjectedPoint p1 = state.transformer.projectWgs84ToScreen(latRad: lat1, lngRad: lng, heightMeters: 0.0);
-        final ProjectedPoint p2 = state.transformer.projectWgs84ToScreen(latRad: lat2, lngRad: lng, heightMeters: 0.0);
+        final ProjectedPoint p1 = state.transformer.projectSphericalToScreen(latRad: lat1, lngRad: lng, heightMeters: 0.0);
+        final ProjectedPoint p2 = state.transformer.projectSphericalToScreen(latRad: lat2, lngRad: lng, heightMeters: 0.0);
         
         if (p1.z >= 0 && p2.z >= 0) {
           canvas.drawLine(p1.offset, p2.offset, _gridPaint);
@@ -158,8 +158,8 @@ class GlobeLayer extends SceneLayer {
         final double lng1 = j * parallelLngStep;
         final double lng2 = (j + 1) * parallelLngStep;
         
-        final ProjectedPoint p1 = state.transformer.projectWgs84ToScreen(latRad: lat, lngRad: lng1, heightMeters: 0.0);
-        final ProjectedPoint p2 = state.transformer.projectWgs84ToScreen(latRad: lat, lngRad: lng2, heightMeters: 0.0);
+        final ProjectedPoint p1 = state.transformer.projectSphericalToScreen(latRad: lat, lngRad: lng1, heightMeters: 0.0);
+        final ProjectedPoint p2 = state.transformer.projectSphericalToScreen(latRad: lat, lngRad: lng2, heightMeters: 0.0);
         
         if (p1.z >= 0 && p2.z >= 0) {
           canvas.drawLine(p1.offset, p2.offset, _gridPaint);
@@ -184,12 +184,12 @@ class GlobeLayer extends SceneLayer {
         final List<ProjectedPoint> pts = [];
         for (int s = 0; s <= steps; s++) {
           final double lng = s * (2 * math.pi / steps);
-          final p = state.transformer.projectWgs84ToScreen(latRad: latMin, lngRad: lng, heightMeters: earthRadius * 0.002);
+          final p = state.transformer.projectSphericalToScreen(latRad: latMin, lngRad: lng, heightMeters: referenceRadius * 0.002);
           if (p.z >= 0.0) pts.add(p);
         }
         for (int s = steps; s >= 0; s--) {
           final double lng = s * (2 * math.pi / steps);
-          final p = state.transformer.projectWgs84ToScreen(latRad: latMax, lngRad: lng, heightMeters: earthRadius * 0.002);
+          final p = state.transformer.projectSphericalToScreen(latRad: latMax, lngRad: lng, heightMeters: referenceRadius * 0.002);
           if (p.z >= 0.0) pts.add(p);
         }
 
@@ -246,7 +246,7 @@ class GlobeLayer extends SceneLayer {
         (double latDeg, double lngDeg) {
           final double elev = state.elevationProvider.getElevation(latDeg, lngDeg);
           final double ampElev = elev * state.verticalExaggeration;
-          return state.transformer.projectWgs84ToScreen(
+          return state.transformer.projectSphericalToScreen(
             latRad: latDeg * math.pi / 180.0,
             lngRad: lngDeg * math.pi / 180.0,
             heightMeters: ampElev,
@@ -338,7 +338,7 @@ class TopologyLayer extends SceneLayer {
          final double lngRad = node.position.dim0 * math.pi / 180.0;
          final double elev = state.elevationProvider.getElevation(node.position.dim1, node.position.dim0);
          final double surfaceHeight = Ellipsoid.wgs84EquatorialRadius + elev * state.verticalExaggeration;
-         final surfaceProj = state.transformer.projectWgs84ToScreen(latRad: latRad, lngRad: lngRad, heightMeters: surfaceHeight);
+         final surfaceProj = state.transformer.projectSphericalToScreen(latRad: latRad, lngRad: lngRad, heightMeters: surfaceHeight);
          const int dashes = 10;
          for (int d = 0; d < dashes; d++) {
            final Offset pStart = Offset.lerp(proj.offset, surfaceProj.offset, d / dashes)!;
@@ -410,7 +410,7 @@ class Scene3DViewportPainter extends CustomPainter {
     double lat,
     double lng,
     double height,
-    double cameraAltitude,
+    double cameraDim_2,
   ) {
     final double R = Ellipsoid.wgs84EquatorialRadius;
     final double radLng = 0.0;
@@ -420,7 +420,7 @@ class Scene3DViewportPainter extends CustomPainter {
     double py = height * math.cos(lat) * math.sin(lng);
     double pz = height * math.sin(lat);
 
-    final double cRad = cameraAltitude;
+    final double cRad = cameraDim_2;
     final double cx = cRad * math.cos(radLat) * math.cos(radLng);
     final double cy = cRad * math.cos(radLat) * math.sin(radLng);
     final double cz = cRad * math.sin(radLat);
@@ -565,7 +565,7 @@ class Scene3DViewportPainter extends CustomPainter {
     try {
       cam = state.camera;
     } catch (_) {
-      cam = VirtualCamera.raw(latitude: -tilt * 180 / math.pi, longitude: -rotationAngle * 180 / math.pi, altitude: 500000, heading: 0, pitch: -90, roll: 0);
+      cam = VirtualCamera.raw(dim_0: -tilt * 180 / math.pi, dim_1: -rotationAngle * 180 / math.pi, dim_2: 500000, heading: 0, pitch: -90, roll: 0);
     }
     return CoordinateTransformer(
       camera: cam, 
@@ -573,7 +573,7 @@ class Scene3DViewportPainter extends CustomPainter {
       screenCenter: center, 
       rotationAngle: rotationAngle, 
       tilt: tilt
-    ).projectWgs84ToScreen(
+    ).projectSphericalToScreen(
       latRad: latRad, 
       lngRad: lngRad, 
       heightMeters: heightMeters - Ellipsoid.wgs84EquatorialRadius, 
@@ -629,9 +629,9 @@ class CameraStatsPanel extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('Latitude: ${cam.latitude.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
-                  Text('Longitude: ${cam.longitude.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
-                  Text('Altitude: ${(cam.altitude - Ellipsoid.wgs84EquatorialRadius).toStringAsFixed(2)} meters', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Dim_0: ${cam.dim_0.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Dim_1: ${cam.dim_1.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Dim_2: ${(cam.dim_2 - Ellipsoid.wgs84EquatorialRadius).toStringAsFixed(2)} meters', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                   Text('Pitch/Yaw/Roll: ${cam.pitch} / ${cam.heading} / ${cam.roll}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                 ],
               ),
@@ -839,20 +839,20 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   @visibleForTesting GlobeTileRenderer? get tileRenderer => _tileRenderer;
 
   Offset getProjectedPosition(
-    double latitude,
-    double longitude, {
-    double altitude = 0.0,
+    double dim_0,
+    double dim_1, {
+    double dim_2 = 0.0,
     String nodeType = '',
   }) {
     final Size? size = context.size;
     if (size == null) return Offset.zero;
 
     final rawCamera = _cameraController.current;
-    final camera = rawCamera.altitude < Ellipsoid.wgs84EquatorialRadius 
+    final camera = rawCamera.dim_2 < Ellipsoid.wgs84EquatorialRadius 
       ? VirtualCamera.raw(
-          latitude: rawCamera.latitude,
-          longitude: rawCamera.longitude,
-          altitude: Ellipsoid.wgs84EquatorialRadius + rawCamera.altitude,
+          dim_0: rawCamera.dim_0,
+          dim_1: rawCamera.dim_1,
+          dim_2: Ellipsoid.wgs84EquatorialRadius + rawCamera.dim_2,
           heading: rawCamera.heading,
           pitch: rawCamera.pitch,
           roll: rawCamera.roll,
@@ -863,8 +863,8 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       camera: camera,
       viewportSize: size,
       screenCenter: Offset(size.width * 0.45, size.height * 0.5),
-      rotationAngle: -(camera.longitude * math.pi / 180.0),
-      tilt: -(camera.latitude * math.pi / 180.0),
+      rotationAngle: -(camera.dim_1 * math.pi / 180.0),
+      tilt: -(camera.dim_0 * math.pi / 180.0),
     );
 
     final String heightRef = nodeType.toUpperCase();
@@ -874,32 +874,32 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     } else if (heightRef == 'ABSOLUTE') {
       type = 'space';
     } else {
-      type = (altitude < 50000.0) ? 'ground' : 'space';
+      type = (dim_2 < 50000.0) ? 'ground' : 'space';
     }
 
     final double finalHeight;
     if (type == 'space') {
-      finalHeight = altitude;
+      finalHeight = dim_2;
     } else {
       if (_elevationActive) {
-        final double terrainElev = Scene3DViewportPainter.getElevationStatic(latitude, longitude, _elevationActive);
+        final double terrainElev = Scene3DViewportPainter.getElevationStatic(dim_0, dim_1, _elevationActive);
         final double relativeAlt;
         if (heightRef == 'CLAMP_TO_GROUND') {
           relativeAlt = 0.0;
         } else if (heightRef == 'RELATIVE_TO_GROUND') {
-          relativeAlt = altitude;
+          relativeAlt = dim_2;
         } else {
-          relativeAlt = altitude - terrainElev;
+          relativeAlt = dim_2 - terrainElev;
         }
         finalHeight = terrainElev * widget.verticalExaggeration + relativeAlt;
       } else {
-        finalHeight = altitude;
+        finalHeight = dim_2;
       }
     }
 
-    final proj = transformer.projectWgs84ToScreen(
-      latRad: latitude * math.pi / 180.0,
-      lngRad: longitude * math.pi / 180.0,
+    final proj = transformer.projectSphericalToScreen(
+      latRad: dim_0 * math.pi / 180.0,
+      lngRad: dim_1 * math.pi / 180.0,
       heightMeters: finalHeight,
     );
     return proj.offset;
@@ -943,7 +943,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       if (_cameraController.tick()) _flyTicker?.stop();
     });
 
-    _cameraController = CameraController(widget.camera.toAbsoluteWgs84());
+    _cameraController = CameraController(widget.camera.toAbsoluteSpherical());
     _cameraController.elevationProvider = (lat, lng) {
       return ElevationProvider(isElevationActive: _elevationActive).getElevation(lat, lng) * widget.verticalExaggeration;
     };
@@ -974,7 +974,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     if (!oldWidget.camera.isSpatiallyEquivalentTo(widget.camera)) {
       if (_cameraController.isFlying) return;
       _isUpdatingWidget = true;
-      _cameraController.updateCamera(widget.camera.toAbsoluteWgs84());
+      _cameraController.updateCamera(widget.camera.toAbsoluteSpherical());
       _isUpdatingWidget = false;
     }
   }
@@ -998,7 +998,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       treeViewModel.clearFlightTarget();
       final targetCam = _calculateCameraForNode(targetNodeId);
       if (targetCam != null) {
-        _cameraController.flyTo(targetCam.toAbsoluteWgs84());
+        _cameraController.flyTo(targetCam.toAbsoluteSpherical());
         _flyTicker?.stop();
         _flyTicker?.start();
       }
@@ -1018,9 +1018,9 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     final double latVal = activeNode.resolveCoordinate('y', widget.topologyData!.coordinateMapping);
     final double lngVal = activeNode.resolveCoordinate('x', widget.topologyData!.coordinateMapping);
     if (latVal == 0.0 && lngVal == 0.0) {
-      return VirtualCamera.raw(latitude: 35.6074, longitude: 140.1063, altitude: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
+      return VirtualCamera.raw(dim_0: 35.6074, dim_1: 140.1063, dim_2: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
     }
-    return VirtualCamera.raw(latitude: latVal, longitude: lngVal, altitude: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
+    return VirtualCamera.raw(dim_0: latVal, dim_1: lngVal, dim_2: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -1069,15 +1069,15 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
         onTapDown: (_) => _globeFocusNode.requestFocus(),
         onDoubleTapDown: (details) {
           print("DOUBLE TAP TRIGGERED"); final current = _cameraController.current;
-          final surfaceAlt = current.altitude - Ellipsoid.wgs84EquatorialRadius;
+          final surfaceAlt = current.dim_2 - Ellipsoid.wgs84EquatorialRadius;
           final targetAlt = (surfaceAlt * 0.5).clamp(
-            CameraController.minAltitude,
-            CameraController.maxAltitude,
+            CameraController.minDim_2,
+            CameraController.maxDim_2,
           );
           _cameraController.flyTo(VirtualCamera.raw(
-            latitude: current.latitude,
-            longitude: current.longitude,
-            altitude: targetAlt + Ellipsoid.wgs84EquatorialRadius,
+            dim_0: current.dim_0,
+            dim_1: current.dim_1,
+            dim_2: targetAlt + Ellipsoid.wgs84EquatorialRadius,
             heading: current.heading,
             pitch: current.pitch,
             roll: current.roll,

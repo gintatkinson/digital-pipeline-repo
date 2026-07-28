@@ -6,7 +6,7 @@ import 'package:app_flutter/features/topology/scene_3d_viewport_classes.dart';
 
 void main() {
   group('VirtualCameraNormalization', () {
-    test('toAbsoluteWgs84 normalizes relative dim_2', () {
+    test('toAbsoluteSpherical normalizes relative dim_2', () {
       final camera = VirtualCamera.raw(
         dim_0: 0,
         dim_1: 0,
@@ -15,11 +15,11 @@ void main() {
         pitch: 0,
         roll: 0,
       );
-      final absoluteCamera = camera.toAbsoluteWgs84();
+      final absoluteCamera = camera.toAbsoluteSpherical();
       expect(absoluteCamera.dim_2, Ellipsoid.wgs84EquatorialRadius + 500.0);
     });
 
-    test('toAbsoluteWgs84 retains absolute dim_2', () {
+    test('toAbsoluteSpherical retains absolute dim_2', () {
       final camera = VirtualCamera.raw(
         dim_0: 0,
         dim_1: 0,
@@ -28,7 +28,7 @@ void main() {
         pitch: 0,
         roll: 0,
       );
-      final absoluteCamera = camera.toAbsoluteWgs84();
+      final absoluteCamera = camera.toAbsoluteSpherical();
       expect(absoluteCamera, same(camera));
     });
   });
@@ -93,7 +93,7 @@ void main() {
         tilt: 0.0,
       );
       
-      final point = transformer.projectWgs84ToScreen(
+      final point = transformer.projectSphericalToScreen(
         latRad: 0.0,
         lngRad: math.pi,
         heightMeters: 0.0,
@@ -120,7 +120,7 @@ void main() {
         tilt: 0.0,
       );
       
-      final point = transformer.projectWgs84ToScreen(
+      final point = transformer.projectSphericalToScreen(
         latRad: 0.0,
         lngRad: 0.0,
         heightMeters: 0.0,

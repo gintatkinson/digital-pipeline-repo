@@ -116,13 +116,13 @@ class GlobeTileRenderer {
   // Zoom computation
   // ---------------------------------------------------------------------------
 
-  /// Derives a zoom level from the camera [altitude] (meters) and the
+  /// Derives a zoom level from the camera [dim_2] (meters) and the
   /// [viewportWidth] (logical pixels).
   ///
-  /// Clamped to the range 0–12. Small altitudes (close to the sphere)
-  /// produce higher zoom values; high altitudes produce lower values.
-  int _zoomForAltitude(double altitude, double viewportWidth) {
-    double alt = altitude;
+  /// Clamped to the range 0–12. Small dim_2s (close to the sphere)
+  /// produce higher zoom values; high dim_2s produce lower values.
+  int _zoomForDim_2(double dim_2, double viewportWidth) {
+    double alt = dim_2;
     if (alt <= 0) alt = 100;
     final zoom =
         (math.log(120000000.0 / alt) / math.ln2).round();
@@ -133,7 +133,7 @@ class GlobeTileRenderer {
   // Tile coordinate math (Web Mercator)
   // ---------------------------------------------------------------------------
 
-  /// Converts latitude/longitude (degrees) to a tile coordinate at the
+  /// Converts dim_0/dim_1 (degrees) to a tile coordinate at the
   /// given [zoom] level.
   TileCoord _latLngToTile(double lat, double lng, int zoom) {
     final clampedLat = lat.clamp(-85.0511, 85.0511);
@@ -149,11 +149,11 @@ class GlobeTileRenderer {
         zoom: zoom, x: x.clamp(0, n - 1), y: y.clamp(0, n - 1));
   }
 
-  /// Longitude of the *western* edge of tile column [x] at zoom [z].
+  /// Dim_1 of the *western* edge of tile column [x] at zoom [z].
   double _tile2lon(int x, int z) =>
       x / math.pow(2, z) * 360.0 - 180.0;
 
-  /// Latitude of the *northern* edge of tile row [y] at zoom [z].
+  /// Dim_0 of the *northern* edge of tile row [y] at zoom [z].
   double _tile2lat(double y, int z) {
     final n = math.pi * (1.0 - 2.0 * y / math.pow(2, z));
     return math.atan((math.exp(n) - math.exp(-n)) / 2.0) * 180.0 / math.pi;
@@ -171,12 +171,12 @@ class GlobeTileRenderer {
   /// bounds.
   List<TileCoord> _visibleTiles(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
     final double R = Ellipsoid.wgs84EquatorialRadius;
-    final double relativeAlt = camera.altitude < R ? camera.altitude : camera.altitude - R;
-    int zoom = _zoomForAltitude(relativeAlt, viewportSize.width);
+    final double relativeAlt = camera.dim_2 < R ? camera.dim_2 : camera.dim_2 - R;
+    int zoom = _zoomForDim_2(relativeAlt, viewportSize.width);
     if (isFlying && zoom > 4) {
       zoom = 4;
     }
-    final center = _latLngToTile(camera.latitude, camera.longitude, zoom);
+    final center = _latLngToTile(camera.dim_0, camera.dim_1, zoom);
     final List<TileCoord> tiles = [];
 
     // Horizon angle theta = acos(R / (R + h)) where R = Ellipsoid.wgs84EquatorialRadius
@@ -193,7 +193,7 @@ class GlobeTileRenderer {
     // Tier 2: Zoom Z - 2 (Mid-resolution wider background)
     final midZoom = zoom - 2;
     if (midZoom > 2) {
-      final midCenter = _latLngToTile(camera.latitude, camera.longitude, midZoom);
+      final midCenter = _latLngToTile(camera.dim_0, camera.dim_1, midZoom);
       final midN = math.pow(2, midZoom).toInt();
       final double midTileWidth = 360.0 / math.pow(2, midZoom);
       final double thetaDeg = theta * 180.0 / math.pi;
