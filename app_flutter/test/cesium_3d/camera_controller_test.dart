@@ -14,9 +14,9 @@ void main() {
       double roll = 0.0,
     }) {
       return VirtualCamera.clamped(
-        latitude: lat,
-        longitude: lng,
-        altitude: alt,
+        dim_0: lat,
+        dim_1: lng,
+        dim_2: alt,
         heading: heading,
         pitch: pitch,
         roll: roll,
@@ -27,49 +27,49 @@ void main() {
       final c = CameraController(_makeCam());
       c.pan(const Offset(100, 50));
       final cam = c.current;
-      expect(cam.longitude, lessThan(135.0));
-      expect(cam.latitude, lessThan(35.0));
+      expect(cam.dim_1, lessThan(135.0));
+      expect(cam.dim_0, lessThan(35.0));
     });
 
-    test('pan left (negative dx) increases longitude', () {
+    test('pan left (negative dx) increases dim_1', () {
       final c = CameraController(_makeCam(lng: 135.0));
-      final before = c.current.longitude;
+      final before = c.current.dim_1;
       c.pan(const Offset(-200, 0));
       final after = c.current;
-      expect(after.longitude, greaterThan(before));
-      expect(after.latitude, equals(35.0));
-      expect(after.altitude, equals(6378137.0 + 500.0));
+      expect(after.dim_1, greaterThan(before));
+      expect(after.dim_0, equals(35.0));
+      expect(after.dim_2, equals(6378137.0 + 500.0));
       expect(after.pitch, equals(0.0));
       expect(after.heading, equals(0.0));
     });
 
-    test('pan up (negative dy) increases latitude', () {
+    test('pan up (negative dy) increases dim_0', () {
       final c = CameraController(_makeCam(lat: 35.0));
-      final before = c.current.latitude;
+      final before = c.current.dim_0;
       c.pan(const Offset(0, -100));
       final after = c.current;
-      expect(after.latitude, greaterThan(before));
-      expect(after.longitude, equals(135.0));
-      expect(after.altitude, equals(6378137.0 + 500.0));
+      expect(after.dim_0, greaterThan(before));
+      expect(after.dim_1, equals(135.0));
+      expect(after.dim_2, equals(6378137.0 + 500.0));
     });
 
     test('pan with pixel-accurate precision', () {
       final c = CameraController(_makeCam(lat: 0.0, lng: 0.0));
       c.pan(const Offset(100, 100));
-      expect(c.current.longitude, closeTo(-1.75638, 0.0001));
-      expect(c.current.latitude, closeTo(-1.75638, 0.0001));
+      expect(c.current.dim_1, closeTo(-1.75638, 0.0001));
+      expect(c.current.dim_0, closeTo(-1.75638, 0.0001));
     });
 
-    test('pan clamps latitude to [-90, 90]', () {
+    test('pan clamps dim_0 to [-90, 90]', () {
       final c = CameraController(_makeCam(lat: 85.0));
       c.pan(const Offset(0, -1000000.0));
-      expect(c.current.latitude, equals(90.0));
+      expect(c.current.dim_0, equals(90.0));
     });
 
-    test('pan wraps longitude past 180', () {
+    test('pan wraps dim_1 past 180', () {
       final c = CameraController(_makeCam(lng: 175.0));
       c.pan(const Offset(-1000.0, 0));
-      expect(c.current.longitude, lessThan(-160.0));
+      expect(c.current.dim_1, lessThan(-160.0));
     });
 
     test('tilt changes pitch/heading, not lat/lng', () {
@@ -78,8 +78,8 @@ void main() {
       c.tilt(const Offset(0, 100));
       final after = c.current;
       expect(after.pitch, lessThan(before.pitch));
-      expect(after.latitude, equals(before.latitude));
-      expect(after.longitude, equals(before.longitude));
+      expect(after.dim_0, equals(before.dim_0));
+      expect(after.dim_1, equals(before.dim_1));
     });
 
     test('rotateHeading changes heading only', () {
@@ -87,7 +87,7 @@ void main() {
       c.rotateHeading(const Offset(100, 50));
       final after = c.current;
       expect(after.heading, isNot(0));
-      expect(after.latitude, equals(35.0));
+      expect(after.dim_0, equals(35.0));
       expect(after.pitch, equals(0.0));
     });
 
@@ -98,8 +98,8 @@ void main() {
       final after = c.current;
       expect(after.pitch, isNot(before.pitch));
       expect(after.heading, isNot(before.heading));
-      expect(after.latitude, equals(before.latitude));
-      expect(after.longitude, equals(before.longitude));
+      expect(after.dim_0, equals(before.dim_0));
+      expect(after.dim_1, equals(before.dim_1));
     });
 
     test('ctrl+drag (rotateHeading) modifies heading, not lat/lng/pitch', () {
@@ -108,15 +108,15 @@ void main() {
       c.rotateHeading(const Offset(50, 100));
       final after = c.current;
       expect(after.heading, isNot(before.heading));
-      expect(after.latitude, equals(before.latitude));
-      expect(after.longitude, equals(before.longitude));
+      expect(after.dim_0, equals(before.dim_0));
+      expect(after.dim_1, equals(before.dim_1));
       expect(after.pitch, equals(before.pitch));
     });
 
-    test('zoom changes altitude', () {
+    test('zoom changes dim_2', () {
       final c = CameraController(_makeCam());
       c.zoom(-200);
-      expect(c.current.altitude, lessThan(6378137.0 + 500.0));
+      expect(c.current.dim_2, lessThan(6378137.0 + 500.0));
     });
 
     test('heading wraps at 360', () {
@@ -126,26 +126,26 @@ void main() {
       expect(c.current.heading, greaterThan(340));
     });
 
-    test('longitude wraps around -180/+180 boundary', () {
+    test('dim_1 wraps around -180/+180 boundary', () {
       final c = CameraController(_makeCam(lng: -175));
       c.pan(const Offset(1000.0, 0));
-      expect(c.current.longitude, lessThan(180));
-      expect(c.current.longitude, greaterThan(155));
+      expect(c.current.dim_1, lessThan(180));
+      expect(c.current.dim_1, greaterThan(155));
     });
 
-    test('keyboardRotate changes longitude only', () {
+    test('keyboardRotate changes dim_1 only', () {
       final c = CameraController(_makeCam());
       c.keyboardRotate(10);
-      expect(c.current.longitude, equals(145.0));
-      expect(c.current.latitude, equals(35.0));
+      expect(c.current.dim_1, equals(145.0));
+      expect(c.current.dim_0, equals(35.0));
     });
 
     test('keyboardRotateHeading changes heading only', () {
       final c = CameraController(_makeCam());
       c.keyboardRotateHeading(10);
       expect(c.current.heading, equals(10.0));
-      expect(c.current.longitude, equals(135.0));
-      expect(c.current.latitude, equals(35.0));
+      expect(c.current.dim_1, equals(135.0));
+      expect(c.current.dim_0, equals(35.0));
     });
 
     test('keyboardTilt changes pitch only', () {
@@ -154,37 +154,37 @@ void main() {
       expect(c.current.pitch, equals(5.0));
     });
 
-    test('zoom clamps to minAltitude', () {
+    test('zoom clamps to minDim_2', () {
       final c = CameraController(_makeCam(alt: 200));
       c.zoom(-10000);
-      expect(c.current.altitude, equals(6378137.0 + CameraController.minAltitude));
+      expect(c.current.dim_2, equals(6378137.0 + CameraController.minDim_2));
     });
 
-    test('zoom clamps to maxAltitude', () {
+    test('zoom clamps to maxDim_2', () {
       final c = CameraController(_makeCam());
       c.zoom(1000000000);
-      expect(c.current.altitude, equals(6378137.0 + CameraController.maxAltitude));
+      expect(c.current.dim_2, equals(6378137.0 + CameraController.maxDim_2));
     });
 
     group('Scroll zoom behavior', () {
-      test('negative delta decreases altitude (scroll up = zoom in)', () {
+      test('negative delta decreases dim_2 (scroll up = zoom in)', () {
         final c = CameraController(_makeCam(alt: 500000));
         c.zoom(-100);
-        expect(c.current.altitude, lessThan(6378137.0 + 500000));
+        expect(c.current.dim_2, lessThan(6378137.0 + 500000));
       });
 
-      test('positive delta increases altitude (scroll down = zoom out)', () {
+      test('positive delta increases dim_2 (scroll down = zoom out)', () {
         final c = CameraController(_makeCam(alt: 500000));
         c.zoom(100);
-        expect(c.current.altitude, greaterThan(6378137.0 + 500000));
+        expect(c.current.dim_2, greaterThan(6378137.0 + 500000));
       });
 
       test('zoom respects scrollSensitivity', () {
         final c = CameraController(_makeCam(alt: 500000));
         c.zoom(-1);
-        expect(c.current.altitude, closeTo(6378137.0 + 500000 - CameraController.scrollSensitivity, 0.01));
+        expect(c.current.dim_2, closeTo(6378137.0 + 500000 - CameraController.scrollSensitivity, 0.01));
         c.zoom(1);
-        expect(c.current.altitude, closeTo(6378137.0 + 500000, 0.01));
+        expect(c.current.dim_2, closeTo(6378137.0 + 500000, 0.01));
       });
 
       test('zoom does not affect lat/lng/pitch/heading', () {
@@ -192,28 +192,28 @@ void main() {
         final before = c.current;
         c.zoom(-200);
         final after = c.current;
-        expect(after.latitude, equals(before.latitude));
-        expect(after.longitude, equals(before.longitude));
+        expect(after.dim_0, equals(before.dim_0));
+        expect(after.dim_1, equals(before.dim_1));
         expect(after.pitch, equals(before.pitch));
         expect(after.heading, equals(before.heading));
       });
 
-      test('small scroll delta produces visible altitude change', () {
+      test('small scroll delta produces visible dim_2 change', () {
         final c = CameraController(_makeCam(alt: 500000));
         c.zoom(-10);
-        expect(c.current.altitude, closeTo(6378137.0 + 500000 - 5.0, 0.01));
+        expect(c.current.dim_2, closeTo(6378137.0 + 500000 - 5.0, 0.01));
       });
 
-      test('scroll up from minAltitude stays at minAltitude', () {
-        final c = CameraController(_makeCam(alt: CameraController.minAltitude));
+      test('scroll up from minDim_2 stays at minDim_2', () {
+        final c = CameraController(_makeCam(alt: CameraController.minDim_2));
         c.zoom(-1);
-        expect(c.current.altitude, equals(6378137.0 + CameraController.minAltitude));
+        expect(c.current.dim_2, equals(6378137.0 + CameraController.minDim_2));
       });
 
-      test('scroll down from maxAltitude stays at maxAltitude', () {
-        final c = CameraController(_makeCam(alt: 6378137.0 + CameraController.maxAltitude));
+      test('scroll down from maxDim_2 stays at maxDim_2', () {
+        final c = CameraController(_makeCam(alt: 6378137.0 + CameraController.maxDim_2));
         c.zoom(1);
-        expect(c.current.altitude, equals(6378137.0 + CameraController.maxAltitude));
+        expect(c.current.dim_2, equals(6378137.0 + CameraController.maxDim_2));
       });
     });
 
@@ -233,17 +233,17 @@ void main() {
       DateTime time = DateTime(2026, 7, 19, 12, 0, 0);
       withClock(Clock(() => time), () {
         final start = VirtualCamera.clamped(
-          latitude: 35.6,
-          longitude: 135.0,
-          altitude: 6378137.0 + 500.0,
+          dim_0: 35.6,
+          dim_1: 135.0,
+          dim_2: 6378137.0 + 500.0,
           heading: 0.0,
           pitch: 0.0,
           roll: 0.0,
         );
         final target = VirtualCamera.clamped(
-          latitude: 40.7,
-          longitude: -74.0,
-          altitude: 6378137.0 + 500.0,
+          dim_0: 40.7,
+          dim_1: -74.0,
+          dim_2: 6378137.0 + 500.0,
           heading: 0.0,
           pitch: 0.0,
           roll: 0.0,
@@ -261,29 +261,29 @@ void main() {
 
         final arrivedMid = controller.tick();
         expect(arrivedMid, isFalse);
-        expect(controller.current.altitude - 6378137.0, greaterThan(1000000.0));
+        expect(controller.current.dim_2 - 6378137.0, greaterThan(1000000.0));
 
         final remainingMs = duration.inMilliseconds - halfDurationMs;
         time = time.add(Duration(milliseconds: remainingMs));
 
         final arrivedEnd = controller.tick();
         expect(arrivedEnd, isTrue);
-        expect(controller.current.latitude, closeTo(40.7, 0.001));
-        expect(controller.current.longitude, closeTo(-74.0, 0.001));
-        expect(controller.current.altitude - 6378137.0, closeTo(500.0, 0.1));
+        expect(controller.current.dim_0, closeTo(40.7, 0.001));
+        expect(controller.current.dim_1, closeTo(-74.0, 0.001));
+        expect(controller.current.dim_2 - 6378137.0, closeTo(500.0, 0.1));
       });
     });
   });
 
   group('VirtualCamera equality', () {
     test('identical cameras compare equal', () {
-      final a = VirtualCamera(latitude: 35, longitude: 135, altitude: 500, heading: 0, pitch: -45, roll: 0);
-      final b = VirtualCamera(latitude: 35, longitude: 135, altitude: 500, heading: 0, pitch: -45, roll: 0);
+      final a = VirtualCamera(dim_0: 35, dim_1: 135, dim_2: 500, heading: 0, pitch: -45, roll: 0);
+      final b = VirtualCamera(dim_0: 35, dim_1: 135, dim_2: 500, heading: 0, pitch: -45, roll: 0);
       expect(a, equals(b));
     });
     test('different values compare not equal', () {
-      final a = VirtualCamera(latitude: 35, longitude: 135, altitude: 500, heading: 0, pitch: -45, roll: 0);
-      final b = VirtualCamera(latitude: 36, longitude: 135, altitude: 500, heading: 0, pitch: -45, roll: 0);
+      final a = VirtualCamera(dim_0: 35, dim_1: 135, dim_2: 500, heading: 0, pitch: -45, roll: 0);
+      final b = VirtualCamera(dim_0: 36, dim_1: 135, dim_2: 500, heading: 0, pitch: -45, roll: 0);
       expect(a, isNot(equals(b)));
     });
   });

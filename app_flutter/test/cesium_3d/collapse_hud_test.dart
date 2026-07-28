@@ -6,9 +6,9 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 void main() {
   testWidgets('Collapse and expand HUD panels in Scene3DViewport', (WidgetTester tester) async {
     final camera = VirtualCamera(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 6378137.0 + 100000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 6378137.0 + 100000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,

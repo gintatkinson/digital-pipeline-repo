@@ -27,13 +27,13 @@ void main() {
     tearDown(() {
       TileFetcher.urlOverride = null;
     });
-    test('Scenario 4 - visible tile grid: horizon search radius verification at high altitude', () {
+    test('Scenario 4 - visible tile grid: horizon search radius verification at high dim_2', () {
       final fetcher = TileFetcher()..disable();
       final renderer = GlobeTileRenderer(fetcher: fetcher);
       final camera = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 6378137.0 + 500000.0, // 500,000m
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 6378137.0 + 500000.0, // 500,000m
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -43,7 +43,7 @@ void main() {
       // Verify zoom is 8
       // double alt = 500000.0
       // zoom = round(log(120000000.0 / 500000.0) / ln2) = round(log(240.0) / ln2) = round(7.907) = 8.
-      final centerTile = renderer.latLngToTileForTesting(camera.latitude, camera.longitude, 8);
+      final centerTile = renderer.latLngToTileForTesting(camera.dim_0, camera.dim_1, 8);
       expect(centerTile.zoom, equals(8));
 
       final visibleTiles = renderer.visibleTilesForTesting(camera, viewportSize);
@@ -88,9 +88,9 @@ void main() {
       );
 
       final camera = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 10000000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 10000000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -100,8 +100,8 @@ void main() {
       renderer.beginTileFetch(camera, const ui.Size(800, 600));
       await completer.future;
 
-      // Now call renderTiles and capture the latitudes passed to projectFn
-      final latitudes = <double>[];
+      // Now call renderTiles and capture the dim_0s passed to projectFn
+      final dim_0s = <double>[];
       final canvas = ui.Canvas(ui.PictureRecorder());
 
       renderer.renderTiles(
@@ -111,12 +111,12 @@ void main() {
         ui.Offset.zero,
         1000.0,
         (lat, lng) {
-          latitudes.add(lat);
+          dim_0s.add(lat);
           return ProjectedPoint(ui.Offset.zero, 1.0);
         },
       );
 
-      // Helper to compute unclamped latitude at zoom 2, y=0 and y=4
+      // Helper to compute unclamped dim_0 at zoom 2, y=0 and y=4
       double computeUnclampedLat(double y, int z) {
         final n = math.pi * (1.0 - 2.0 * y / math.pow(2, z));
         return math.atan((math.exp(n) - math.exp(-n)) / 2.0) * 180.0 / math.pi;
@@ -124,12 +124,12 @@ void main() {
       final unclampedNorth = computeUnclampedLat(0, 2);
       final unclampedSouth = computeUnclampedLat(4, 2);
 
-      // Verify that the captured latitudes contain exactly 90.0 and -90.0,
-      // and do NOT contain unclamped boundary latitudes (~85.0511 or ~-85.0511)
-      expect(latitudes, contains(90.0));
-      expect(latitudes, contains(-90.0));
-      expect(latitudes, isNot(contains(unclampedNorth)));
-      expect(latitudes, isNot(contains(unclampedSouth)));
+      // Verify that the captured dim_0s contain exactly 90.0 and -90.0,
+      // and do NOT contain unclamped boundary dim_0s (~85.0511 or ~-85.0511)
+      expect(dim_0s, contains(90.0));
+      expect(dim_0s, contains(-90.0));
+      expect(dim_0s, isNot(contains(unclampedNorth)));
+      expect(dim_0s, isNot(contains(unclampedSouth)));
     });
 
     test('[Bug #40] Tile mesh must have sufficient subdivisions to prevent flat seams at tile boundaries', () {
@@ -211,9 +211,9 @@ void main() {
 
         final canvas = ui.Canvas(ui.PictureRecorder());
         final camera = VirtualCamera(
-          latitude: 0.0,
-          longitude: 0.0,
-          altitude: 6378137.0 + 500000.0,
+          dim_0: 0.0,
+          dim_1: 0.0,
+          dim_2: 6378137.0 + 500000.0,
           heading: 0.0,
           pitch: 0.0,
           roll: 0.0,
@@ -256,31 +256,31 @@ void main() {
       final renderer = GlobeTileRenderer(fetcher: fetcher);
       final size = const ui.Size(800, 600);
 
-      // Test at 500,000m altitude
+      // Test at 500,000m dim_2
       final cameraLow = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 6378137.0 + 500000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 6378137.0 + 500000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
       );
       final tilesLow = renderer.visibleTilesForTesting(cameraLow, size);
       expect(tilesLow.length, lessThanOrEqualTo(66),
-          reason: 'At 500,000m altitude, tile count should not exceed 66 to fit cache budget');
+          reason: 'At 500,000m dim_2, tile count should not exceed 66 to fit cache budget');
 
-      // Test at 10,000,000m altitude
+      // Test at 10,000,000m dim_2
       final cameraHigh = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 10000000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 10000000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
       );
       final tilesHigh = renderer.visibleTilesForTesting(cameraHigh, size);
       expect(tilesHigh.length, lessThanOrEqualTo(66),
-          reason: 'At 10,000,000m altitude, tile count should not exceed 66 to fit cache budget');
+          reason: 'At 10,000,000m dim_2, tile count should not exceed 66 to fit cache budget');
     });
 
     test('Test 5 (Scenario 5 - Caching stability & thrashing prevention)', () async {
@@ -288,9 +288,9 @@ void main() {
       final renderer = GlobeTileRenderer(fetcher: fetcher);
       final size = const ui.Size(800, 600);
       final camera = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 6378137.0 + 500000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 6378137.0 + 500000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -311,9 +311,9 @@ void main() {
 
     test('Test 6 (Scenario 6 - Horizon projection clamping)', () {
       final camera = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 6378137.0 + 500000.0, // 500,000m
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 6378137.0 + 500000.0, // 500,000m
         heading: 0.0,
         pitch: -90.0,
         roll: 0.0,
@@ -392,9 +392,9 @@ void main() {
       );
 
       final camera = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 10000000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 10000000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -433,21 +433,21 @@ void main() {
         },
       );
 
-      final latitudes = [-35.0, 0.0, 35.3606];
-      final longitudes = [-135.0, 0.0, 138.7274];
-      final altitudes = [25000.0, 500000.0, 2000000.0];
+      final dim_0s = [-35.0, 0.0, 35.3606];
+      final dim_1s = [-135.0, 0.0, 138.7274];
+      final dim_2s = [25000.0, 500000.0, 2000000.0];
       final pitches = [-90.0, -45.0, -15.0];
 
       int callbackCount = 0;
 
-      for (final lat in latitudes) {
-        for (final lng in longitudes) {
-          for (final alt in altitudes) {
+      for (final lat in dim_0s) {
+        for (final lng in dim_1s) {
+          for (final alt in dim_2s) {
             for (final pitch in pitches) {
               final camera = VirtualCamera.clamped(
-                latitude: lat,
-                longitude: lng,
-                altitude: alt,
+                dim_0: lat,
+                dim_1: lng,
+                dim_2: alt,
                 heading: 0.0,
                 pitch: pitch,
                 roll: 0.0,
@@ -538,8 +538,8 @@ void main() {
                 6378137.0,
                 (lat, lng) {
                   final double height = 6378137.0 + painter.getElevation(lat, lng) * 80.0;
-                  final double baseRotation = -(camera.longitude * math.pi / 180.0);
-                  final double baseTilt = -(camera.latitude * math.pi / 180.0);
+                  final double baseRotation = -(camera.dim_1 * math.pi / 180.0);
+                  final double baseTilt = -(camera.dim_0 * math.pi / 180.0);
                   final proj = painter.project(
                     lat * math.pi / 180.0,
                     lng * math.pi / 180.0,
@@ -561,11 +561,11 @@ void main() {
       expect(callbackCount, greaterThan(0));
     });
 
-    test('Scenario 8 - Tile projection verification: space, surface, and altitude with elevation and exaggeration', () {
+    test('Scenario 8 - Tile projection verification: space, surface, and dim_2 with elevation and exaggeration', () {
       final camera = VirtualCamera(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 6378137.0 + 50000.0,
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 6378137.0 + 50000.0,
         heading: 0.0,
         pitch: -90.0,
         roll: 0.0,
@@ -595,8 +595,8 @@ void main() {
       final double elev = Scene3DViewportPainter.getElevationStatic(35.3606, 138.7274, true);
       expect(elev, greaterThan(3000.0));
       
-      final double rotationY = -(camera.longitude * math.pi / 180.0);
-      final double tilt = -(camera.latitude * math.pi / 180.0);
+      final double rotationY = -(camera.dim_1 * math.pi / 180.0);
+      final double tilt = -(camera.dim_0 * math.pi / 180.0);
 
       final double expectedSurfaceHeight = 6378137.0 + elev * 2.0;
       final ProjectedPoint projSurface = painter.project(

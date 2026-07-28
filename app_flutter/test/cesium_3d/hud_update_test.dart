@@ -48,9 +48,9 @@ class _HUDTestWrapperState extends State<_HUDTestWrapper> {
 void main() {
   testWidgets('Issue #44: HUD updates and retains coordinates across parent rebuilds', (WidgetTester tester) async {
     final camera = VirtualCamera(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 1000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 1000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -60,8 +60,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify initial values on HUD
-    expect(find.textContaining('Latitude: 35.000000'), findsOneWidget);
-    expect(find.textContaining('Longitude: 135.000000'), findsOneWidget);
+    expect(find.textContaining('Dim_0: 35.000000'), findsOneWidget);
+    expect(find.textContaining('Dim_1: 135.000000'), findsOneWidget);
 
     // Pan camera to a new position
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
@@ -69,14 +69,14 @@ void main() {
     controller.pan(const Offset(100.0, 50.0));
     await tester.pump();
 
-    final double newLat = controller.current.latitude;
-    final double newLng = controller.current.longitude;
+    final double newLat = controller.current.dim_0;
+    final double newLng = controller.current.dim_1;
     expect(newLat, isNot(35.0));
     expect(newLng, isNot(135.0));
 
     // Verify HUD text updated to new coordinates
-    expect(find.textContaining('Latitude: 35.000000'), findsNothing);
-    expect(find.textContaining('Longitude: 135.000000'), findsNothing);
+    expect(find.textContaining('Dim_0: 35.000000'), findsNothing);
+    expect(find.textContaining('Dim_1: 135.000000'), findsNothing);
 
     // Trigger parent rebuild (GUI interaction simulation)
     await tester.tap(find.byKey(const Key('rebuild_button')));
@@ -86,9 +86,9 @@ void main() {
     final stateAfter = tester.state(find.byType(Scene3DViewport)) as dynamic;
     final CameraController controllerAfter = stateAfter.cameraController as CameraController;
 
-    expect(controllerAfter.current.latitude, equals(newLat));
-    expect(controllerAfter.current.longitude, equals(newLng));
-    expect(find.textContaining('Latitude: 35.000000'), findsNothing);
-    expect(find.textContaining('Longitude: 135.000000'), findsNothing);
+    expect(controllerAfter.current.dim_0, equals(newLat));
+    expect(controllerAfter.current.dim_1, equals(newLng));
+    expect(find.textContaining('Dim_0: 35.000000'), findsNothing);
+    expect(find.textContaining('Dim_1: 135.000000'), findsNothing);
   });
 }

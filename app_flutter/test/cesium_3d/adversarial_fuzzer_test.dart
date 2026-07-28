@@ -60,9 +60,9 @@ void main() {
       // Warm up the renderer by pre-loading zoom 2 tiles (global background coverage)
       // so we have active tiles in cache to render on every iteration.
       final warmupCam = VirtualCamera(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 10000000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 10000000.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -86,9 +86,9 @@ void main() {
 
         try {
           final camera = VirtualCamera(
-            latitude: lat,
-            longitude: lng,
-            altitude: alt,
+            dim_0: lat,
+            dim_1: lng,
+            dim_2: alt,
             heading: heading,
             pitch: pitch,
             roll: 0.0,
@@ -176,8 +176,8 @@ void main() {
                 lngDeg * math.pi / 180.0,
                 height,
                 center,
-                -(camera.longitude * math.pi / 180.0),
-                -(camera.latitude * math.pi / 180.0),
+                -(camera.dim_1 * math.pi / 180.0),
+                -(camera.dim_0 * math.pi / 180.0),
                 size,
               );
               allProjectedZs.add(proj.z);

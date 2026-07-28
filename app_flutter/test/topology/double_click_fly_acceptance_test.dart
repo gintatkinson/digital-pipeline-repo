@@ -158,8 +158,8 @@ void main() {
           id: 'NodeA',
           label: 'Node A',
           position: TopologyNodePosition(
-            dim0: 139.7, // longitude (x)
-            dim1: 35.6,  // latitude (y)
+            dim0: 139.7, // dim_1 (x)
+            dim1: 35.6,  // dim_0 (y)
             dim2: 0.0,
             timeIndex: 0,
             vector: [],
@@ -170,8 +170,8 @@ void main() {
           id: 'NodeB',
           label: 'Node B',
           position: TopologyNodePosition(
-            dim0: -74.0, // longitude (x)
-            dim1: 40.7,  // latitude (y)
+            dim0: -74.0, // dim_1 (x)
+            dim1: 40.7,  // dim_0 (y)
             dim2: 0.0,
             timeIndex: 0,
             vector: [],
@@ -283,10 +283,10 @@ void main() {
           expect(find.text('10.0.0.2'), findsNothing);
 
           final CameraController controller = findCameraController(tester);
-          expect(controller.current.latitude, 35.6,
-              reason: 'Initial camera should be centered on Node A latitude');
-          expect(controller.current.longitude, 139.7,
-              reason: 'Initial camera should be centered on Node A longitude');
+          expect(controller.current.dim_0, 35.6,
+              reason: 'Initial camera should be centered on Node A dim_0');
+          expect(controller.current.dim_1, 139.7,
+              reason: 'Initial camera should be centered on Node A dim_1');
           expect(controller.isFlying, isFalse,
               reason: 'Camera should not be animating initially');
 
@@ -303,10 +303,10 @@ void main() {
           expect(find.text('10.0.0.1'), findsNothing);
 
           // 5. Assert the viewport camera has NOT moved/jumped (remains at Node A)
-          expect(controller.current.latitude, 35.6,
-              reason: 'ACCEPTANCE CRITERIA: Camera latitude must NOT jump/move on single-click');
-          expect(controller.current.longitude, 139.7,
-              reason: 'ACCEPTANCE CRITERIA: Camera longitude must NOT jump/move on single-click');
+          expect(controller.current.dim_0, 35.6,
+              reason: 'ACCEPTANCE CRITERIA: Camera dim_0 must NOT jump/move on single-click');
+          expect(controller.current.dim_1, 139.7,
+              reason: 'ACCEPTANCE CRITERIA: Camera dim_1 must NOT jump/move on single-click');
           expect(controller.isFlying, isFalse,
               reason: 'Camera must not start flying on single-click');
 
@@ -327,19 +327,19 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
 
           // Verify camera is actively interpolating coordinates towards Node B (lat=40.7, lng=-74.0)
-          expect(controller.current.latitude, greaterThan(35.6),
-              reason: 'Camera latitude should have started moving towards Node B coordinates');
-          expect(controller.current.longitude, isNot(139.7),
-              reason: 'Camera longitude should have started moving towards Node B coordinates');
+          expect(controller.current.dim_0, greaterThan(35.6),
+              reason: 'Camera dim_0 should have started moving towards Node B coordinates');
+          expect(controller.current.dim_1, isNot(139.7),
+              reason: 'Camera dim_1 should have started moving towards Node B coordinates');
 
           // Let the animation settle
           await tester.pumpAndSettle();
           expect(controller.isFlying, isFalse,
               reason: 'Flight animation should have completed');
-          expect(controller.current.latitude, 40.7,
-              reason: 'Camera should have arrived at Node B latitude');
-          expect(controller.current.longitude, -74.0,
-              reason: 'Camera should have arrived at Node B longitude');
+          expect(controller.current.dim_0, 40.7,
+              reason: 'Camera should have arrived at Node B dim_0');
+          expect(controller.current.dim_1, -74.0,
+              reason: 'Camera should have arrived at Node B dim_1');
         });
       },
     );
@@ -377,8 +377,8 @@ void main() {
 
           // Verify initial state
           final CameraController controller = findCameraController(tester);
-          expect(controller.current.latitude, 35.6);
-          expect(controller.current.longitude, 139.7);
+          expect(controller.current.dim_0, 35.6);
+          expect(controller.current.dim_1, 139.7);
           expect(controller.isFlying, isFalse);
 
           // Focus the tree's focusNode by tapping the sidebar node A
@@ -405,13 +405,13 @@ void main() {
           expect(controller.isFlying, isTrue, reason: 'Enter key should trigger flight');
 
           await tester.pump(const Duration(milliseconds: 100));
-          expect(controller.current.latitude, greaterThan(35.6));
-          expect(controller.current.longitude, isNot(139.7));
+          expect(controller.current.dim_0, greaterThan(35.6));
+          expect(controller.current.dim_1, isNot(139.7));
 
           await tester.pumpAndSettle();
           expect(controller.isFlying, isFalse);
-          expect(controller.current.latitude, 40.7);
-          expect(controller.current.longitude, -74.0);
+          expect(controller.current.dim_0, 40.7);
+          expect(controller.current.dim_1, -74.0);
         });
       },
     );

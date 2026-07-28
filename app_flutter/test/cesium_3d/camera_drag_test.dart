@@ -7,9 +7,9 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 void main() {
   testWidgets('Issue #41: Globe drag changes camera position', (WidgetTester tester) async {
     final camera = VirtualCamera(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 1000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 1000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -27,8 +27,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify initial HUD coordinates
-    expect(find.textContaining('Latitude: 35.000000'), findsOneWidget);
-    expect(find.textContaining('Longitude: 135.000000'), findsOneWidget);
+    expect(find.textContaining('Dim_0: 35.000000'), findsOneWidget);
+    expect(find.textContaining('Dim_1: 135.000000'), findsOneWidget);
 
     // Perform drag gesture on the globe viewport
     final viewportFinder = find.byType(Scene3DViewport);
@@ -39,11 +39,11 @@ void main() {
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
     final CameraController controller = state.cameraController as CameraController;
 
-    expect(controller.current.longitude, isNot(135.0));
-    expect(controller.current.latitude, isNot(35.0));
+    expect(controller.current.dim_1, isNot(135.0));
+    expect(controller.current.dim_0, isNot(35.0));
 
     // Verify HUD text is updated and does not display the old values
-    expect(find.textContaining('Latitude: 35.000000'), findsNothing);
-    expect(find.textContaining('Longitude: 135.000000'), findsNothing);
+    expect(find.textContaining('Dim_0: 35.000000'), findsNothing);
+    expect(find.textContaining('Dim_1: 135.000000'), findsNothing);
   });
 }

@@ -6,24 +6,24 @@ import 'package:app_flutter/features/topology/scene_3d_viewport_classes.dart';
 
 void main() {
   group('VirtualCameraNormalization', () {
-    test('toAbsoluteWgs84 normalizes relative altitude', () {
+    test('toAbsoluteWgs84 normalizes relative dim_2', () {
       final camera = VirtualCamera.raw(
-        latitude: 0,
-        longitude: 0,
-        altitude: 500.0,
+        dim_0: 0,
+        dim_1: 0,
+        dim_2: 500.0,
         heading: 0,
         pitch: 0,
         roll: 0,
       );
       final absoluteCamera = camera.toAbsoluteWgs84();
-      expect(absoluteCamera.altitude, Ellipsoid.wgs84EquatorialRadius + 500.0);
+      expect(absoluteCamera.dim_2, Ellipsoid.wgs84EquatorialRadius + 500.0);
     });
 
-    test('toAbsoluteWgs84 retains absolute altitude', () {
+    test('toAbsoluteWgs84 retains absolute dim_2', () {
       final camera = VirtualCamera.raw(
-        latitude: 0,
-        longitude: 0,
-        altitude: 10000000.0,
+        dim_0: 0,
+        dim_1: 0,
+        dim_2: 10000000.0,
         heading: 0,
         pitch: 0,
         roll: 0,
@@ -55,9 +55,9 @@ void main() {
   group('CoordinateTransformer', () {
     test('initializes precomputations without errors', () {
       final camera = VirtualCamera.raw(
-        latitude: 0,
-        longitude: 0,
-        altitude: 10000.0,
+        dim_0: 0,
+        dim_1: 0,
+        dim_2: 10000.0,
         heading: 0,
         pitch: 0,
         roll: 0,
@@ -77,9 +77,9 @@ void main() {
 
     test('projects geocoordinate behind horizon as culled', () {
       final camera = VirtualCamera.raw(
-        latitude: 0,
-        longitude: 0,
-        altitude: 10000.0,
+        dim_0: 0,
+        dim_1: 0,
+        dim_2: 10000.0,
         heading: 0,
         pitch: -90.0,
         roll: 0,
@@ -104,9 +104,9 @@ void main() {
 
     test('direct line of sight maps to center', () {
       final camera = VirtualCamera.raw(
-        latitude: 0,
-        longitude: 0,
-        altitude: 10000.0,
+        dim_0: 0,
+        dim_1: 0,
+        dim_2: 10000.0,
         heading: 0,
         pitch: -90.0,
         roll: 0,

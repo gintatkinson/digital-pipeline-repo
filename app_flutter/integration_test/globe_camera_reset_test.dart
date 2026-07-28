@@ -106,13 +106,13 @@ void main() {
 
       await settle(tester);
 
-      final initialLat = _parseHudValue('Latitude', tester);
-      final initialLng = _parseHudValue('Longitude', tester);
-      final initialAlt = _parseHudValue('Altitude', tester);
+      final initialDim0 = _parseHudValue('Dim_0', tester);
+      final initialDim1 = _parseHudValue('Dim_1', tester);
+      final initialDim2 = _parseHudValue('Dim_2', tester);
 
-      expect(initialLat, isNotNull);
-      expect(initialLng, isNotNull);
-      expect(initialAlt, isNotNull);
+      expect(initialDim0, isNotNull);
+      expect(initialDim1, isNotNull);
+      expect(initialDim2, isNotNull);
 
       final master2Finder = find.byKey(const Key('node_Master_2'));
       await tester.ensureVisible(master2Finder);
@@ -121,19 +121,19 @@ void main() {
 
       await settle(tester);
 
-      final afterLat = _parseHudValue('Latitude', tester);
-      final afterLng = _parseHudValue('Longitude', tester);
-      final afterAlt = _parseHudValue('Altitude', tester);
+      final afterLat = _parseHudValue('Dim_0', tester);
+      final afterLng = _parseHudValue('Dim_1', tester);
+      final afterAlt = _parseHudValue('Dim_2', tester);
 
-      expect(afterLat, equals(initialLat),
-          reason: 'Latitude must be identical after tree node tap. '
-              'Initial: $initialLat, After: $afterLat');
-      expect(afterLng, equals(initialLng),
-          reason: 'Longitude must be identical after tree node tap. '
-              'Initial: $initialLng, After: $afterLng');
-      expect(afterAlt, equals(initialAlt),
-          reason: 'Altitude must be identical after tree node tap. '
-              'Initial: $initialAlt, After: $afterAlt');
+      expect(afterLat, equals(initialDim0),
+          reason: 'Dim_0 must be identical after tree node tap. '
+              'Initial: $initialDim0, After: $afterLat');
+      expect(afterLng, equals(initialDim1),
+          reason: 'Dim_1 must be identical after tree node tap. '
+              'Initial: $initialDim1, After: $afterLng');
+      expect(afterAlt, equals(initialDim2),
+          reason: 'Dim_2 must be identical after tree node tap. '
+              'Initial: $initialDim2, After: $afterAlt');
     });
   });
 }

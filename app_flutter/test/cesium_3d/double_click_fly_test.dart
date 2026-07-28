@@ -7,9 +7,9 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 void main() {
   testWidgets('Issue #49: Double-click flies camera closer to globe', (WidgetTester tester) async {
     final camera = VirtualCamera(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 100000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 100000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -29,7 +29,7 @@ void main() {
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
     final CameraController controller = state.cameraController as CameraController;
 
-    expect(controller.current.altitude, equals(6378137.0 + 100000.0));
+    expect(controller.current.dim_2, equals(6378137.0 + 100000.0));
     expect(controller.isFlying, isFalse);
 
     // Simulate double-tap on the viewport center of projection
@@ -43,11 +43,11 @@ void main() {
 
     // Let the animation tick forward
     await tester.pump(const Duration(milliseconds: 100));
-    expect(controller.current.altitude, isNot(6378137.0 + 100000.0));
+    expect(controller.current.dim_2, isNot(6378137.0 + 100000.0));
 
     // Wait until fly completes
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(controller.isFlying, isFalse);
-    expect(controller.current.altitude, closeTo(6378137.0 + 50000.0, 0.1));
+    expect(controller.current.dim_2, closeTo(6378137.0 + 50000.0, 0.1));
   });
 }

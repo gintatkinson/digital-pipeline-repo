@@ -29,9 +29,9 @@ void main() {
 
     test('Nadir Zoom-in Clamps at Ellipsoid Base Over Ocean (Flat Terrain)', () {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 1000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 1000.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -39,19 +39,19 @@ void main() {
       final controller = CameraController(camera);
       controller.elevationProvider = (lat, lng) => getMockTerrainHeight(lat, lng, true);
 
-      // Attempt to zoom in past the minimum height (minAltitude = 100m)
+      // Attempt to zoom in past the minimum height (minDim_2 = 100m)
       controller.zoom(-5000.0);
 
-      // Verify camera altitude is clamped exactly at 100m above flat ocean (terrain = 0)
-      expect(controller.current.altitude, equals(6378137.0 + 100.0));
+      // Verify camera dim_2 is clamped exactly at 100m above flat ocean (terrain = 0)
+      expect(controller.current.dim_2, equals(6378137.0 + 100.0));
     });
 
     test('Nadir Zoom-in Clamps Correctly Above Amplified Mount Fuji', () {
       // Position camera directly over Fuji Peak
       final camera = VirtualCamera.clamped(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 500000.0, // 500km altitude
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 500000.0, // 500km dim_2
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -62,18 +62,18 @@ void main() {
       // Zoom in deep
       controller.zoom(-1000000.0);
 
-      // Expected altitude clamp = Fuji Amplified Height (302,080) + minHeight (100) = 302,180m
+      // Expected dim_2 clamp = Fuji Amplified Height (302,080) + minHeight (100) = 302,180m
       const double fujiAmplifiedHeight = 3776.0 * 80.0;
       const double expectedClamp = fujiAmplifiedHeight + 100.0;
 
-      expect(controller.current.altitude, closeTo(6378137.0 + expectedClamp, 1.0));
+      expect(controller.current.dim_2, closeTo(6378137.0 + expectedClamp, 1.0));
     });
 
     test('Panning Toward Rising Terrain Automatically Lifts Camera', () {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 100.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 100.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -81,19 +81,19 @@ void main() {
       final controller = CameraController(camera);
       controller.elevationProvider = (lat, lng) => getMockTerrainHeight(lat, lng, true);
 
-      // Pan/Update camera directly to Mount Fuji at a low altitude
+      // Pan/Update camera directly to Mount Fuji at a low dim_2
       controller.updateCamera(VirtualCamera.clamped(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 100.0,
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 100.0,
         heading: 0,
         pitch: -90,
         roll: 0,
       ));
 
-      // The terrain-aware controller must detect collision and clamp altitude to 302,180m
+      // The terrain-aware controller must detect collision and clamp dim_2 to 302,180m
       const double expectedClamp = (3776.0 * 80.0) + 100.0;
-      expect(controller.current.altitude, closeTo(6378137.0 + expectedClamp, 1.0));
+      expect(controller.current.dim_2, closeTo(6378137.0 + expectedClamp, 1.0));
     });
   });
 }

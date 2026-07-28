@@ -191,8 +191,8 @@ void main() {
 
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
     final CameraController controller = state.cameraController as CameraController;
-    final double initialLat = controller.current.latitude;
-    final double initialLng = controller.current.longitude;
+    final double initialDim0 = controller.current.dim_0;
+    final double initialDim1 = controller.current.dim_1;
 
     // Double-tap sidebar node (fly to node)
     final nodeFinder = find.byKey(const Key('node_Master_1_Child_1'));
@@ -203,10 +203,10 @@ void main() {
     await settle(tester);
 
     // Verify fly-to-node updates coordinates
-    final double postFlyLat = controller.current.latitude;
-    final double postFlyLng = controller.current.longitude;
-    expect(postFlyLat, isNot(equals(initialLat)), reason: 'Latitude should update after fly-to');
-    expect(postFlyLng, isNot(equals(initialLng)), reason: 'Longitude should update after fly-to');
+    final double postFlyLat = controller.current.dim_0;
+    final double postFlyLng = controller.current.dim_1;
+    expect(postFlyLat, isNot(equals(initialDim0)), reason: 'Dim_0 should update after fly-to');
+    expect(postFlyLng, isNot(equals(initialDim1)), reason: 'Dim_1 should update after fly-to');
     await waitForTilesToLoad();
     await takeScreenshot('camera_fly_to_node');
 
@@ -215,8 +215,8 @@ void main() {
     await tester.drag(viewport, const Offset(-50.0, 0.0));
     await settle(tester);
 
-    final double postDragLng = controller.current.longitude;
-    expect(postDragLng, isNot(equals(postFlyLng)), reason: 'Longitude should change after pan drag gesture');
+    final double postDragLng = controller.current.dim_1;
+    expect(postDragLng, isNot(equals(postFlyLng)), reason: 'Dim_1 should change after pan drag gesture');
 
     // Ctrl+Drag (Rotate gesture)
     final double initialHeading = controller.current.heading;

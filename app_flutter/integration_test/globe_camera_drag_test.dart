@@ -20,7 +20,7 @@ import 'package:app_flutter/data/database_initializer.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Globe camera drag: longitude increases after leftward pan gesture', (WidgetTester tester) async {
+  testWidgets('Globe camera drag: dim_1 increases after leftward pan gesture', (WidgetTester tester) async {
     tester.binding.setSurfaceSize(const Size(1280, 800));
     addTearDown(() {
       tester.binding.setSurfaceSize(null);
@@ -93,10 +93,10 @@ void main() {
     // Read initial camera state
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
     final CameraController controller = state.cameraController as CameraController;
-    final double initialLongitude = controller.current.longitude;
-    final double initialAltitude = controller.current.altitude;
+    final double initialDim_1 = controller.current.dim_1;
+    final double initialDim2itude = controller.current.dim_2;
 
-    expect(initialLongitude, greaterThan(0), reason: 'Initial longitude should be positive');
+    expect(initialDim_1, greaterThan(0), reason: 'Initial dim_1 should be positive');
 
     // Drag left on the globe
     final viewport = find.byKey(const Key('scene_3d_viewport_container'));
@@ -105,14 +105,14 @@ void main() {
     await tester.drag(viewport, const Offset(-20.0, 0.0));
     await settle(tester);
 
-    final double newLongitude = controller.current.longitude;
-    final double newAltitude = controller.current.altitude;
+    final double newDim_1 = controller.current.dim_1;
+    final double newDim_2 = controller.current.dim_2;
 
-    expect(newLongitude, greaterThan(initialLongitude),
-        reason: 'Longitude should increase after leftward drag. '
-            'Initial: $initialLongitude, New: $newLongitude');
+    expect(newDim_1, greaterThan(initialDim_1),
+        reason: 'Dim_1 should increase after leftward drag. '
+            'Initial: $initialDim_1, New: $newDim_1');
 
-    expect(newAltitude, equals(initialAltitude),
-        reason: 'Altitude should not change on a pan (non-scroll) gesture');
+    expect(newDim_2, equals(initialDim2itude),
+        reason: 'Dim_2 should not change on a pan (non-scroll) gesture');
   });
 }

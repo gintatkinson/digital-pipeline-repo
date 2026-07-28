@@ -10,29 +10,29 @@ void main() {
   group('VirtualCamera Tests', () {
     test('Constructor sets fields correctly', () {
       final camera = VirtualCamera(
-        latitude: 37.7749,
-        longitude: -122.4194,
-        altitude: 500.0,
+        dim_0: 37.7749,
+        dim_1: -122.4194,
+        dim_2: 500.0,
         heading: 10.0,
         pitch: -45.0,
         roll: 5.0,
       );
 
-      expect(camera.latitude, 37.7749);
-      expect(camera.longitude, -122.4194);
-      expect(camera.altitude, 500.0);
+      expect(camera.dim_0, 37.7749);
+      expect(camera.dim_1, -122.4194);
+      expect(camera.dim_2, 500.0);
       expect(camera.heading, 10.0);
       expect(camera.pitch, -45.0);
       expect(camera.roll, 5.0);
       expect(camera.toString(), contains('VirtualCamera'));
     });
 
-    test('Throws validation exception for invalid latitude', () {
+    test('Throws validation exception for invalid dim_0', () {
       expect(
         () => VirtualCamera(
-          latitude: 95.0,
-          longitude: -122.4194,
-          altitude: 500.0,
+          dim_0: 95.0,
+          dim_1: -122.4194,
+          dim_2: 500.0,
           heading: 0.0,
           pitch: -45.0,
           roll: 0.0,
@@ -41,12 +41,12 @@ void main() {
       );
     });
 
-    test('Throws validation exception for invalid longitude', () {
+    test('Throws validation exception for invalid dim_1', () {
       expect(
         () => VirtualCamera(
-          latitude: 37.7749,
-          longitude: -185.0,
-          altitude: 500.0,
+          dim_0: 37.7749,
+          dim_1: -185.0,
+          dim_2: 500.0,
           heading: 0.0,
           pitch: -45.0,
           roll: 0.0,
@@ -55,12 +55,12 @@ void main() {
       );
     });
 
-    test('Throws validation exception for invalid altitude', () {
+    test('Throws validation exception for invalid dim_2', () {
       expect(
         () => VirtualCamera(
-          latitude: 37.7749,
-          longitude: -122.4194,
-          altitude: -105.0,
+          dim_0: 37.7749,
+          dim_1: -122.4194,
+          dim_2: -105.0,
           heading: 0.0,
           pitch: -45.0,
           roll: 0.0,
@@ -71,25 +71,25 @@ void main() {
 
     test('clamped factory adjusts values and builds successfully', () {
       final camera = VirtualCamera.clamped(
-        latitude: 120.0,
-        longitude: -200.0,
-        altitude: -250.0,
+        dim_0: 120.0,
+        dim_1: -200.0,
+        dim_2: -250.0,
         heading: 10.0,
         pitch: 20.0,
         roll: 30.0,
       );
 
-      expect(camera.latitude, 90.0);
-      expect(camera.longitude, -180.0);
-      expect(camera.altitude, -100.0);
+      expect(camera.dim_0, 90.0);
+      expect(camera.dim_1, -180.0);
+      expect(camera.dim_2, -100.0);
     });
 
     test('Throws validation exception for NaN or Infinite inputs', () {
       expect(
         () => VirtualCamera(
-          latitude: double.nan,
-          longitude: -122.4194,
-          altitude: 500.0,
+          dim_0: double.nan,
+          dim_1: -122.4194,
+          dim_2: 500.0,
           heading: 0.0,
           pitch: -45.0,
           roll: 0.0,
@@ -98,9 +98,9 @@ void main() {
       );
       expect(
         () => VirtualCamera(
-          latitude: 37.7749,
-          longitude: double.infinity,
-          altitude: 500.0,
+          dim_0: 37.7749,
+          dim_1: double.infinity,
+          dim_2: 500.0,
           heading: 0.0,
           pitch: -45.0,
           roll: 0.0,
@@ -111,17 +111,17 @@ void main() {
 
     test('clamped factory sanitizes NaN and Infinite inputs to 0.0', () {
       final camera = VirtualCamera.clamped(
-        latitude: double.nan,
-        longitude: double.infinity,
-        altitude: double.nan,
+        dim_0: double.nan,
+        dim_1: double.infinity,
+        dim_2: double.nan,
         heading: double.nan,
         pitch: double.infinity,
         roll: double.nan,
       );
 
-      expect(camera.latitude, 0.0);
-      expect(camera.longitude, 0.0);
-      expect(camera.altitude, 0.0);
+      expect(camera.dim_0, 0.0);
+      expect(camera.dim_1, 0.0);
+      expect(camera.dim_2, 0.0);
       expect(camera.heading, 0.0);
       expect(camera.pitch, 0.0);
       expect(camera.roll, 0.0);
@@ -162,11 +162,11 @@ void main() {
       expect(nativeEngine.initializeTileset(''), isFalse);
     });
 
-    test('updateViewport validates camera altitude', () {
+    test('updateViewport validates camera dim_2', () {
       final validCamera = VirtualCamera(
-        latitude: 37.7749,
-        longitude: -122.4194,
-        altitude: 500.0,
+        dim_0: 37.7749,
+        dim_1: -122.4194,
+        dim_2: 500.0,
         heading: 0.0,
         pitch: -45.0,
         roll: 0.0,
@@ -174,9 +174,9 @@ void main() {
       expect(nativeEngine.updateViewport(validCamera), isTrue);
 
       final invalidCamera = VirtualCamera.clamped(
-        latitude: 37.7749,
-        longitude: -122.4194,
-        altitude: -150.0,
+        dim_0: 37.7749,
+        dim_1: -122.4194,
+        dim_2: -150.0,
         heading: 0.0,
         pitch: -45.0,
         roll: 0.0,
@@ -197,9 +197,9 @@ void main() {
 
   group('Scene3DViewport & Network3DScene Tests', () {
     final camera = VirtualCamera(
-      latitude: 37.7749,
-      longitude: -122.4194,
-      altitude: 500.0,
+      dim_0: 37.7749,
+      dim_1: -122.4194,
+      dim_2: 500.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,

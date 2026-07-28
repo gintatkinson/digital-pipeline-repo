@@ -67,9 +67,9 @@ void main() {
 
     // 4. Initialize VirtualCamera
     final camera = VirtualCamera.clamped(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 2000000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 2000000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -85,9 +85,9 @@ void main() {
     for (int f = 0; f < frameCount; f++) {
       // Update camera slightly to force re-projection of all 10k nodes
       final currentCamera = VirtualCamera.clamped(
-        latitude: 35.0,
-        longitude: 135.0 + (f * 0.1),
-        altitude: 2000000.0,
+        dim_0: 35.0,
+        dim_1: 135.0 + (f * 0.1),
+        dim_2: 2000000.0,
         heading: f * 0.5,
         pitch: -45.0 - (f * 0.05),
         roll: 0.0,

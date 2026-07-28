@@ -91,9 +91,9 @@ void main() {
   testWidgets('Issue #51: Viewport repaints when asynchronous tile downloads complete', (WidgetTester tester) async {
     HttpOverrides.runWithHttpOverrides(() async {
       final camera = VirtualCamera(
-        latitude: 35.0,
-        longitude: 135.0,
-        altitude: 10000000.0, // High altitude to fetch low-zoom tiles
+        dim_0: 35.0,
+        dim_1: 135.0,
+        dim_2: 10000000.0, // High dim_2 to fetch low-zoom tiles
         heading: 0.0,
         pitch: -45.0,
         roll: 0.0,

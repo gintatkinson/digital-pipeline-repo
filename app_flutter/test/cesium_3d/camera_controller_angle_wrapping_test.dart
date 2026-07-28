@@ -22,9 +22,9 @@ void main() {
 
       // _wrapLng (instance method)
       final dummyCam = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 500.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 500.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,
@@ -53,9 +53,9 @@ void main() {
       expect(wrappedPitchStatic, lessThanOrEqualTo(180.0));
 
       final dummyCam = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 500.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 500.0,
         heading: 0.0,
         pitch: 0.0,
         roll: 0.0,

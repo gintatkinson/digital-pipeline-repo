@@ -16,7 +16,7 @@ void main() {
   group('Issue #41: Viewport painting overdraw and canvas bleeding', () {
     test('paint calls clipRect with the full viewport size to prevent canvas bleeding', () {
       final camera = VirtualCamera.clamped(
-        latitude: 35.0, longitude: 138.0, altitude: 2000000.0,
+        dim_0: 35.0, dim_1: 138.0, dim_2: 2000000.0,
         heading: 0, pitch: -90, roll: 0,
       );
       final painter = Scene3DViewportPainter(isFlying: false, 
@@ -62,11 +62,11 @@ void main() {
   group('Scene3DViewportPainter horizon culling regression tests', () {
     const double R = 6378137.0;
 
-    test('Camera looking down from 20,000 km altitude', () {
+    test('Camera looking down from 20,000 km dim_2', () {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 20000000.0, // 20,000 km
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 20000000.0, // 20,000 km
         heading: 0,
         pitch: -90, // looking straight down
         roll: 0,
@@ -104,7 +104,7 @@ void main() {
       // Node B: on the opposite side of the Earth
       final resultB = painter.project(
         0.0,
-        math.pi, // opposite longitude
+        math.pi, // opposite dim_1
         R,       // surface
         const Offset(400, 300),
         0.0,
@@ -116,11 +116,11 @@ void main() {
       expect(resultB.z, equals(-1.0));
     });
 
-    test('Camera looking up from 1000 km altitude towards a high-altitude satellite', () {
+    test('Camera looking up from 1000 km dim_2 towards a high-dim_2 satellite', () {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 1000000.0, // 1000 km
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 1000000.0, // 1000 km
         heading: 0,
         pitch: 90, // looking straight up
         roll: 0,
@@ -141,7 +141,7 @@ void main() {
         verticalExaggeration: 1.0,
       );
 
-      // Node C: high-altitude satellite directly overhead at 20,000 km altitude
+      // Node C: high-dim_2 satellite directly overhead at 20,000 km dim_2
       // distance from camera is 19,000 km (which exceeds the camera's horizon distance limit)
       final resultC = painter.project(
         0.0,
@@ -153,15 +153,15 @@ void main() {
         const Size(800, 600),
       );
 
-      // Directly overhead high-altitude satellite should NOT be culled by the new logic
+      // Directly overhead high-dim_2 satellite should NOT be culled by the new logic
       expect(resultC.z, greaterThan(0.0));
     });
 
     test('Horizon clamping centers on projected Earth center under tilted camera', () {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 6378137.0 + 10000000.0, // 10,000 km altitude
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 6378137.0 + 10000000.0, // 10,000 km dim_2
         heading: 0,
         pitch: -45, // Tilted camera (not looking straight down)
         roll: 0,
@@ -198,7 +198,7 @@ void main() {
 
       final culledPointProj = painter.project(
         0.0,
-        math.pi, // opposite longitude
+        math.pi, // opposite dim_1
         R,       // surface
         viewportCenter,
         0.0,
@@ -212,7 +212,7 @@ void main() {
       final double dy = culledPointProj.offset.dy - projectedCenter.dy;
       final double distanceToProjectedCenter = math.sqrt(dx * dx + dy * dy);
 
-      final double cRad = camera.altitude;
+      final double cRad = camera.dim_2;
       final double F = viewportSize.shortestSide * 1.2;
       final double radDiff = cRad * cRad - R * R;
       final double expectedProjectedRadius = R * F / math.sqrt(radDiff <= 0.0 ? 1.0 : radDiff);
@@ -227,9 +227,9 @@ void main() {
 
     test('Near-plane coordinates do not explode for vertices behind camera', () {
       final camera = VirtualCamera.clamped(
-        latitude: 35.0,
-        longitude: 135.0,
-        altitude: 200000.0, // 200 km altitude
+        dim_0: 35.0,
+        dim_1: 135.0,
+        dim_2: 200000.0, // 200 km dim_2
         heading: 0,
         pitch: -23, // tilted view
         roll: 0,
@@ -255,8 +255,8 @@ void main() {
 
       // Project a point that is behind the camera plane
       final proj = painter.project(
-        0.5, // 30 degrees latitude
-        2.3, // 131 degrees longitude
+        0.5, // 30 degrees dim_0
+        2.3, // 131 degrees dim_1
         6378137.0, // surface
         viewportCenter,
         0.0,
@@ -270,9 +270,9 @@ void main() {
     });
   });
 
-  group('Feature 02: 3D Terrain Elevation and Node Altitude', () {
+  group('Feature 02: 3D Terrain Elevation and Node Dim_2', () {
     test('getElevation returns correct heights at Mount Fuji and Alps only when active', () {
-      final camera = VirtualCamera.clamped(latitude: 35.0, longitude: 138.0, altitude: 2000000.0, heading: 0, pitch: -90, roll: 0);
+      final camera = VirtualCamera.clamped(dim_0: 35.0, dim_1: 138.0, dim_2: 2000000.0, heading: 0, pitch: -90, roll: 0);
       final painterActive = Scene3DViewportPainter(isFlying: false, 
         camera: camera,
         activeStyle: 'dark',
@@ -312,7 +312,7 @@ void main() {
   });
 
   group('Issue #47: Ground Nodes Floating on Exaggerated Terrain', () {
-    test('Node with no heightRef and absolute altitude stays on surface with 80x exaggeration', () {
+    test('Node with no heightRef and absolute dim_2 stays on surface with 80x exaggeration', () {
       const double R = 6378137.0;
       const double fujiLat = 35.3606;
       const double fujiLng = 138.7274;
@@ -320,14 +320,14 @@ void main() {
       const double vExag = 80.0;
 
       final camera = VirtualCamera.clamped(
-        latitude: 35.0, longitude: 138.0, altitude: 2000000.0,
+        dim_0: 35.0, dim_1: 138.0, dim_2: 2000000.0,
         heading: 0, pitch: -90, roll: 0,
       );
 
       // Two co-located nodes at Fuji summit:
       // Node A: RELATIVE_TO_GROUND, alt=0 → sits directly on surface
       // Node B: no heightRef (geometric fallback → ground), alt=terrainElev → should also be on surface
-      // Bug: Node B's altitude (absolute) is added on top of exaggerated terrain, floating 3776m above
+      // Bug: Node B's dim_2 (absolute) is added on top of exaggerated terrain, floating 3776m above
       final topologyData = TopologyData(
         coordinateMapping: const {},
         nodes: [
@@ -409,7 +409,7 @@ void main() {
 
   group('Feature 03: Co-located Node Labels Stacked Offsets', () {
     test('Co-located nodes do not get discarded and stack their labels vertically', () {
-      final camera = VirtualCamera.clamped(latitude: 35.0, longitude: 138.0, altitude: 2000000.0, heading: 0, pitch: -90, roll: 0);
+      final camera = VirtualCamera.clamped(dim_0: 35.0, dim_1: 138.0, dim_2: 2000000.0, heading: 0, pitch: -90, roll: 0);
       final topologyData = TopologyData(
         coordinateMapping: const {},
         nodes: [

@@ -8,9 +8,9 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 void main() {
   testWidgets('Issue #43: Globe focus and arrow keys navigation', (WidgetTester tester) async {
     final camera = VirtualCamera(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 1000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 1000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -58,19 +58,19 @@ void main() {
     // Press Arrow Left key
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pump();
-    expect(controller.current.longitude, lessThan(135.0));
+    expect(controller.current.dim_1, lessThan(135.0));
 
     // Press Arrow Right key
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
-    expect(controller.current.longitude, equals(135.0));
+    expect(controller.current.dim_1, equals(135.0));
 
-    // Hold Shift and press Arrow Left key (should rotate heading, longitude stays 135.0)
+    // Hold Shift and press Arrow Left key (should rotate heading, dim_1 stays 135.0)
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pump();
-    expect(controller.current.longitude, equals(135.0));
+    expect(controller.current.dim_1, equals(135.0));
     expect(controller.current.heading, greaterThan(0.0));
 
     // Hold Shift and press Arrow Right key (should rotate heading back to 0)
@@ -78,7 +78,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pump();
-    expect(controller.current.longitude, equals(135.0));
+    expect(controller.current.dim_1, equals(135.0));
     expect(controller.current.heading, equals(0.0));
   });
 }

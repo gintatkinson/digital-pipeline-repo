@@ -121,9 +121,9 @@ void main() {
     final state = tester.state(viewportFinder) as dynamic;
     final CameraController controller = state.cameraController as CameraController;
     controller.updateCamera(VirtualCamera(
-      latitude: 35.6074,
-      longitude: 140.1063,
-      altitude: 2096002.56,
+      dim_0: 35.6074,
+      dim_1: 140.1063,
+      dim_2: 2096002.56,
       heading: 0.0,
       pitch: -89.9,
       roll: 0.0,

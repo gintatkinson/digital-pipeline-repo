@@ -8,9 +8,9 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 void main() {
   testWidgets('Issue #48: Ctrl+drag rotates camera heading', (WidgetTester tester) async {
     final camera = VirtualCamera(
-      latitude: 35.0,
-      longitude: 135.0,
-      altitude: 1000.0,
+      dim_0: 35.0,
+      dim_1: 135.0,
+      dim_2: 1000.0,
       heading: 0.0,
       pitch: -45.0,
       roll: 0.0,
@@ -45,8 +45,8 @@ void main() {
 
     // Verify camera heading rotated (heading changed, but lat/lng/pitch remained unchanged)
     expect(controller.current.heading, isNot(0.0));
-    expect(controller.current.latitude, equals(35.0));
-    expect(controller.current.longitude, equals(135.0));
+    expect(controller.current.dim_0, equals(35.0));
+    expect(controller.current.dim_1, equals(135.0));
     expect(controller.current.pitch, equals(-45.0));
   });
 }

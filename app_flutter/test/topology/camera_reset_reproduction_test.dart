@@ -32,7 +32,7 @@ class FakeThemeService implements ThemeService {
   Future<void> savePanelOpacity(double opacity) async {}
 }
 
-// dim0 = longitude (x), dim1 = latitude (y) per resolveCoordinate
+// dim0 = dim_1 (x), dim1 = dim_0 (y) per resolveCoordinate
 const _topologyData = TopologyData(
   coordinateMapping: {},
   nodes: <TopologyNode>[
@@ -40,8 +40,8 @@ const _topologyData = TopologyData(
       id: 'ViewA',
       label: 'View A',
       position: TopologyNodePosition(
-        dim0: 140.0, // longitude (x)
-        dim1: 35.0,  // latitude (y)
+        dim0: 140.0, // dim_1 (x)
+        dim1: 35.0,  // dim_0 (y)
         dim2: 0.0,
         timeIndex: 0,
         vector: [],
@@ -52,8 +52,8 @@ const _topologyData = TopologyData(
       id: 'ViewB',
       label: 'View B',
       position: TopologyNodePosition(
-        dim0: -75.0, // longitude (x)
-        dim1: 50.0,   // latitude (y)
+        dim0: -75.0, // dim_1 (x)
+        dim1: 50.0,   // dim_0 (y)
         dim2: 0.0,
         timeIndex: 0,
         vector: [],
@@ -128,9 +128,9 @@ void main() {
   group('Camera reset reproduction (Issue #50)', () {
     VirtualCamera _makeCamera(double lat, double lng) {
       return VirtualCamera(
-        latitude: lat,
-        longitude: lng,
-        altitude: 500.0,
+        dim_0: lat,
+        dim_1: lng,
+        dim_2: 500.0,
         heading: 0.0,
         pitch: -45.0,
         roll: 0.0,
@@ -174,13 +174,13 @@ void main() {
         final CameraController controller = _findCameraController(tester);
 
         // Verify initial camera is at ViewA coordinates (dim1=35.0 latency, dim0=140.0 lng)
-        expect(controller.current.latitude, 35.0);
-        expect(controller.current.longitude, 140.0);
+        expect(controller.current.dim_0, 35.0);
+        expect(controller.current.dim_1, 140.0);
 
         // Simulate user panning: move the camera
         controller.pan(const Offset(-100, 0));
-        final double pannedLongitude = controller.current.longitude;
-        expect(pannedLongitude, greaterThan(140.0),
+        final double pannedDim_1 = controller.current.dim_1;
+        expect(pannedDim_1, greaterThan(140.0),
             reason: 'Camera should have panned right');
 
         // Simulate what _LayoutState._updateCurrentViewFromLayout() does:
@@ -191,10 +191,10 @@ void main() {
 
         // CAMERA SHOULD NOT RESET TO ViewB! It should preserve the user's pan/coords.
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.latitude, 35.0,
-            reason: 'Camera latitude should remain at ViewA coordinate since we decoupled single-click');
-        expect(afterController.current.longitude, pannedLongitude,
-            reason: 'Camera longitude should remain at panned coordinate since we decoupled single-click');
+        expect(afterController.current.dim_0, 35.0,
+            reason: 'Camera dim_0 should remain at ViewA coordinate since we decoupled single-click');
+        expect(afterController.current.dim_1, pannedDim_1,
+            reason: 'Camera dim_1 should remain at panned coordinate since we decoupled single-click');
       });
 
     testWidgets(
@@ -205,8 +205,8 @@ void main() {
 
         // Pan the camera
         controller.pan(const Offset(-50, -50));
-        final double pannedLat = controller.current.latitude;
-        final double pannedLng = controller.current.longitude;
+        final double pannedLat = controller.current.dim_0;
+        final double pannedLng = controller.current.dim_1;
 
         // Force a rebuild without changing the view
         // (simulates a TreeViewModel notification when _currentView doesn't change)
@@ -214,10 +214,10 @@ void main() {
         await tester.pumpAndSettle();
 
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.latitude, pannedLat,
-            reason: 'Camera latitude should be preserved when view is unchanged');
-        expect(afterController.current.longitude, pannedLng,
-            reason: 'Camera longitude should be preserved when view is unchanged');
+        expect(afterController.current.dim_0, pannedLat,
+            reason: 'Camera dim_0 should be preserved when view is unchanged');
+        expect(afterController.current.dim_1, pannedLng,
+            reason: 'Camera dim_1 should be preserved when view is unchanged');
       });
 
     testWidgets(
@@ -247,7 +247,7 @@ void main() {
 
         // Pan to a different position
         controller.pan(const Offset(-200, -100));
-        expect(controller.current.longitude, isNot(135.0));
+        expect(controller.current.dim_1, isNot(135.0));
 
         // Parent rebuild passes a NEW camera instance with different values
         // (simulating what _resolveCamera does after view change)
@@ -266,8 +266,8 @@ void main() {
 
         // BUG: Camera was overwritten to the new camera values
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.latitude, 50.0);
-        expect(afterController.current.longitude, -75.0);
+        expect(afterController.current.dim_0, 50.0);
+        expect(afterController.current.dim_1, -75.0);
       });
 
     testWidgets(
@@ -281,9 +281,9 @@ void main() {
         });
 
         final initialCam = VirtualCamera.clamped(
-          latitude: 35.0,
-          longitude: 135.0,
-          altitude: 500.0,
+          dim_0: 35.0,
+          dim_1: 135.0,
+          dim_2: 500.0,
           heading: 0.0,
           pitch: -45.0,
           roll: 0.0,
@@ -302,7 +302,7 @@ void main() {
 
         final CameraController controller = _findCameraController(tester);
         controller.pan(const Offset(-200, 0));
-        final double pannedLng = controller.current.longitude;
+        final double pannedLng = controller.current.dim_1;
 
         // Rebuild with the same camera values (not reference, but equal by value)
         await tester.pumpWidget(
@@ -310,9 +310,9 @@ void main() {
             home: Scaffold(
               body: Scene3DViewport(
                 camera: VirtualCamera.clamped(
-                  latitude: 35.0,
-                  longitude: 135.0,
-                  altitude: 500.0,
+                  dim_0: 35.0,
+                  dim_1: 135.0,
+                  dim_2: 500.0,
                   heading: 0.0,
                   pitch: -45.0,
                   roll: 0.0,
@@ -325,7 +325,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.longitude, pannedLng,
+        expect(afterController.current.dim_1, pannedLng,
             reason: 'Camera state should be preserved when widget camera is value-equal');
       });
 
@@ -335,21 +335,21 @@ void main() {
         final wrapperState = await _pumpTopographicalView(tester, startView: 'ViewB');
         final CameraController controller = _findCameraController(tester);
 
-        expect(controller.current.latitude, 50.0);
-        expect(controller.current.longitude, -75.0);
+        expect(controller.current.dim_0, 50.0);
+        expect(controller.current.dim_1, -75.0);
 
         controller.pan(const Offset(-150, 0));
-        final double pannedLat = controller.current.latitude;
-        final double pannedLng = controller.current.longitude;
+        final double pannedLat = controller.current.dim_0;
+        final double pannedLng = controller.current.dim_1;
 
         wrapperState.forceViewChange('ViewB');
         await tester.pumpAndSettle();
 
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.latitude, pannedLat,
-            reason: 'Camera latitude preserved after tree notification');
-        expect(afterController.current.longitude, pannedLng,
-            reason: 'Camera longitude preserved after tree notification');
+        expect(afterController.current.dim_0, pannedLat,
+            reason: 'Camera dim_0 preserved after tree notification');
+        expect(afterController.current.dim_1, pannedLng,
+            reason: 'Camera dim_1 preserved after tree notification');
       });
 
     testWidgets(
@@ -363,21 +363,21 @@ void main() {
 
         final CameraController afterNavController = _findCameraController(tester);
         // Expect that it does NOT jump to ViewB, so it remains at 35.0, 140.0
-        expect(afterNavController.current.latitude, 35.0);
-        expect(afterNavController.current.longitude, 140.0);
+        expect(afterNavController.current.dim_0, 35.0);
+        expect(afterNavController.current.dim_1, 140.0);
 
         final CameraController ctrl = _findCameraController(tester);
         ctrl.pan(const Offset(-100, -50));
-        final double pannedLat = ctrl.current.latitude;
-        final double pannedLng = ctrl.current.longitude;
+        final double pannedLat = ctrl.current.dim_0;
+        final double pannedLng = ctrl.current.dim_1;
 
         wrapperState.forceViewChange('ViewB');
         await tester.pumpAndSettle();
 
         final CameraController afterController = _findCameraController(tester);
-        expect(afterController.current.latitude, pannedLat,
+        expect(afterController.current.dim_0, pannedLat,
             reason: 'currentView NOT overwritten by tree notification');
-        expect(afterController.current.longitude, pannedLng,
+        expect(afterController.current.dim_1, pannedLng,
             reason: 'currentView NOT overwritten by tree notification');
       });
 
@@ -387,11 +387,11 @@ void main() {
         await _pumpTopographicalView(tester, startView: 'ViewB');
         final CameraController controller = _findCameraController(tester);
 
-        expect(controller.current.latitude, 50.0,
-            reason: 'Initial camera should be at ViewB latitude');
-        expect(controller.current.longitude, -75.0,
-            reason: 'Initial camera should be at ViewB longitude');
-        expect(controller.current.latitude, isNot(35.0),
+        expect(controller.current.dim_0, 50.0,
+            reason: 'Initial camera should be at ViewB dim_0');
+        expect(controller.current.dim_1, -75.0,
+            reason: 'Initial camera should be at ViewB dim_1');
+        expect(controller.current.dim_0, isNot(35.0),
             reason: 'Initial camera should NOT be at ViewA when ViewB is specified');
       });
 
@@ -401,26 +401,26 @@ void main() {
         final wrapperState = await _pumpTopographicalView(tester, startView: 'ViewA');
         final CameraController controller = _findCameraController(tester);
 
-        expect(controller.current.latitude, 35.0);
-        expect(controller.current.longitude, 140.0);
+        expect(controller.current.dim_0, 35.0);
+        expect(controller.current.dim_1, 140.0);
 
         wrapperState.forceViewChange('ViewB');
         await tester.pumpAndSettle();
 
         final CameraController afterSwitchCtrl = _findCameraController(tester);
         // Under decoupled behavior, camera remains at ViewA
-        expect(afterSwitchCtrl.current.latitude, 35.0);
-        expect(afterSwitchCtrl.current.longitude, 140.0);
+        expect(afterSwitchCtrl.current.dim_0, 35.0);
+        expect(afterSwitchCtrl.current.dim_1, 140.0);
 
         afterSwitchCtrl.pan(const Offset(50, 0));
-        final double pannedLng = afterSwitchCtrl.current.longitude;
+        final double pannedLng = afterSwitchCtrl.current.dim_1;
 
         wrapperState.forceViewChange('ViewA');
         await tester.pumpAndSettle();
 
         final CameraController backCtrl = _findCameraController(tester);
-        expect(backCtrl.current.latitude, 35.0);
-        expect(backCtrl.current.longitude, pannedLng);
+        expect(backCtrl.current.dim_0, 35.0);
+        expect(backCtrl.current.dim_1, pannedLng);
       });
 
     testWidgets(
@@ -432,17 +432,17 @@ void main() {
           wrapperState.forceViewChange('ViewB');
           await tester.pumpAndSettle();
           final CameraController bCtrl = _findCameraController(tester);
-          expect(bCtrl.current.latitude, 35.0,
+          expect(bCtrl.current.dim_0, 35.0,
               reason: 'Cycle $i: must remain at ViewA');
-          expect(bCtrl.current.longitude, 140.0,
+          expect(bCtrl.current.dim_1, 140.0,
               reason: 'Cycle $i: must remain at ViewA');
 
           wrapperState.forceViewChange('ViewA');
           await tester.pumpAndSettle();
           final CameraController aCtrl = _findCameraController(tester);
-          expect(aCtrl.current.latitude, 35.0,
+          expect(aCtrl.current.dim_0, 35.0,
               reason: 'Cycle $i: must remain at ViewA');
-          expect(aCtrl.current.longitude, 140.0,
+          expect(aCtrl.current.dim_1, 140.0,
               reason: 'Cycle $i: must remain at ViewA');
         }
       });
@@ -451,9 +451,9 @@ void main() {
   group('Issue #44: Stale fly-to does not overwrite camera after view change', () {
     VirtualCamera _makeCamera(double lat, double lng) {
       return VirtualCamera(
-        latitude: lat,
-        longitude: lng,
-        altitude: 500.0,
+        dim_0: lat,
+        dim_1: lng,
+        dim_2: 500.0,
         heading: 0.0,
         pitch: -45.0,
         roll: 0.0,
@@ -495,8 +495,8 @@ void main() {
         final controller = await _pumpScene3DViewport(tester, camera: cameraA);
 
         // Initial camera at view A
-        expect(controller.current.latitude, closeTo(35.0, 0.1));
-        expect(controller.current.longitude, closeTo(140.0, 0.1));
+        expect(controller.current.dim_0, closeTo(35.0, 0.1));
+        expect(controller.current.dim_1, closeTo(140.0, 0.1));
 
         // Simulate double-tap to start fly-to animation
         final gestureDetectorFinder = find.descendant(
@@ -512,12 +512,12 @@ void main() {
         // Let the fly-to progress partway
         await tester.pump(const Duration(milliseconds: 100));
 
-        // The fallback fly-to target has same lat/lng but lower altitude.
-        // Verify altitude is changing.
-        expect(controller.current.altitude, isNot(6378137.0 + 500.0),
-            reason: 'Fly-to should have started changing from initial altitude');
-        expect(controller.current.altitude, greaterThan(3189318.0),
-            reason: 'Fly-to should not have reached target altitude yet');
+        // The fallback fly-to target has same lat/lng but lower dim_2.
+        // Verify dim_2 is changing.
+        expect(controller.current.dim_2, isNot(6378137.0 + 500.0),
+            reason: 'Fly-to should have started changing from initial dim_2');
+        expect(controller.current.dim_2, greaterThan(3189318.0),
+            reason: 'Fly-to should not have reached target dim_2 yet');
 
         // External camera update: rebuild with a new camera (simulating view change)
         final cameraB = _makeCamera(50.0, -75.0);
@@ -534,23 +534,23 @@ void main() {
         await tester.pump();
 
         // Camera should NOT be at the B position, it should remain in flight
-        expect(controller.current.latitude, isNot(closeTo(50.0, 0.1)),
-            reason: 'Camera should not jump to B latitude');
-        expect(controller.current.longitude, isNot(closeTo(-75.0, 0.1)),
-            reason: 'Camera should not jump to B longitude');
+        expect(controller.current.dim_0, isNot(closeTo(50.0, 0.1)),
+            reason: 'Camera should not jump to B dim_0');
+        expect(controller.current.dim_1, isNot(closeTo(-75.0, 0.1)),
+            reason: 'Camera should not jump to B dim_1');
 
-        expect(controller.current.latitude, closeTo(35.0, 0.1),
-            reason: 'Camera should be on the flight path near 35.0 latitude');
-        expect(controller.current.longitude, closeTo(140.0, 1.0),
-            reason: 'Camera should be on the flight path near 140.0 longitude');
+        expect(controller.current.dim_0, closeTo(35.0, 0.1),
+            reason: 'Camera should be on the flight path near 35.0 dim_0');
+        expect(controller.current.dim_1, closeTo(140.0, 1.0),
+            reason: 'Camera should be on the flight path near 140.0 dim_1');
 
         // Pump more frames - the flight continues
         for (int i = 0; i < 10; i++) {
           await tester.pump(const Duration(milliseconds: 50));
-          expect(controller.current.latitude, isNot(closeTo(50.0, 0.1)),
-              reason: 'Camera should NOT jump to B latitude at frame $i');
-          expect(controller.current.longitude, isNot(closeTo(-75.0, 0.1)),
-              reason: 'Camera should NOT jump to B longitude at frame $i');
+          expect(controller.current.dim_0, isNot(closeTo(50.0, 0.1)),
+              reason: 'Camera should NOT jump to B dim_0 at frame $i');
+          expect(controller.current.dim_1, isNot(closeTo(-75.0, 0.1)),
+              reason: 'Camera should NOT jump to B dim_1 at frame $i');
         }
       });
   });
@@ -604,9 +604,9 @@ void main() {
         final viewportState = tester.state(find.byType(Scene3DViewport)) as dynamic;
         final CameraController controller = viewportState.cameraController as CameraController;
 
-        expect(controller.current.latitude, -75.0);
-        expect(controller.current.longitude, 50.0);
-        expect(controller.current.altitude, 6378137.0 + 500.0);
+        expect(controller.current.dim_0, -75.0);
+        expect(controller.current.dim_1, 50.0);
+        expect(controller.current.dim_2, 6378137.0 + 500.0);
         expect(controller.current.heading, 0.0);
         expect(controller.current.pitch, -89.9);
       });

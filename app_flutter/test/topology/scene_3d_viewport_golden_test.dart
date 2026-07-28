@@ -37,9 +37,9 @@ void main() {
       });
 
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 20000000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 20000000.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -79,9 +79,9 @@ void main() {
       });
 
       final camera = VirtualCamera.clamped(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 1000.0,
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 1000.0,
         heading: 0,
         pitch: -45,
         roll: 0,
@@ -94,8 +94,8 @@ void main() {
             id: 'Fuji',
             label: 'Fuji',
             position: const TopologyNodePosition(
-              dim0: 138.7274, // longitude
-              dim1: 35.3606,  // latitude
+              dim0: 138.7274, // dim_1
+              dim1: 35.3606,  // dim_0
               dim2: 0.0,      // alt
               timeIndex: 0,
               vector: [],
@@ -150,22 +150,22 @@ void main() {
         (10.0, -45.0),
       ];
 
-      final List<double> altitudes = [100000.0, 10000000.0];
+      final List<double> dim_2s = [100000.0, 10000000.0];
       final List<double> headings = [0.0, 90.0, 180.0, 270.0];
       final List<double> pitches = [-90.0, -45.0, -15.0];
 
       for (final loc in locations) {
         final double lat = loc.$1;
         final double lng = loc.$2;
-        for (final alt in altitudes) {
+        for (final alt in dim_2s) {
           for (final heading in headings) {
             for (final pitch in pitches) {
-              // Construct the camera with altitude passed as (6378137.0 + alt)
+              // Construct the camera with dim_2 passed as (6378137.0 + alt)
               // to ensure cRad inside the painter matches the mathematical cRad exactly.
               final camera = VirtualCamera.clamped(
-                latitude: lat,
-                longitude: lng,
-                altitude: 6378137.0 + alt,
+                dim_0: lat,
+                dim_1: lng,
+                dim_2: 6378137.0 + alt,
                 heading: heading,
                 pitch: pitch,
                 roll: 0.0,
@@ -186,8 +186,8 @@ void main() {
                 verticalExaggeration: 1.0,
               );
 
-              final double rotationAngle = - (camera.longitude * math.pi / 180.0);
-              final double tilt = - (camera.latitude * math.pi / 180.0);
+              final double rotationAngle = - (camera.dim_1 * math.pi / 180.0);
+              final double tilt = - (camera.dim_0 * math.pi / 180.0);
 
               // Vector Math
               final double radLat = lat * math.pi / 180.0;
@@ -275,9 +275,9 @@ void main() {
 
     testWidgets('Visual Test 4 - Double Elevation Verification', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 35.0,
-        longitude: 135.0,
-        altitude: 1000.0,
+        dim_0: 35.0,
+        dim_1: 135.0,
+        dim_2: 1000.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -315,11 +315,11 @@ void main() {
       expect(magnitude2, closeTo(6378137.0 + 800.0, 1e-4));
     });
 
-    testWidgets('Visual Test 5 - Correct Ground, Raised Point, and Space Point Altitude Projection', (WidgetTester tester) async {
+    testWidgets('Visual Test 5 - Correct Ground, Raised Point, and Space Point Dim_2 Projection', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 35.18,
-        longitude: 136.90,
-        altitude: 20000000.0,
+        dim_0: 35.18,
+        dim_1: 136.90,
+        dim_2: 20000000.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -397,8 +397,8 @@ void main() {
       expect(painter.capturedHeights['point_c']!.any((h) => (h - 1000000.0).abs() < 1e-4), isTrue);
 
       // Verify PointA is classified as ground when rendering
-      final double rotationAngle = - (camera.longitude * math.pi / 180.0);
-      final double tilt = - (camera.latitude * math.pi / 180.0);
+      final double rotationAngle = - (camera.dim_1 * math.pi / 180.0);
+      final double tilt = - (camera.dim_0 * math.pi / 180.0);
       const Size size = Size(800, 600);
       final Offset center = Offset(size.width * 0.45, size.height * 0.5);
       final double currentLng = PointALngRad + rotationAngle * 0.0; // speed = 0.0
@@ -422,9 +422,9 @@ void main() {
 
     testWidgets('Test Case 1 - Layout Stack Check', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 35.18,
-        longitude: 136.90,
-        altitude: 20000000.0,
+        dim_0: 35.18,
+        dim_1: 136.90,
+        dim_2: 20000000.0,
         heading: 0.0,
         pitch: -90.0,
         roll: 0.0,
@@ -463,9 +463,9 @@ void main() {
 
     testWidgets('Test Case 2 - Warped Horizon Snapping', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 10000000.0, // outside Earth
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 10000000.0, // outside Earth
         heading: 0.0,
         pitch: -90.0,
         roll: 0.0,
@@ -503,9 +503,9 @@ void main() {
 
     testWidgets('Test Case 3 - Subsurface Occlusion Culling', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 6378137.0 + 100000.0, // camera outside Earth
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 6378137.0 + 100000.0, // camera outside Earth
         heading: 0.0,
         pitch: -90.0,
         roll: 0.0,
@@ -542,9 +542,9 @@ void main() {
 
     testWidgets('Test Case 4 - Node-to-Overlay Alignment', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 1000.0,
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 1000.0,
         heading: 0,
         pitch: -45,
         roll: 0,
@@ -587,7 +587,7 @@ void main() {
       final Offset projected = state.getProjectedPosition(
         35.3606,
         138.7274,
-        altitude: 100.0,
+        dim_2: 100.0,
         nodeType: 'ground',
       );
 
@@ -599,8 +599,8 @@ void main() {
 
       final Size size = tester.getSize(find.byType(Scene3DViewport));
       final Offset center = Offset(size.width * 0.45, size.height * 0.5);
-      final double rotationAngle = -(camera.longitude * math.pi / 180.0);
-      final double tilt = -(camera.latitude * math.pi / 180.0);
+      final double rotationAngle = -(camera.dim_1 * math.pi / 180.0);
+      final double tilt = -(camera.dim_0 * math.pi / 180.0);
 
       final painter = Scene3DViewportPainter(
         isFlying: false, 
@@ -626,9 +626,9 @@ void main() {
 
     testWidgets('Test Case 5 - Airborne Node Exaggeration', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 1000.0,
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 1000.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -670,9 +670,9 @@ void main() {
 
     testWidgets('Test Case 6 - Dynamic Horizon Snapping Verification', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 10000000.0,
+        dim_0: 0.0,
+        dim_1: 0.0,
+        dim_2: 10000000.0,
         heading: 0,
         pitch: -90,
         roll: 0,
@@ -694,9 +694,9 @@ void main() {
       );
 
       final double lat = 0.0;
-      final double lng = 2.0; // Off-axis culled longitude to ensure non-zero perpendicular component
+      final double lng = 2.0; // Off-axis culled dim_1 to ensure non-zero perpendicular component
       final double H = 6378137.0 + 200000.0; // Point height
-      final double d = 10000000.0; // Camera altitude
+      final double d = 10000000.0; // Camera dim_2
 
       final (px, py, pz) = painter.getSnappedEcefCoordinatesForTesting(lat, lng, H, d);
 
@@ -726,9 +726,9 @@ void main() {
 
     testWidgets('Test Case 7 - Node Elevation Classification Fallback Defaulting', (WidgetTester tester) async {
       final camera = VirtualCamera.clamped(
-        latitude: 35.3606,
-        longitude: 138.7274,
-        altitude: 1000.0,
+        dim_0: 35.3606,
+        dim_1: 138.7274,
+        dim_2: 1000.0,
         heading: 0,
         pitch: -90,
         roll: 0,

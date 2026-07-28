@@ -10,9 +10,9 @@ void main() {
         home: Scaffold(
           body: Scene3DViewport(
             camera: VirtualCamera.clamped(
-              latitude: 0,
-              longitude: 0,
-              altitude: 10000000,
+              dim_0: 0,
+              dim_1: 0,
+              dim_2: 10000000,
               heading: 0,
               pitch: -90,
               roll: 0,

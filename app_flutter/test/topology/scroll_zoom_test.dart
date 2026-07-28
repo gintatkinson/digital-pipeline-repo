@@ -15,9 +15,9 @@ void main() {
     });
 
     final camera = VirtualCamera.clamped(
-      latitude: 35.0,
-      longitude: 140.0,
-      altitude: 1000.0,
+      dim_0: 35.0,
+      dim_1: 140.0,
+      dim_2: 1000.0,
       heading: 0,
       pitch: -45,
       roll: 0,
@@ -45,6 +45,6 @@ void main() {
     tester.binding.handlePointerEvent(event);
     await tester.pump();
 
-    expect(controller.current.altitude, closeTo(6379191.43, 0.01));
+    expect(controller.current.dim_2, closeTo(6379191.43, 0.01));
   });
 }
