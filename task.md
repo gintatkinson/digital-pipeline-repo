@@ -1,5 +1,6 @@
-# Task Checklist: Rename Solution Specification Document
+# Task Checklist: Adversarial Audit of Solution Specification
 
-- [x] Rename `docs/designs/solution_definition.md` to `feat-g1-g12-solution-definition.md`
-- [x] Verify rename via `git status`
-- [x] Generate walkthrough report
+- [/] Dispatch subagent to perform adversarial audit on `feat-g1-g12-solution-definition.md`
+- [ ] Receive audit findings and file issues/comments
+- [ ] Update `feat-g1-g12-solution-definition.md` to resolve any identified drift
+- [ ] Run backlog reconciliation and commit/push changes

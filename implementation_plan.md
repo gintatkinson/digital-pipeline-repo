@@ -1,21 +1,25 @@
-# Implementation Plan - Rename Solution Specification Document
+# Implementation Plan - Adversarial Audit of Solution Specification
 
-This plan covers renaming the solution specification document to a unique, feature-based name that aligns with existing designs in the repository.
+This plan details the steps to perform an adversarial audit on the newly relocated Solution Specification document using a dedicated subagent.
 
 ---
 
 ## 1. Proposed Changes
 
-### [DELETE] [solution_definition.md](file:///Users/perkunas/jail/digital-pipeline-repo/docs/designs/solution_definition.md)
-Remove the file name `solution_definition.md` to replace it with a unique feature name.
+### [NEW] [Subagent Dispatch]
+We will invoke a specialized subagent to audit `docs/designs/feat-g1-g12-solution-definition.md` against architectural standards and pipeline requirements:
+- **TypeName**: `self`
+- **Role**: `Adversarial Auditor`
+- **Focus**: `Semantic Traceability` (checking alignment between backlog requirements, Clean MVVM architecture, and database/persistence designs).
+- **Output**: File issues containing findings, root cause analysis, correctness analysis, and proposed corrections.
 
-### [NEW] [feat-g1-g12-solution-definition.md](file:///Users/perkunas/jail/digital-pipeline-repo/docs/designs/feat-g1-g12-solution-definition.md)
-Rename the document to `feat-g1-g12-solution-definition.md` to clearly identify it as the architecture and design specification for G1-G12 integration.
+### [MODIFY] [feat-g1-g12-solution-definition.md](file:///Users/perkunas/jail/digital-pipeline-repo/docs/designs/feat-g1-g12-solution-definition.md)
+Update the solution definition document to resolve any inconsistencies, architecture drift, or gaps identified by the auditor.
 
 ---
 
 ## 2. Verification Plan
 
-### Manual Verification
-1.  Verify that `docs/designs/feat-g1-g12-solution-definition.md` exists and contains the complete solution specification.
-2.  Verify that the old file name `docs/designs/solution_definition.md` has been removed.
+### Automated Checks
+1.  Run the backlog reconciliation script (`reconcile_backlog.py`) to sync the new/commented issues.
+2.  Verify that all new design changes are updated and pushed to git.

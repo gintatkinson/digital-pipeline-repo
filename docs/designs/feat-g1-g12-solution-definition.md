@@ -68,20 +68,32 @@ To support Rack Infrastructure specifications:
 
 ## 3. Domain Services Design
 
-We define four central services in the Domain layer to execute the logic of User Stories and Use Cases:
+We define four central services in the Domain layer to execute the logic of Features, User Stories, and Use Cases:
 
 ### 3.1 LocationService (`lib/domain/services/location_service.dart`)
 - **Backlog Scope**: Epic #8 (Location Hierarchy), Story #10 (Query Location Hierarchy).
+- **Features Realized**:
+  - **Feature #1**: GeoLocation Root (traversing the top of the geodetic registry)
+  - **Feature #2**: Reference Frame (loading associated spatial boundaries)
+  - **Feature #3**: Geodetic System (extracting coordinate configuration parameters)
+  - **Feature #4**: Ellipsoid Coordinates (fetching latitude, longitude, height coordinates)
+  - **Feature #5**: Cartesian Coordinates (resolving orthogonal positioning metrics)
+  - **Feature #7**: NI Location Entity (mapping node interfaces)
+  - **Feature #8**: Physical Address (resolving regional anchors)
 - **Core Operations**:
   - `Future<List<InstanceRecord>> getHierarchyForNode(String nodeId)`: Performs tree traversal via SQLite to locate nested coordinate and positioning models.
 
 ### 3.2 DispatchService (`lib/domain/services/dispatch_service.dart`)
 - **Backlog Scope**: Story #12 (Validate Location for Dispatch), Use Case #28 (Validate Dispatch).
+- **Features Realized**:
+  - **Feature #9**: Geo Location for NI (matching dispatch endpoints against spatial boundaries)
 - **Core Operations**:
   - `Future<bool> validateDispatch(String sourceNodeId, String destinationNodeId)`: Verifies geodetic compatibilities, reference frame alignment, and active status, returning validation diagnostics.
 
 ### 3.3 VelocityService (`lib/domain/services/velocity_service.dart`)
 - **Backlog Scope**: Epic #7 (Geo-Location Grouping), Story #15 (Compute Velocity & Position).
+- **Features Realized**:
+  - **Feature #6**: Velocity Vector (performing dynamic temporal position shifts and speed/heading calculation)
 - **Core Operations**:
   - `Position computeCurrentPosition(EllipsoidCoordinates coords, VelocityVector velocity, DateTime time)`: Calculates the shifted coordinates of a moving satellite/orbit node at runtime.
   - `double computeSpeed(VelocityVector velocity)`: Calculates speed magnitude in m/s.
@@ -89,5 +101,10 @@ We define four central services in the Domain layer to execute the logic of User
 
 ### 3.4 RackService (`lib/domain/services/rack_service.dart`)
 - **Backlog Scope**: Epic #9 (Rack Infrastructure), Story #17/#18/#20.
+- **Features Realized**:
+  - **Feature #10**: Location Chassis (checking hardware slots)
+  - **Feature #11**: Rack Entity (managing vertical rack coordinates)
+  - **Feature #12**: Rack Placement (assigning placement profiles)
+  - **Feature #13**: Rack Chassis (mapping chassis dimensions)
 - **Core Operations**:
   - `Future<bool> allocateSlot(String rackId, int slotIndex, String chassisId)`: Assigns a chassis node to a rack layout, validating slot overlaps and spatial limits.
