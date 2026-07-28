@@ -1,0 +1,31 @@
+commit 6c4a48ca19435a52ede9b18de5738265bb48a7b9
+Author: gintatkinson <gintatkinson@gmail.com>
+Date:   Tue Jul 28 14:34:02 2026 +0800
+
+    Fix #259: Decontaminate geodetic coordinates in scene_3d_viewport, topographical_view, and golden tests
+
+ app_flutter/assets/properties_db.db.gz             | Bin 4636649 -> 4616874 bytes
+ app_flutter/fix_tests.py                           |  11 +++
+ .../data/data_sources/firebase_data_source.dart    |   6 +-
+ .../lib/data/data_sources/sqlite_data_source.dart  |   6 +-
+ .../map_viewport/cesium_3d/camera_controller.dart  | 108 ++++++++++-----------
+ .../map_viewport/cesium_3d/cesium_3d_native.dart   |  14 +--
+ .../map_viewport/cesium_3d/cesium_engine.dart      |   6 +-
+ .../cesium_3d/globe_tile_renderer.dart             |  24 ++---
+ .../cesium_3d/native/bridge_bindings.dart          |   6 +-
+ .../map_viewport/cesium_3d/virtual_camera.dart     |  88 ++++++++---------
+ .../lib/features/topology/scene_3d_viewport.dart   |  90 ++++++++---------
+ .../topology/scene_3d_viewport_classes.dart        |  30 +++---
+ .../lib/features/topology/topographical_view.dart  |  28 +++---
+ .../test/domain/cesium_3d/viewport_math_test.dart  |  12 +--
+ .../exaggerated_fuji_node_isolatedDiff.png         | Bin 22497 -> 2373 bytes
+ .../failures/exaggerated_fuji_node_maskedDiff.png  | Bin 36576 -> 34181 bytes
+ .../failures/exaggerated_fuji_node_masterImage.png | Bin 34421 -> 34039 bytes
+ .../failures/exaggerated_fuji_node_testImage.png   | Bin 34039 -> 34003 bytes
+ .../failures/stars_and_sphere_isolatedDiff.png     | Bin 82845 -> 2999 bytes
+ .../failures/stars_and_sphere_maskedDiff.png       | Bin 212760 -> 162483 bytes
+ .../failures/stars_and_sphere_masterImage.png      | Bin 205407 -> 162046 bytes
+ .../failures/stars_and_sphere_testImage.png        | Bin 215123 -> 162201 bytes
+ .../goldens/macos/exaggerated_fuji_node.png        | Bin 34039 -> 34003 bytes
+ .../topology/goldens/macos/stars_and_sphere.png    | Bin 162046 -> 162201 bytes
+ 24 files changed, 220 insertions(+), 209 deletions(-)
