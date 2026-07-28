@@ -1,12 +1,60 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 (globalThis as any).expect = expect;
 import '@testing-library/jest-dom';
 import { Layout } from './layout';
 import { PropertyGrid } from './property-grid';
 import { validateFields } from '../domain/validation';
 import { Counter32, Gauge32 } from '../domain/numeric-metrics';
+
+vi.mock('../../../.pipeline/logical-ui/logical-layout.json', () => ({
+  default: {
+    layout: {
+      root_container: {
+        type: 'SidebarLayout',
+        id: 'main_shell',
+        children: [
+          {
+            type: 'HierarchyTreeSelector',
+            id: 'resource_tree',
+            props: {
+              width: 'spacing.layout-sidebar-width',
+              hierarchy: [
+                {
+                  id: 'CategoryA',
+                  label: 'Category A',
+                  children: [
+                    { id: 'ItemA1', 'label': 'Item A1' }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            type: 'SplitWorkspace',
+            id: 'workspace_split',
+            children: [
+              {
+                type: 'TopographicalView',
+                id: 'topology_pane'
+              },
+              {
+                type: 'TabbedContainer',
+                id: 'details_and_relations_tab',
+                children: [
+                  { type: 'TableView', id: 'sub_elements_table' },
+                  { type: 'TableView', id: 'active_alarms_table' },
+                  { type: 'TableView', id: 'historical_events_table' }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}));
 
 if (typeof window !== 'undefined') {
   if (!window.matchMedia) {

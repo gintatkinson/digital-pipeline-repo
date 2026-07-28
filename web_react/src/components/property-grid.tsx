@@ -7,31 +7,9 @@ export interface PropertyGridProps {
   onSave?: (data: any) => void;
 }
 
-const defaultShowcase: Record<string, any> = {
-  latitude: 37.7749,
-  longitude: -122.4194,
-  altitude: 10,
-  roomName: 'Main-Data-Room',
-  gridRow: 12,
-  gridColumn: 4,
-  maxVoltage: 240,
-  maxAllocatedPower: 15000,
-  countryCode: 'US',
-  locationType: 'room'
-};
+const defaultShowcase: Record<string, any> = {};
 
-const fallbackAttributes = [
-  { key: 'latitude', label: 'Latitude', type: 'double', sectionGroup: 'Geodetic Coordinate Frame', isRequired: false },
-  { key: 'longitude', label: 'Longitude', type: 'double', sectionGroup: 'Geodetic Coordinate Frame', isRequired: false },
-  { key: 'altitude', label: 'Elevation / Altitude (m)', type: 'double', sectionGroup: 'Geodetic Coordinate Frame', isRequired: false },
-  { key: 'roomName', label: 'Room Identifier', type: 'string', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false },
-  { key: 'gridRow', label: 'Grid Row', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false },
-  { key: 'gridColumn', label: 'Grid Column', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false },
-  { key: 'maxVoltage', label: 'Max Voltage (V)', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, minValue: 0 },
-  { key: 'maxAllocatedPower', label: 'Max Allocated Power (W)', type: 'int', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, minValue: 0 },
-  { key: 'countryCode', label: 'Country Code (ISO-2)', type: 'string', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, pattern: '^[A-Z]{2}$' },
-  { key: 'locationType', label: 'Location Hierarchy Type', type: 'enum', sectionGroup: 'Alternate Structural Grid Frame', isRequired: false, options: ['site', 'room', 'building'] }
-];
+const fallbackAttributes: any[] = [];
 
 export const PropertyGrid: React.FC<PropertyGridProps> = ({ activeView, onSave }) => {
   const attributes = (logicalLayout as any).attributes || fallbackAttributes;

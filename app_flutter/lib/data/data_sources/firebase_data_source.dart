@@ -379,47 +379,46 @@ class FirebaseDataSource implements DataSource {
       final List<TopologyNode> nodes = [];
       final List<TopologyLink> links = [];
 
+      String? globalLatPath;
+      String? globalLngPath;
+      String? globalAltPath;
+
       for (final doc in snapshot.docs) {
         final nodeId = doc.id;
         final decoded = doc.data();
         if (decoded.isEmpty) continue;
 
-        final geo = decoded['ietfGeoLocation'] ?? decoded['location'] ?? decoded['position'];
-        if (geo == null) continue;
+        try {
+          final latPath = _findPathToKey(decoded, 'latitude');
+          final lngPath = _findPathToKey(decoded, 'longitude');
+          final altPath = _findPathToKey(decoded, 'height') ?? _findPathToKey(decoded, 'altitude');
 
-        double? latVal;
-        double? lngVal;
-        double? altVal;
+          if (latPath == null || lngPath == null) continue;
 
-        if (geo is Map) {
-          final loc = geo['location'] ?? geo;
-          if (loc is Map) {
-            final ellip = loc['ellipsoid'] ?? loc;
-            if (ellip is Map) {
-              latVal = double.tryParse(ellip['latitude']?.toString() ?? '');
-              lngVal = double.tryParse(ellip['longitude']?.toString() ?? '');
-              altVal = double.tryParse(ellip['height']?.toString() ?? ellip['altitude']?.toString() ?? '');
-            }
-          }
-        }
+          globalLatPath ??= latPath;
+          globalLngPath ??= lngPath;
+          globalAltPath ??= altPath;
 
-        if (latVal == null || lngVal == null) {
-          continue;
-        }
+          final latVal = _resolveCoordinateValue(decoded, latPath);
+          final lngVal = _resolveCoordinateValue(decoded, lngPath);
+          final altVal = altPath != null ? _resolveCoordinateValue(decoded, altPath) : null;
 
-        nodes.add(TopologyNode(
-          id: nodeId,
-          label: decoded['name']?.toString() ?? nodeId,
-          position: TopologyNodePosition(
-            dim0: lngVal,
-            dim1: latVal,
-            dim2: altVal ?? 0.0,
-            timeIndex: 0,
-            vector: const [],
-          ),
-          status: decoded['status']?.toString() ?? 'Active',
-          rawProperties: decoded,
-        ));
+          if (latVal == null || lngVal == null) continue;
+
+          nodes.add(TopologyNode(
+            id: nodeId,
+            label: decoded['name']?.toString() ?? nodeId,
+            position: TopologyNodePosition(
+              dim0: lngVal,
+              dim1: latVal,
+              dim2: altVal ?? 0.0,
+              timeIndex: 0,
+              vector: const [],
+            ),
+            status: decoded['status']?.toString() ?? 'Active',
+            rawProperties: decoded,
+          ));
+        } catch (_) {}
       }
 
       final interfaceSnapshot = await _firestore
@@ -444,8 +443,19 @@ class FirebaseDataSource implements DataSource {
         }
       }
 
+      final coordinateMapping = <String, String>{};
+      if (globalLngPath != null) {
+        coordinateMapping['x'] = globalLngPath;
+      }
+      if (globalLatPath != null) {
+        coordinateMapping['y'] = globalLatPath;
+      }
+      if (globalAltPath != null) {
+        coordinateMapping['z'] = globalAltPath;
+      }
+
       return TopologyData(
-        coordinateMapping: const {},
+        coordinateMapping: coordinateMapping,
         nodes: nodes,
         links: links,
       );
@@ -453,6 +463,38 @@ class FirebaseDataSource implements DataSource {
       debugPrint('Error in fetchTopologyData: $e\n$stackTrace');
       return const TopologyData(coordinateMapping: {}, nodes: [], links: []);
     }
+  }
+
+  static String? _findPathToKey(Map<dynamic, dynamic> map, String targetKey) {
+    for (final entry in map.entries) {
+      final keyStr = entry.key.toString();
+      if (keyStr == targetKey) {
+        return keyStr;
+      }
+      if (entry.value is Map) {
+        final subPath = _findPathToKey(entry.value as Map, targetKey);
+        if (subPath != null) {
+          return '$keyStr/$subPath';
+        }
+      }
+    }
+    return null;
+  }
+
+  static double? _resolveCoordinateValue(Map<dynamic, dynamic> properties, String path) {
+    final parts = path.split('/');
+    dynamic current = properties;
+    for (final part in parts) {
+      if (current is Map) {
+        current = current[part];
+      } else {
+        return null;
+      }
+    }
+    if (current != null) {
+      return double.tryParse(current.toString());
+    }
+    return null;
   }
 
   @override

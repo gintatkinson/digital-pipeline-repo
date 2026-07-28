@@ -1,14 +1,3 @@
-export interface Velocity {
-  vNorth: number;
-  vEast: number;
-  vUp: number;
-}
-
-export interface TemporalContext {
-  timestamp: string;
-  validUntil: string;
-  velocity: Velocity;
-}
 
 export interface DiagnosticLogger {
   timestamp: string;
@@ -87,17 +76,6 @@ export interface TemporalPrecisionContext {
   precision: CentisecondPrecision;
 }
 
-export interface PhysicalAddress {
-  address: string;
-  postalCode: string;
-  state: string;
-  city: string;
-  countryCode: string;
-}
-
-export interface PhysicalStructuralSubsystem {
-  address: PhysicalAddress;
-}
 
 export interface IngestionWorkflow {
   parseIssueBody(body: string): string;
@@ -110,41 +88,6 @@ export interface IngestionSubsystem {
   workflow: IngestionWorkflow;
 }
 
-export interface LocationType {
-  identity: 'site' | 'room' | 'building';
-}
-
-export interface LocationHierarchy {
-  id: string;
-  name: string;
-  type: LocationType;
-  parent?: LocationHierarchy;
-}
-
-export interface RackLocation {
-  roomName: string;
-  gridRow: number;
-  gridColumn: number;
-}
-
-export interface Rack {
-  maxVoltage: number;
-  maxAllocatedPower: number;
-  heightUnits: number;
-  location: RackLocation;
-}
-
-export interface ContainedChassis {
-  chassisId: string;
-  startSlot: number;
-  slotWidth: number;
-  validateSlotOverlap(other: ContainedChassis): boolean;
-}
-
-export interface ChassisContainmentSubsystem {
-  chassis: ContainedChassis[];
-  validateAllocation(): boolean;
-}
 
 export interface EpicMapper {
   epicId: string;
