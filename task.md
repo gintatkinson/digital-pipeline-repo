@@ -1,6 +1,5 @@
-# Task Checklist: Relocate Solution Specification Document
+# Task Checklist: Rename Solution Specification Document
 
-- [x] Relocate `solution_definition.md` to `docs/designs/`
-- [x] Delete duplicate `solution_definition.md` from workspace root
-- [x] Verify relocation via `git status`
+- [x] Rename `docs/designs/solution_definition.md` to `feat-g1-g12-solution-definition.md`
+- [x] Verify rename via `git status`
 - [x] Generate walkthrough report
