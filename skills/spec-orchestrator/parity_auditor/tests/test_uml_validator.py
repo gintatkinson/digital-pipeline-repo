@@ -432,3 +432,46 @@ def test_extend_arrow_base_with_ext_in_name_no_false_positive():
     finally:
         import shutil
         shutil.rmtree(tmpdir)
+
+
+def test_extend_stereotype_formats_recognized():
+    """Verify that both literal <<extend>> and entity &lt;&lt;extend&gt;&gt;, plus guillemets «extend», are recognized."""
+    import re
+    from unittest.mock import patch
+
+    diagram = """flowchart TD
+    subgraph boundary[System Boundary]
+        ext-cancel[Cancel Order]
+        base-order[View Order]
+    end
+    actor[Customer]
+    ext-cancel -->|<<extend>>| base-order
+    ext-cancel -->|&lt;&lt;extend&gt;&gt;| base-order
+    ext-cancel -->|«extend»| base-order
+    actor --- base-order"""
+    
+    tmpdir = _setup_usecase_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        
+        original_search = re.search
+        matched_labels = []
+        
+        def spy_search(pattern, string, flags=0):
+            res = original_search(pattern, string, flags)
+            if "extend" in pattern and res:
+                matched_labels.append(string)
+            return res
+            
+        with patch("re.search", side_effect=spy_search):
+            errors = validator.validate(repo)
+            
+        assert "<<extend>>" in matched_labels
+        assert "&lt;&lt;extend&gt;&gt;" in matched_labels
+        assert "«extend»" in matched_labels
+        reversed_errors = [e for e in errors if "reversed" in e]
+        assert len(reversed_errors) == 0
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
