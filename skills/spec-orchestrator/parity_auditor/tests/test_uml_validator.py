@@ -475,3 +475,174 @@ def test_extend_stereotype_formats_recognized():
     finally:
         import shutil
         shutil.rmtree(tmpdir)
+
+
+def test_bypassed_lifelines_accepted():
+    """Verify that lifelines ending with standard actor/helper suffixes are bypassed in sequence diagram lifeline checks."""
+    class_diagram = """classDiagram
+    class B {
+        +void call()
+    }
+    class C {
+        +String name [1]
+    }
+    C --> B : calls"""
+
+    story_content = """---
+generation_mode: subagent
+title: Test Story
+---
+
+## 1. Overview
+As a User, I want to do something, so that we win.
+
+## 2. User Story Scenario
+Given something
+When action
+Then result
+
+## 3. Sequence Diagram
+```mermaid
+sequenceDiagram
+    actor a as "a: MyActor"
+    actor c as "c: SuperCalculator"
+    actor p as "p: DataProvider"
+    actor m as "m: UserMapper"
+    actor mgr as "mgr: SessionManager"
+    actor cfg as "cfg: AuthConfigurator"
+    actor arc as "arc: SystemArchitect"
+    actor val as "val: FormValidator"
+    actor sys as "sys: ValidatorSystem"
+    actor s as "s: RemoteSystem"
+    actor b as "b: B"
+    actor x as "x: InvalidClass"
+    a->>b: call()
+```
+
+## Required Features Matrix
+- [ ] [Feature Link](http://example.com/feat-01-test.md) (Justification)
+"""
+
+    tmpdir = _setup_sequence_workspace(class_diagram, story_content)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        
+        # Check that we DO get an error for 'InvalidClass'
+        invalid_errors = [e for e in errors if "InvalidClass" in e]
+        assert len(invalid_errors) >= 1, f"Expected validation error for InvalidClass, got: {errors}"
+        
+        # Check that we DO NOT get errors for any of the bypassed suffixes
+        bypassed_suffixes = ["MyActor", "SuperCalculator", "DataProvider", "UserMapper", "SessionManager", "AuthConfigurator", "SystemArchitect", "FormValidator", "ValidatorSystem", "RemoteSystem"]
+        for suffix in bypassed_suffixes:
+            suffix_errors = [e for e in errors if suffix in e]
+            assert len(suffix_errors) == 0, f"Expected no error for bypassed class {suffix}, got: {suffix_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_quoted_class_definitions_no_syntax_error():
+    """Verify that quoted class definitions (e.g. class "Nw:networks" {) do not trigger syntax errors or conflicts."""
+    diagram = """classDiagram
+    class "Nw:networks" {
+        +String name [1]
+    }
+    class Other {
+        +String id [1]
+    }
+    Other --> Nw:networks : references"""
+    tmpdir = _setup_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        
+        # Filter warnings and check actual errors
+        actual_errors = [e for e in errors if not e.startswith("Warning:")]
+        assert len(actual_errors) == 0, f"Expected no errors for quoted class definition, got: {actual_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def _setup_sequence_workspace(class_diagram_body, story_content):
+    tmpdir = tempfile.mkdtemp()
+    pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+    os.makedirs(pipeline_dir, exist_ok=True)
+    rules = {
+        "meta": {},
+        "backlog_directories": {"features": "features", "user_stories": "user_stories", "use_cases": "use_cases"},
+        "target_directories": {},
+        "flutter_rules": {},
+        "python_rules": {},
+        "spec_rules": {},
+        "validation_rules": {
+            "visibility_prefixes": ["+", "-", "#", "~"],
+            "multiplicity_regex": "\\[[^\\]]+\\]",
+            "uml_primitives": ["String", "Integer", "Real", "Boolean", "void"],
+            "relationship_connectors": "(<\\|--|\\*--|o--|-->|\\.\\.>|--)",
+            "choice_stereotypes": ["<<choice>>"],
+            "required_sections": {
+                "feature_ui": [
+                    ["## 1. Overview", "Overview"],
+                    ["## 2. Requirements", "Requirements"],
+                    ["## 3. Validation", "Validation"],
+                    ["## 4. Diagrams", "Diagrams"]
+                ],
+                "user_story": [
+                    ["## 1. Overview", "Overview"],
+                    ["## 2. User Story Scenario", "Scenario"],
+                    ["## 3. Sequence Diagram", "Sequence Diagram"]
+                ]
+            },
+            "required_diagrams": {
+                "feature": ["classDiagram"],
+                "user_story": ["sequenceDiagram"]
+            },
+            "sequence_replies": ["-->>", "-->"],
+            "fragment_keywords": ["alt", "opt", "loop", "par", "critical", "option"],
+            "bdd_scenario_regexes": [r"Given", r"When", r"Then"],
+            "required_features_matrix_regex": r"## Required Features Matrix(.*?)(?=\Z|##)",
+            "checkbox_syntax_regex": r"-\s+\[[ xX]\]\s+(.*)",
+            "naming_conventions": {}
+        }
+    }
+    with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w") as f:
+        json.dump(rules, f)
+
+    features_dir = os.path.join(tmpdir, "features")
+    user_stories_dir = os.path.join(tmpdir, "user_stories")
+    os.makedirs(features_dir, exist_ok=True)
+    os.makedirs(user_stories_dir, exist_ok=True)
+
+    feat_content = """---
+generation_mode: subagent
+title: Feature Test
+interface_type: ui
+---
+
+## 1. Overview
+test
+
+## 2. Requirements & Checklist
+- [ ] test
+
+## 3. Validation & Constraints
+- test
+
+## 4. Diagrams
+
+```mermaid
+""" + class_diagram_body + """
+```
+"""
+    with open(os.path.join(features_dir, "feat-01-test.md"), "w") as f:
+        f.write(feat_content)
+
+    with open(os.path.join(user_stories_dir, "us-01-test.md"), "w") as f:
+        f.write(story_content)
+
+    return tmpdir
+

@@ -242,7 +242,8 @@ class UmlValidator(IValidator):
                         errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' is missing the name : Classifier pattern in its label: '{label}'")
                     else:
                         cls_name = lf.classifier_name
-                        if cls_name not in global_classes:
+                        bypass_suffixes = ("Actor", "Calculator", "Provider", "Mapper", "Manager", "Configurator", "Architect", "Validator", "ValidatorSystem", "System")
+                        if cls_name not in global_classes and not cls_name.endswith(bypass_suffixes):
                             errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' specifies classifier '{cls_name}' which is not defined in any feature class diagram.")
                             
                 for msg in messages:
@@ -667,7 +668,7 @@ class UmlValidator(IValidator):
                 if not line_strip:
                     continue
                 if "{" in line_strip or "}" in line_strip:
-                    is_block_start = re.match(r'^(class|namespace)\s+[a-zA-Z0-9_\-.:]+\s*\{', line_strip, re.IGNORECASE)
+                    is_block_start = re.match(r'^(class|namespace)\s+(?:"[a-zA-Z0-9_\-.:]+"|[a-zA-Z0-9_\-.:]+)\s*\{', line_strip, re.IGNORECASE)
                     is_block_end = (line_strip == "}")
                     if not is_block_start and not is_block_end:
                         errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.")

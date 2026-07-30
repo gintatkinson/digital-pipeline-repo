@@ -398,9 +398,9 @@ class MermaidClassDiagramParser(IParser):
                 block_stack.append({"type": "namespace", "name": ns_name})
                 continue
 
-            class_block_match = re.match(r'^class\s+([a-zA-Z0-9_\-.:]+)\s*\{', line, re.IGNORECASE)
+            class_block_match = re.match(r'^class\s+(?:"([a-zA-Z0-9_\-.:]+)"|([a-zA-Z0-9_\-.:]+))\s*\{', line, re.IGNORECASE)
             if class_block_match:
-                cls_name = class_block_match.group(1)
+                cls_name = class_block_match.group(1) or class_block_match.group(2)
                 current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
                 classes[cls_name] = ClassInfo(name=cls_name, namespace=current_ns, attributes=[], methods=[])
                 if current_ns:
@@ -413,9 +413,9 @@ class MermaidClassDiagramParser(IParser):
                     block_stack.pop()
                 continue
 
-            class_decl_match = re.match(r'^class\s+([a-zA-Z0-9_\-.:]+)$', line, re.IGNORECASE)
+            class_decl_match = re.match(r'^class\s+(?:"([a-zA-Z0-9_\-.:]+)"|([a-zA-Z0-9_\-.:]+))$', line, re.IGNORECASE)
             if class_decl_match:
-                cls_name = class_decl_match.group(1)
+                cls_name = class_decl_match.group(1) or class_decl_match.group(2)
                 if cls_name not in classes:
                     current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
                     classes[cls_name] = ClassInfo(name=cls_name, namespace=current_ns, attributes=[], methods=[])
