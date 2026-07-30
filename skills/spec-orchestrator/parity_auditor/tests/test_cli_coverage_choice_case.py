@@ -23,8 +23,10 @@ def test_cli_coverage_choice_case(mock_parse_schema, mock_repo_cls, mock_parse_a
 
     mock_repo = MagicMock()
     mock_repo.workspace_dir = "/fake/workspace"
+    mock_repo.get_codebase_rules_path.return_value = "codebase_rules.json"
     
     mock_rules = MagicMock()
+    mock_rules.meta.upstream_repository = "gintatkinson/digital-pipeline-repo"
     mock_rules.backlog_directories.schemas = "schema"
     mock_rules.backlog_directories.features = "docs/features"
     mock_rules.backlog_directories.epics = "docs/epics"
@@ -74,6 +76,7 @@ def test_cli_coverage_choice_case(mock_parse_schema, mock_repo_cls, mock_parse_a
     with patch("os.path.exists", mock_exists_fn), \
          patch("os.listdir", return_value=["test.yang"]), \
          patch("builtins.open", MagicMock()), \
+         patch("json.load", return_value={}), \
          patch("sys.exit") as mock_exit:
          
         cli._main_impl()

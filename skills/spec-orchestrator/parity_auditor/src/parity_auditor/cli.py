@@ -546,7 +546,9 @@ def _main_impl():
         print("\n=== Spec-Only Model Coverage Validation ===")
         all_definitions = {}
         for module_name, module_defs in modules.items():
-            has_functional_nodes = any(t in module_defs.values() for t in ("container", "list"))
+            # Support both string types (production) and dict types (testing mock formats)
+            def_types = {v.get("type") if isinstance(v, dict) else v for v in module_defs.values()}
+            has_functional_nodes = any(t in def_types for t in ("container", "list", "leaf", "leaf-list", "choice", "case", "rpc", "notification", "action"))
             if not has_functional_nodes:
                 continue
             all_definitions.update(module_defs)
