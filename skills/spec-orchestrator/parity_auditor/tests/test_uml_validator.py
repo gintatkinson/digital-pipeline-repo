@@ -543,16 +543,16 @@ sequenceDiagram
         shutil.rmtree(tmpdir)
 
 
-def test_quoted_class_definitions_no_syntax_error():
-    """Verify that quoted class definitions (e.g. class "Nw:networks" {) do not trigger syntax errors or conflicts."""
+def test_backtick_class_definitions_no_syntax_error():
+    """Verify that backtick-enclosed class definitions (e.g. class `Nw:networks` {) do not trigger syntax errors or conflicts."""
     diagram = """classDiagram
-    class "Nw:networks" {
+    class `Nw:networks` {
         +String name [1]
     }
     class Other {
         +String id [1]
     }
-    Other --> Nw:networks : references"""
+    Other --> `Nw:networks` : references"""
     tmpdir = _setup_workspace(diagram)
     try:
         repo = WorkspaceRepository(tmpdir)
@@ -561,7 +561,7 @@ def test_quoted_class_definitions_no_syntax_error():
         
         # Filter warnings and check actual errors
         actual_errors = [e for e in errors if not e.startswith("Warning:")]
-        assert len(actual_errors) == 0, f"Expected no errors for quoted class definition, got: {actual_errors}"
+        assert len(actual_errors) == 0, f"Expected no errors for backtick class definition, got: {actual_errors}"
     finally:
         import shutil
         shutil.rmtree(tmpdir)

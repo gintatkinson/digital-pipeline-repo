@@ -357,7 +357,7 @@ class MermaidClassDiagramParser(IParser):
 
             if line.lower().startswith("note ") or line.lower().startswith("note\t") or line.lower() == "note":
                 is_relationship = bool(re.match(
-                    r'^\s*([a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*([a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
+                    r'^\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
                     line
                 ))
                 if not is_relationship:
@@ -398,9 +398,9 @@ class MermaidClassDiagramParser(IParser):
                 block_stack.append({"type": "namespace", "name": ns_name})
                 continue
 
-            class_block_match = re.match(r'^class\s+(?:"([a-zA-Z0-9_\-.:]+)"|([a-zA-Z0-9_\-.:]+))\s*\{', line, re.IGNORECASE)
+            class_block_match = re.match(r'^class\s+(`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*\{', line, re.IGNORECASE)
             if class_block_match:
-                cls_name = class_block_match.group(1) or class_block_match.group(2)
+                cls_name = class_block_match.group(1).strip("`")
                 current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
                 classes[cls_name] = ClassInfo(name=cls_name, namespace=current_ns, attributes=[], methods=[])
                 if current_ns:
@@ -413,9 +413,9 @@ class MermaidClassDiagramParser(IParser):
                     block_stack.pop()
                 continue
 
-            class_decl_match = re.match(r'^class\s+(?:"([a-zA-Z0-9_\-.:]+)"|([a-zA-Z0-9_\-.:]+))$', line, re.IGNORECASE)
+            class_decl_match = re.match(r'^class\s+(`[^`]+`|[a-zA-Z0-9_\-.:]+)$', line, re.IGNORECASE)
             if class_decl_match:
-                cls_name = class_decl_match.group(1) or class_decl_match.group(2)
+                cls_name = class_decl_match.group(1).strip("`")
                 if cls_name not in classes:
                     current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
                     classes[cls_name] = ClassInfo(name=cls_name, namespace=current_ns, attributes=[], methods=[])
@@ -424,15 +424,15 @@ class MermaidClassDiagramParser(IParser):
                 continue
 
             rel_match = re.match(
-                r'^\s*([a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*([a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
+                r'^\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
                 line
             )
             if rel_match:
-                from_cls = rel_match.group(1)
+                from_cls = rel_match.group(1).strip("`")
                 from_mult = rel_match.group(2)
                 rel_symbol = rel_match.group(3)
                 to_mult = rel_match.group(4)
-                to_cls = rel_match.group(5)
+                to_cls = rel_match.group(5).strip("`")
                 label = rel_match.group(6)
                 if label:
                     label_str = label.strip()

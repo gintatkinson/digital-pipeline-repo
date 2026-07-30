@@ -668,7 +668,7 @@ class UmlValidator(IValidator):
                 if not line_strip:
                     continue
                 if "{" in line_strip or "}" in line_strip:
-                    is_block_start = re.match(r'^(class|namespace)\s+(?:"[a-zA-Z0-9_\-.:]+"|[a-zA-Z0-9_\-.:]+)\s*\{', line_strip, re.IGNORECASE)
+                    is_block_start = re.match(r'^(class|namespace)\s+(?:`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*\{', line_strip, re.IGNORECASE)
                     is_block_end = (line_strip == "}")
                     if not is_block_start and not is_block_end:
                         errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.")
