@@ -300,7 +300,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - You MUST map the feature's container and leaf nodes to:
      - The target LUI component (e.g. `PropertyGrid`, `TableView`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`).
      - The specific target layout container ID in `logical-layout.json`.
-     - The data source bindings matching `logical-layout.json`.
+     - The data source bindings. **CRITICAL PATH DERIVATION RULE**: You are strictly forbidden from copy-pasting generic template or placeholder namespaces (such as `schema:generic-topology`). You MUST derive the data source path directly from the fully-qualified path of the target schema container augmented in the network inventory model (e.g. `/nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame` or `/nwi:network-inventory/nil:locations/nil:racks/nil:rack`).
    - **Geolocation & Geodetic Semantic Mapping Rules**:
      - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, velocity, geo-location, geodetic, latitude, longitude, altitude, elevation, datum, position, and spatial) represent child properties of concrete parent components.
      - You MUST map these geodetic attributes to details panels and tables (such as `PropertyGrid` with container ID `properties_view`, or `TableView` with container ID `components_table`) that are actively instantiated in the layout.
