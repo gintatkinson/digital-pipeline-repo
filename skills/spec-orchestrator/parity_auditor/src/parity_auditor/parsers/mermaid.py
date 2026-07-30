@@ -252,22 +252,22 @@ class MermaidClassDiagramParser(IParser):
                 name = parts[0].strip()
                 attr_type = parts[1].strip()
                 
-                mult_match = re.search(r'\[([^\]]+)\]$', name)
+                mult_match = re.search(r'"?\[([^\]]+)\]"?$', name)
                 if mult_match:
                     multiplicity = mult_match.group(1).strip()
-                    name = re.sub(r'\[([^\]]+)\]$', '', name).strip()
+                    name = re.sub(r'"?\[([^\]]+)\]"?$', '', name).strip().strip('"\'')
             else:
-                mult_match = re.search(r'\[([^\]]+)\]$', sig)
+                mult_match = re.search(r'"?\[([^\]]+)\]"?$', sig)
                 if mult_match:
                     multiplicity = mult_match.group(1).strip()
-                    sig = re.sub(r'\[([^\]]+)\]$', '', sig).strip()
+                    sig = re.sub(r'"?\[([^\]]+)\]"?$', '', sig).strip().strip('"\'')
                     
                 parts = sig.split()
                 if len(parts) > 1:
-                    name = parts[-1].strip()
-                    attr_type = ' '.join(parts[:-1]).strip()
+                    name = parts[-1].strip().strip('"\'')
+                    attr_type = ' '.join(parts[:-1]).strip().strip('"\'')
                 else:
-                    name = sig
+                    name = sig.strip('"\'')
                     
             return ClassAttribute(
                 visibility=visibility,
@@ -317,17 +317,18 @@ class MermaidClassDiagramParser(IParser):
                 right_part = sig[param_match.end():].strip()
                 
                 if right_part.startswith(':'):
-                    return_type = right_part[1:].strip()
+                    return_type = right_part[1:].strip().strip('"\'')
                     method_name = left_part
                 elif right_part:
                     # If right_part has multiplicity and left_part has a type prefix, parse cleanly
+                    right_clean = right_part.strip('"\'')
                     left_parts = left_part.split()
                     if len(left_parts) > 1:
                         method_name = left_parts[-1].strip()
-                        return_type = f"{' '.join(left_parts[:-1]).strip()} {right_part}"
+                        return_type = f"{' '.join(left_parts[:-1]).strip()} {right_clean}"
                     else:
                         method_name = left_part
-                        return_type = right_part
+                        return_type = right_clean
                 else:
                     left_parts = left_part.split()
                     if len(left_parts) > 1:

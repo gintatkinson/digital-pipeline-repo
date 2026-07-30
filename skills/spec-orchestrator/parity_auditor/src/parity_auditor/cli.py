@@ -545,7 +545,10 @@ def _main_impl():
     elif args.spec_only and (features or epic_files):
         print("\n=== Spec-Only Model Coverage Validation ===")
         all_definitions = {}
-        for module_defs in modules.values():
+        for module_name, module_defs in modules.items():
+            has_functional_nodes = any(t in module_defs.values() for t in ("container", "list"))
+            if not has_functional_nodes:
+                continue
             all_definitions.update(module_defs)
 
         if not all_definitions:
