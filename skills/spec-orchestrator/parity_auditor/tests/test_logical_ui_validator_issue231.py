@@ -89,3 +89,39 @@ def test_tabbed_container_allows_propertygrid_and_densitytable():
         assert len(tabbed_errors) == 0, f"Expected 0 TabbedContainer errors, got: {tabbed_errors}"
     finally:
         shutil.rmtree(tmpdir)
+
+
+def test_unnumbered_header_ui_validation():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {
+            "id": "root",
+            "type": "Root",
+            "children": [
+                {"id": "valid_container", "type": "TableView"}
+            ]
+        }
+        _create_test_repo(tmpdir, layout)
+        
+        # Create a feature spec with unnumbered LUI header and interface_type: "api"
+        feat_path = os.path.join(tmpdir, ".pipeline", "backlog", "features", "feat-01.md")
+        with open(feat_path, "w") as f:
+            f.write(
+                "---\n"
+                "interface_type: \"api\"\n"
+                "---\n"
+                "# Feature 1\n"
+                "## Logical UI & Layout Bindings\n"
+                "- Target LUI Component: TableView\n"
+                "- Target Layout Container ID: invalid_container_id\n"
+                "- Data Source Bindings: /nwi:network-inventory/nil:locations\n"
+            )
+            
+        repo = WorkspaceRepository(tmpdir)
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        
+        # It should NOT silently pass; it should validate and report that invalid_container_id is invalid.
+        assert any("invalid_container_id" in err for err in errors), f"Expected validation error, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)

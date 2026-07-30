@@ -91,8 +91,13 @@ class LogicalUiValidator(IValidator):
             specified_components = set()
             container_val = "N/A"
             
-            # Extract Target LUI Component and Target Layout Container ID from ## 5. Logical UI & Layout Bindings
+            # Strictly match the numbered header (standard behavior)
             match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+            
+            # Also search for an unnumbered version of the header
+            unnumbered_match = re.search(r"##\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
+            
+            target_match = match if match else unnumbered_match
             
             if not match:
                 fm = getattr(feat, "frontmatter", None)
@@ -115,8 +120,10 @@ class LogicalUiValidator(IValidator):
                 
                 if not interface_type or interface_type not in non_ui_types:
                     errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
-            else:
-                section_content = match.group(1)
+                    target_match = None
+            
+            if target_match:
+                section_content = target_match.group(1)
                 for line in section_content.splitlines():
                     if "Target LUI Component" in line:
                         raw_val = ""
