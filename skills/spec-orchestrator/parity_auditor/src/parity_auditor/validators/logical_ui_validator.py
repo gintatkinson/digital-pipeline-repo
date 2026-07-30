@@ -91,13 +91,7 @@ class LogicalUiValidator(IValidator):
             specified_components = set()
             container_val = "N/A"
             
-            # Strictly match the numbered header (standard behavior)
-            match = re.search(r"##\s*5\.\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
-            
-            # Also search for an unnumbered version of the header
-            unnumbered_match = re.search(r"##\s*Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
-            
-            target_match = match if match else unnumbered_match
+            target_match = re.search(r"##\s*(?:\d+\.\s*)?Logical\s+UI\s+&\s+Layout\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             
             if not target_match:
                 fm = getattr(feat, "frontmatter", None)

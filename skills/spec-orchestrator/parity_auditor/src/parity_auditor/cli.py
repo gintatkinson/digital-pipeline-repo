@@ -576,9 +576,14 @@ def _main_impl():
                     all_spec_contents.append(feat.content)
                     if hasattr(feat, "frontmatter") and isinstance(feat.frontmatter, dict):
                         for container in feat.frontmatter.get("schema_containers", []):
-                            path = container.get("path", "")
+                            if isinstance(container, dict):
+                                path = container.get("path", "")
+                            else:
+                                path = str(container)
                             if path:
                                 leaf = path.split("/")[-1]
+                                if ":" in leaf:
+                                    leaf = leaf.split(":", 1)[-1]
                                 spec_elements.add(leaf.lower())
             if epics_dir and os.path.exists(epics_dir):
                 for ep_file in os.listdir(epics_dir):
@@ -595,9 +600,14 @@ def _main_impl():
                                     data = yaml.safe_load(frontmatter_text)
                                     if isinstance(data, dict):
                                         for container in data.get("schema_containers", []):
-                                            path = container.get("path", "")
+                                            if isinstance(container, dict):
+                                                path = container.get("path", "")
+                                            else:
+                                                path = str(container)
                                             if path:
                                                 leaf = path.split("/")[-1]
+                                                if ":" in leaf:
+                                                    leaf = leaf.split(":", 1)[-1]
                                                 spec_elements.add(leaf.lower())
                         except Exception:
                             pass

@@ -125,3 +125,30 @@ This feature contains a field for latitude coordinates.
         assert any(expected_err in err for err in errors), f"Expected spatial validation error, got errors: {errors}"
     finally:
         shutil.rmtree(tmpdir)
+
+def test_issue265_unnumbered_non_ui_type_validates_bindings():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "TableView", "id": "table1"}
+        repo = _create_test_repo(tmpdir, layout)
+
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-api.md")
+
+        content = """---
+title: "API Feature with Bindings"
+interface_type: api
+---
+## Logical UI & Layout Bindings
+- **Target LUI Component:** InvalidComponent
+- **Target Layout Container ID:** table1
+"""
+        with open(os.path.join(features_dir, "feat-api.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+
+        assert any("invalid component type 'InvalidComponent'" in err for err in errors), f"Expected invalid component error, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
