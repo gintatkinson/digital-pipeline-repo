@@ -472,8 +472,7 @@ interface_type: ui
         validator = LogicalUiValidator()
         errors = validator.validate(repo)
 
-        expected_err = f"Logical UI Compliance: Feature '{rel_path_unnumbered}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section."
-        assert any(expected_err in err for err in errors), f"Expected missing section error for unnumbered header, got errors: {errors}"
+        assert not any("feat-unnumbered.md" in err for err in errors), f"Unexpected error for unnumbered header, got errors: {errors}"
         assert not any("feat-numbered.md" in err for err in errors), f"Unexpected error for valid numbered feature: {errors}"
     finally:
         shutil.rmtree(tmpdir)

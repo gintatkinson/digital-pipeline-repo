@@ -99,7 +99,7 @@ class LogicalUiValidator(IValidator):
             
             target_match = match if match else unnumbered_match
             
-            if not match:
+            if not target_match:
                 fm = getattr(feat, "frontmatter", None)
                 if not fm or not isinstance(fm, dict):
                     fm = {}
@@ -233,7 +233,7 @@ class LogicalUiValidator(IValidator):
             VALID_SPATIAL_COMPONENTS = {"TopologyMap", "TopographicalView", "GeoSpatialViewer", "PropertyGrid", "TableView"}
             GEODETIC_REGEX = re.compile(r"\b(?:location|velocity|geo-location|geodetic|latitude|longitude|altitude|elevation|datum|position|spatial|reference-frame|geodetic-system|coordinates|velocity\s+vectors)\b", re.IGNORECASE)
 
-            if match and GEODETIC_REGEX.search(content):
+            if target_match and GEODETIC_REGEX.search(content):
                 if any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components) or not specified_components:
                     errors.append(
                         f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView')."
