@@ -679,6 +679,9 @@ class UmlValidator(IValidator):
                 errors.append(f"{doc_type} {filename} contains an unparsable UML Class Diagram: {e}")
                 continue
 
+            for err in parsed_cd.parse_errors:
+                errors.append(f"{doc_type} {filename} class diagram parse error: {err}")
+
             if not re.search(relationship_connectors, diagram_body):
                 if not parsed_cd.relationships:
                     errors.append(f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")

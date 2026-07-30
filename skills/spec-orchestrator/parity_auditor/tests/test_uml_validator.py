@@ -127,9 +127,6 @@ def test_method_return_void_skipped():
         +String id [1]
         +void save()
         +save()
-        +save() : void
-        +save() : none
-        +save() : None
         +void save(String path)
     }
     class Container {
@@ -149,13 +146,13 @@ def test_method_return_void_skipped():
 
 
 def test_brackets_in_method_name_not_false_positive():
-    """Brackets in method name (e.g. +reset[atomic]() : Node) should not trigger false-positive multiplicity detection.
+    """Brackets in method name (e.g. +Node reset[atomic]()) should not trigger false-positive multiplicity detection.
     The method may still be rejected for genuinely missing return-type multiplicity,
     but the rejection must not be caused by confused bracket detection."""
     diagram = """classDiagram
     class ThingProcessor {
         +String name [1]
-        +reset[atomic]() : Node
+        +Node reset[atomic]()
     }
     class Node {
         +String id [1]
@@ -175,11 +172,11 @@ def test_brackets_in_method_name_not_false_positive():
 
 
 def test_brackets_in_parameter_types_not_false_positive():
-    """Brackets in parameter type expressions (e.g. +sort(list[0]): Bool) should not trigger false-positive multiplicity detection."""
+    """Brackets in parameter type expressions (e.g. +Bool sort(T[] items)) should not trigger false-positive multiplicity detection."""
     diagram = """classDiagram
     class Sorter {
         +String name [1]
-        +sort(T[] items) : Bool
+        +Bool sort(T[] items)
     }
     class Item {
         +String id [1]
@@ -736,8 +733,9 @@ def test_issue_70_unbackticked_colon_rejected():
     try:
         repo1 = WorkspaceRepository(tmpdir1)
         validator = UmlValidator()
-        errors1 = validator.validate(repo1)
-        assert len(errors1) > 0, "Expected errors for unbackticked colon in class name."
+        actual_errors = validator.validate(repo1)
+        assert len(actual_errors) > 0, "Expected errors for unbackticked colon in class name."
+        assert any("class diagram parse error: Unparseable line in classDiagram" in err for err in actual_errors), f"Expected specific parse error: {actual_errors}"
     finally:
         import shutil
         shutil.rmtree(tmpdir1)
@@ -751,8 +749,8 @@ def test_issue_70_unbackticked_colon_rejected():
     try:
         repo2 = WorkspaceRepository(tmpdir2)
         validator = UmlValidator()
-        errors2 = validator.validate(repo2)
-        assert len(errors2) > 0, "Expected errors for colon in attribute signature."
+        actual_errors = validator.validate(repo2)
+        assert len(actual_errors) > 0, "Expected errors for colon in attribute signature."
     finally:
         import shutil
         shutil.rmtree(tmpdir2)
