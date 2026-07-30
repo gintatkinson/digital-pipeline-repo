@@ -110,8 +110,8 @@ class LogicalUiValidator(IValidator):
                             parsed_fm = yaml.safe_load(fm_match.group(1).replace('\x01', ''))
                             if isinstance(parsed_fm, dict):
                                 fm = parsed_fm
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            errors.append(f"Logical UI Compliance: Failed to parse frontmatter YAML in '{rel_path}': {e}")
                 
                 interface_type = fm.get("interface_type") if isinstance(fm, dict) else None
                 if isinstance(interface_type, str):
