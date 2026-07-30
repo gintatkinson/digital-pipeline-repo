@@ -23,3 +23,6 @@ build/
 .pub/
 .flutter-plugins*
 app_flutter_release.zip
+
+# Diagnostics and reproduction payloads
+.pipeline/diagnostics/
