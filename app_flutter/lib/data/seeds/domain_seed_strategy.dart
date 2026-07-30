@@ -76,10 +76,10 @@ class DomainSeedStrategy implements SeedStrategy {
       final id = 'ntt_exchange_$i';
       nttNodes.add({
         'id': id,
-        'lat': (item['latitude'] as num).toDouble(),
-        'lon': (item['longitude'] as num).toDouble(),
+        'lat': (item['position']['dim_0'] as num).toDouble(),
+        'lon': (item['position']['dim_1'] as num).toDouble(),
       });
-      _addNodeToBatch(batch, id, null, nttDetails, lat: (item['latitude'] as num).toDouble(), lon: (item['longitude'] as num).toDouble(), height: 0.0);
+      _addNodeToBatch(batch, id, null, nttDetails, lat: (item['position']['dim_0'] as num).toDouble(), lon: (item['position']['dim_1'] as num).toDouble(), height: (item['position']['dim_2'] as num).toDouble());
     }
 
     // 4. Load and parse cable landing stations data from assets
@@ -98,10 +98,10 @@ class DomainSeedStrategy implements SeedStrategy {
       final id = 'cable_landing_$i';
       landingNodes.add({
         'id': id,
-        'lat': (item['latitude'] as num).toDouble(),
-        'lon': (item['longitude'] as num).toDouble(),
+        'lat': (item['position']['dim_0'] as num).toDouble(),
+        'lon': (item['position']['dim_1'] as num).toDouble(),
       });
-      _addNodeToBatch(batch, id, null, landingDetails, lat: (item['latitude'] as num).toDouble(), lon: (item['longitude'] as num).toDouble(), height: 0.0);
+      _addNodeToBatch(batch, id, null, landingDetails, lat: (item['position']['dim_0'] as num).toDouble(), lon: (item['position']['dim_1'] as num).toDouble(), height: (item['position']['dim_2'] as num).toDouble());
     }
 
     // 5. Interconnect stations, exchanges, and orbits with interface links
