@@ -232,6 +232,8 @@ class MermaidClassDiagramParser(IParser):
 
         def parse_attribute_signature(sig):
             sig = sig.strip()
+            if ':' in sig:
+                parse_errors.append(f"Syntax error: colons are strictly prohibited inside class attribute/method signatures — '{sig}'")
             constraints = []
             constraint_match = re.search(r'\{([^}]+)\}', sig)
             if constraint_match:
@@ -280,6 +282,8 @@ class MermaidClassDiagramParser(IParser):
 
         def parse_method_signature(sig):
             sig = sig.strip()
+            if ':' in sig:
+                parse_errors.append(f"Syntax error: colons are strictly prohibited inside class attribute/method signatures — '{sig}'")
             constraints = []
             constraint_match = re.search(r'\{([^}]+)\}', sig)
             if constraint_match:
@@ -357,13 +361,15 @@ class MermaidClassDiagramParser(IParser):
 
             if line.lower().startswith("note ") or line.lower().startswith("note\t") or line.lower() == "note":
                 is_relationship = bool(re.match(
-                    r'^\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
+                    r'^\s*(`[^`]+`|[a-zA-Z0-9_\-.]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*(`[^`]+`|[a-zA-Z0-9_\-.]+)(?:\s*:\s*(.*))?$',
                     line
                 ))
                 if not is_relationship:
-                    note_match = re.match(r'^\s*note\s+(?:for\s+([a-zA-Z0-9_\-.:]+)\s*)?(.*)$', line, re.IGNORECASE)
+                    note_match = re.match(r'^\s*note\s+(?:for\s+(`[^`]+`|[a-zA-Z0-9_\-.]+)\s*)?(.*)$', line, re.IGNORECASE)
                     if note_match:
                         target_cls = note_match.group(1)
+                        if target_cls:
+                            target_cls = target_cls.strip("`")
                         content_part = note_match.group(2).strip()
                         if content_part.startswith(':'):
                             content_part = content_part[1:].strip()
@@ -398,7 +404,7 @@ class MermaidClassDiagramParser(IParser):
                 block_stack.append({"type": "namespace", "name": ns_name})
                 continue
 
-            class_block_match = re.match(r'^class\s+(`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*\{', line, re.IGNORECASE)
+            class_block_match = re.match(r'^class\s+(`[^`]+`|[a-zA-Z0-9_\-.]+)\s*\{', line, re.IGNORECASE)
             if class_block_match:
                 cls_name = class_block_match.group(1).strip("`")
                 current_ns = next((b["name"] for b in reversed(block_stack) if b["type"] == "namespace"), None)
@@ -413,7 +419,7 @@ class MermaidClassDiagramParser(IParser):
                     block_stack.pop()
                 continue
 
-            class_decl_match = re.match(r'^class\s+(`[^`]+`|[a-zA-Z0-9_\-.:]+)$', line, re.IGNORECASE)
+            class_decl_match = re.match(r'^class\s+(`[^`]+`|[a-zA-Z0-9_\-.]+)$', line, re.IGNORECASE)
             if class_decl_match:
                 cls_name = class_decl_match.group(1).strip("`")
                 if cls_name not in classes:
@@ -424,9 +430,9 @@ class MermaidClassDiagramParser(IParser):
                 continue
 
             rel_match = re.match(
-                r'^\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*(`[^`]+`|[a-zA-Z0-9_\-.:]+)(?:\s*:\s*(.*))?$',
-                line
-            )
+                    r'^\s*(`[^`]+`|[a-zA-Z0-9_\-.]+)\s*(?:\"([^\"]*)\")?\s*' + rel_connectors + r'\s*(?:\"([^\"]*)\")?\s*(`[^`]+`|[a-zA-Z0-9_\-.]+)(?:\s*:\s*(.*))?$',
+                    line
+                )
             if rel_match:
                 from_cls = rel_match.group(1).strip("`")
                 from_mult = rel_match.group(2)
@@ -479,9 +485,9 @@ class MermaidClassDiagramParser(IParser):
                 ))
                 continue
 
-            member_match = re.match(r'^([a-zA-Z0-9_\-.:]+)\s*:\s*(.*)$', line)
+            member_match = re.match(r'^(`[^`]+`|[a-zA-Z0-9_\-.]+)\s*:\s*(.*)$', line)
             if member_match:
-                cls_name = member_match.group(1)
+                cls_name = member_match.group(1).strip("`")
                 member_sig = member_match.group(2).strip()
 
                 if cls_name not in classes:

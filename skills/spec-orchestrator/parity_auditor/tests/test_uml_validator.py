@@ -592,7 +592,7 @@ generation_mode: subagent
 title: Test
 interface_type: ui
 schema_containers:
-  - path: "nw:networks/nw:network"
+  - path: "nw:networks/nw:Nw:network"
 ---
 
 ## 1. Overview
@@ -723,4 +723,119 @@ test
         f.write(story_content)
 
     return tmpdir
+
+
+def test_issue_70_unbackticked_colon_rejected():
+    """Unbackticked colons in class names or signatures must be rejected."""
+    # Test class name with colon
+    diagram1 = """classDiagram
+    class Nw:network {
+        +String name [1]
+    }"""
+    tmpdir1 = _setup_workspace(diagram1)
+    try:
+        repo1 = WorkspaceRepository(tmpdir1)
+        validator = UmlValidator()
+        errors1 = validator.validate(repo1)
+        assert len(errors1) > 0, "Expected errors for unbackticked colon in class name."
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir1)
+
+    # Test attribute signature with colon (prohibited style)
+    diagram2 = """classDiagram
+    class Node {
+        +name:String [1]
+    }"""
+    tmpdir2 = _setup_workspace(diagram2)
+    try:
+        repo2 = WorkspaceRepository(tmpdir2)
+        validator = UmlValidator()
+        errors2 = validator.validate(repo2)
+        assert len(errors2) > 0, "Expected errors for colon in attribute signature."
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir2)
+
+
+def test_issue_272_nested_namespaces_accepted():
+    """Nested namespace prefixes in schema paths are successfully validated."""
+    diagram = """classDiagram
+    class Routing {
+        +String name [1]
+    }
+    class Ribs {
+        +String id [1]
+    }
+    Routing --> Ribs : references"""
+    
+    tmpdir = tempfile.mkdtemp()
+    pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+    os.makedirs(pipeline_dir, exist_ok=True)
+    rules = {
+        "meta": {},
+        "backlog_directories": {"features": "features", "user_stories": "user_stories", "use_cases": "use_cases"},
+        "target_directories": {},
+        "flutter_rules": {},
+        "python_rules": {},
+        "spec_rules": {},
+        "validation_rules": {
+            "visibility_prefixes": ["+", "-", "#", "~"],
+            "multiplicity_regex": "\\[[^\\]]+\\]",
+            "uml_primitives": ["String", "Integer", "Real", "Boolean"],
+            "relationship_connectors": "(<\\|--|\\*--|o--|-->|\\.\\.>|--)",
+            "choice_stereotypes": ["<<choice>>"],
+            "required_sections": {
+                "feature_ui": [
+                    ["## 1. Overview", "Overview"],
+                    ["## 2. Requirements", "Requirements"],
+                    ["## 3. Validation", "Validation"],
+                    ["## 4. Diagrams", "Diagrams"]
+                ]
+            },
+            "required_diagrams": {"feature": ["classDiagram"]}
+        }
+    }
+    with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w") as f:
+        json.dump(rules, f)
+
+    features_dir = os.path.join(tmpdir, "features")
+    os.makedirs(features_dir, exist_ok=True)
+
+    md_content = """---
+generation_mode: subagent
+title: Test
+interface_type: ui
+schema_containers:
+  - path: "ietf-routing:routing/ietf-ribs:ribs"
+---
+
+## 1. Overview
+test
+
+## 2. Requirements & Checklist
+- [ ] test
+
+## 3. Validation & Constraints
+- test
+
+## 4. Diagrams
+
+```mermaid
+""" + diagram + """
+```
+"""
+    with open(os.path.join(features_dir, "feat-01-test.md"), "w") as f:
+        f.write(md_content)
+
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        
+        actual_errors = [e for e in errors if not e.startswith("Warning:")]
+        assert len(actual_errors) == 0, f"Expected no errors for nested namespace prefixes, got: {actual_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
 
