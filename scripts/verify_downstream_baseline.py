@@ -272,7 +272,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 subprocess.run(["flutter", "test"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
                 
                 print("Running 'flutter build macos --release'...")
-                subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 2)
+                subprocess.run(["flutter", "build", "macos", "--release", "--no-codesign"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 3)
                 
                 print("Zipping the macOS application bundle...")
                 # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
