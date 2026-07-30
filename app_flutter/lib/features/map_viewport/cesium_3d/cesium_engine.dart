@@ -60,9 +60,9 @@ class CesiumEngine {
 
   void updateCamera(VirtualCamera camera) {
     final native = calloc<BridgeCamera>();
-    native.ref.latitude = camera.latitude;
-    native.ref.longitude = camera.longitude;
-    native.ref.altitude = camera.altitude;
+    native.ref.dim_0 = camera.dim_0;
+    native.ref.dim_1 = camera.dim_1;
+    native.ref.dim_2 = camera.dim_2;
     native.ref.heading = camera.heading;
     native.ref.pitch = camera.pitch;
     native.ref.roll = camera.roll;
@@ -136,23 +136,23 @@ class CesiumEngine {
   }
 
   (double, double, double)? ecefToCartographic(double x, double y, double z) {
-    final lat = calloc<Double>();
+    final dim_0 = calloc<Double>();
     final lng = calloc<Double>();
-    final alt = calloc<Double>();
+    final dim_2 = calloc<Double>();
 
-    final result = _bindings.ecefToCartographic(x, y, z, lat, lng, alt);
+    final result = _bindings.ecefToCartographic(x, y, z, dim_0, lng, dim_2);
 
     if (result != 0) {
-      calloc.free(lat);
+      calloc.free(dim_0);
       calloc.free(lng);
-      calloc.free(alt);
+      calloc.free(dim_2);
       return null;
     }
 
-    final coords = (lat.value, lng.value, alt.value);
-    calloc.free(lat);
+    final coords = (dim_0.value, lng.value, dim_2.value);
+    calloc.free(dim_0);
     calloc.free(lng);
-    calloc.free(alt);
+    calloc.free(dim_2);
     return coords;
   }
 

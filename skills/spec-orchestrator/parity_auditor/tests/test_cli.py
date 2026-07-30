@@ -169,5 +169,57 @@ classDiagram
         assert len(cls_info.notes) == 1
         assert "alternate-systems" in cls_info.notes[0]
 
+class TestGetOpenFeatureIssues:
 
+    def test_get_open_feature_issues_success_filters_keywords(self, monkeypatch):
+        import json
+        from parity_auditor.cli import get_open_feature_issues
 
+        monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
+
+        class MockResult:
+            returncode = 0
+            stdout = json.dumps([
+                {"number": 1, "title": "A valid feature"},
+                {"number": 2, "title": "A bug fix"},
+                {"number": 3, "title": "defect in UI"},
+                {"number": 4, "title": "repro for crash"},
+                {"number": 5, "title": "tooling update"},
+                {"number": 6, "title": "Another valid feature"},
+            ])
+            stderr = ""
+
+        monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: MockResult())
+
+        issues = get_open_feature_issues()
+        assert issues is not None
+        assert len(issues) == 2
+        assert issues[0]["number"] == 1
+        assert issues[1]["number"] == 6
+
+    def test_get_open_feature_issues_returns_none_on_error(self, monkeypatch):
+        from parity_auditor.cli import get_open_feature_issues
+        monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
+
+        class MockResult:
+            returncode = 1
+            stdout = ""
+            stderr = "gh error"
+
+        monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: MockResult())
+
+        issues = get_open_feature_issues()
+        assert issues is None
+
+    def test_get_open_feature_issues_returns_none_on_timeout(self, monkeypatch):
+        import subprocess
+        from parity_auditor.cli import get_open_feature_issues
+        monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
+
+        def mock_run(*args, **kwargs):
+            raise subprocess.TimeoutExpired(cmd="gh", timeout=30)
+        
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        issues = get_open_feature_issues()
+        assert issues is None

@@ -21,23 +21,23 @@ class CameraController extends ChangeNotifier {
   static const double minAltitude = 100.0;
   static const double maxAltitude = 40000000.0;
 
-  double Function(double lat, double lng)? elevationProvider;
+  double Function(double dim_0, double lng)? elevationProvider;
 
-  double _getTerrainHeight(double lat, double lng) {
+  double _getTerrainHeight(double dim_0, double lng) {
     if (elevationProvider == null) return 0.0;
-    return elevationProvider!(lat, lng);
+    return elevationProvider!(dim_0, lng);
   }
 
-  double _clampAltitudeToTerrain(double lat, double lng, double targetAlt) {
-    final double terrainH = _getTerrainHeight(lat, lng);
+  double _clampAltitudeToTerrain(double dim_0, double lng, double targetAlt) {
+    final double terrainH = _getTerrainHeight(dim_0, lng);
     final double minAlt = Ellipsoid.wgs84EquatorialRadius + terrainH + minAltitude;
     return targetAlt < minAlt ? minAlt : targetAlt;
   }
 
-  CameraController(VirtualCamera camera) : _camera = camera.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.clamped(
-    latitude: camera.latitude,
-    longitude: camera.longitude,
-    altitude: Ellipsoid.wgs84EquatorialRadius + camera.altitude,
+  CameraController(VirtualCamera camera) : _camera = camera.dim_2 < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.clamped(
+    dim_0: camera.dim_0,
+    dim_1: camera.dim_1,
+    dim_2: Ellipsoid.wgs84EquatorialRadius + camera.dim_2,
     heading: camera.heading,
     pitch: camera.pitch,
     roll: camera.roll,
@@ -48,19 +48,19 @@ class CameraController extends ChangeNotifier {
   bool get isFlying => _targetCamera != null;
 
   void updateCamera(VirtualCamera camera) {
-    final absoluteCamera = camera.altitude < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.clamped(
-      latitude: camera.latitude,
-      longitude: camera.longitude,
-      altitude: Ellipsoid.wgs84EquatorialRadius + camera.altitude,
+    final absoluteCamera = camera.dim_2 < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.clamped(
+      dim_0: camera.dim_0,
+      dim_1: camera.dim_1,
+      dim_2: Ellipsoid.wgs84EquatorialRadius + camera.dim_2,
       heading: camera.heading,
       pitch: camera.pitch,
       roll: camera.roll,
     ) : camera;
-    final double targetAlt = _clampAltitudeToTerrain(absoluteCamera.latitude, absoluteCamera.longitude, absoluteCamera.altitude);
+    final double targetAlt = _clampAltitudeToTerrain(absoluteCamera.dim_0, absoluteCamera.dim_1, absoluteCamera.dim_2);
     final clampedCam = VirtualCamera.clamped(
-      latitude: absoluteCamera.latitude,
-      longitude: absoluteCamera.longitude,
-      altitude: targetAlt,
+      dim_0: absoluteCamera.dim_0,
+      dim_1: absoluteCamera.dim_1,
+      dim_2: targetAlt,
       heading: absoluteCamera.heading,
       pitch: absoluteCamera.pitch,
       roll: absoluteCamera.roll,
@@ -80,10 +80,10 @@ class CameraController extends ChangeNotifier {
   }
 
   static double _computeAngularDistance(VirtualCamera a, VirtualCamera b) {
-    final double lat1 = a.latitude * math.pi / 180.0;
-    final double lat2 = b.latitude * math.pi / 180.0;
-    final double lon1 = a.longitude * math.pi / 180.0;
-    final double lon2 = b.longitude * math.pi / 180.0;
+    final double lat1 = a.dim_0 * math.pi / 180.0;
+    final double lat2 = b.dim_0 * math.pi / 180.0;
+    final double lon1 = a.dim_1 * math.pi / 180.0;
+    final double lon2 = b.dim_1 * math.pi / 180.0;
 
     final double dLat = lat2 - lat1;
     final double dLon = _normalizeRadDiff(lon2 - lon1);
@@ -129,13 +129,13 @@ class CameraController extends ChangeNotifier {
   static VirtualCamera _lerpCamera(VirtualCamera a, VirtualCamera b, double t) {
     final double distance = _computeAngularDistance(a, b);
     final double maxBoost = (distance / math.pi) * 5000000.0;
-    final double baseAltitude = a.altitude + (b.altitude - a.altitude) * t;
+    final double baseAltitude = a.dim_2 + (b.dim_2 - a.dim_2) * t;
     final double boostedAltitude = baseAltitude + math.sin(t * math.pi) * maxBoost;
 
     return VirtualCamera.clamped(
-      latitude: a.latitude + (b.latitude - a.latitude) * t,
-      longitude: _interpolateCircular(a.longitude, b.longitude, t, _wrapLngStatic),
-      altitude: boostedAltitude,
+      dim_0: a.dim_0 + (b.dim_0 - a.dim_0) * t,
+      dim_1: _interpolateCircular(a.dim_1, b.dim_1, t, _wrapLngStatic),
+      dim_2: boostedAltitude,
       heading: _interpolateCircular(a.heading, b.heading, t, _wrapHeadingStatic),
       pitch: _interpolateCircular(a.pitch, b.pitch, t, _wrapPitchStatic),
       roll: a.roll + (b.roll - a.roll) * t,
@@ -171,19 +171,19 @@ class CameraController extends ChangeNotifier {
     if (shortestSide <= 0.0 || shortestSide.isNaN) {
       shortestSide = 800.0;
     }
-    final double factor = (_camera.altitude - Ellipsoid.wgs84EquatorialRadius + 500000.0) * 2.8074e-5 / shortestSide;
+    final double factor = (_camera.dim_2 - Ellipsoid.wgs84EquatorialRadius + 500000.0) * 2.8074e-5 / shortestSide;
     final double radH = _camera.heading * math.pi / 180.0;
     final double cosH = math.cos(radH);
     final double sinH = math.sin(radH);
     final double dxAligned = delta.dx * cosH + delta.dy * sinH;
     final double dyAligned = -delta.dx * sinH + delta.dy * cosH;
-    final newLat = (_camera.latitude - dyAligned * factor).clamp(-90.0, 90.0);
-    final newLng = _wrapLng(_camera.longitude - dxAligned * factor);
-    final double targetAlt = _clampAltitudeToTerrain(newLat, newLng, _camera.altitude);
+    final newLat = (_camera.dim_0 - dyAligned * factor).clamp(-90.0, 90.0);
+    final newLng = _wrapLng(_camera.dim_1 - dxAligned * factor);
+    final double targetAlt = _clampAltitudeToTerrain(newLat, newLng, _camera.dim_2);
     _camera = VirtualCamera.clamped(
-      latitude: newLat,
-      longitude: newLng,
-      altitude: targetAlt,
+      dim_0: newLat,
+      dim_1: newLng,
+      dim_2: targetAlt,
       heading: _camera.heading,
       pitch: _camera.pitch,
       roll: _camera.roll,
@@ -193,8 +193,8 @@ class CameraController extends ChangeNotifier {
 
   void tilt(Offset delta) {
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude, longitude: _camera.longitude,
-      altitude: _camera.altitude,
+      dim_0: _camera.dim_0, dim_1: _camera.dim_1,
+      dim_2: _camera.dim_2,
       heading: _wrapHeading(_camera.heading - delta.dx * dragSensitivity),
       pitch: _wrapPitch(_camera.pitch - delta.dy * dragSensitivity),
       roll: _camera.roll,
@@ -204,8 +204,8 @@ class CameraController extends ChangeNotifier {
 
   void rotateHeading(Offset delta) {
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude, longitude: _camera.longitude,
-      altitude: _camera.altitude,
+      dim_0: _camera.dim_0, dim_1: _camera.dim_1,
+      dim_2: _camera.dim_2,
       heading: _wrapHeading(_camera.heading - delta.dx * dragSensitivity),
       pitch: _camera.pitch, roll: _camera.roll,
     );
@@ -213,15 +213,15 @@ class CameraController extends ChangeNotifier {
   }
 
   void zoom(double scrollDelta) {
-    final double terrainH = _getTerrainHeight(_camera.latitude, _camera.longitude);
-    final double currentHeightAGL = _camera.altitude - (Ellipsoid.wgs84EquatorialRadius + terrainH);
+    final double terrainH = _getTerrainHeight(_camera.dim_0, _camera.dim_1);
+    final double currentHeightAGL = _camera.dim_2 - (Ellipsoid.wgs84EquatorialRadius + terrainH);
     final double targetHeightAGL = currentHeightAGL + scrollDelta * scrollSensitivity;
     final double clampedHeightAGL = targetHeightAGL.clamp(minAltitude, maxAltitude);
     final double newAlt = Ellipsoid.wgs84EquatorialRadius + clampedHeightAGL + terrainH;
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude,
-      longitude: _camera.longitude,
-      altitude: newAlt,
+      dim_0: _camera.dim_0,
+      dim_1: _camera.dim_1,
+      dim_2: newAlt,
       heading: _camera.heading,
       pitch: _camera.pitch,
       roll: _camera.roll,
@@ -232,15 +232,15 @@ class CameraController extends ChangeNotifier {
   void zoomInteractive(double scrollDelta) {
     final double clampedDelta = scrollDelta.clamp(-100.0, 100.0);
     final double factor = math.exp(clampedDelta * 0.001);
-    final double terrainH = _getTerrainHeight(_camera.latitude, _camera.longitude);
-    final double currentHeightAGL = _camera.altitude - (Ellipsoid.wgs84EquatorialRadius + terrainH);
+    final double terrainH = _getTerrainHeight(_camera.dim_0, _camera.dim_1);
+    final double currentHeightAGL = _camera.dim_2 - (Ellipsoid.wgs84EquatorialRadius + terrainH);
     final double targetHeightAGL = currentHeightAGL * factor;
     final double clampedHeightAGL = targetHeightAGL.clamp(minAltitude, maxAltitude);
     final double newAlt = Ellipsoid.wgs84EquatorialRadius + clampedHeightAGL + terrainH;
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude,
-      longitude: _camera.longitude,
-      altitude: newAlt,
+      dim_0: _camera.dim_0,
+      dim_1: _camera.dim_1,
+      dim_2: newAlt,
       heading: _camera.heading,
       pitch: _camera.pitch,
       roll: _camera.roll,
@@ -250,8 +250,8 @@ class CameraController extends ChangeNotifier {
 
   void keyboardRotate(double degrees) {
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude, longitude: _wrapLng(_camera.longitude + degrees),
-      altitude: _camera.altitude, heading: _camera.heading,
+      dim_0: _camera.dim_0, dim_1: _wrapLng(_camera.dim_1 + degrees),
+      dim_2: _camera.dim_2, heading: _camera.heading,
       pitch: _camera.pitch, roll: _camera.roll,
     );
     notifyListeners();
@@ -259,8 +259,8 @@ class CameraController extends ChangeNotifier {
 
   void keyboardRotateHeading(double degrees) {
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude, longitude: _camera.longitude,
-      altitude: _camera.altitude,
+      dim_0: _camera.dim_0, dim_1: _camera.dim_1,
+      dim_2: _camera.dim_2,
       heading: _wrapHeading(_camera.heading + degrees),
       pitch: _camera.pitch, roll: _camera.roll,
     );
@@ -269,8 +269,8 @@ class CameraController extends ChangeNotifier {
 
   void keyboardTilt(double degrees) {
     _camera = VirtualCamera.clamped(
-      latitude: _camera.latitude, longitude: _camera.longitude,
-      altitude: _camera.altitude, heading: _camera.heading,
+      dim_0: _camera.dim_0, dim_1: _camera.dim_1,
+      dim_2: _camera.dim_2, heading: _camera.heading,
       pitch: _wrapPitch(_camera.pitch + degrees),
       roll: _camera.roll,
     );

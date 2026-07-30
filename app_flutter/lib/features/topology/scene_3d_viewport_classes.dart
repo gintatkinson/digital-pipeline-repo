@@ -24,13 +24,13 @@ extension VirtualCameraNormalization on VirtualCamera {
   /// Ensures the camera altitude is normalized to absolute ECEF coordinates 
   /// (relative to the Earth's center rather than the surface).
   VirtualCamera toAbsoluteWgs84() {
-    if (altitude >= Ellipsoid.wgs84EquatorialRadius) {
+    if (dim_2 >= Ellipsoid.wgs84EquatorialRadius) {
       return this;
     }
     return VirtualCamera.raw(
-      latitude: latitude,
-      longitude: longitude,
-      altitude: Ellipsoid.wgs84EquatorialRadius + altitude,
+      dim_0: dim_0,
+      dim_1: dim_1,
+      dim_2: Ellipsoid.wgs84EquatorialRadius + dim_2,
       heading: heading,
       pitch: pitch,
       roll: roll,
@@ -102,7 +102,7 @@ class CoordinateTransformer {
     final double radLng = -rotationAngle;
     final double radLat = -tilt;
 
-    _cRad = absoluteCamera.altitude;
+    _cRad = absoluteCamera.dim_2;
     _r2 = Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
     _d2 = _cRad * _cRad;
 
@@ -410,8 +410,8 @@ class SceneViewState extends ChangeNotifier {
     finalLabelPositions.clear();
 
     final Offset center = Offset(size.width * 0.45, size.height * 0.5);
-    final double baseRotation = -(camera.longitude * math.pi / 180.0);
-    final double baseTilt = -(camera.latitude * math.pi / 180.0);
+    final double baseRotation = -(camera.dim_1 * math.pi / 180.0);
+    final double baseTilt = -(camera.dim_0 * math.pi / 180.0);
     final double rotationAngle = baseRotation + userRotationX;
     final double tilt = baseTilt + userTilt;
 
@@ -427,7 +427,7 @@ class SceneViewState extends ChangeNotifier {
     earthCenterProj = transformer.projectWgs84ToScreen(latRad: 0.0, lngRad: 0.0, heightMeters: -Ellipsoid.wgs84EquatorialRadius, clampToHorizon: false);
     projectedCenter = earthCenterProj!.offset;
 
-    final double cRad = transformer.absoluteCamera.altitude;
+    final double cRad = transformer.absoluteCamera.dim_2;
     final double f = size.shortestSide * 1.2;
     final double radDiff = cRad * cRad - Ellipsoid.wgs84EquatorialRadius * Ellipsoid.wgs84EquatorialRadius;
     projectedRadius = Ellipsoid.wgs84EquatorialRadius * f / math.sqrt(radDiff <= 0.0 ? 1.0 : radDiff);

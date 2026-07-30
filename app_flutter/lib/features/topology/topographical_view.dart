@@ -150,9 +150,9 @@ class _TopographicalViewState extends State<TopographicalView> {
 
     print("TopographicalView: final camera lat=$latitude, lng=$longitude");
     return VirtualCamera(
-      latitude: latitude,
-      longitude: longitude,
-      altitude: 500.0,
+      dim_0: latitude,
+      dim_1: longitude,
+      dim_2: 500.0,
       heading: 0.0,
       pitch: -89.9,
       roll: 0.0,

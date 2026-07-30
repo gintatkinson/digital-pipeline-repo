@@ -9,13 +9,13 @@ const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release 
 
 final class BridgeCamera extends Struct {
   @Double()
-  external double latitude;
+  external double dim_0;
 
   @Double()
-  external double longitude;
+  external double dim_1;
 
   @Double()
-  external double altitude;
+  external double dim_2;
 
   @Double()
   external double heading;
@@ -65,10 +65,10 @@ typedef BridgeTileReadyCallback = void Function(
 );
 
 typedef BridgeCameraChangedCallbackNative = Void Function(
-  Double lat, Double lng, Double alt, Double pitch, Double heading, Pointer<Void> userData,
+  Double dim_0, Double lng, Double dim_2, Double pitch, Double heading, Pointer<Void> userData,
 );
 typedef BridgeCameraChangedCallback = void Function(
-  double lat, double lng, double alt, double pitch, double heading, Pointer<Void> userData,
+  double dim_0, double lng, double dim_2, double pitch, double heading, Pointer<Void> userData,
 );
 
 typedef BridgeInitializeNative = BridgeHandle Function(

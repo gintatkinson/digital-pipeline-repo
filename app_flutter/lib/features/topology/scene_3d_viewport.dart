@@ -565,7 +565,7 @@ class Scene3DViewportPainter extends CustomPainter {
     try {
       cam = state.camera;
     } catch (_) {
-      cam = VirtualCamera.raw(latitude: -tilt * 180 / math.pi, longitude: -rotationAngle * 180 / math.pi, altitude: 500000, heading: 0, pitch: -90, roll: 0);
+      cam = VirtualCamera.raw(dim_0: -tilt * 180 / math.pi, dim_1: -rotationAngle * 180 / math.pi, dim_2: 500000, heading: 0, pitch: -90, roll: 0);
     }
     return CoordinateTransformer(
       camera: cam, 
@@ -629,9 +629,9 @@ class CameraStatsPanel extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('Latitude: ${cam.latitude.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
-                  Text('Longitude: ${cam.longitude.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
-                  Text('Altitude: ${(cam.altitude - Ellipsoid.wgs84EquatorialRadius).toStringAsFixed(2)} meters', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Latitude: ${cam.dim_0.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Longitude: ${cam.dim_1.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Altitude: ${(cam.dim_2 - Ellipsoid.wgs84EquatorialRadius).toStringAsFixed(2)} meters', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                   Text('Pitch/Yaw/Roll: ${cam.pitch} / ${cam.heading} / ${cam.roll}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                 ],
               ),
@@ -848,11 +848,11 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     if (size == null) return Offset.zero;
 
     final rawCamera = _cameraController.current;
-    final camera = rawCamera.altitude < Ellipsoid.wgs84EquatorialRadius 
+    final camera = rawCamera.dim_2 < Ellipsoid.wgs84EquatorialRadius 
       ? VirtualCamera.raw(
-          latitude: rawCamera.latitude,
-          longitude: rawCamera.longitude,
-          altitude: Ellipsoid.wgs84EquatorialRadius + rawCamera.altitude,
+          dim_0: rawCamera.dim_0,
+          dim_1: rawCamera.dim_1,
+          dim_2: Ellipsoid.wgs84EquatorialRadius + rawCamera.dim_2,
           heading: rawCamera.heading,
           pitch: rawCamera.pitch,
           roll: rawCamera.roll,
@@ -863,8 +863,8 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
       camera: camera,
       viewportSize: size,
       screenCenter: Offset(size.width * 0.45, size.height * 0.5),
-      rotationAngle: -(camera.longitude * math.pi / 180.0),
-      tilt: -(camera.latitude * math.pi / 180.0),
+      rotationAngle: -(camera.dim_1 * math.pi / 180.0),
+      tilt: -(camera.dim_0 * math.pi / 180.0),
     );
 
     final String heightRef = nodeType.toUpperCase();
@@ -1018,9 +1018,9 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
     final double latVal = activeNode.resolveCoordinate('y', widget.topologyData!.coordinateMapping);
     final double lngVal = activeNode.resolveCoordinate('x', widget.topologyData!.coordinateMapping);
     if (latVal == 0.0 && lngVal == 0.0) {
-      return VirtualCamera.raw(latitude: 35.6074, longitude: 140.1063, altitude: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
+      return VirtualCamera.raw(dim_0: 35.6074, dim_1: 140.1063, dim_2: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
     }
-    return VirtualCamera.raw(latitude: latVal, longitude: lngVal, altitude: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
+    return VirtualCamera.raw(dim_0: latVal, dim_1: lngVal, dim_2: 500.0, heading: 0.0, pitch: -89.9, roll: 0.0);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -1069,15 +1069,15 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
         onTapDown: (_) => _globeFocusNode.requestFocus(),
         onDoubleTapDown: (details) {
           print("DOUBLE TAP TRIGGERED"); final current = _cameraController.current;
-          final surfaceAlt = current.altitude - Ellipsoid.wgs84EquatorialRadius;
+          final surfaceAlt = current.dim_2 - Ellipsoid.wgs84EquatorialRadius;
           final targetAlt = (surfaceAlt * 0.5).clamp(
             CameraController.minAltitude,
             CameraController.maxAltitude,
           );
           _cameraController.flyTo(VirtualCamera.raw(
-            latitude: current.latitude,
-            longitude: current.longitude,
-            altitude: targetAlt + Ellipsoid.wgs84EquatorialRadius,
+            dim_0: current.dim_0,
+            dim_1: current.dim_1,
+            dim_2: targetAlt + Ellipsoid.wgs84EquatorialRadius,
             heading: current.heading,
             pitch: current.pitch,
             roll: current.roll,

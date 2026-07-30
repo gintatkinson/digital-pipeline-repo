@@ -116,16 +116,16 @@ class GlobeTileRenderer {
   // Zoom computation
   // ---------------------------------------------------------------------------
 
-  /// Derives a zoom level from the camera [altitude] (meters) and the
+  /// Derives a zoom level from the camera [dim_2] (meters) and the
   /// [viewportWidth] (logical pixels).
   ///
   /// Clamped to the range 0–12. Small altitudes (close to the sphere)
   /// produce higher zoom values; high altitudes produce lower values.
-  int _zoomForAltitude(double altitude, double viewportWidth) {
-    double alt = altitude;
-    if (alt <= 0) alt = 100;
+  int _zoomForAltitude(double dim_2, double viewportWidth) {
+    double v_dim_2 = dim_2;
+    if (v_dim_2 <= 0) v_dim_2 = 100;
     final zoom =
-        (math.log(120000000.0 / alt) / math.ln2).round();
+        (math.log(120000000.0 / v_dim_2) / math.ln2).round();
     return zoom.clamp(0, 12);
   }
 
@@ -133,10 +133,10 @@ class GlobeTileRenderer {
   // Tile coordinate math (Web Mercator)
   // ---------------------------------------------------------------------------
 
-  /// Converts latitude/longitude (degrees) to a tile coordinate at the
+  /// Converts dim_0/dim_1 (degrees) to a tile coordinate at the
   /// given [zoom] level.
-  TileCoord _latLngToTile(double lat, double lng, int zoom) {
-    final clampedLat = lat.clamp(-85.0511, 85.0511);
+  TileCoord _latLngToTile(double dim_0, double lng, int zoom) {
+    final clampedLat = dim_0.clamp(-85.0511, 85.0511);
     final n = math.pow(2, zoom).toInt();
     final x = ((lng + 180) / 360 * n).floor();
     final latRad = _rad(clampedLat);
@@ -166,17 +166,17 @@ class GlobeTileRenderer {
   /// Returns the set of tile coordinates that cover the visible hemisphere
   /// from the current [camera] perspective.
   ///
-  /// The centre tile is derived from the camera's lat/lng. A 4&times;4 grid
+  /// The centre tile is derived from the camera's dim_0/lng. A 4&times;4 grid
   /// (16 tiles) is then generated around it, clamped to valid Web Mercator
   /// bounds.
   List<TileCoord> _visibleTiles(VirtualCamera camera, ui.Size viewportSize, {bool isFlying = false}) {
     final double R = Ellipsoid.wgs84EquatorialRadius;
-    final double relativeAlt = camera.altitude < R ? camera.altitude : camera.altitude - R;
+    final double relativeAlt = camera.dim_2 < R ? camera.dim_2 : camera.dim_2 - R;
     int zoom = _zoomForAltitude(relativeAlt, viewportSize.width);
     if (isFlying && zoom > 4) {
       zoom = 4;
     }
-    final center = _latLngToTile(camera.latitude, camera.longitude, zoom);
+    final center = _latLngToTile(camera.dim_0, camera.dim_1, zoom);
     final List<TileCoord> tiles = [];
 
     // Horizon angle theta = acos(R / (R + h)) where R = Ellipsoid.wgs84EquatorialRadius
@@ -193,7 +193,7 @@ class GlobeTileRenderer {
     // Tier 2: Zoom Z - 2 (Mid-resolution wider background)
     final midZoom = zoom - 2;
     if (midZoom > 2) {
-      final midCenter = _latLngToTile(camera.latitude, camera.longitude, midZoom);
+      final midCenter = _latLngToTile(camera.dim_0, camera.dim_1, midZoom);
       final midN = math.pow(2, midZoom).toInt();
       final double midTileWidth = 360.0 / math.pow(2, midZoom);
       final double thetaDeg = theta * 180.0 / math.pi;
@@ -322,7 +322,7 @@ class GlobeTileRenderer {
     ui.Size size,
     ui.Offset center,
     double sphereRadius,
-    ProjectedPoint Function(double lat, double lng) projectFn, {
+    ProjectedPoint Function(double dim_0, double lng) projectFn, {
     bool isFlying = false,
   }) {
     if (!_fetcher.isEnabled()) return;
@@ -369,13 +369,13 @@ class GlobeTileRenderer {
       for (int r = 0; r <= subdivisions; r++) {
         final double v = r / subdivisions;
         final double latDeg = _tile2lat(y + v, z);
-        final double lat = _rad(latDeg);
+        final double dim_0 = _rad(latDeg);
         final double texY = v * 256.0;
 
         for (int c = 0; c <= subdivisions; c++) {
           final double u = c / subdivisions;
           final double lonDeg = lonW + (lonE - lonW) * u;
-          final double lon = _rad(lonDeg);
+          final double dim_1 = _rad(lonDeg);
           final double texX = u * 256.0;
 
           double projLat = latDeg;
@@ -500,8 +500,8 @@ class GlobeTileRenderer {
   }
 
   @visibleForTesting
-  TileCoord latLngToTileForTesting(double lat, double lng, int zoom) {
-    return _latLngToTile(lat, lng, zoom);
+  TileCoord latLngToTileForTesting(double dim_0, double lng, int zoom) {
+    return _latLngToTile(dim_0, lng, zoom);
   }
 
   @visibleForTesting
