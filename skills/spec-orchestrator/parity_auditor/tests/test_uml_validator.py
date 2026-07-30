@@ -837,3 +837,125 @@ test
         import shutil
         shutil.rmtree(tmpdir)
 
+
+def test_colon_in_note_string_rejected():
+    """Notes with colons in class diagram should be rejected."""
+    diagram = """classDiagram
+    class Node {
+        +String name [1]
+    }
+    note for Node : "Status: Active" """
+    tmpdir = _setup_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        actual_errors = validator.validate(repo)
+        assert len(actual_errors) > 0, "Expected errors for colon in note string."
+        assert any("Colons ':' inside note strings are prohibited" in err for err in actual_errors), f"Expected specific parse error: {actual_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_stereotype_on_relationship_rejected():
+    """Relationship labels with stereotypes should be rejected."""
+    diagram = """classDiagram
+    class Node {
+        +String id [1]
+    }
+    class Container {
+        +String name [1]
+    }
+    Container --> Node : <<references>>"""
+    tmpdir = _setup_workspace(diagram)
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        stereo_errors = [e for e in errors if "invalid stereotype/double angle brackets on relationship line" in e]
+        assert len(stereo_errors) > 0, f"Expected stereotype error, got: {errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_underscore_namespace_fallback_accepted():
+    """Namespaced class fallback with underscores should be accepted."""
+    diagram = """classDiagram
+    class IetfRouting_Routing {
+        +String name [1]
+    }
+    class IetfRibs_Ribs {
+        +String id [1]
+    }
+    IetfRouting_Routing --> IetfRibs_Ribs : references"""
+    
+    tmpdir = tempfile.mkdtemp()
+    pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+    os.makedirs(pipeline_dir, exist_ok=True)
+    rules = {
+        "meta": {},
+        "backlog_directories": {"features": "features", "user_stories": "user_stories", "use_cases": "use_cases"},
+        "target_directories": {},
+        "flutter_rules": {},
+        "python_rules": {},
+        "spec_rules": {},
+        "validation_rules": {
+            "visibility_prefixes": ["+", "-", "#", "~"],
+            "multiplicity_regex": "\\[[^\\]]+\\]",
+            "uml_primitives": ["String", "Integer", "Real", "Boolean"],
+            "relationship_connectors": "(<\\|--|\\*--|o--|-->|\\.\\.>|--)",
+            "choice_stereotypes": ["<<choice>>"],
+            "required_sections": {
+                "feature_ui": [
+                    ["## 1. Overview", "Overview"],
+                    ["## 2. Requirements", "Requirements"],
+                    ["## 3. Validation", "Validation"],
+                    ["## 4. Diagrams", "Diagrams"]
+                ]
+            },
+            "required_diagrams": {"feature": ["classDiagram"]}
+        }
+    }
+    with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w") as f:
+        json.dump(rules, f)
+
+    features_dir = os.path.join(tmpdir, "features")
+    os.makedirs(features_dir, exist_ok=True)
+
+    md_content = """---
+generation_mode: subagent
+title: Test
+interface_type: ui
+schema_containers:
+  - path: "ietf-routing:routing/ietf-ribs:ribs"
+---
+
+## 1. Overview
+test
+
+## 2. Requirements & Checklist
+- [ ] test
+
+## 3. Validation & Constraints
+- test
+
+## 4. Diagrams
+
+```mermaid
+""" + diagram + """
+```
+"""
+    with open(os.path.join(features_dir, "feat-01-test.md"), "w") as f:
+        f.write(md_content)
+
+    try:
+        repo = WorkspaceRepository(tmpdir)
+        validator = UmlValidator()
+        errors = validator.validate(repo)
+        
+        actual_errors = [e for e in errors if not e.startswith("Warning:")]
+        assert len(actual_errors) == 0, f"Expected no errors for underscore namespace fallback, got: {actual_errors}"
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)

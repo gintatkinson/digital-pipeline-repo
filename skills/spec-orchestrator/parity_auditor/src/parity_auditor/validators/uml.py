@@ -672,6 +672,14 @@ class UmlValidator(IValidator):
                     is_block_end = (line_strip == "}")
                     if not is_block_start and not is_block_end:
                         errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.")
+                if line_strip.lower().startswith("note ") or line_strip.lower().startswith("note\t") or line_strip.lower() == "note":
+                    note_match = re.match(r'^\s*note\s+(?:for\s+(?:`[^`]+`|[a-zA-Z0-9_\-.]+)\s*)?(.*)$', line_strip, re.IGNORECASE)
+                    if note_match:
+                        note_content = note_match.group(1).strip()
+                        if note_content.startswith(':'):
+                            note_content = note_content[1:].strip()
+                        if ':' in note_content:
+                            errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Colons ':' inside note strings are prohibited due to Mermaid rendering issues.")
 
             try:
                 parsed_cd = class_parser.parse(diagram_full)
@@ -695,6 +703,10 @@ class UmlValidator(IValidator):
                 
             classes = parsed_cd.classes
             relationships = parsed_cd.relationships
+            
+            for rel in relationships:
+                if rel.label and any(stereo in rel.label for stereo in ["<<", ">>", "&lt;&lt;", "&gt;&gt;", "«", "»"]):
+                    errors.append(f"{doc_type} {filename} contains invalid stereotype/double angle brackets on relationship line between '{rel.from_class}' and '{rel.to_class}': '{rel.label}'. Relationship labels must not contain stereotypes.")
             
             adj = {c: set() for c in classes}
             for rel in relationships:
@@ -861,29 +873,37 @@ class UmlValidator(IValidator):
                         path = sc_entry
                     if not path:
                         continue
-                    cleaned_path = re.sub(r"^[^:]+:", "", path)
-                    segments = [s for s in cleaned_path.split("/") if s]
+                    segments = [s for s in path.split("/") if s]
                     
-                    expected_classes = []
+                    resolved_classes = []
+                    all_exist = True
                     for seg in segments:
                         seg_clean = re.sub(r"^[^:]+:", "", seg)
                         seg_parts = re.split(r'[-_]', seg_clean)
-                        expected_class = "".join(p.capitalize() for p in seg_parts if p)
-                        expected_classes.append((seg, expected_class))
+                        exp_cls = "".join(p.capitalize() for p in seg_parts if p)
                         
-                    all_exist = True
-                    for seg, exp_cls in expected_classes:
-                        if exp_cls.lower() not in classes_lower_map:
-                            errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container path segment '{seg}' in path '{path}'.")
+                        fallback_cls = None
+                        if ":" in seg:
+                            prefix, local_name = seg.split(":", 1)
+                            prefix_c = "".join(p.capitalize() for p in re.split(r'[-_]', prefix) if p)
+                            local_c = "".join(p.capitalize() for p in re.split(r'[-_]', local_name) if p)
+                            fallback_cls = f"{prefix_c}_{local_c}"
+                            
+                        if exp_cls.lower() in classes_lower_map:
+                            resolved_classes.append((seg, classes_lower_map[exp_cls.lower()]))
+                        elif fallback_cls and fallback_cls.lower() in classes_lower_map:
+                            resolved_classes.append((seg, classes_lower_map[fallback_cls.lower()]))
+                        else:
+                            if fallback_cls:
+                                errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' or '{fallback_cls}' for schema container path segment '{seg}' in path '{path}'.")
+                            else:
+                                errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container path segment '{seg}' in path '{path}'.")
                             all_exist = False
                             
                     if all_exist:
-                        for i in range(len(expected_classes) - 1):
-                            seg_i, cls_i = expected_classes[i]
-                            seg_next, cls_next = expected_classes[i+1]
-                            
-                            actual_cls_i = classes_lower_map[cls_i.lower()]
-                            actual_cls_next = classes_lower_map[cls_next.lower()]
+                        for i in range(len(resolved_classes) - 1):
+                            seg_i, actual_cls_i = resolved_classes[i]
+                            seg_next, actual_cls_next = resolved_classes[i+1]
                             
                             if actual_cls_next not in adj.get(actual_cls_i, set()):
                                 errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing relationship between class '{actual_cls_i}' and class '{actual_cls_next}' representing adjacent schema container path segments '{seg_i}' and '{seg_next}' in path '{path}'.")
