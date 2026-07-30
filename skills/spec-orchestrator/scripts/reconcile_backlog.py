@@ -120,6 +120,90 @@ def extract_title(filepath):
         print(f"Error reading title from {filepath}: {e}")
     return None
 
+def extract_epic_from_body(body_content):
+    """
+    Extracts the parent epic reference (filename, slug, or issue ID) from markdown body content.
+    """
+    if not body_content:
+        return None
+        
+    # 1. Search for any markdown link pointing to an epic file under /epics/ or epics/ or starting with epic-
+    links = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', body_content)
+    for link_text, link_url in links:
+        url_lower = link_url.lower()
+        if "epics/" in url_lower or "epic-" in url_lower:
+            filename = os.path.basename(link_url)
+            if filename.endswith(".md"):
+                filename = filename[:-3]
+            if "epic" in filename.lower():
+                return filename
+            if "epic" in link_text.lower():
+                return link_text
+
+    # 2. Line-by-line scanning for "Parent Epic" heading/section or inline references
+    lines = body_content.splitlines()
+    parent_epic_section = False
+    for line in lines:
+        line_stripped = line.strip()
+        if re.search(r'^#+\s+Parent\s+Epic', line_stripped, re.IGNORECASE):
+            parent_epic_section = True
+            continue
+        
+        is_parent_epic_line = "parent epic" in line_stripped.lower()
+        if parent_epic_section or is_parent_epic_line:
+            # Check for issue ID first (e.g. #101)
+            issue_match = re.search(r'#(\d+)\b', line_stripped)
+            if issue_match:
+                return issue_match.group(0)
+                
+            # Check for issue ID placeholder with potential link (e.g. - [ ] #[EpicID] - [Title](../epics/epic-01.md))
+            placeholder_match = re.search(r'#\[EpicIssueID\]|#\[EpicID\]', line_stripped, re.IGNORECASE)
+            if placeholder_match:
+                link_match = re.search(r'\[([^\]]+)\]\(([^)]+)\)', line_stripped)
+                if link_match:
+                    link_text, link_url = link_match.groups()
+                    filename = os.path.basename(link_url)
+                    if filename.endswith(".md"):
+                        filename = filename[:-3]
+                    return filename
+            
+            # Check for generic markdown link in Parent Epic line/section
+            link_match = re.search(r'\[([^\]]+)\]\(([^)]+)\)', line_stripped)
+            if link_match:
+                link_text, link_url = link_match.groups()
+                filename = os.path.basename(link_url)
+                if filename.endswith(".md"):
+                    filename = filename[:-3]
+                return filename
+                
+            # Check for explicit text pattern e.g. "Parent Epic: epic-01-geo-location"
+            val_match = re.search(r'(?:parent\s+epic\s*[:\-]\s*|\*\*\s*parent\s+epic\s*\*\*\s*[:\-]\s*)([^\n]+)', line_stripped, re.IGNORECASE)
+            if val_match:
+                val = val_match.group(1).strip().strip('[]-* ')
+                if val:
+                    return val
+            
+            # If we hit another heading, stop section scan
+            if parent_epic_section and line_stripped.startswith('#'):
+                parent_epic_section = False
+                
+    # 3. Global fallback scan for "Parent Epic" inline references
+    for line in lines:
+        line_stripped = line.strip()
+        if "parent epic" in line_stripped.lower():
+            link_match = re.search(r'\[([^\]]+)\]\(([^)]+)\)', line_stripped)
+            if link_match:
+                link_text, link_url = link_match.groups()
+                filename = os.path.basename(link_url)
+                if filename.endswith(".md"):
+                    filename = filename[:-3]
+                return filename
+            issue_match = re.search(r'#(\d+)\b', line_stripped)
+            if issue_match:
+                return issue_match.group(0)
+                
+    return None
+
 def get_all_issues(rules=None):
     if not rules:
         raise ValueError("Configuration rules are missing.")
@@ -1081,10 +1165,34 @@ def main():
                         if alias:
                             epic_alias_map[alias] = canonical_norm
 
+        # Build reverse lookup map for Epic issue IDs to normalized titles
+        epic_id_to_norm = {}
+        for norm_title, issue_id in epic_titles.items():
+            epic_id_to_norm[str(issue_id)] = norm_title
+            if isinstance(issue_id, int):
+                epic_id_to_norm[issue_id] = norm_title
+            elif isinstance(issue_id, str) and issue_id.isdigit():
+                epic_id_to_norm[int(issue_id)] = norm_title
+
         def resolve_epic_norm(epic_ref):
             if not epic_ref:
                 return None
-            ref_str = str(epic_ref).strip().strip('"\'')
+            if isinstance(epic_ref, int):
+                if epic_ref in epic_id_to_norm:
+                    return epic_id_to_norm[epic_ref]
+                ref_str = str(epic_ref)
+            else:
+                ref_str = str(epic_ref).strip().strip('"\'')
+            
+            clean_ref = ref_str
+            if clean_ref.startswith('#'):
+                clean_ref = clean_ref[1:].strip()
+                
+            if clean_ref in epic_id_to_norm:
+                return epic_id_to_norm[clean_ref]
+            if clean_ref.isdigit() and int(clean_ref) in epic_id_to_norm:
+                return epic_id_to_norm[int(clean_ref)]
+                
             if ref_str.lower() in epic_alias_map:
                 return epic_alias_map[ref_str.lower()]
             norm = normalize_title(ref_str, rules)
@@ -1103,6 +1211,13 @@ def main():
                     fp = os.path.join(features_dir, fn)
                     meta = extract_metadata(fp)
                     epic_name = meta.get("epic")
+                    if not epic_name:
+                        try:
+                            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                                body_content = f.read()
+                            epic_name = extract_epic_from_body(body_content)
+                        except Exception as e:
+                            print(f"Warning: Failed to extract epic from body of feature {fn}: {e}")
                     if epic_name:
                         resolved_epic = resolve_epic_norm(epic_name)
                         if resolved_epic:
@@ -1115,6 +1230,13 @@ def main():
                     fp = os.path.join(stories_dir, fn)
                     meta = extract_metadata(fp)
                     epic_name = meta.get("epic")
+                    if not epic_name:
+                        try:
+                            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                                body_content = f.read()
+                            epic_name = extract_epic_from_body(body_content)
+                        except Exception as e:
+                            print(f"Warning: Failed to extract epic from body of story {fn}: {e}")
                     epics = set()
                     if epic_name:
                         resolved_epic = resolve_epic_norm(epic_name)
@@ -1137,6 +1259,13 @@ def main():
                     fp = os.path.join(usecases_dir, fn)
                     meta = extract_metadata(fp)
                     epic_name = meta.get("epic")
+                    if not epic_name:
+                        try:
+                            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                                body_content = f.read()
+                            epic_name = extract_epic_from_body(body_content)
+                        except Exception as e:
+                            print(f"Warning: Failed to extract epic from body of use case {fn}: {e}")
                     epics = set()
                     if epic_name:
                         resolved_epic = resolve_epic_norm(epic_name)
