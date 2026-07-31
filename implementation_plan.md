@@ -985,3 +985,66 @@ Verification for this package therefore includes the exact CI lint command.
 | `skills/spec-orchestrator/scripts/reconcile_backlog.py` | Delete the dead assignment at L1110 inside `main()`. The identically-named local at L244, consumed at L278 in a different function, is untouched. |
 
 Verification: `ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts` exits 0, both suites exit 0 captured separately, CI watched to a `success` conclusion.
+
+---
+
+## Part M — Autonomous backlog completion  **[APPROVED — "keep going until all issues are fixed ... autonomously without my attention"]**
+
+Standing authorisation from the Product Owner to drive every open issue to
+`Fixed / Resolved` without per-package approval. Two limits are not waivable and are not
+waived by it:
+
+1. **`Closed` remains unreachable.** `.pipeline/constitution.md:161`. Every issue ends at
+   `Fixed / Resolved` with the label and pasted evidence. The Product Owner closes.
+2. **Constitution amendments still require line-by-line approval.** `project-constitution`
+   Step 9. If an issue needs one, that issue halts and is reported; the rest continue.
+
+### Delegation model
+
+Every implementation is dispatched to a fresh context-isolated subagent, per
+`rules/role-boundary-lock.md` and `.agents/AGENTS.md` § *Mandatory Subagent Dispatch*.
+This corrects the violation recorded in #312, where the coordinator wrote every file
+directly for an entire session. The coordinator plans, dispatches, verifies and reports;
+it does not edit source.
+
+Because approval is standing rather than per-package, the requirement that exact changes
+be documented before writing is pushed down: **each implementer records the exact files
+and changes it made in its report, and the coordinator appends them here before the next
+package begins.** The audit trail is preserved; only the approval wait is removed.
+
+### Order, and why
+
+Serial per `rules/serial-execution.md`. One issue fully finished — merged, CI green,
+labelled — before the next begins.
+
+| # | Issue | Rationale for position |
+|---|---|---|
+| 1 | **#312** | Fixes the delegation machinery itself. Until `AGENTS.md` names tools that exist, every later package inherits the same unexecutable instruction. Highest leverage. |
+| 2 | **#303** | Three known refactor remnants, already scoped in the issue. Small, mechanical. |
+| 3 | **#279** | Single skill-instruction reinforcement. Small. |
+| 4 | **#278** | Context leakage / generation drift in a SKILL.md. Small. |
+| 5 | **#304** | 12 validators, 135 append sites. Large but mechanical and already patterned by the 2 completed migrations. |
+| 6 | **#294** | Python 3.9 -> 3.12. Touches the CI matrix, the declared floor in `pipeline-tooling.md`, and `pyproject.toml`. Highest blast radius, so last among the actionable. |
+| 7 | **#280** | Assess first. "LLM-as-a-Judge required" may not be implementable as an offline blocking gate — `pipeline-tooling.md` § *Validation Gates* forbids network calls in a gate. If it is not implementable, report that rather than fabricate a fix. |
+
+#309 is already `Fixed / Resolved`; it needs no further work.
+
+### Per-package verification, without exception
+
+Every package, before it is called done:
+
+1. RED demonstrated and pasted where a test drives the change.
+2. `python3 -m ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts` exits 0. **This is not optional** — it was omitted once and pushed a red CI, because lint runs before pytest and halts the job, so a green local pytest proved nothing.
+3. Both suites, exit codes captured **separately, never through a pipe**. A pipe returns the last command's status and has already masked a failing suite once.
+4. Own branch, `--no-ff` merge, push, `git diff origin/main` empty.
+5. CI watched to a `success` conclusion — not inferred from local green.
+6. Issue labelled `status:fixed-resolved` with an evidence comment. Never closed.
+
+### Stop conditions
+
+The run halts and reports, rather than improvising, on any of:
+
+- an issue requiring a constitution amendment;
+- an issue whose fix would require closing a tracker issue;
+- CI failing twice on the same package after a fix attempt;
+- an issue that turns out to be unimplementable as specified.
