@@ -146,7 +146,47 @@ redundant as well as harmful.
 Blast radius: none expected. To be confirmed during implementation by checking no
 test relies on import-time sanitisation.
 
-#### C8b. #277 — sequence-diagram validation bypass  **[low risk today]**
+#### C8b. #277 — sequence-diagram validation bypass  **[BLOCKED — my risk assessment was wrong]**
+
+> **Revised after implementation.** I assessed this as low risk because
+> `docs/user-stories/` is empty. That was incomplete: the bypass is **deliberate and
+> test-covered**. Commit `a5de5f8`, *"fix: resolve sequence diagram lifeline false
+> positives"*, introduced it together with the regression test
+> `test_uml_validator.py::test_bypassed_lifelines_accepted`, which explicitly asserts
+> that classifiers ending in those suffixes are accepted.
+>
+> Removing the bypass makes that test fail. Deleting or weakening it is forbidden by
+> `feature-driven-implementation` § 3.8.3, and doing so would reinstate the false
+> positives `a5de5f8` was written to eliminate.
+>
+> Verified: with the bypass removed, `test_bypassed_lifelines_accepted` fails and an
+> `actor` lifeline such as `payer : Payer` is reported as undefined.
+>
+> **The change has been reverted.** `uml.py` is unmodified and the suite is green.
+>
+> A semantically correct third option exists. `SequenceLifeline.role`
+> (`core/models.py:283`) already records whether a lifeline was declared `actor` or
+> `participant`, so the exemption could key on **UML role** rather than on a name
+> suffix: external `actor` lifelines are not model classes and need no definition,
+> while every `participant` must resolve. That honours the constitution's intent and
+> removes the arbitrary suffix list. It also contradicts
+> `test_bypassed_lifelines_accepted`, which declares `x as "x: InvalidClass"` as an
+> `actor` and requires it to error — so that test would need revising too, which
+> requires human agreement rather than an agent's judgement.
+>
+> Options for the human:
+> * **A — Keep the bypass.** Close #277 as won't-fix; `a5de5f8` already decided this.
+> * **B — Replace suffix exemption with role exemption.** Semantically correct; requires
+>   revising `test_bypassed_lifelines_accepted`, which is a deliberate rewrite of an
+>   existing regression test and therefore needs explicit approval.
+> * **C — Remove the bypass entirely** per #277 as filed. Reinstates the false
+>   positives, requires every actor to be a defined class, and contradicts `a5de5f8`.
+>
+> The tests written for this issue are committed with `xfail` so the work is preserved
+> and the suite stays green. They will pass unchanged under option C, and mostly under
+> option B.
+
+#### C8b (original assessment, retained for the record)  **[low risk today]**
 
 `uml.py:245` defines `bypass_suffixes = ("Actor", "Calculator", "Provider", "Mapper",
 "Manager", "Configurator", "Architect", "Validator", "ValidatorSystem", "System")` and
