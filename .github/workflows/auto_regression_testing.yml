@@ -32,7 +32,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pyyaml ruff
+          # Install from the declared manifest, not a hand-kept list. requirements.txt
+          # pins PyYAML and pyang; the previous explicit list omitted pyang, so every
+          # push run failed in scripts/compile_yang.py while the manifest looked fine
+          # (#311). Test-only tools stay explicit because they are not runtime deps.
+          pip install -r requirements.txt
+          pip install pytest ruff
           pip install -e skills/spec-orchestrator/parity_auditor
 
       - name: Run Ingest and Verify Reproduction (Issues Only)
