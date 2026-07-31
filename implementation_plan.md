@@ -530,3 +530,136 @@ false result. This undermines the negative-control technique the gates depend on
 If `ruff` cannot be installed in this environment the baseline count cannot be
 established, in which case the config lands and the CI step is added, with the baseline
 step recorded as outstanding on #293 rather than claimed as done.
+
+---
+
+## Part H — #301 multi-downstream symptom aggregator
+
+**Approach: vertical slice, not horizontal refactor.** Migrating all 13 validators before
+building anything would produce a large diff with nothing demonstrable. Instead: build the
+`Finding` type, migrate the two validators whose rule families are already in the contract
+registry, build the aggregator, and prove it end to end on synthetic downstreams. Remaining
+validators migrate incrementally afterwards, with the aggregator degrading gracefully for
+un-migrated ones.
+
+**Key design decision — `Finding` subclasses `str`.** This makes migration nearly free and
+breaks nothing: `" ".join(errors)`, `"text" in error`, `==` and f-string formatting all keep
+working, because a `Finding` *is* its message. It additionally carries `rule_id`, which is
+what the aggregator groups on. Without this, every existing assertion of the form
+`any("duplicate" in e for e in errors)` and `" ".join(errors)` would need rewriting across
+172 tests.
+
+| File | Exact change |
+|---|---|
+| `.../core/findings.py` | **New.** `Finding(str)` carrying `rule_id`, `location`, `detail`. Plus `signature()`, the downstream-independent identity used for cross-project grouping. |
+| `.../validators/mermaid_syntax_validator.py` | Wrap the six `errors.append(...)` calls in `Finding` with the rule ids already registered in `rule_contracts.py`. |
+| `.../validators/spec_filename_validator.py` | Same for its four rule ids. |
+| `.../aggregator.py` | **New.** Runs the migrated validators across N workspace paths, groups by signature, ranks by breadth (how many workspaces exhibit it), returns a report structure. |
+| `.../cli.py` | Add an `aggregate` subcommand accepting multiple workspace paths. |
+| `scripts/aggregate_downstream_symptoms.py` | **New.** Thin executable wrapper, with a shebang per #282. |
+| `.../tests/test_findings_issue301.py` | **New.** String compatibility, signature stability across differently-named downstreams, and that un-migrated validators still work. |
+| `.../tests/test_aggregator_issue301.py` | **New.** Two synthetic downstream fixtures sharing one symptom and differing in another; assert the shared one ranks above the local one. Fixture guard. |
+| `tests/rule_contracts.py` | Add `rule_id` to `RuleContract`, so a finding whose rule id is unregistered fails the existing gate rather than needing a new check. |
+| `tests/test_rule_contracts.py` | Assert every `rule_id` emitted by a migrated validator is registered. |
+
+---
+
+## Part I — `CLAUDE.md` agent entry point  **[AWAITING APPROVAL]**
+
+**Requested by the human**, whose original instruction was:
+
+```
+echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
+```
+
+**Why the literal instruction must not be executed as written.** That sentence names
+`skills/` and `rules/` and stops. It is the #295 reading order reproduced at the repo's
+most visible entry point. `AMEND-0002`'s rationale identifies reading order as the
+decisive defect: `rules/constitution-first.md` enumerated the mandatory reads without
+listing `.agents/AGENTS.md`; `.agents/` is hidden, so glob and ripgrep skip it; an agent
+complying *fully* with the enumeration read only the two keyword-sufficient documents,
+never saw the Strict Planning Gate, and pushed two unapproved commits to `main`. A
+`CLAUDE.md` carrying the same omission re-arms that failure for every future session,
+and does so in the one file an agent is guaranteed to load.
+
+The human approved the corrected text in conversation with *"so please make the right
+additions to CLAUDE.md"*.
+
+**Scope note.** `CLAUDE.md` is a root-level file. `AGENTS.md:69` forbids root writes
+except `implementation_plan.md`, `.gitignore`, "or custom configurations when explicitly
+approved" — this is a custom agent configuration, explicitly requested, so the exception
+applies. The Strict Planning Gate (`AGENTS.md:7`) still requires this documented entry
+plus explicit approval, which is what this Part exists to satisfy.
+
+### Exact change
+
+| File | Exact change |
+|---|---|
+| `CLAUDE.md` | **New file** at repo root. Full contents below — nothing else added, no other file touched. |
+
+Full and complete contents of the new `CLAUDE.md`:
+
+```markdown
+# Agent Instructions
+
+## Required reads, in this order
+
+Read these before starting any task:
+
+1. `.agents/AGENTS.md` — project-scoped agent rules, including the **Strict Planning
+   Gate**. Read this FIRST. It is the strictest authorization rule in the repository.
+2. `.pipeline/constitution.md` — Tier 1 functional constitution.
+3. All `SKILL.md` files in `skills/` — the pipeline workflows.
+4. All rule files in `rules/` — mandatory constraints applying to every task.
+
+For implementation work, additionally read
+`.pipeline/profiles/<platform>.md` for the target platform.
+
+## Hidden directories
+
+`.agents/` and `.pipeline/` are hidden. Glob and ripgrep index queries skip them, so
+they will not appear in search results. Read them by explicit path. A file that is
+absent from the list above and invisible to search is effectively invisible — that is
+how the strictest authorization rule came to be missed (issue #295).
+
+## Before writing anything
+
+No file may be created, modified, or deleted unless that specific file and its exact
+changes are documented in an approved `implementation_plan.md`. An authorization
+keyword such as "PROCEED" alone is **not** sufficient. Writing or updating the plan
+itself is the sole exception. See `.agents/AGENTS.md` § *Strict Planning Gate*.
+
+## Issue lifecycle
+
+Agents stop at `Fixed / Resolved`. `Closed` requires Product Owner validation and is
+unreachable by an agent. See `.pipeline/constitution.md` § *CMMI Level 3 & Scrum Issue
+Lifecycle Rules*.
+```
+
+### Verification
+
+1. `cat CLAUDE.md` — confirm contents match the block above verbatim.
+2. Confirm no other file changed: `git status --short` shows only `CLAUDE.md` as new.
+3. Both suites green (no code touched, so this is a regression check only):
+   `python3 -m pytest tests/ -q` and
+   `python3 -m pytest skills/spec-orchestrator/parity_auditor/tests -q`.
+4. Commit `docs: add CLAUDE.md agent entry point with required read order` and push;
+   verify `git diff origin/main` is empty per `AGENTS.md:19-20`.
+
+### Follow-on defects this Part does NOT fix
+
+Recorded here so they are not lost, each needing its own atomic package per
+`AGENTS.md:51-53`:
+
+* **`AGENTS.md:33` cites a path that does not exist** — it directs subagents to
+  `.agents/skills/debug-protocol/SKILL.md`. Skills live at `skills/`; there is no
+  `.agents/skills/`. A subagent given that path finds nothing and falls back to the
+  coordinator's abbreviated summary, which is the exact failure the Subagent
+  Self-Reading Mandate exists to prevent.
+* **Two skills still instruct agents to close issues** — `debug-protocol` Step 7 and
+  `feature-driven-implementation` Step 5 item 5 / Step 6 item 2, contradicting
+  constitution:161. `.pipeline/upstream/pipeline-tooling.md:130` declares it overrides
+  both, but the skill text was never amended, and `AGENTS.md:75` mandates literal skill
+  execution. Same divergence class #298 exists to detect.
+* **`pipeline-tooling.md:131` cites `feature-driven-implementation` "Step 5.5"**, which
+  does not exist; the closure instructions are Step 5 item 5 and Step 6 item 2.

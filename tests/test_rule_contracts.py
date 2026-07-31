@@ -214,3 +214,43 @@ def test_resolved_divergences_reference_real_amendments():
     assert not missing, (
         f"resolved divergences cite amendments absent from the log: {missing}"
     )
+
+
+# --------------------------------------------------------------------------- #
+# #301 - every rule id a validator emits must be registered here.
+#
+# Closes the loop rather than adding a parallel check: a Finding whose rule_id is not
+# in the registry is invisible to cross-downstream aggregation AND undocumented, so the
+# same gate covers #299 and #301.
+# --------------------------------------------------------------------------- #
+
+def test_every_emitted_rule_id_is_registered():
+    import sys
+    src = os.path.join(
+        REPO_ROOT, "skills", "spec-orchestrator", "parity_auditor", "src"
+    )
+    if src not in sys.path:
+        sys.path.insert(0, src)
+
+    from parity_auditor.aggregator import AGGREGATING_VALIDATORS
+    from parity_auditor.core.findings import Finding
+    from parity_auditor.core.workspace import WorkspaceRepository
+    from rule_contracts import REGISTERED_RULE_IDS
+
+    repo = WorkspaceRepository(workspace_dir=REPO_ROOT)
+    emitted = set()
+    for validator_cls in AGGREGATING_VALIDATORS:
+        for finding in validator_cls().validate(repo):
+            if isinstance(finding, Finding):
+                emitted.add(finding.rule_id)
+
+    assert emitted, (
+        "no rule ids were emitted against the live corpus, so this assertion is "
+        "vacuous. Either the corpus was deleted or the validators regressed."
+    )
+    unregistered = sorted(emitted - REGISTERED_RULE_IDS)
+    assert not unregistered, (
+        f"validators emit rule ids absent from the contract registry: {unregistered}. "
+        "An unregistered rule id is both undocumented (#299) and invisible to "
+        "cross-downstream aggregation (#301)."
+    )

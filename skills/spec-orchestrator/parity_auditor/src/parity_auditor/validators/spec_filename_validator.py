@@ -25,6 +25,7 @@ import re
 from typing import Dict, List
 
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 # Directory key in backlog_directories -> the prefix its files must carry.
@@ -67,19 +68,21 @@ class SpecFilenameValidator(IValidator):
             for name in names:
                 match = _NAME_RE.match(name)
                 if not match:
-                    errors.append(
+                    errors.append(Finding(
+                        "spec-filename-format",
                         f"{rel}/{name}: filename does not match the documented convention "
                         f"'{expected_prefix}-<zero-padded-ordinal>-<kebab-name>.md'. "
                         f"Names must be lowercase and dash-separated."
-                    )
+                    , location=rel))
                     continue
 
                 if match.group("prefix") != expected_prefix:
-                    errors.append(
+                    errors.append(Finding(
+                        "spec-filename-directory-prefix",
                         f"{rel}/{name}: directory prefix mismatch "
                         f"- found '{match.group('prefix')}-', but files in {rel} must "
                         f"use the '{expected_prefix}-' prefix."
-                    )
+                    , location=rel))
                     continue
 
                 ordinal_text = match.group("ordinal")
@@ -88,23 +91,25 @@ class SpecFilenameValidator(IValidator):
 
             for ordinal, colliding in sorted(by_ordinal.items()):
                 if len(colliding) > 1:
-                    errors.append(
+                    errors.append(Finding(
+                        "spec-filename-ordinal-uniqueness",
                         f"{rel}: duplicate ordinal "
                         f"- {ordinal} is claimed by {len(colliding)} files "
                         f"({', '.join(colliding)}). Ordinals must be "
                         f"unique, because backlog reconciliation and Epic checklists "
                         f"reference specifications by number."
-                    )
+                    , location=rel))
 
             if len(widths) > 1:
                 summary = "; ".join(
                     f"{width} digit(s): {', '.join(sorted(files))}"
                     for width, files in sorted(widths.items())
                 )
-                errors.append(
+                errors.append(Finding(
+                        "spec-filename-padding-consistency",
                     f"{rel}: inconsistent ordinal padding width across the directory "
                     f"({summary}). Pick one width and apply it uniformly, otherwise "
                     f"lexical ordering does not match numeric ordering."
-                )
+                , location=rel))
 
         return errors
