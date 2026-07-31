@@ -212,7 +212,23 @@ KNOWN_UNREGISTERED_FAMILIES = {
 # submitted for human approval.
 # OPEN divergences. Empty is the goal, not a defect — but the structure must remain so
 # a future divergence has a defined home rather than being left undocumented.
-KNOWN_DOC_DIVERGENCES: dict = {}
+KNOWN_DOC_DIVERGENCES: dict = {
+    "skills-instruct-closing-issues": (
+        "skills/debug-protocol/SKILL.md:64,101 and "
+        "skills/feature-driven-implementation/SKILL.md:5,15,21,23,24,197,206 instruct "
+        "the agent to close tracker issues, while .pipeline/constitution.md:161 makes "
+        "Closed unreachable without Product Owner validation. "
+        ".pipeline/upstream/pipeline-tooling.md:130 declares an override, but "
+        ".agents/AGENTS.md:75 mandates literal skill execution, and that override lives "
+        "in an upstream-only profile which a downstream project never receives. "
+        "Resolution pending: issue #306, implementation_plan.md Part J package J3, "
+        "which amends both skill files to stop at Fixed / Resolved. J3 must also narrow "
+        "the debug-protocol selection query to exclude status:fixed-resolved, or "
+        "removing the close step leaves its terminating condition unsatisfiable. Note "
+        "this is a skill-text amendment, not a constitution amendment, so it needs no "
+        "entry in .pipeline/constitution-amendments.md."
+    ),
+}
 
 
 # RESOLVED divergences, retained as history. Each MUST name the amendment or change that
