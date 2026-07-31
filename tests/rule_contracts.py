@@ -223,7 +223,99 @@ DOC_REFERENCE_FAMILY = ContractFamily(
     enforcement_pattern=r'"((?:governance )?documents [a-z][a-z\s\'./]{5,70}?)(?:: |\. )',
 )
 
-FAMILIES: List[ContractFamily] = [MERMAID_FAMILY, FILENAME_FAMILY, DOC_REFERENCE_FAMILY]
+KARPATHY_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="karpathy-four-point-check-in-authorization-lock",
+        documented_in="rules/user-authorization-lock.md",
+        doc_anchor="4-point Karpathy and Pipeline Compliance Check",
+        enforced_in="tests/test_karpathy_check_contract_issue312.py",
+        enforcement_anchor=(
+            "karpathy-gate: a governance document omits the four-point compliance check"
+        ),
+        note=(
+            "Issue #312. Mandatory since the rule was written and enforced by nothing; "
+            "not performed once during a session that produced 11 merges to main."
+        ),
+    ),
+    RuleContract(
+        id="karpathy-four-point-check-in-agents-md",
+        documented_in=".agents/AGENTS.md",
+        doc_anchor="4-point Karpathy and Pipeline Compliance Check",
+        enforced_in="tests/test_karpathy_check_contract_issue312.py",
+        enforcement_anchor=(
+            "karpathy-gate: a governance document omits one of the four numbered points"
+        ),
+        note="The co-normative restatement. Deleting either statement must fail.",
+    ),
+    RuleContract(
+        id="karpathy-delegation-scope-in-authorization-lock",
+        documented_in="rules/user-authorization-lock.md",
+        doc_anchor=(
+            "The delegation duty binds for all repository source and specification "
+            "writes, not only during named skill phases."
+        ),
+        enforced_in="tests/test_karpathy_check_contract_issue312.py",
+        enforcement_anchor=(
+            "karpathy-gate: a governance document omits the delegation scope statement"
+        ),
+        note=(
+            "Point 4 was ambiguous about whether the delegation duty covered writes "
+            "outside a named skill phase. The narrow reading was taken (#312)."
+        ),
+    ),
+    RuleContract(
+        id="karpathy-delegation-scope-in-agents-md",
+        documented_in=".agents/AGENTS.md",
+        doc_anchor=(
+            "The delegation duty binds for all repository source and specification "
+            "writes, not only during named skill phases."
+        ),
+        enforced_in="tests/test_karpathy_check_contract_issue312.py",
+        enforcement_anchor=(
+            "karpathy-gate: a governance document omits the delegation scope statement"
+        ),
+    ),
+    RuleContract(
+        id="karpathy-dispatch-machinery-is-runtime-neutral",
+        documented_in=".agents/AGENTS.md",
+        doc_anchor="Dispatch capability by runtime",
+        enforced_in="tests/test_karpathy_check_contract_issue312.py",
+        enforcement_anchor=(
+            "karpathy-gate: agents md names a dispatch tool absent from the runtime"
+        ),
+        note=(
+            "The remedy point 4 directs the agent to was specified as invoke_subagent "
+            "and manage_subagents, neither of which exists in the Claude Code runtime, "
+            "so literal compliance with AGENTS.md:75 was impossible (#312)."
+        ),
+    ),
+]
+
+KARPATHY_FAMILY = ContractFamily(
+    name="karpathy-compliance-check",
+    contracts=KARPATHY_CONTRACTS,
+    enforcement_file="tests/test_karpathy_check_contract_issue312.py",
+    enforcement_pattern=r'"(karpathy-gate: [a-z][a-z0-9 ]{5,80}?)(?:: |\. )',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "The check has no single normative home: it is stated co-normatively in "
+        "rules/user-authorization-lock.md and .agents/AGENTS.md, and neither is a "
+        "summary of the other. Scanning either alone for orphan documentation would "
+        "report the other's statements as orphans. Both anchors of every contract "
+        "above still resolve, so deleting either statement fails the suite; only the "
+        "heading-scan half of orphan-documentation detection is blocked. Same "
+        "fragmentation issue #289 fixed for the Mermaid rules by designating a "
+        "normative home. Tracked as a follow-up to #312."
+    ),
+)
+
+FAMILIES: List[ContractFamily] = [
+    MERMAID_FAMILY,
+    FILENAME_FAMILY,
+    DOC_REFERENCE_FAMILY,
+    KARPATHY_FAMILY,
+]
 
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
@@ -236,6 +328,25 @@ KNOWN_UNREGISTERED_FAMILIES = {
     "authorization-precedence": "covered ad hoc by test_authorization_precedence.py",
     "python-version-reconciliation": "covered ad hoc by test_ci_workflow_config.py",
     "spec-filename-uniqueness": "not yet enforced at all - issue #300",
+    "document-references": (
+        "DOC_REFERENCE_FAMILY is defined but absent from the second FAMILIES binding, "
+        "so its three contracts have never been asserted - orphan enforcement of the "
+        "registry against itself, found while fixing #312. Restoring it fails "
+        "test_documented_rule_scan_is_not_vacuous: rules/document-references.md states "
+        "3 rule headings against a guard of >= 4. Needs either a fourth documented "
+        "rule or a justified guard change; filed rather than fixed in passing."
+    ),
+    "karpathy-check-performance": (
+        "issue #312 - the two statements of the 4-point Karpathy and Pipeline "
+        "Compliance Check and their scope sentence are now registered as the "
+        "karpathy-compliance-check family, so deleting either statement fails the "
+        "suite. That pairs documentation with documentation. Nothing verifies the "
+        "check is actually PERFORMED: it is a per-turn reasoning obligation with no "
+        "artefact in the repository, so no test over source can observe it. Closing "
+        "this would need an out-of-band control - a transcript/thought-block auditor "
+        "or a runtime pre-tool-use hook that refuses a coordinator write until the "
+        "check is recorded for that turn. Neither exists here."
+    ),
 }
 
 
@@ -313,7 +424,16 @@ MERMAID_FAMILY = ContractFamily(
     doc_heading_pattern=MERMAID_FAMILY.doc_heading_pattern,
     doc_only=DOC_ONLY_MERMAID_RULES,
 )
-FAMILIES = [MERMAID_FAMILY, FILENAME_FAMILY]
+# Every family must be relisted here. This rebinding shadows the list built above, so a
+# family added there and not here is silently dropped from ALL_CONTRACTS and from every
+# parametrized assertion. That is what happened to DOC_REFERENCE_FAMILY: added to the
+# first list at #310, never added here, so its contracts have never been asserted while
+# the suite reported green. It is deliberately still omitted rather than fixed in passing
+# — restoring it fails test_documented_rule_scan_is_not_vacuous, because
+# rules/document-references.md states 3 rules against a guard of 4, and the fix is either
+# a fourth documented rule or a lowered guard. Both are out of scope for #312 and are
+# recorded in KNOWN_UNREGISTERED_FAMILIES instead.
+FAMILIES = [MERMAID_FAMILY, FILENAME_FAMILY, KARPATHY_FAMILY]
 ALL_CONTRACTS = [c for f in FAMILIES for c in f.contracts]
 
 

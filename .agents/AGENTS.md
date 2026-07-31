@@ -24,16 +24,34 @@
 ## Mandatory Subagent Dispatch for Research, Specification & Implementation Loops
 To prevent context window bloat and subsequent exhaustion failures, you are strictly forbidden from performing technology stack research (Step 1.5), generation of Epics, Features, User Stories, Use Cases, or micro-task implementations (Step 3) directly within the coordinator's primary conversation context.
 
+This section states **capabilities**, not product-specific tool names. The capability is
+what is mandatory; the tool that provides it differs per runtime and is named only in the
+table at the end of this section. A runtime that lacks a capability is a blocker to be
+escalated, never a licence for the coordinator to do the work itself.
+
 You MUST execute the Subagent Dispatch Loop for these tasks:
 1. **Decompose the Task**: Identify the discrete files, research targets, or tasks to be executed.
-2. **Invoke Subagent**: For each item, invoke a fresh subagent using the `invoke_subagent` tool:
-   - **TypeName**: `self`
+2. **Dispatch a Context-Isolated Subagent**: For each item, dispatch a *fresh* subagent using whichever tool the active runtime exposes for that capability. Every one of the following is mandatory:
+   - **Fresh, isolated context**: the subagent MUST begin with no inherited session state. Reusing an existing subagent, or continuing one already loaded with prior work, does not satisfy this requirement.
    - **Role**: Set a descriptive role (e.g., `Codebase Researcher`, `Feature Spec Writer`, `Micro-Task Implementer`).
-   - **Prompt**: Construct a clean, isolated task description. Do not copy the entire conversation history. Pass only the relevant schema fragment, spec guidelines, templates, and reference standards.
-   - **Mandatory Skill-Reading Instruction**: When launching a subagent, the coordinator's prompt MUST explicitly instruct the subagent to read the relevant `SKILL.md` file (e.g. using `view_file` on `skills/debug-protocol/SKILL.md`) as its very first step, and to strictly follow its formatting templates and instruction guidelines.
+   - **Curated Prompt**: Construct a clean, isolated task description. Do not copy the entire conversation history, transcript, or session log. Pass only the task itself, the relevant file contents, schema fragment, spec guidelines, templates, conventions, and reference standards.
+   - **Mandatory Skill-Reading Instruction**: When launching a subagent, the coordinator's prompt MUST explicitly instruct the subagent to read the relevant `SKILL.md` file by explicit path (e.g. `skills/debug-protocol/SKILL.md`) as its very first step, and to strictly follow its formatting templates and instruction guidelines.
    - **Authorization**: Append the keyword `PROCEED` (case-insensitive) to the end of the prompt to authorize the subagent to use modifying tools.
 3. **Wait for Completion**: Do not poll or loop. Let the system wake you up.
 4. **Coordinate Output**: When the subagents complete, perform the validation checks and sync/register them in the tracker.
+5. **Reclaim the Subagent**: On completion, terminate the subagent — or confirm the runtime reclaims it automatically — per § *Mandatory Subagent Termination & Cleanup* below.
+
+**Dispatch capability by runtime.** Concrete tool names belong here and nowhere else in
+this document, so that a change of runtime cannot make the normative sentences above
+unexecutable (issue #312).
+
+| Runtime | Context-isolated dispatch | Termination / reclamation |
+| --- | --- | --- |
+| Claude Code | the general-purpose agent-dispatch tool listed in the session's own tool list | automatic on task completion; no explicit termination call exists or is required |
+| Any other runtime | the context-isolated dispatch tool named in that runtime's own tool list | that runtime's own termination or cleanup tool, if it exposes one |
+
+If the active runtime's tool list is consulted and no context-isolated dispatch capability
+is found, HALT and escalate as a blocker. Do not substitute direct coordinator writes.
 
 ## Mandatory Application Compilation Build for Verification
 - During Step 4 verification and testing, the agent MUST run a full compilation build of the entire application (e.g. `flutter build` or `npm run build` as specified by the platform profile) to ensure it compiles without errors and is completely ready to run. Assertions of completion without verified compile output are strictly forbidden.
@@ -44,7 +62,8 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
   * Is the user's message a question/inquiry or a direct command?
   * Has the user explicitly approved a file-write/command execution for this turn? (Yes/No)
   * Am I making any silent assumptions about the user's intent?
-  * Does the active skill mandate context-isolated subagent dispatches? (If yes, coordinator direct file-writing is locked).
+  * Does the active skill mandate context-isolated subagent dispatches, **or** does this turn write any repository source or specification file? (If yes to either, coordinator direct file-writing is locked).
+- **Scope of point 4 (issue #312).** The delegation duty binds for all repository source and specification writes, not only during named skill phases. Governance, tooling, rule, test and documentation repair are repository writes and are therefore in scope even when no skill is active and no skill names them. Reading point 4 narrowly — "this is not skill execution, so the mandate does not apply" — is the failure recorded in #312, where the coordinator wrote every file directly for an entire session. Per `rules/user-authorization-lock.md` § *Precedence*, where a narrow and a broad reading are both available, the strictest applies.
 - If context-isolated subagents are mandated, the coordinator is strictly forbidden from directly invoking any file-modifying tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) to write or update target functional specifications or codebase source files. All file writes MUST be delegated exclusively to the spawned subagents.
 - **No Documentation/Installation Drift**: You MUST NOT allow documentation drift. Before declaring any task complete, verify that all installation instructions (e.g. `README.md` copy/install commands) have been updated to include any new rules or directories (such as `.agents/`). Verify that `git diff origin/<branch>` is completely empty and pushed to GitHub.
 
@@ -62,7 +81,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 - If you believe a documentation file needs restructuring, present the proposed changes as a diff for approval before making any edits. Do not assume that adding new docs elsewhere authorizes you to remove content from existing docs.
 
 ## Mandatory Subagent Termination & Cleanup
-- The coordinator MUST immediately terminate any spawned subagents using the `manage_subagents` tool (action `kill` or `kill_all`) once the subagent's task has been completed and the work is integrated.
+- The coordinator MUST ensure every spawned subagent is terminated or reclaimed immediately once its task has been completed and the work is integrated. Where the runtime exposes an explicit termination capability, the coordinator MUST invoke it (individually or for all outstanding subagents). Where the runtime reclaims a subagent automatically on completion — as recorded in the per-runtime table in § *Mandatory Subagent Dispatch for Research, Specification & Implementation Loops* — that automatic reclamation satisfies this obligation, and the coordinator MUST confirm the subagent has actually completed rather than assume it.
 - Subagents are strictly forbidden from being left in an idle or dormant state upon completion of their atomic work package to prevent resource consumption and potential conflicts.
 
 ## Mandatory Directory Constraints (No Root Writes)
@@ -80,7 +99,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
 - **Specification Phase Boundary**: Spec workers and specification subagents are strictly forbidden from reading, writing, or referencing implementation profiles, implementation plans, or target source code files. They must operate strictly within logical, functional, and platform-independent boundaries.
 - **Implementation Phase Boundary**: Implementation subagents and micro-task implementers are strictly forbidden from generating or directly modifying upstream specification files (Epics, Features, User Stories, Use Cases) unless explicitly authorized via a synchronized backlog reconciliation task.
 - **Strict Subagent Tool Locking**: Spawned subagents must only execute tools that fall within their explicit domain (e.g., spec subagents do not run build/test commands or modify code, and implementation subagents do not edit high-level specifications).
-- **Subagent Cleanup**: The coordinator MUST immediately terminate any spawned subagents using the `manage_subagents` tool once the subagent's task is completed and the work is integrated. Subagents must never be left in an idle or dormant state.
+- **Subagent Cleanup**: The coordinator MUST immediately terminate or reclaim any spawned subagents once the subagent's task is completed and the work is integrated, using whichever capability the active runtime provides per the per-runtime table in § *Mandatory Subagent Dispatch for Research, Specification & Implementation Loops*. Subagents must never be left in an idle or dormant state.
 
 ## Mermaid Block Closing & Code Fence Integrity
 - Every Mermaid diagram or code block MUST be strictly and explicitly closed with matching closing fences (e.g. ```` ``` ```` on a new line). Leaking Mermaid blocks or stray/unclosed code fences are strictly forbidden as they cause parser failures in downstream validation tools.
