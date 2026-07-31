@@ -84,7 +84,7 @@ On completion of the current bug, query the repository for the next unresolved b
 - Do NOT stop until no open issue labelled `bug` remains that passes the **Step 0 defect gate**. Items reclassified above no longer carry the label and therefore no longer block completion.
 
 ## Persistence Rules
-- **Subagent Self-Reading Mandate**: Every subagent dispatched under this protocol MUST use the file-reading tool to read `.agents/skills/debug-protocol/SKILL.md` in full as its VERY FIRST action. It must then follow the output format, evidence standards, and closing procedures defined in this file exactly. Do NOT rely on the coordinator's abbreviated step summary.
+- **Subagent Self-Reading Mandate**: Every subagent dispatched under this protocol MUST use the file-reading tool to read `skills/debug-protocol/SKILL.md` in full as its VERY FIRST action. It must then follow the output format, evidence standards, and closing procedures defined in this file exactly. Do NOT rely on the coordinator's abbreviated step summary.
 - Each step MUST use a fresh subagent — do not reuse or combine
 - Do NOT skip or combine steps
 - Document every attempt even if the bug isn't fully solved
