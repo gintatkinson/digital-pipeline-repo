@@ -143,8 +143,10 @@ Per `.pipeline/constitution.md` § *CMMI Level 3 & Scrum Issue Lifecycle Rules*:
 - This repository has no Projects board, so the state is carried by the
   `status:fixed-resolved` label.
 - This overrides `debug-protocol` Step 7 and `feature-driven-implementation`
-  Step 5.5, both of which instruct the agent to close the issue. The
-  constitution is Tier 1 and takes precedence.
+  Step 5 item 5 and Step 6 item 2, all of which instruct the agent to close the
+  issue. The constitution is Tier 1 and takes precedence. Step 6 closes the
+  parent Epic and was omitted from the earlier citation, so on a literal reading
+  the override did not reach it.
 
 ## Upstream-Only Scoping
 
