@@ -185,7 +185,45 @@ FILENAME_FAMILY = ContractFamily(
     ),
 )
 
-FAMILIES: List[ContractFamily] = [MERMAID_FAMILY, FILENAME_FAMILY]
+DOC_REFERENCE_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="doc-ref-repository-relative-skill-paths",
+        documented_in="rules/document-references.md",
+        doc_anchor="Repository-Relative Skill Paths",
+        enforced_in="tests/test_skill_path_references.py",
+        enforcement_anchor="documents reference paths through the '.agents/skills/' symlink",
+        note="Enforced since #285, documented only at #310 — orphan enforcement for 3 issues.",
+    ),
+    RuleContract(
+        id="doc-ref-cited-paths-resolve",
+        documented_in="rules/document-references.md",
+        doc_anchor="Cited Paths Must Resolve",
+        enforced_in="tests/test_skill_path_references.py",
+        enforcement_anchor="governance documents reference paths that do not exist",
+    ),
+    RuleContract(
+        id="doc-ref-cited-steps-resolve",
+        documented_in="rules/document-references.md",
+        doc_anchor="Cited Steps Must Resolve",
+        enforced_in="tests/test_skill_path_references.py",
+        enforcement_anchor="governance documents cite steps that do not exist",
+        note="The phantom 'Step 5.5' override citation, issue #307.",
+    ),
+]
+
+DOC_REFERENCE_FAMILY = ContractFamily(
+    name="document-references",
+    contracts=DOC_REFERENCE_CONTRACTS,
+    doc_file="rules/document-references.md",
+    doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+    enforcement_file="tests/test_skill_path_references.py",
+    # Terminate on ": " or ". " rather than a bare "." — one message embeds
+    # ".agents/skills/", whose dot would otherwise truncate the extraction mid-path
+    # and weaken orphan-enforcement detection for that rule.
+    enforcement_pattern=r'"((?:governance )?documents [a-z][a-z\s\'./]{5,70}?)(?:: |\. )',
+)
+
+FAMILIES: List[ContractFamily] = [MERMAID_FAMILY, FILENAME_FAMILY, DOC_REFERENCE_FAMILY]
 
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
@@ -197,7 +235,6 @@ KNOWN_UNREGISTERED_FAMILIES = {
     "schema-container-cardinality": "covered ad hoc by test_schema_container_docs_issue283.py",
     "authorization-precedence": "covered ad hoc by test_authorization_precedence.py",
     "python-version-reconciliation": "covered ad hoc by test_ci_workflow_config.py",
-    "skill-path-references": "covered ad hoc by test_skill_path_references.py",
     "spec-filename-uniqueness": "not yet enforced at all - issue #300",
 }
 
