@@ -132,6 +132,7 @@ rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_reac
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./
 cp -RP ./.tmp-pipeline/.pipeline ./
+rm -rf ./.pipeline/upstream   # upstream-only tooling profile; not for downstream projects
 cp -RP ./.tmp-pipeline/.agents ./
 cp -RP ./.tmp-pipeline/scripts ./
 cp -RP ./.tmp-pipeline/app_flutter ./
