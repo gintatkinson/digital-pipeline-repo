@@ -965,3 +965,23 @@ config is a loaded gun for the next contributor who greps for it.
 RED demonstrated and pasted; GREEN after. Both suites with real exit codes captured
 separately, never through a pipe. Own branch, `--no-ff` merge, push, CI run watched to
 a `success` conclusion before #309 is labelled.
+
+### L5 — repair the ruff regression #309 introduced  **[APPROVED — completes L's verification gate]**
+
+CI run 30653495018 failed. `ruff check --select F,E9` reports `F841 Local variable
+'closed_state' is assigned to but never used` at
+`skills/spec-orchestrator/scripts/reconcile_backlog.py:1110`. L2 deleted the three
+`issue_dict[...][state_key] = closed_state` assignments that were its only consumers, so
+the line became dead. The lint step runs before pytest and halts the job, meaning
+**pytest never executed in CI for that push** — the green local suites proved nothing
+about the run.
+
+Verification gap that let it through: local verification ran pytest only. `ruff` is a
+separate CI step and is not installed locally, so `F,E9` was never exercised before push.
+Verification for this package therefore includes the exact CI lint command.
+
+| File | Exact change |
+|---|---|
+| `skills/spec-orchestrator/scripts/reconcile_backlog.py` | Delete the dead assignment at L1110 inside `main()`. The identically-named local at L244, consumed at L278 in a different function, is untouched. |
+
+Verification: `ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts` exits 0, both suites exit 0 captured separately, CI watched to a `success` conclusion.
