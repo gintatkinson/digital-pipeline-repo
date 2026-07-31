@@ -173,11 +173,21 @@ If any check fails, fix the body and re-verify. Do NOT file until all checks pas
 ### Step E — File
 
 1. Write the verified body to a dynamically named temporary file (e.g., `/tmp/gh_body_$(uuidgen).md`) to prevent parallel execution collisions.
-2. Run: `gh issue create --repo [REPO] --title "[AUDIT] [file.ext]: [description]" --label "bug" --body-file /tmp/gh_body_[ID].md`
-3. Title format: `[AUDIT] [filename.ext]: [Brief description]`
-4. If mode is `bug-based` and finding confirms a known issue, use `gh issue comment` instead of `gh issue create`.
-5. Sleep 1 second between issues.
-6. Return: issue URLs with severities.
+2. Resolve `[LABEL]` from the severity assigned in Section 1.4. This mapping is mandatory:
+
+   | Severity | `[LABEL]` |
+   | --- | --- |
+   | Critical | `bug` |
+   | Important | `bug` |
+   | Suggestion | `enhancement` |
+   | Nitpick | `enhancement` |
+
+   Section 1.4 defines Suggestion as forward-looking risk that is explicitly **NOT a current bug**. Filing such a finding as `bug` places it in the selection set of `debug-protocol`, whose Step 0 then forbids processing it — deadlocking that loop. See issue #287.
+3. Run: `gh issue create --repo [REPO] --title "[AUDIT] [file.ext]: [description]" --label "[LABEL]" --body-file /tmp/gh_body_[ID].md`
+4. Title format: `[AUDIT] [filename.ext]: [Brief description]`
+5. If mode is `bug-based` and finding confirms a known issue, use `gh issue comment` instead of `gh issue create`.
+6. Sleep 1 second between issues.
+7. Return: issue URLs with severities.
 
 ## 4. Example — Complete Compliant Output
 
