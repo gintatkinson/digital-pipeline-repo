@@ -4,7 +4,6 @@ import sys
 import tempfile
 import json
 import shutil
-import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 from parity_auditor.validators.uml import UmlValidator

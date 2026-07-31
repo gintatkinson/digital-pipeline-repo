@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pyyaml
+          pip install pytest pyyaml ruff
           pip install -e skills/spec-orchestrator/parity_auditor
 
       - name: Run Ingest and Verify Reproduction (Issues Only)
@@ -47,6 +47,12 @@ jobs:
           else
             echo "No reproduction directory found. Skipping validation."
           fi
+
+      - name: Lint (ruff, real-bug rules only)
+        if: github.event_name != 'issues'
+        run: |
+          ruff check skills/spec-orchestrator/parity_auditor/src skills/spec-orchestrator/parity_auditor/tests
+          ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts
 
       - name: Run Existing Regression Tests (PR / Push)
         if: github.event_name != 'issues'

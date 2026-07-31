@@ -1,14 +1,13 @@
 import os
 import sys
 import tempfile
-import pytest
 
 # Ensure skills/spec-orchestrator/scripts is in sys.path
 SCRIPT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from reconcile_backlog import write_markdown_file, deduplicate_markdown_sections, update_checklist_in_file, resolve_issue_ids_in_file
+from reconcile_backlog import write_markdown_file, deduplicate_markdown_sections
 
 def test_deduplicate_markdown_sections():
     content = (

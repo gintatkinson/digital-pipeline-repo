@@ -1,7 +1,5 @@
 import os
-import sys
 import json
-import pytest
 
 def test_mermaid_type_bound_multiplicity_extraction(tmp_path):
     from parity_auditor.core.workspace import WorkspaceRepository

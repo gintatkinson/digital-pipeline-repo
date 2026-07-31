@@ -1,9 +1,7 @@
 import os
 import sys
 import tempfile
-import pytest
 import subprocess
-from unittest.mock import MagicMock
 
 # Ensure skills/spec-orchestrator/scripts is in sys.path
 SCRIPT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))

@@ -13,7 +13,7 @@ import re
 import argparse
 import json
 import shutil
-from typing import Dict, Set, List
+from typing import Set, List
 
 from .core.workspace import WorkspaceRepository
 from .parsers.schema_router import parse_schema_file
@@ -31,7 +31,7 @@ from .validators.cardinality_validator import SchemaCardinalityValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .utils.diagnostics import serialize_diagnostics
-from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
+from .utils.comment_utils import strip_comments_and_strings
 
 def sanitize_github_token_env():
     """
@@ -893,7 +893,7 @@ def main():
         _main_impl()
     except SystemExit:
         raise
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
         upstream_repo = "gintatkinson/digital-pipeline-repo"

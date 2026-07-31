@@ -20,7 +20,6 @@ import pytest
 from rule_contracts import (
     ALL_CONTRACTS,
     FAMILIES,
-    DOC_ONLY_MERMAID_RULES,
     KNOWN_UNREGISTERED_FAMILIES,
     RuleContract,
 )

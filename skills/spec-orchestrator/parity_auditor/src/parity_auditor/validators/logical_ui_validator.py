@@ -69,7 +69,7 @@ class LogicalUiValidator(IValidator):
             except Exception as e:
                 return [f"Logical UI Compliance: Failed to parse logical-layout.json: {e}"]
         else:
-            return [f"Logical UI Compliance: logical-layout.json not found at expected paths."]
+            return ["Logical UI Compliance: logical-layout.json not found at expected paths."]
             
         features_dir = kwargs.get("features_dir")
         if not features_dir:

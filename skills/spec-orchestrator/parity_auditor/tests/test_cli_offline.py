@@ -1,12 +1,9 @@
 import os
 import sys
-import argparse
-import pytest
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from parity_auditor import cli
-from parity_auditor.core.workspace import WorkspaceRepository
 
 @patch("parity_auditor.cli.get_open_feature_issues")
 @patch("argparse.ArgumentParser.parse_args")
@@ -41,7 +38,6 @@ def test_cli_offline_github_does_not_fail(mock_repo_cls, mock_parse_args, mock_g
     mock_get_issues.return_value = None
 
     # Patch os.path.exists and builtins.open selectively
-    original_exists = os.path.exists
     def mock_exists_fn(path):
         p = str(path)
         if any(target in p for target in ["codebase_rules.json", "logical-layout.json", "docs/features", "schema"]):

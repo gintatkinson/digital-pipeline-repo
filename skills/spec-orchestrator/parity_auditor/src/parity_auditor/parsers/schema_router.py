@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple, Set, Optional, Dict
+from typing import List, Tuple, Optional, Dict
 from .base import IParser
 from .regex import RegexSchemaParser
 from ..core.workspace import WorkspaceRepository

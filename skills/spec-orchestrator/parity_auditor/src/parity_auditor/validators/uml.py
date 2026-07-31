@@ -9,7 +9,7 @@ use-case diagram structural rules, and epic checklist formatting.
 
 import os
 import re
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any
 from .base import IValidator
 from ..core.workspace import WorkspaceRepository
 

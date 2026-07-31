@@ -1,13 +1,12 @@
 import os
 import sys
 import tempfile
-import pytest
 
 SCRIPT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from reconcile_backlog import sanitize_source_references, write_markdown_file, sync_issue_body_to_tracker, get_upstream_repository, rewrite_header_repository_urls
+from reconcile_backlog import sanitize_source_references, write_markdown_file, get_upstream_repository, rewrite_header_repository_urls
 
 def test_sanitize_source_references_converts_workstation_file_uris():
     content = (

@@ -52,10 +52,18 @@ last_updated: "2026-07-31"
   Enforced by `parity_auditor/tests/test_script_shebang_issue282.py`.
 - Type hints use `typing` imports (`List`, `Optional`, `Dict`) rather than PEP 604
   unions or builtin generics, to hold the 3.9 floor.
-- **Linter:** none configured at time of writing. Adoption of `ruff` with
-  `select = ["F", "E9"]` — real-bug rules only, style families deliberately
-  excluded — is proposed in issue #293. Until that lands, tests are the only
-  static gate.
+- **Linter:** `ruff`, configured in `parity_auditor/pyproject.toml` with
+  `select = ["F", "E9"]` — pyflakes plus syntax/IO errors. Style families (`E1`-`E7`,
+  `W`, `I`, `N`) are **deliberately excluded**: enabling them across ~70 previously
+  unlinted files would create a large cosmetic backlog that is a project in its own
+  right. Blocking in CI. Run locally with:
+  ```bash
+  cd skills/spec-orchestrator/parity_auditor && ruff check src tests
+  ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts
+  ```
+  `__init__.py` is exempt from `F401` because its imports are the package's public API.
+  Two source files carry an `F841` exemption for documented refactor remnants; see the
+  comment in `pyproject.toml`. Adopted via issue #293.
 
 ## Testing Mandates
 

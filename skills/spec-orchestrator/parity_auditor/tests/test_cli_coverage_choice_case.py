@@ -1,7 +1,5 @@
 import os
 import sys
-import argparse
-import pytest
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -66,7 +64,6 @@ def test_cli_coverage_choice_case(mock_parse_schema, mock_repo_cls, mock_parse_a
         }
     )
 
-    original_exists = os.path.exists
     def mock_exists_fn(path):
         p = str(path)
         if any(target in p for target in ["codebase_rules.json", "docs/features", "schema"]):
@@ -77,7 +74,7 @@ def test_cli_coverage_choice_case(mock_parse_schema, mock_repo_cls, mock_parse_a
          patch("os.listdir", return_value=["test.yang"]), \
          patch("builtins.open", MagicMock()), \
          patch("json.load", return_value={}), \
-         patch("sys.exit") as mock_exit:
+         patch("sys.exit"):
          
         cli._main_impl()
         

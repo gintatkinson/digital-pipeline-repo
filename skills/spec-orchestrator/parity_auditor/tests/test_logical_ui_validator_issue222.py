@@ -3,7 +3,6 @@ import sys
 import tempfile
 import json
 import shutil
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
@@ -364,7 +363,7 @@ def test_issue219_geodetic_mapping_to_forbidden_topology():
 
         features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
         rel_path_invalid = os.path.join(".pipeline", "backlog", "features", "feat-invalid-geodetic.md")
-        rel_path_valid = os.path.join(".pipeline", "backlog", "features", "feat-valid-geodetic.md")
+        os.path.join(".pipeline", "backlog", "features", "feat-valid-geodetic.md")
 
         # Feature mapping geodetic attributes to non-spatial HierarchyTree component -> INVALID
         invalid_content = """---
@@ -442,8 +441,8 @@ def test_issue217_strict_section_5_header_numbering():
         repo = _create_test_repo(tmpdir, layout)
 
         features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
-        rel_path_unnumbered = os.path.join(".pipeline", "backlog", "features", "feat-unnumbered.md")
-        rel_path_numbered = os.path.join(".pipeline", "backlog", "features", "feat-numbered.md")
+        os.path.join(".pipeline", "backlog", "features", "feat-unnumbered.md")
+        os.path.join(".pipeline", "backlog", "features", "feat-numbered.md")
 
         # Feature with unnumbered header
         content_unnumbered = """---
@@ -608,7 +607,7 @@ def test_issue213_yang_choice_case_validation():
         repo = _create_test_repo(tmpdir, layout)
 
         features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
-        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-choice-test.md")
+        os.path.join(".pipeline", "backlog", "features", "feat-choice-test.md")
 
         feat_choice_content = """---
 title: "Test YANG Choice Nodes"

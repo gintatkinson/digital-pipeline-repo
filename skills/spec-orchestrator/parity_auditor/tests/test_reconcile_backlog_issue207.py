@@ -1,7 +1,6 @@
 import os
 import sys
 import tempfile
-import pytest
 
 # Ensure skills/spec-orchestrator/scripts is in sys.path
 SCRIPT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
@@ -78,7 +77,6 @@ def test_reconcile_epic_checklists_placeholder_stripping():
 
 def test_placeholder_regex_patterns():
     import re
-    from reconcile_backlog import reconcile_epic_checklists
 
     PLACEHOLDER_PATTERNS = [
         re.compile(r'^\s*[-*]*\s*\(?\s*\*?To be populated.*?\*?\)?\s*$', re.IGNORECASE),

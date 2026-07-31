@@ -8,7 +8,7 @@ validation rules (mermaid blocks, body terms, etc.).
 
 import os
 import re
-from typing import List, Dict, Any, Set
+from typing import List
 from .base import IValidator
 from ..core.workspace import WorkspaceRepository
 from ..utils.case_utils import normalize_case

@@ -1,6 +1,5 @@
 import os
 import json
-import pytest
 
 def test_codebase_rules_details_tabs_no_property_grid():
     rules_path = os.path.join(

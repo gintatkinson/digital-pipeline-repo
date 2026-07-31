@@ -54,8 +54,8 @@ def test_cleanup_db_shm_and_wal_still_work():
 
         cleanup_workspace(tmp)
 
-        assert not os.path.isfile(shm), f"FAIL: .db-shm not cleaned"
-        assert not os.path.isfile(wal), f"FAIL: .db-wal not cleaned"
+        assert not os.path.isfile(shm), "FAIL: .db-shm not cleaned"
+        assert not os.path.isfile(wal), "FAIL: .db-wal not cleaned"
         print("PASS: test_cleanup_db_shm_and_wal_still_work")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

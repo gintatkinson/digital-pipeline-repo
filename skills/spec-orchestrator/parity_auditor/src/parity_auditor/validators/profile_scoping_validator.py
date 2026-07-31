@@ -1,5 +1,4 @@
 import os
-import re
 from typing import List
 from .base import IValidator
 from ..core.workspace import WorkspaceRepository

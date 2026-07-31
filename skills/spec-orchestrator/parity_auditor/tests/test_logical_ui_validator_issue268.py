@@ -3,7 +3,6 @@ import sys
 import tempfile
 import json
 import shutil
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
@@ -71,7 +70,7 @@ def test_issue268_unnumbered_header_no_error():
         repo = _create_test_repo(tmpdir, layout)
 
         features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
-        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-unnumbered.md")
+        os.path.join(".pipeline", "backlog", "features", "feat-unnumbered.md")
 
         content = """---
 title: "Unnumbered Header UI Feature"
@@ -133,7 +132,7 @@ def test_issue265_unnumbered_non_ui_type_validates_bindings():
         repo = _create_test_repo(tmpdir, layout)
 
         features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
-        rel_path = os.path.join(".pipeline", "backlog", "features", "feat-api.md")
+        os.path.join(".pipeline", "backlog", "features", "feat-api.md")
 
         content = """---
 title: "API Feature with Bindings"
