@@ -22,7 +22,7 @@ in ``KNOWN_UNREGISTERED_FAMILIES`` so their absence is explicit rather than impl
 """
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 PARITY_SRC = "skills/spec-orchestrator/parity_auditor/src/parity_auditor"
 
@@ -103,7 +103,91 @@ MERMAID_CONTRACTS: List[RuleContract] = [
     ),
 ]
 
-ALL_CONTRACTS: List[RuleContract] = list(MERMAID_CONTRACTS)
+FILENAME_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="spec-filename-ordinal-uniqueness",
+        documented_in="skills/spec-usecase-engineering/SKILL.md",
+        doc_anchor="zero-padded, dash-separated",
+        enforced_in=f"{PARITY_SRC}/validators/spec_filename_validator.py",
+        enforcement_anchor="duplicate ordinal",
+        note="Issue #300. feat-04 and feat-05 each appear twice in downstream output.",
+    ),
+    RuleContract(
+        id="spec-filename-format",
+        documented_in="skills/spec-user-story-engineering/SKILL.md",
+        doc_anchor="zero-padded, dash-separated",
+        enforced_in=f"{PARITY_SRC}/validators/spec_filename_validator.py",
+        enforcement_anchor="does not match the documented convention",
+    ),
+    RuleContract(
+        id="spec-filename-padding-consistency",
+        documented_in="skills/spec-usecase-engineering/SKILL.md",
+        doc_anchor="zero-padded",
+        enforced_in=f"{PARITY_SRC}/validators/spec_filename_validator.py",
+        enforcement_anchor="inconsistent ordinal padding width",
+        note="feat-002 uses 3-digit padding where the directory otherwise uses 2.",
+    ),
+    RuleContract(
+        id="spec-filename-directory-prefix",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="docs/features/feat-01-name.md",
+        enforced_in=f"{PARITY_SRC}/validators/spec_filename_validator.py",
+        enforcement_anchor="directory prefix mismatch",
+    ),
+]
+
+
+@dataclass(frozen=True)
+class ContractFamily:
+    """A group of contracts plus the scanners that find orphans in either direction.
+
+    ``doc_heading_pattern`` is optional. A family whose rule is scattered across several
+    documents has no single file to scan for orphan documentation, so the field is None
+    and ``doc_orphan_blocked_by`` must explain why. Orphan **enforcement** detection
+    still works for such a family, because that scans one validator.
+    """
+
+    name: str
+    contracts: List[RuleContract]
+    enforcement_file: str
+    enforcement_pattern: str
+    doc_file: Optional[str] = None
+    doc_heading_pattern: Optional[str] = None
+    doc_only: Optional[dict] = None
+    doc_orphan_blocked_by: str = ""
+
+
+MERMAID_FAMILY = ContractFamily(
+    name="mermaid-syntax",
+    contracts=MERMAID_CONTRACTS,
+    doc_only=None,  # set below, once DOC_ONLY_MERMAID_RULES is defined
+    doc_file="rules/platform-independence.md",
+    doc_heading_pattern=r"\*\*(Mermaid[^*]*?)\*\*:",
+    enforcement_file=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+    enforcement_pattern=r'f"\{source\}:\{lineno\}: ([a-z][^"{]*?)(?:\s*"|\()',
+)
+
+FILENAME_FAMILY = ContractFamily(
+    name="spec-filename",
+    contracts=FILENAME_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/spec_filename_validator.py",
+    enforcement_pattern=r'f"\{rel\}(?:/\{name\})?: ([a-z][a-z ]*[a-z])',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "The filename convention has no single normative home. It is stated in "
+        "spec-usecase-engineering/SKILL.md:62, spec-user-story-engineering/SKILL.md:73 "
+        "and schema-specification-engineering/SKILL.md:39,89 — the same fragmentation "
+        "issue #289 fixed for the Mermaid rules by designating "
+        "rules/platform-independence.md as the normative home. Orphan-documentation "
+        "detection for this family is blocked until an equivalent home exists. Tracked "
+        "as a follow-up to #300."
+    ),
+)
+
+FAMILIES: List[ContractFamily] = [MERMAID_FAMILY, FILENAME_FAMILY]
+
+ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
 
 # Rule families known to exist and deliberately not yet registered. Listing them
@@ -156,3 +240,17 @@ DOC_ONLY_MERMAID_RULES = {
         "diagram parser rather than the syntax validator; pairing deferred."
     ),
 }
+
+
+# Bound after definition: the Mermaid family's intentional doc-only exemptions.
+MERMAID_FAMILY = ContractFamily(
+    name=MERMAID_FAMILY.name,
+    contracts=MERMAID_FAMILY.contracts,
+    enforcement_file=MERMAID_FAMILY.enforcement_file,
+    enforcement_pattern=MERMAID_FAMILY.enforcement_pattern,
+    doc_file=MERMAID_FAMILY.doc_file,
+    doc_heading_pattern=MERMAID_FAMILY.doc_heading_pattern,
+    doc_only=DOC_ONLY_MERMAID_RULES,
+)
+FAMILIES = [MERMAID_FAMILY, FILENAME_FAMILY]
+ALL_CONTRACTS = [c for f in FAMILIES for c in f.contracts]

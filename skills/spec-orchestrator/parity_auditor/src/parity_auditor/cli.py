@@ -29,6 +29,7 @@ from .validators.test_completeness_validator import TestCompletenessValidator
 from .validators.logical_ui_validator import LogicalUiValidator
 from .validators.cardinality_validator import SchemaCardinalityValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
+from .validators.spec_filename_validator import SpecFilenameValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
 
@@ -810,6 +811,17 @@ def _main_impl():
     else:
         print("Success: 1:1 container-to-file cardinality verified.")
 
+    print("\n=== Spec Filename Validation ===")
+    spec_filename_validator = SpecFilenameValidator()
+    spec_filename_errors = spec_filename_validator.validate(repo)
+    if spec_filename_errors:
+        print("[!] Spec Filename Violations Identified:")
+        for err in spec_filename_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Spec filename convention verified.")
+
     print("\n=== Mermaid Syntax Validation ===")
     mermaid_syntax_validator = MermaidSyntaxValidator()
     mermaid_syntax_errors = mermaid_syntax_validator.validate(repo)
@@ -833,7 +845,7 @@ def _main_impl():
         print("Success: Logical UI checks passed.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (missing_spec_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (missing_spec_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
