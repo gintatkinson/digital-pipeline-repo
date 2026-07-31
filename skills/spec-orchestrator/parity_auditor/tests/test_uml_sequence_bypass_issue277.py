@@ -114,8 +114,14 @@ sequenceDiagram
 """
 
 
+_RUN_SEQ = [0]
+
+
 def _run(tmp_path, story_text):
-    ws = tmp_path / "ws"
+    # Unique workspace per invocation: the suffix-sweep test calls this repeatedly
+    # with the same tmp_path fixture and would otherwise collide on mkdir.
+    _RUN_SEQ[0] += 1
+    ws = tmp_path / f"ws{_RUN_SEQ[0]}"
     (ws / "schema").mkdir(parents=True)
     (ws / "schema" / "model.yang").write_text("module m {}", encoding="utf-8")
 
@@ -163,7 +169,6 @@ def test_defined_classifier_is_accepted(tmp_path):
 # #277 - the bypass must be gone
 # --------------------------------------------------------------------------- #
 
-@pytest.mark.xfail(reason="#277 asks for the suffix bypass to be removed, but commit a5de5f8 added it deliberately to fix lifeline false positives and covered it with test_uml_validator.py::test_bypassed_lifelines_accepted. Removing it fails that test, which may not be weakened. Blocked on a human decision - see implementation_plan.md C8b.", strict=False)
 def test_undefined_manager_classifier_is_rejected_issue277(tmp_path):
     """'PaymentManager' ends with the former bypass suffix 'Manager'."""
     errors = _run(tmp_path, _story("PaymentManager"))
@@ -173,7 +178,6 @@ def test_undefined_manager_classifier_is_rejected_issue277(tmp_path):
     )
 
 
-@pytest.mark.xfail(reason="#277 asks for the suffix bypass to be removed, but commit a5de5f8 added it deliberately to fix lifeline false positives and covered it with test_uml_validator.py::test_bypassed_lifelines_accepted. Removing it fails that test, which may not be weakened. Blocked on a human decision - see implementation_plan.md C8b.", strict=False)
 def test_every_former_bypass_suffix_is_now_checked_issue277(tmp_path):
     """All ten former suffixes, so none is reinstated piecemeal."""
     former = (
@@ -191,7 +195,6 @@ def test_every_former_bypass_suffix_is_now_checked_issue277(tmp_path):
     )
 
 
-@pytest.mark.xfail(reason="#277 asks for the suffix bypass to be removed, but commit a5de5f8 added it deliberately to fix lifeline false positives and covered it with test_uml_validator.py::test_bypassed_lifelines_accepted. Removing it fails that test, which may not be weakened. Blocked on a human decision - see implementation_plan.md C8b.", strict=False)
 def test_messages_to_an_undefined_lifeline_are_not_silently_accepted_issue277(tmp_path):
     """The second-order effect: a bypassed receiver skipped operation validation too.
 
@@ -208,7 +211,6 @@ def test_messages_to_an_undefined_lifeline_are_not_silently_accepted_issue277(tm
     )
 
 
-@pytest.mark.xfail(reason="#277 asks for the suffix bypass to be removed, but commit a5de5f8 added it deliberately to fix lifeline false positives and covered it with test_uml_validator.py::test_bypassed_lifelines_accepted. Removing it fails that test, which may not be weakened. Blocked on a human decision - see implementation_plan.md C8b.", strict=False)
 def test_bypass_suffix_list_is_absent_from_the_source_issue277():
     """Pin the removal, so the tuple cannot be quietly reinstated."""
     src_path = os.path.join(
@@ -219,4 +221,71 @@ def test_bypass_suffix_list_is_absent_from_the_source_issue277():
     assert "bypass_suffixes" not in source, (
         "the bypass_suffixes tuple must not be reintroduced; it silently exempted "
         "lifelines and their messages from the Universal Model Consistency rule"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Option B semantics: exemption keys on UML role, not name spelling
+# --------------------------------------------------------------------------- #
+
+def _actor_story(classifier):
+    return f"""---
+generation_mode: subagent
+title: "Settle a payment"
+type: "user-story"
+---
+
+# User Story: Settle a payment
+
+## UML Sequence Diagram
+{FENCE}mermaid
+sequenceDiagram
+    autonumber
+    actor external as "external : {classifier}"
+    participant record as "record : PaymentRecord"
+    external->>record: settle(reference: String)
+    record-->external: status : Status
+{FENCE}
+"""
+
+
+def test_external_actors_are_exempt_regardless_of_name_issue277(tmp_path):
+    """An `actor` is outside the system boundary, so it is correctly absent from the
+    structural models. This is the false-positive class that commit a5de5f8 fixed and
+    that option C would have reinstated."""
+    still_flagged = []
+    for classifier in ("Payer", "HumanOperator", "ThirdPartyBank", "PaymentHandler"):
+        errors = _run(tmp_path, _actor_story(classifier))
+        if any(classifier in e and "not defined" in e for e in errors):
+            still_flagged.append(classifier)
+    assert not still_flagged, (
+        f"external actor lifelines must be exempt whatever they are called: {still_flagged}"
+    )
+
+
+def test_participant_is_required_even_with_an_exempt_sounding_name_issue277(tmp_path):
+    """The mirror of the test above, and the whole point of option B.
+
+    'PaymentManager' was exempt under the suffix list purely because of its spelling.
+    Declared as a participant it is an internal object and must resolve.
+    """
+    errors = _run(tmp_path, _story("PaymentManager"))
+    assert any("PaymentManager" in e and "not defined" in e for e in errors), (
+        f"a participant must resolve regardless of its name ending: {errors}"
+    )
+
+
+def test_operation_signature_check_is_reachable_again_issue277(tmp_path):
+    """The second-order defect, now closed.
+
+    Previously a bypassed classifier never entered global_classes, so the guard
+    `if rx_cls in global_classes:` was false and operation validation was skipped for
+    every message sent to it. A defined participant carrying a bogus operation proves
+    that check is live.
+    """
+    story = _story("PaymentRecord", operation="noSuchOperation(x: String)")
+    errors = _run(tmp_path, story)
+    assert any("noSuchOperation" in e for e in errors), (
+        "an undefined operation on a defined participant must be reported; this is the "
+        f"check the suffix bypass silently disabled. Errors: {errors}"
     )

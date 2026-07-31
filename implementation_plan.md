@@ -375,3 +375,45 @@ never mentions quoting. Generators therefore cannot comply.
 
 Filed as issues in this turn. D3-D5 implementation is **not** authorised yet; only
 issue creation, plus the D1/D2 work above.
+
+### D6. #277 — replace suffix bypass with UML role exemption  **[DECISION: option B, authorised]**
+
+Rationale on record. The suffix list (`Actor`, `Manager`, `System`, …) exempted lifelines
+by **name spelling**, so `PaymentManager` passed while `PaymentHandler` did not. Worse,
+because an exempt classifier never entered `global_classes`, the downstream
+`if rx_cls in global_classes:` guard was also false and **operation-signature validation
+was skipped for every message sent to it** — one exemption disabling two checks.
+
+Deleting the bypass outright (option C) was tested and rejected: an ordinary human actor
+`payer : Payer` is reported undefined, which is the false-positive class commit `a5de5f8`
+existed to remove.
+
+Option B keys the exemption on **UML role**, which the parser already records
+(`mermaid.py:620` sets `role` from the `actor|participant` keyword; undeclared lifelines
+default to `participant` at line 691). The pipeline's own template already distinguishes
+them correctly (`spec-user-story-engineering/SKILL.md:102-104`).
+
+| File | Exact change |
+|---|---|
+| `.../validators/uml.py` | Replace the `bypass_suffixes` tuple and its `endswith` clause with a role test: exempt `role == "actor"`, require every other lifeline's classifier to be in `global_classes`. |
+| `.../tests/test_uml_validator.py` | Rewrite `test_bypassed_lifelines_accepted` to assert the real rule: `actor` lifelines exempt regardless of name, `participant` lifelines required. Retain the `InvalidClass` case, re-declared as a `participant` so it still must fail. Rename to reflect what it tests. |
+| `.../tests/test_uml_sequence_bypass_issue277.py` | Remove the four `xfail` markers. Add a case asserting an `actor` is exempt, and one asserting a bogus operation on a `participant` is now caught — the second-order hole. |
+| `skills/spec-user-story-engineering/SKILL.md` | Document the actor/participant distinction as the operative rule, so enforcement is paired with documentation in a file an agent may edit. |
+
+**Constitution divergence this creates — flagged, not hidden.**
+`.pipeline/constitution.md:41` states *"Every lifeline in a sequence diagram MUST represent
+an instance of a defined logical Class or Component."* Option B exempts external actors,
+so the implemented rule will be narrower than that sentence. Left unaddressed this becomes
+instance #8 of the defect class #298 was built to catch.
+
+The constitution may not be edited by an agent (`AGENTS.md:59`, `project-constitution`
+Core Mandate 4). Proposed amendment submitted for human approval, to be applied alongside
+the pending line-120 amendment:
+
+> - Every lifeline in a sequence diagram MUST represent an instance of a defined logical
+>   Class or Component, **except lifelines declared as external actors (UML `actor`), which
+>   represent entities outside the system boundary and are therefore not defined in the
+>   structural models.** Every non-actor lifeline MUST resolve to a defined classifier.
+
+Until that is applied, the divergence is recorded in `tests/rule_contracts.py`
+`KNOWN_DOC_DIVERGENCES` so it is visible rather than forgotten.

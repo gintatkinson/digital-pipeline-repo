@@ -152,3 +152,28 @@ def test_every_enforced_mermaid_rule_is_registered():
         f"{orphans}. Every enforced rule must be paired with the document that states "
         "it, or a generating subagent cannot comply. This is issue #299."
     )
+
+
+# --------------------------------------------------------------------------- #
+# Known divergences must stay visible, and must not silently accumulate.
+# --------------------------------------------------------------------------- #
+
+def test_known_divergences_are_documented_with_a_resolution_path():
+    """A recorded divergence is acceptable; an undescribed one is not.
+
+    These exist because an agent may not edit .pipeline/constitution.md, so a
+    constitution-level mismatch can only be recorded and escalated. Each entry must
+    name where the operative rule lives and what amendment resolves it.
+    """
+    from rule_contracts import KNOWN_DOC_DIVERGENCES
+
+    assert KNOWN_DOC_DIVERGENCES, "the divergence register must not be silently emptied"
+    for key, description in KNOWN_DOC_DIVERGENCES.items():
+        assert len(description) > 80, (
+            f"divergence '{key}' needs a description naming the governing document, the "
+            "implemented rule, and the amendment that resolves it"
+        )
+        assert "pending" in description.lower() or "amendment" in description.lower(), (
+            f"divergence '{key}' must state its resolution path, or it is just a "
+            "permanent excuse"
+        )
