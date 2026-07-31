@@ -47,7 +47,7 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 
 ### Step 1.5: Tech Stack Research (Optional)
 
-If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or new platform capabilities, the coordinator MUST dispatch a **Research Subagent** (role: `Codebase Researcher`) using the `invoke_subagent` tool to investigate the codebase and target dependencies. The research subagent will follow these steps:
+If the feature involves unfamiliar frameworks, rapidly-evolving libraries, or new platform capabilities, the coordinator MUST dispatch a **Research Subagent** (role: `Codebase Researcher`) using whichever tool the active runtime exposes for context-isolated subagent dispatch, to investigate the codebase and target dependencies. Concrete per-runtime tool names are listed only in `.agents/AGENTS.md` § *Mandatory Subagent Dispatch for Research, Specification & Implementation Loops*, so that a change of runtime cannot make this instruction unexecutable (issue #312). If the active runtime's tool list is consulted and no such capability is found, HALT and escalate as a blocker; do not substitute direct coordinator research. The research subagent will follow these steps:
 
 1. **Identify research targets:** What specific APIs, libraries, or patterns does this feature require?
 2. **Check versions:** Verify the installed/pinned versions of relevant dependencies. Note any breaking changes between the project's current version and the latest.
