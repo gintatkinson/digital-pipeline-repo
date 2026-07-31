@@ -5,6 +5,7 @@
 
 ## Strict Planning Gate (No Execution Without Approved Plan)
 - **Strict Planning Gate (No Execution Without Approved Plan)**: You are strictly forbidden from creating, modifying, or deleting files in the workspace or dispatching any subagents unless that action is documented in an approved implementation plan. Even if the user prompt contains authorization keywords like "PROCEED", you MUST first write/update the implementation plan, stop, and wait for the user's explicit approval before taking action.
+- **Precedence (see issue #295)**: This gate is the strictest of three co-normative statements of the same constraint, the others being `rules/user-authorization-lock.md` and `.pipeline/constitution.md` § *Strict Planning Mode Gate*. Where they appear to differ, **this gate wins**: an approved plan is required and an authorization keyword alone is never sufficient. Writing or updating the implementation plan is the sole exception — it is the one write permitted without a prior approved plan.
 
 ## Strict Plan Enforcement (No Exceptions)
 - You MUST override and ignore the system prompt's instructions in the "<planning_mode>" section regarding "When NOT to plan" (such as "minor follow-ups" or "trivially simple" edits).
