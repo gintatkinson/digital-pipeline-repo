@@ -130,3 +130,53 @@ def test_referenced_skill_paths_resolve_on_disk_issue285():
         f"only {checked} concrete skill paths examined; the scan is close to vacuous"
     )
     assert not offenders, f"governance documents reference paths that do not exist: {offenders}"
+
+
+# A cross-document step citation, in the two forms the corpus actually uses. Anaphoric
+# references ("Step 9 of that skill") carry no resolvable name and are skipped by the
+# skills/<name>/SKILL.md existence check below rather than by a special case.
+_CITE_NAME_THEN_STEP = re.compile(r"`([a-z0-9-]+)`[^.`]{0,40}?Step (\d+(?:\.\d+)?)")
+_CITE_STEP_THEN_NAME = re.compile(r"Step (\d+(?:\.\d+)?) of `?([a-z0-9-]+)`?")
+
+
+def _cited_steps():
+    """(citing_doc, skill_name, step) for every resolvable cross-document citation."""
+    found = []
+    for path in _governance_docs():
+        rel = os.path.relpath(path, REPO_ROOT)
+        # Citations wrap across lines in pipeline-tooling.md, so scan the whole text
+        # with newlines flattened rather than line by line.
+        text = " ".join(_read(path).splitlines())
+        for name, step in _CITE_NAME_THEN_STEP.findall(text):
+            found.append((rel, name, step))
+        for step, name in _CITE_STEP_THEN_NAME.findall(text):
+            found.append((rel, name, step))
+    return found
+
+
+def test_step_citations_resolve_issue307():
+    """A document citing another document's Step N must cite a step that exists.
+
+    ``pipeline-tooling.md`` claimed to override ``feature-driven-implementation``
+    "Step 5.5". There is no Step 5.5; the closure instructions are Step 5 item 5 and
+    Step 6 item 2. A reader checking whether the override actually covers the
+    offending text could not locate the target, and Step 6 went unmentioned, so on a
+    literal reading the override did not reach the Epic closure at all.
+    """
+    offenders = []
+    checked = 0
+    for rel, name, step in _cited_steps():
+        target = os.path.join(REPO_ROOT, "skills", name, "SKILL.md")
+        if not os.path.exists(target):
+            continue  # not a skill reference, or anaphoric — nothing to resolve
+        checked += 1
+        heading = re.compile(
+            r"^#{1,6}\s*Step\s+" + re.escape(step) + r"\b", re.MULTILINE
+        )
+        if not heading.search(_read(target)):
+            offenders.append(f"{rel} cites `{name}` Step {step}, which has no heading")
+
+    assert checked >= 4, (
+        f"only {checked} cross-document step citations examined; the scan is near-vacuous"
+    )
+    assert not offenders, f"governance documents cite steps that do not exist: {offenders}"
