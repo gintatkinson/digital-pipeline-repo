@@ -62,8 +62,12 @@ last_updated: "2026-07-31"
   ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts
   ```
   `__init__.py` is exempt from `F401` because its imports are the package's public API.
-  Two source files carry an `F841` exemption for documented refactor remnants; see the
-  comment in `pyproject.toml`. Adopted via issue #293.
+  Adopted via issue #293.
+  **Historical, resolved by #303.** `cli.py` and `sync_validator.py` formerly carried an
+  `F841` exemption for three documented refactor remnants. Both exemptions are gone and
+  `F841` is enforced on those files again; see
+  `parity_auditor/tests/test_refactor_remnants_issue303.py`. Retained rather than deleted
+  per *Documentation Integrity* (`AGENTS.md`).
 
 ## Testing Mandates
 
