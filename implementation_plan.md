@@ -417,3 +417,44 @@ the pending line-120 amendment:
 
 Until that is applied, the divergence is recorded in `tests/rule_contracts.py`
 `KNOWN_DOC_DIVERGENCES` so it is visible rather than forgotten.
+
+---
+
+## Part E — Constitution amendment protocol
+
+**Finding.** The constitution was never actually locked. `.agents/AGENTS.md:60` forbids
+rewriting it *"unless every line of the replacement has been explicitly approved by the
+user in the current conversation turn"*; `project-constitution` Mandate 4 forbids
+modifying it *autonomously*; line 285 says *"On evolution: Human requests an update.
+Agent reads existing, proposes amendments, waits for approval."* Three sanctioned paths.
+
+What was missing was **procedure and audit trail**. Step 7 gave Tier 2 profiles a full
+add/update/remove/list lifecycle while Tier 1 had one sentence — the higher-authority
+document had the weaker process, so the safe default became refusal and two known
+divergences stayed unfixed.
+
+### E1. Phase 1 — build the mechanism  **[COMPLETE]**
+
+| File | Change |
+|---|---|
+| `.pipeline/constitution-amendments.md` | **New.** Append-only log. Each entry carries Date, Logged, Motivating issue, Approved by (verbatim), Destructive, Line count and resulting SHA-256. Seeded with AMEND-0000 baseline recording the current checksum, and the two pending amendments. |
+| `tests/test_constitution_integrity.py` | **New.** 8 assertions. The core one: SHA-256 of the constitution must equal the newest log entry, so any unlogged edit fails the suite. Plus field completeness, approval provenance, `last_updated` agreement, line-count agreement, and Mandate 3's cumulative rule (a non-destructive entry may not reduce line count). |
+| `skills/project-constitution/SKILL.md` | Adds **Step 9 — Amending the Functional Constitution**, the missing Tier 1 lifecycle: 9 numbered steps plus hard constraints. Notes the authority already existed. |
+
+Verified with four negative controls rather than a green run: unlogged edit caught by
+both checksum and line count, bare `n/a` approval caught, missing required field caught.
+
+### E2. Phase 2 — apply the two pending amendments  **[AWAITING LINE-BY-LINE APPROVAL]**
+
+Not started. `AGENTS.md:60` requires verbatim approval of the replacement text, and
+Step 9 item 4 requires that approval to reference the proposed text specifically — a
+bare "proceed" to a message containing two proposals is explicitly insufficient and must
+be clarified.
+
+Both targets are recorded in `tests/rule_contracts.py` `KNOWN_DOC_DIVERGENCES`:
+
+* `constitution.md:41` — external actor exemption (issue #277)
+* `constitution.md:120` — authorization sufficiency (issue #295)
+
+Each will be applied as its own commit, per Step 9's constraint that an amendment be
+reviewable in isolation.
