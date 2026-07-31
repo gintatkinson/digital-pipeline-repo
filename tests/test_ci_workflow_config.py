@@ -148,3 +148,41 @@ def test_ci_exercises_the_declared_python_floor_issue292():
         f"pyproject declares a floor of Python {floor} but CI runs {sorted(ci_versions)}. "
         "The declared minimum is never exercised, so it is an unverified claim."
     )
+
+
+# --------------------------------------------------------------------------- #
+# #302 - bytecode cache must not be written during tests
+# --------------------------------------------------------------------------- #
+
+TOOLING_PROFILE = os.path.join(
+    REPO_ROOT, ".pipeline", "upstream", "pipeline-tooling.md"
+)
+
+
+def _job_env(wf):
+    env = dict(wf.get("env") or {})
+    for job in wf.get("jobs", {}).values():
+        env.update(job.get("env") or {})
+    return {k: str(v) for k, v in env.items()}
+
+
+def test_ci_disables_bytecode_writing_issue302():
+    """macOS system Python caches .pyc outside the repo, in
+    ~/Library/Caches/com.apple.python/. Combined with mtime+size invalidation, a probe
+    that edits a file without changing its length can report a false result - which
+    undermines every negative control the gates rely on."""
+    env = _job_env(_load_workflow())
+    assert env.get("PYTHONDONTWRITEBYTECODE") == "1", (
+        "CI must set PYTHONDONTWRITEBYTECODE=1 so stale bytecode cannot make a test "
+        f"pass or fail against source no longer on disk. Job env: {env}"
+    )
+
+
+def test_tooling_profile_documents_the_bytecode_rule_issue302():
+    if not os.path.isfile(TOOLING_PROFILE):
+        pytest.skip("upstream tooling profile absent")
+    content = open(TOOLING_PROFILE, encoding="utf-8").read()
+    assert "PYTHONDONTWRITEBYTECODE" in content, (
+        "the tooling profile must document the bytecode rule under Testing Mandates, "
+        "or the reason for it is lost and someone will remove it from CI"
+    )

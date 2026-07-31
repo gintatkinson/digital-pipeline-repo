@@ -501,3 +501,32 @@ documentation and nothing would notice, which is exactly #299's defect.
 |---|---|
 | `tests/rule_contracts.py` | Introduce a `ContractFamily` descriptor carrying the family's contracts plus its documentation scanner and enforcement scanner (file + regex + doc-only exemptions). Declare `MERMAID_FAMILY` and `FILENAME_FAMILY`; derive `ALL_CONTRACTS` from `FAMILIES`. |
 | `tests/test_rule_contracts.py` | Parametrize the orphan-documentation and orphan-enforcement tests over `FAMILIES` rather than hardcoding Mermaid, keeping the vacuity guard per family. |
+
+---
+
+## Part G — #302 bytecode cache, #293 ruff adoption
+
+### G1. #302 — disable bytecode writing for tests
+
+macOS system Python caches `.pyc` in `~/Library/Caches/com.apple.python/`, outside the
+repository, so clearing `./tests/__pycache__` has no effect. Combined with mtime+size
+invalidation, a probe that edits a file without changing its byte length can report a
+false result. This undermines the negative-control technique the gates depend on.
+
+| File | Exact change |
+|---|---|
+| `.github/workflows/auto_regression_testing.yml` | Add `PYTHONDONTWRITEBYTECODE: "1"` to the job-level `env:`. |
+| `.pipeline/upstream/pipeline-tooling.md` | Document it under *Testing Mandates*, alongside the fixture-guard mandate, with the reason. |
+| `tests/test_ci_workflow_config.py` | Extend: assert the workflow sets the variable and the tooling profile documents it. |
+
+### G2. #293 — adopt ruff with F and E9 only
+
+| File | Exact change |
+|---|---|
+| `skills/spec-orchestrator/parity_auditor/pyproject.toml` | Add `[tool.ruff]` with `target-version = "py39"` and `[tool.ruff.lint] select = ["F", "E9"]`. Style families deliberately excluded. |
+| `.github/workflows/auto_regression_testing.yml` | Install ruff and run `ruff check` as a non-blocking step initially; promote to blocking once the baseline is clear. |
+| `.pipeline/upstream/pipeline-tooling.md` | Replace the "none configured" note under *Coding Standards* with the adopted rule set. |
+
+If `ruff` cannot be installed in this environment the baseline count cannot be
+established, in which case the config lands and the CI step is added, with the baseline
+step recorded as outstanding on #293 rather than claimed as done.

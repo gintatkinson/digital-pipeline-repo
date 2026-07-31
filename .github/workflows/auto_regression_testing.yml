@@ -10,6 +10,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # Stale bytecode outside the repo can make a test pass or fail against source
+      # no longer on disk, which invalidates negative-control probes (issue #302).
+      PYTHONDONTWRITEBYTECODE: "1"
     strategy:
       fail-fast: false
       matrix:
