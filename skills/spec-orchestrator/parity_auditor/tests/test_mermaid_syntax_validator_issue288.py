@@ -18,6 +18,8 @@ diagram.
 import os
 import sys
 
+import pytest
+
 # Convention in this suite: each test module puts ../src on sys.path itself, because
 # the package is not pip-installed locally. CI does `pip install -e`, so both paths
 # work there. Omitting this line breaks collection for the entire suite.

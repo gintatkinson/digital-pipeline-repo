@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import shutil
 import subprocess
 import pytest
 from unittest.mock import patch, MagicMock
@@ -9,7 +8,6 @@ from unittest.mock import patch, MagicMock
 from parity_auditor.core.workspace import WorkspaceRepository
 from parity_auditor.validators.schema_mapping_validator import SchemaMappingValidator
 from parity_auditor.validators.profile_scoping_validator import ProfileScopingValidator
-from parity_auditor.validators.test_completeness_validator import TestCompletenessValidator
 from parity_auditor.cli import main
 
 @pytest.fixture

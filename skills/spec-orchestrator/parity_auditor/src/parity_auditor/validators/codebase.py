@@ -10,13 +10,13 @@ libraries, missing write-lock controls, and missing playhead-rate clamps.
 import os
 import re
 import json
-from typing import List, Dict, Any, Set
+from typing import List
 from .base import IValidator
 from ..core.workspace import WorkspaceRepository
 from ..utils.comment_utils import strip_c_style_comments
 from ..utils.color_utils import extract_hex_colors_from_json
-from ..utils.ast_utils import walk_json_ast_for_compliance, verify_python_ast
-from ..utils.codebase import ast_check_banned_imports, ast_check_event_echo_guard
+from ..utils.ast_utils import verify_python_ast
+from ..utils.codebase import ast_check_banned_imports
 
 class CodebaseValidator(IValidator):
     """Enforce codebase compliance: AST import checks, event-echo guard, design-token colours, forbidden libs."""
@@ -132,7 +132,7 @@ class CodebaseValidator(IValidator):
                         try:
                             with open(filepath, "r", encoding="utf-8") as f:
                                 content = f.read()
-                        except UnicodeDecodeError as e:
+                        except UnicodeDecodeError:
                             errors.append(f"Compliance Bypass Risk: '{rel_path}' is not valid UTF-8. Binary files are not permitted.")
                             continue
                         except OSError as e:

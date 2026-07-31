@@ -5,7 +5,7 @@ import pytest
 from typing import List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from parity_auditor.utils.comment_utils import strip_c_style_comments, strip_comments_and_strings
+from parity_auditor.utils.comment_utils import strip_comments_and_strings
 
 common_words = { "id", "name", "type", "status", "value", "height", "width", "time", "x", "y", "z", "t", "date", "info", "data", "key", "code", "save", "edit", "view", "vector" }
 

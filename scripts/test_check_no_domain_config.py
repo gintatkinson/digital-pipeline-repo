@@ -113,7 +113,6 @@ def test_verify_no_domain_fallback_when_domain_dir_missing():
     This test simulates the data flow through _run_verification's filesystem fallback."""
     import tempfile
     import shutil
-    import types
 
     tmpdir = None
     try:

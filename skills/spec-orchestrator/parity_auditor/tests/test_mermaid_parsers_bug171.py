@@ -1,10 +1,8 @@
 import os
 import sys
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from parity_auditor.parsers.mermaid import MermaidSequenceDiagramParser, MermaidClassDiagramParser, MermaidFlowchartParser
-from parity_auditor.core.workspace import WorkspaceRepository
 
 class MockWorkspaceRules:
     class ValidationRules:

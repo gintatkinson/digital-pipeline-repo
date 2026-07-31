@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from typing import Dict, List, Set, Optional, Tuple, Any
+from typing import Dict, List, Set, Optional, Any
 from .models import CodebaseRules, FeatureFile, load_from_dict
 
 class WorkspaceRepository:
