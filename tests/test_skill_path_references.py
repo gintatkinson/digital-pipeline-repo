@@ -42,7 +42,12 @@ EXCLUDED_DIRS = {
 
 # Paths appearing inside prose as examples of the *wrong* form are allowed only in
 # documents that exist to explain the convention.
-ALLOWED_AGENTS_PREFIX = set()
+ALLOWED_AGENTS_PREFIX = {
+    # The normative statement of the rule has to quote the prohibited form in order to
+    # prohibit it (#310). Exempting the rule's own home is the narrowest fix; exempting
+    # by pattern, or weakening the scan, would reopen the #305 blind spot.
+    "rules/document-references.md",
+}
 
 
 def _governance_docs():
