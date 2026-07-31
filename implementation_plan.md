@@ -123,7 +123,8 @@ each, plus a comment on each explaining the reclassification and citing #287.
 | File | Exact change |
 |---|---|
 | `skills/spec-orchestrator/SKILL.md` | Lines 97, 109, 121: `./.agents/skills/spec-orchestrator/scripts/create_issue.sh` → `./skills/spec-orchestrator/scripts/create_issue.sh`. |
-| `skills/debug-protocol/SKILL.md` | Line 81: `.agents/skills/debug-protocol/SKILL.md` → `skills/debug-protocol/SKILL.md`. |
+| `skills/debug-protocol/SKILL.md` | Line 87: `.agents/skills/debug-protocol/SKILL.md` → `skills/debug-protocol/SKILL.md`. |
+| `tests/test_skill_path_references.py` | **New.** Assert no skill or rule document uses the `.agents/skills/` prefix, and — the stronger invariant — that every `skills/...` path referenced in those documents resolves on disk. |
 
 ### C8. #276, #277, #281 — Python defects in `parity_auditor`
 Genuine `debug-protocol` work, one issue at a time. Target files determined during
