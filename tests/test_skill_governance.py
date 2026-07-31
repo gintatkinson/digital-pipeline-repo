@@ -96,6 +96,80 @@ def test_auditor_maps_severity_to_label_issue287():
 # reintroduced accidentally while fixing #287.
 # --------------------------------------------------------------------------- #
 
+# --------------------------------------------------------------------------- #
+# #286 - the output template must satisfy the skill's own Step D check 5
+#
+# Step C:145 orders the subagent to copy the Section 2 skeleton "exactly", and
+# Step D:171 forbids filing until every check passes. When the skeleton emitted
+# '*' bullets and check 5 required '-', those two instructions were mutually
+# unsatisfiable. These tests are deliberately self-referential: they read the
+# regex out of the check-5 row and apply it to the skill's own blocks, so drift
+# in either direction fails rather than one hardcoded marker.
+# --------------------------------------------------------------------------- #
+
+def _check5_regex():
+    row = next(
+        (l for l in _read(AUDITOR).splitlines() if "Section 1 bullets" in l), None
+    )
+    assert row, "Step D check 5 row not found in adversarial-code-auditor/SKILL.md"
+    m = re.search(r"`([^`]+)`", row)
+    assert m, f"no backtick-quoted regex in the check 5 row: {row!r}"
+    return m.group(1)
+
+
+def _context_section_blocks():
+    """Every '## 1. Context and References' block and its bullet lines."""
+    lines = _read(AUDITOR).splitlines()
+    blocks = []
+    for i, line in enumerate(lines):
+        if line.strip().startswith("## 1. Context and References"):
+            seg = []
+            for nxt in lines[i + 1:i + 10]:
+                if nxt.strip().startswith("##"):
+                    break
+                if nxt.strip():
+                    seg.append(nxt)
+            blocks.append(seg)
+    return blocks
+
+
+def test_check5_regex_is_extractable_issue286():
+    """Guard: if this breaks, the two tests below prove nothing."""
+    pattern = _check5_regex()
+    re.compile(pattern)
+    assert "File" in pattern and "Pillar" in pattern and "Symptom" in pattern
+    blocks = _context_section_blocks()
+    assert len(blocks) >= 2, (
+        f"expected the skeleton and the worked example, found {len(blocks)} "
+        "'## 1. Context and References' blocks"
+    )
+
+
+def test_skeleton_and_example_satisfy_check5_issue286():
+    pattern = re.compile(_check5_regex())
+    offenders = []
+    for idx, block in enumerate(_context_section_blocks()):
+        matched = [l for l in block if pattern.match(l)]
+        if len(matched) != 3:
+            offenders.append((idx, len(matched), block))
+    assert not offenders, (
+        "a '## 1. Context and References' block does not satisfy the skill's own "
+        f"Step D check 5 regex {_check5_regex()!r}. Copying the skeleton exactly, as "
+        f"Step C mandates, would produce a body that check 5 rejects: {offenders}"
+    )
+
+
+def test_check5_accepts_either_list_marker_issue286():
+    """CommonMark treats '-' and '*' as equivalent, and both render identically.
+    The verifier should not reject a body over a distinction the reader cannot see."""
+    pattern = _check5_regex()
+    for marker in ("-", "*"):
+        assert re.match(pattern, f"{marker} **File**: `path.py:1-2`"), (
+            f"check 5 regex {pattern!r} rejects the '{marker}' list marker; it should "
+            "accept either, since both are valid CommonMark and render identically"
+        )
+
+
 def _ordered_list_runs(text):
     """Yield each maximal run of consecutive top-level numbered lines."""
     run = []

@@ -64,9 +64,9 @@ Every finding MUST produce output matching this skeleton character-for-character
 
 ## 1. Context and References
 
-* **File**: `[path]:[line-line]`
-* **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity | Semantic Traceability]
-* **Symptom**: [description]
+- **File**: `[path]:[line-line]`
+- **Pillar**: [Memory Safety | Resource Lifecycle | Concurrency | Test Integrity | Semantic Traceability]
+- **Symptom**: [description]
 
 ## 2. Root Cause Analysis (5 Whys)
 
@@ -160,7 +160,7 @@ Before filing, run these checks on the body. All must pass.
 | 2 | Audit Source line | Contains `## Audit Source` |
 | 3 | Severity line | Matches `SEVERITY: (Critical|Important|Suggestion|Nitpick)` |
 | 4 | File location line | Matches `FILE_LOCATION: [path]:[line]` |
-| 5 | Section 1 bullets | Three lines matching `^- \*\*(File|Pillar|Symptom)\*\*:` |
+| 5 | Section 1 bullets | Three lines matching `^[-*] \*\*(File|Pillar|Symptom)\*\*:` |
 | 6 | Section 2 Whys | Five lines matching `^[1-5]\. \*\*Why .*\?\*\* Because .*` |
 | 7 | Section 4 Critical/Important | Contains ````mermaid` block with valid diagram |
 | 8 | Section 4 Suggestion/Nitpick | Contains `N/A — ` |
@@ -193,9 +193,9 @@ If any check fails, fix the body and re-verify. Do NOT file until all checks pas
 
 ## 1. Context and References
 
-* **File**: `cesium_native_bridge/src/bridge.cpp:56-61`
-* **Pillar**: Memory Safety
-* **Symptom**: Dart FFI caller reads garbage or crashes after calling bridge_get_last_error when another thread concurrently calls bridge_shutdown on the same handle.
+- **File**: `cesium_native_bridge/src/bridge.cpp:56-61`
+- **Pillar**: Memory Safety
+- **Symptom**: Dart FFI caller reads garbage or crashes after calling bridge_get_last_error when another thread concurrently calls bridge_shutdown on the same handle.
 
 ## 2. Root Cause Analysis (5 Whys)
 
