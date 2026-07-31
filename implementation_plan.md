@@ -127,8 +127,100 @@ each, plus a comment on each explaining the reclassification and citing #287.
 | `tests/test_skill_path_references.py` | **New.** Assert no skill or rule document uses the `.agents/skills/` prefix, and — the stronger invariant — that every `skills/...` path referenced in those documents resolves on disk. |
 
 ### C8. #276, #277, #281 — Python defects in `parity_auditor`
-Genuine `debug-protocol` work, one issue at a time. Target files determined during
-each loop's Step 3 and appended to this plan before any edit.
+
+Investigation complete (read-only). Target files below. Executed serially.
+
+#### C8a. #276 — module-level env mutation  **[low risk]**
+
+`verify_model_coverage.py` calls `sanitize_github_token_env()` at **line 18, module
+level**, and again at line 25 inside `if __name__ == "__main__":`. Any import of the
+module therefore pops `GITHUB_TOKEN`/`GH_TOKEN` from the process environment. The
+`__main__` call already covers the intended use, so the module-level call is
+redundant as well as harmful.
+
+| File | Exact change |
+|---|---|
+| `skills/spec-orchestrator/scripts/verify_model_coverage.py` | Delete line 18, the bare `sanitize_github_token_env()` call. Keep the function definition and the line-25 call inside `__main__`. |
+| `.../parity_auditor/tests/test_env_isolation_issue276.py` | **New.** Set a dummy `GITHUB_TOKEN`, import the module by path, assert the variable survives. Assert the function still sanitises when invoked explicitly, so the fix is not a silent removal of capability. |
+
+Blast radius: none expected. To be confirmed during implementation by checking no
+test relies on import-time sanitisation.
+
+#### C8b. #277 — sequence-diagram validation bypass  **[low risk today]**
+
+`uml.py:245` defines `bypass_suffixes = ("Actor", "Calculator", "Provider", "Mapper",
+"Manager", "Configurator", "Architect", "Validator", "ValidatorSystem", "System")` and
+line 246 skips the registry check for any classifier ending in one. Because a bypassed
+class is absent from `global_classes`, the downstream `if rx_cls in global_classes:`
+guard also skips **operation** validation for every message sent to it.
+
+Blast radius today is **zero**: `docs/user-stories/` contains 0 files, so this code
+path has no live inputs. The fix cannot be validated against real content and will
+rest on synthetic fixtures — stated explicitly rather than implied.
+
+| File | Exact change |
+|---|---|
+| `.../validators/uml.py` | Delete the `bypass_suffixes` tuple at line 245 and the `and not cls_name.endswith(bypass_suffixes)` clause at line 246, so an undefined lifeline classifier always raises. |
+| `.../parity_auditor/tests/test_uml_sequence_bypass_issue277.py` | **New.** Synthetic user story whose lifeline classifier `PaymentManager` appears in no class diagram → expect an error. Second case: a message to that lifeline must have its operation validated rather than silently accepted. Include a fixture guard. |
+
+#### C8c. #281 — brittle placeholder detection  **[BLOCKED — needs a decision]**
+
+Confirmed as a live defect, with a consequence that is not mine to choose.
+
+Two detection gaps in `_validate_placeholders_and_links` (uml.py:620-658):
+* `PLACEHOLDER_STUBS` omits `[Epic Title]`, `(semantic linkage justification)`, `*(None)*`.
+* `if "IssueID" in content` misses `#[EpicID]` — the string `"EpicID"` does not contain
+  `"IssueID"`.
+
+Live corpus impact, measured:
+
+| Finding | Count |
+|---|---|
+| Feature files with an entirely unpopulated `## Parent Epic` (`#[EpicID] - [Epic Title]`) | **8** |
+| …of those, already registered on the tracker (`issue_id: 54-58`) | 5 |
+| …not yet registered | 3 |
+| Of the 8, also using relative `../epics/` links forbidden by `tracker-source-of-truth.md` | 3 |
+| Epic issues on the tracker available to link to | **0** |
+| `epic` label present | **no** |
+| Files in `docs/epics/` | **0** |
+
+**The blocker:** repairing the detector turns the linter red, and the 8 files cannot be
+populated correctly because no Epics exist to reference. The linter is green today only
+because the detector fails to look.
+
+Options, for the human to choose:
+
+* **A — Fix the detector, file the 8 files as a separate issue, accept a red linter.**
+  Honest; the current green is false. But Phase 4 stays blocked until Epics exist.
+* **B — Fix the detector and author the missing Epics.** Removes the blocker, but is
+  substantial specification work needing human input on Epic boundaries, and is well
+  outside this plan.
+* **C — Fix the detector, gate only documents carrying `issue_id`.** Semantically the
+  closest to #281's actual complaint. Reduces the failure from 8 files to 5 — it does
+  **not** eliminate it, because 5 of the 8 are already registered.
+* **D — Defer #281** until Epics exist, leaving the detector brittle and recorded.
+
+**DECISION: option A**, authorised by the human ("do all", following the recommendation
+of A). Rationale on record: a gate that passes unpopulated specifications is worse than
+a gate that is honestly red, and the precedent set by #296 is to file exposed
+pre-existing content rather than silently absorb it.
+
+Consequence accepted: `verify_model_coverage.py` will report failures on 8 feature files
+until Epics exist. This is the gate working, not a regression.
+
+| File | Exact change |
+|---|---|
+| `.../validators/uml.py` | In `_validate_placeholders_and_links`: replace the literal `PLACEHOLDER_STUBS` membership test with normalised pattern detection covering `[Epic Title]`, `[Feature Title]`, `(semantic linkage justification)`, `*(None)*` and the existing stubs. Replace `if "IssueID" in content` with a check matching any unresolved `#[...ID]` bracket token, so `#[EpicID]` is caught. |
+| `.../parity_auditor/tests/test_placeholder_detection_issue281.py` | **New.** Assert each evasive placeholder is detected, assert `#[EpicID]` is caught, and assert a fully populated document produces no error so the detector is not simply rejecting everything. |
+
+**Revert path**, if option C is preferred later: gate the new detections on the document
+declaring `issue_id` in its frontmatter. That reduces failures from 8 files to 5 and is
+a single conditional around the new checks.
+
+#### C8d. Follow-up issue for content exposed by C8c
+File an issue recording the 8 feature files with unpopulated `## Parent Epic` sections,
+the 3 using forbidden relative links, and the absence of any Epic to link to. No file
+changes; issue creation only. Mirrors the handling of #296.
 
 ### C9. Governance contradiction — authorization precedence  **[APPROVED, IN PROGRESS]**
 
