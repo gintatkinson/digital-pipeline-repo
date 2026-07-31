@@ -776,7 +776,42 @@ Enumerated by grep; this is every site, not the four named earlier.
 | `tests/test_skills_never_close_issues_issue<J0-2>.py` | **New.** RED first. Assert no `SKILL.md` contains an instruction to close a tracker issue — scan for `gh issue close` and for imperative "close the ... issue" phrasing. Assert `debug-protocol` selection query excludes `status:fixed-resolved`. Fixture guard: assert the scan found all ten `SKILL.md` files. |
 | `tests/rule_contracts.py` | Move the J0 divergence entry to `RESOLVED_DIVERGENCES`, naming this package. |
 
-### J4 — extend the contract gate to doc-to-doc assertions (root cause)
+### J4 (revised, trimmed) — close the orphan enforcement — issue #310
+
+**Why the original J4 was cut down.** It was planned to address the defect class while
+J1-J3 fixed only instances. In the event J1 and J2 delivered general gates, not
+one-offs: `test_referenced_skill_paths_resolve_on_disk_issue285` (now scanning hidden
+roots), `test_step_citations_resolve_issue307`, and
+`test_no_skill_instructs_closing_a_tracker_issue_issue306` already catch the class for
+paths, step citations and closure language. Building a parallel `DOC_REFERENCE_CONTRACTS`
+abstraction on top would have re-encoded existing coverage. Product Owner selected the
+trimmed scope.
+
+**What the trim exposed.** Registering the families surfaced something the fuller
+version would have buried: searching `rules/`, `.pipeline/*.md`, `.pipeline/upstream/`
+and `.agents/AGENTS.md` returns **zero** hits for the repo-relative prefix convention
+and zero for the cited-references rule. Three rules were enforced by tests and stated in
+no document — orphan enforcement, the #299 class this registry exists to detect, sitting
+outside the registry in `KNOWN_UNREGISTERED_FAMILIES` labelled "covered ad hoc", which
+understated it: ad hoc coverage is still coverage, whereas these had no documented
+contract at all. The control case (agents must not close issues) resolves correctly to
+`constitution.md:161`.
+
+| File | Exact change |
+|---|---|
+| `rules/document-references.md` | **New.** States the three constraints normatively: Repository-Relative Skill Paths, Cited Paths Must Resolve, Cited Steps Must Resolve. Declares hidden directories in scope, since omitting them is how the prefix rule went unenforced against its only violator (#305). |
+| `tests/rule_contracts.py` | New `DOC_REFERENCE_CONTRACTS` + `DOC_REFERENCE_FAMILY`, added to `FAMILIES`. Pairs each constraint with its existing assertion in `test_skill_path_references.py`. Removes `skill-path-references` from `KNOWN_UNREGISTERED_FAMILIES`. |
+
+No behaviour change — the tests already enforced these. This closes the documentation
+side so the pairing is complete in both directions.
+
+**Verification note.** The family's `enforcement_pattern` initially truncated one
+extracted message at the dot in `.agents/skills/`, which would have weakened
+orphan-enforcement detection for that rule while still passing. Terminator tightened
+from a bare `.` to `": "` or `". "`, and extraction confirmed by printing all three
+matches rather than trusting a green suite.
+
+### J4 (original, superseded) — extend the contract gate to doc-to-doc assertions
 
 All three defects are one shape: *a document asserts something about another document
 that is not true* — a path that does not exist, a step that does not exist, an
