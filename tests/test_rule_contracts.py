@@ -165,15 +165,49 @@ def test_known_divergences_are_documented_with_a_resolution_path():
     constitution-level mismatch can only be recorded and escalated. Each entry must
     name where the operative rule lives and what amendment resolves it.
     """
-    from rule_contracts import KNOWN_DOC_DIVERGENCES
+    import rule_contracts
+    from rule_contracts import KNOWN_DOC_DIVERGENCES, RESOLVED_DIVERGENCES
 
-    assert KNOWN_DOC_DIVERGENCES, "the divergence register must not be silently emptied"
+    # An empty OPEN register is the goal. The structure must still exist, so a future
+    # divergence has a defined home instead of going undocumented.
+    assert hasattr(rule_contracts, "KNOWN_DOC_DIVERGENCES"), (
+        "the open-divergence register must remain declared even when empty"
+    )
     for key, description in KNOWN_DOC_DIVERGENCES.items():
         assert len(description) > 80, (
-            f"divergence '{key}' needs a description naming the governing document, the "
-            "implemented rule, and the amendment that resolves it"
+            f"open divergence '{key}' needs a description naming the governing document, "
+            "the implemented rule, and the amendment that would resolve it"
         )
         assert "pending" in description.lower() or "amendment" in description.lower(), (
-            f"divergence '{key}' must state its resolution path, or it is just a "
+            f"open divergence '{key}' must state its resolution path, or it is just a "
             "permanent excuse"
         )
+
+    # Resolved entries are history and must record HOW they were closed.
+    assert RESOLVED_DIVERGENCES, (
+        "the resolved register must not be emptied; it is the record of how divergences "
+        "were closed"
+    )
+    for key, description in RESOLVED_DIVERGENCES.items():
+        assert re.search(r"RESOLVED by (AMEND-\d+|#\d+)", description), (
+            f"resolved divergence '{key}' must name the amendment or issue that closed "
+            "it, e.g. 'RESOLVED by AMEND-0001'"
+        )
+
+
+def test_resolved_divergences_reference_real_amendments():
+    """A citation to a non-existent amendment is worse than none."""
+    from rule_contracts import RESOLVED_DIVERGENCES
+
+    log = os.path.join(REPO_ROOT, ".pipeline", "constitution-amendments.md")
+    if not os.path.isfile(log):
+        pytest.skip("amendment log absent")
+    logged = set(re.findall(r"^## (AMEND-\d+)", _read(log), re.M))
+    missing = []
+    for key, description in RESOLVED_DIVERGENCES.items():
+        for cited in re.findall(r"AMEND-\d+", description):
+            if cited not in logged:
+                missing.append(f"{key} -> {cited}")
+    assert not missing, (
+        f"resolved divergences cite amendments absent from the log: {missing}"
+    )

@@ -126,20 +126,26 @@ KNOWN_UNREGISTERED_FAMILIES = {
 # An agent may not edit .pipeline/constitution.md (AGENTS.md:59, project-constitution
 # Core Mandate 4), so constitution-level divergences can only be recorded here and
 # submitted for human approval.
-KNOWN_DOC_DIVERGENCES = {
+# OPEN divergences. Empty is the goal, not a defect — but the structure must remain so
+# a future divergence has a defined home rather than being left undocumented.
+KNOWN_DOC_DIVERGENCES: dict = {}
+
+
+# RESOLVED divergences, retained as history. Each MUST name the amendment or change that
+# resolved it, so the register records how divergences were closed and not merely that
+# they vanished.
+RESOLVED_DIVERGENCES = {
     "constitution-lifeline-actor-exemption": (
-        ".pipeline/constitution.md:41 states 'Every lifeline in a sequence diagram MUST "
-        "represent an instance of a defined logical Class or Component'. Issue #277 "
-        "option B exempts lifelines declared as external UML actors, so the implemented "
-        "rule is narrower than that sentence. The operative rule is documented in "
-        "skills/spec-user-story-engineering/SKILL.md. A constitution amendment is "
-        "pending human approval; see implementation_plan.md D6."
+        ".pipeline/constitution.md:41 required every sequence-diagram lifeline to resolve "
+        "to a defined Class or Component, while issue #277 option B exempts external UML "
+        "actors. RESOLVED by AMEND-0001, which added the exemption and restated the "
+        "requirement for all non-actor lifelines."
     ),
     "constitution-proceed-keyword-sufficiency": (
-        ".pipeline/constitution.md:120 states that typing 'Proceed' is sufficient "
-        "authorization. .agents/AGENTS.md:7 states a keyword is explicitly insufficient "
-        "without an approved plan, and issue #295 unified on the stricter reading. The "
-        "constitution sentence remains weaker. Amendment pending human approval."
+        ".pipeline/constitution.md:120 treated an authorization keyword as sufficient, "
+        "while .agents/AGENTS.md:7 states it is not without an approved plan; issue #295 "
+        "unified on the stricter reading. RESOLVED by AMEND-0002, which now requires both "
+        "an approved implementation plan and the keyword."
     ),
 }
 
