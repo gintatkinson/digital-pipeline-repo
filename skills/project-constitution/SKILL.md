@@ -282,7 +282,70 @@ ls .pipeline/profiles/
 - **Before every spec-generation run:** Agent reads `.pipeline/constitution.md` only. Implementation profiles are ignored.
 - **Before every feature implementation:** Agent reads `.pipeline/constitution.md` AND `.pipeline/profiles/<target-platform>.md`.
 - **On conflict:** If a proposed change conflicts with any constitution document, the agent halts and escalates.
-- **On evolution:** Human requests an update. Agent reads existing, proposes amendments, waits for approval.
+- **On evolution:** Human requests an update. Agent reads existing, proposes amendments, waits for approval. The procedure is Step 9 — do not improvise it.
+
+### Step 9: Amending the Functional Constitution (Tier 1)
+
+> [!IMPORTANT]
+> Until this step existed, Tier 2 implementation profiles had a full lifecycle (Step 7:
+> add, update, remove, list) while the Tier 1 constitution — the **higher**-authority
+> document — had a single sentence. The stronger document had the weaker process, so the
+> safe default became refusal and known defects stayed unfixed because no one could
+> describe a safe way to amend it. This step closes that gap.
+
+**Authority.** Amending the constitution is permitted, and always has been.
+`.agents/AGENTS.md` forbids rewriting it *"unless every line of the replacement has been
+explicitly approved by the user in the current conversation turn"*, and Core Mandate 4
+forbids modifying it *autonomously*. An amendment carrying verbatim human approval
+satisfies both. What was missing was procedure and audit trail, not permission.
+
+**Every amendment is logged.** `.pipeline/constitution-amendments.md` is append-only and
+records the resulting SHA-256 of the constitution.
+`tests/test_constitution_integrity.py` asserts the file matches the newest entry, so an
+unlogged edit — by a human, an agent, or a merge — fails the suite.
+
+#### Procedure
+
+1. **Human requests the change**, or an agent identifies a divergence between the
+   constitution and enforced behaviour and escalates it. An agent MUST NOT initiate an
+   amendment without a request or a recorded divergence.
+2. **Agent reads the current constitution** and quotes the **exact existing lines**
+   to be changed, with line numbers. Never paraphrase what is being replaced.
+3. **Agent proposes the exact replacement text**, presented side by side with the
+   current text so the human approves lines rather than a summary.
+4. **Agent stops and waits.** No file is touched. Approval must be explicit and must
+   reference the proposed text; a bare "proceed" to a message containing several
+   proposals is ambiguous and MUST be clarified.
+5. **Agent applies the amendment**, editing in place. Additive or refining only —
+   Mandate 3 forbids destructive change without separate explicit approval.
+6. **Agent bumps `last_updated`** in the constitution frontmatter.
+7. **Agent appends an amendment entry** with all required fields: Date, Logged,
+   Motivating issue, Approved by (verbatim quote of the approval), Destructive,
+   Line count, Resulting SHA-256.
+8. **Agent runs the integrity gate** and pastes the output:
+   ```bash
+   python3 -m pytest tests/test_constitution_integrity.py -q
+   ```
+9. **Commit both files together.** The constitution and its log must never diverge in
+   history:
+   ```bash
+   git add .pipeline/constitution.md .pipeline/constitution-amendments.md
+   git commit -m "docs: amend constitution — <change summary> (AMEND-nnnn)"
+   ```
+
+#### Hard constraints
+
+- An amendment that **removes** an established principle requires approval of the
+  removal specifically, not merely of the replacement text. Flag the entry
+  `Destructive: yes` and justify what was removed and why.
+- Never amend the constitution and other files in the same commit. The amendment must
+  be reviewable in isolation.
+- If the human's approval is ambiguous, ask. An amendment applied on a misread
+  approval is worse than an unfixed divergence, because the audit trail will record it
+  as approved.
+- Recording a divergence in `tests/rule_contracts.py` `KNOWN_DOC_DIVERGENCES` is the
+  correct action when approval is not yet available. A divergence left undocumented
+  becomes indistinguishable from a bug.
 
 ---
 
