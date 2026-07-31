@@ -210,42 +210,67 @@ def test_validator_returns_empty_when_nothing_to_scan(tmp_path):
 # The live repository must be clean, or the gate cannot be turned on
 # --------------------------------------------------------------------------- #
 
-def test_repository_markdown_passes_the_checker():
-    """Drives the validator itself, so the gate and this test cannot diverge."""
-    from parity_auditor.core.workspace import WorkspaceRepository
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-    repo = WorkspaceRepository(workspace_dir=repo_root)
-    errors = MermaidSyntaxValidator().validate(repo)
+# Pipeline-owned markdown: source we author and ship. Must be clean.
+PIPELINE_OWNED = ("rules", "skills")
+# Downstream output: disposable diagnostic material. Symptoms here are the SIGNAL,
+# not a failure. Never repaired -- see implementation_plan.md Part D.
+DOWNSTREAM_OUTPUT = ("docs",)
+
+
+def _scan(bases):
+    checked, errors = 0, []
+    for base in bases:
+        root = os.path.join(REPO_ROOT, base)
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root):
+            for name in sorted(filenames):
+                if not name.endswith(".md"):
+                    continue
+                path = os.path.join(dirpath, name)
+                with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                    content = fh.read()
+                if FENCE + "mermaid" not in content:
+                    continue
+                checked += 1
+                errors.extend(
+                    check_mermaid_text(content, source=os.path.relpath(path, REPO_ROOT))
+                )
+    return checked, errors
+
+
+def test_pipeline_owned_markdown_is_clean():
+    """rules/ and skills/ are source we author. These must satisfy our own rules."""
+    checked, errors = _scan(PIPELINE_OWNED)
+    assert checked >= 3, (
+        f"only {checked} pipeline-owned file(s) with diagrams scanned; near-vacuous"
+    )
     assert not errors, (
-        f"{len(errors)} documented-rule violation(s) in the scanned tree:\n"
+        f"{len(errors)} violation(s) in pipeline-owned markdown:\n"
         + "\n".join(f"  - {e}" for e in errors[:25])
     )
 
 
-def test_default_scan_actually_covers_files_with_diagrams():
-    """Guard: if the default scan matched nothing, the test above would pass vacuously."""
-    from parity_auditor.core.workspace import WorkspaceRepository
-    from parity_auditor.validators.mermaid_syntax_validator import EXCLUDED_DIR_NAMES
+def test_detection_works_against_real_downstream_symptoms():
+    """The inverse assertion, and the important one.
 
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-    found = 0
-    for base in ("rules", "skills", "docs"):
-        root = os.path.join(repo_root, base)
-        if not os.path.isdir(root):
-            continue
-        for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIR_NAMES]
-            for name in filenames:
-                if not name.endswith(".md"):
-                    continue
-                with open(os.path.join(dirpath, name), "r", encoding="utf-8",
-                          errors="replace") as fh:
-                    if FENCE + "mermaid" in fh.read():
-                        found += 1
-    assert found >= 5, (
-        f"default scan covers only {found} file(s) containing mermaid blocks; "
-        "the clean-repository assertion would be close to vacuous"
+    ``docs/`` is disposable downstream output kept to source symptoms. Asserting it is
+    clean would force either repairing throwaway content or suppressing signal -- the
+    latter is exactly the mistake ``EXCLUDED_DIR_NAMES`` made, concealing 13
+    non-rendering diagrams behind a green check.
+
+    So instead: prove the checker fires on real downstream content. If this ever
+    reports zero, the corpus was deleted or detection silently broke.
+    """
+    checked, errors = _scan(DOWNSTREAM_OUTPUT)
+    if checked == 0:
+        pytest.skip("downstream corpus removed; nothing to diagnose")
+    assert errors, (
+        f"scanned {checked} downstream file(s) with diagrams and found no violations. "
+        "Given the known symptoms in feat-10, feat-11 and docs/decisions/, detection "
+        "has probably regressed."
     )
 
 
