@@ -5,11 +5,17 @@ on:
     types: [opened, labeled]
   pull_request:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.9 is the declared requires-python floor and the only interpreter
+        # installed on the development machine. 3.12 gives forward warning.
+        python-version: ['3.9', '3.12']
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -17,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
@@ -41,4 +47,5 @@ jobs:
       - name: Run Existing Regression Tests (PR / Push)
         if: github.event_name != 'issues'
         run: |
-          pytest tests/test_repro_cases.py
+          pytest tests/ -q
+          pytest skills/spec-orchestrator/parity_auditor/tests -q
