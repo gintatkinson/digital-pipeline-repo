@@ -254,3 +254,9 @@ MERMAID_FAMILY = ContractFamily(
 )
 FAMILIES = [MERMAID_FAMILY, FILENAME_FAMILY]
 ALL_CONTRACTS = [c for f in FAMILIES for c in f.contracts]
+
+
+# The `id` field of each contract is the same string validators pass as Finding.rule_id.
+# tests/test_rule_contracts.py asserts every emitted rule id is registered here, so a new
+# finding cannot become invisible to aggregation (#301) or undocumented (#299).
+REGISTERED_RULE_IDS = {c.id for c in ALL_CONTRACTS}

@@ -35,6 +35,7 @@ import re
 from typing import List, Optional, Sequence, Tuple
 
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 FENCE = "`" * 3
@@ -124,11 +125,12 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
     blocks, unclosed = _blocks(text)
 
     for start in unclosed:
-        errors.append(
+        errors.append(Finding(
+                    "mermaid-fence-must-be-closed",
             f"{source}:{start}: unclosed ```mermaid fence. Every diagram must be "
             f"closed with a matching {FENCE} on its own line, or the block leaks "
             f"into the surrounding document."
-        )
+        , location=f"{source}"))
 
     for start, body, kind in blocks:
         for offset, line in enumerate(body):
@@ -144,12 +146,13 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
                 if msg:
                     payload = msg.group("text")
             if payload and ";" in payload:
-                errors.append(
+                errors.append(Finding(
+                    "mermaid-no-semicolon-in-note-or-message",
                     f"{source}:{lineno}: semicolon in Mermaid Note or message text "
                     f"({line.strip()!r}). Mermaid parses ';' as a statement separator, "
                     f"so the rest of the line becomes a new statement and the diagram "
                     f"fails to render. Replace it with a comma, dash or space."
-                )
+                , location=f"{source}"))
 
             if kind != "classdiagram":
                 continue
@@ -159,40 +162,45 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
             if member and not _BRACE_ONLY.match(member.group("rest")) \
                     and _in_class_body(body, offset):
                 if ":" in line:
-                    errors.append(
+                    errors.append(Finding(
+                    "mermaid-no-colon-in-class-member",
                         f"{source}:{lineno}: colon inside a Mermaid class member line "
                         f"({line.strip()!r}). Use 'ReturnType methodName(Type arg)' "
                         f"spacing instead."
-                    )
+                    , location=f"{source}"))
                 if "{" in line or "}" in line:
-                    errors.append(
+                    errors.append(Finding(
+                    "mermaid-no-curly-brace-in-class-member",
                         f"{source}:{lineno}: curly brace inside a Mermaid class member "
                         f"line ({line.strip()!r}). Use parentheses, e.g. "
                         f"'(default earth)'."
-                    )
+                    , location=f"{source}"))
 
             class_note = _CLASS_NOTE.match(line)
             if class_note and ":" in class_note.group("text"):
-                errors.append(
+                errors.append(Finding(
+                    "mermaid-no-colon-in-note-string",
                     f"{source}:{lineno}: colon inside a Mermaid note string "
                     f"({line.strip()!r}). Colons in notes break rendering."
-                )
+                , location=f"{source}"))
 
             if _RELATIONSHIP.search(line) and _STEREOTYPE.search(line):
-                errors.append(
+                errors.append(Finding(
+                    "mermaid-no-stereotype-on-relationship",
                     f"{source}:{lineno}: stereotype on a Mermaid relationship line "
                     f"({line.strip()!r}). Use a plain label such as 'references'."
-                )
+                , location=f"{source}"))
 
             rel_label = _RELATIONSHIP_LABEL.match(line)
             if rel_label:
                 label = rel_label.group("label").strip()
                 if label and not label.startswith('"') and re.search(r"[\s:]", label):
-                    errors.append(
+                    errors.append(Finding(
+                    "mermaid-relationship-label-must-be-quoted",
                         f"{source}:{lineno}: unquoted Mermaid relationship label "
                         f"containing spaces or colons ({line.strip()!r}). Enclose it in "
                         f'double quotes, e.g. : "renders one instance".'
-                    )
+                    , location=f"{source}"))
 
     return errors
 
