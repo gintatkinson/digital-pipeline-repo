@@ -209,6 +209,22 @@ DOC_REFERENCE_CONTRACTS: List[RuleContract] = [
         enforcement_anchor="governance documents cite steps that do not exist",
         note="The phantom 'Step 5.5' override citation, issue #307.",
     ),
+    RuleContract(
+        id="doc-ref-no-runtime-tool-names-in-directives",
+        documented_in="rules/document-references.md",
+        doc_anchor="Runtime Tool Names Belong In The Dispatch Table",
+        enforced_in="tests/test_skill_path_references.py",
+        enforcement_anchor="governance documents name concrete dispatch tools",
+        note=(
+            "Issue #312 established this rule twice — .agents/AGENTS.md scopes it to "
+            "'nowhere else in this document' and rules/user-authorization-lock.md "
+            "restates it for the authorization lock — so skills/ was covered by "
+            "neither and feature-driven-implementation/SKILL.md:50 survived the sweep "
+            "still naming a tool absent from this runtime. Documented normatively and "
+            "given a gate here; the same missing-referent shape as the three rules "
+            "above, with a tool as the referent instead of a path or a step."
+        ),
+    ),
 ]
 
 DOC_REFERENCE_FAMILY = ContractFamily(
@@ -310,14 +326,12 @@ KARPATHY_FAMILY = ContractFamily(
     ),
 )
 
-FAMILIES: List[ContractFamily] = [
-    MERMAID_FAMILY,
-    FILENAME_FAMILY,
-    DOC_REFERENCE_FAMILY,
-    KARPATHY_FAMILY,
-]
-
-ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
+# NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
+# `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
+# binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
+# so three registered contracts were asserted by nothing while the suite reported
+# green. `tests/test_families_binding_is_unique.py` now fails on a second binding.
+# Do not reintroduce one here.
 
 
 # Rule families known to exist and deliberately not yet registered. Listing them
@@ -328,14 +342,15 @@ KNOWN_UNREGISTERED_FAMILIES = {
     "authorization-precedence": "covered ad hoc by test_authorization_precedence.py",
     "python-version-reconciliation": "covered ad hoc by test_ci_workflow_config.py",
     "spec-filename-uniqueness": "not yet enforced at all - issue #300",
-    "document-references": (
-        "DOC_REFERENCE_FAMILY is defined but absent from the second FAMILIES binding, "
-        "so its three contracts have never been asserted - orphan enforcement of the "
-        "registry against itself, found while fixing #312. Restoring it fails "
-        "test_documented_rule_scan_is_not_vacuous: rules/document-references.md states "
-        "3 rule headings against a guard of >= 4. Needs either a fourth documented "
-        "rule or a justified guard change; filed rather than fixed in passing."
-    ),
+    # "document-references" was listed here while DOC_REFERENCE_FAMILY sat outside the
+    # live FAMILIES binding. It is now registered and asserted, so the entry is gone
+    # rather than being left as a stale disclaimer. The vacuity guard it tripped
+    # (rules/document-references.md stated 3 rule headings against a guard of >= 4) was
+    # resolved by documenting a fourth genuine constraint -- runtime dispatch tool names
+    # belong only in the .agents/AGENTS.md dispatch table -- not by lowering the guard.
+    # That rule was already normative in two file-scoped statements written for #312,
+    # was violated by skills/feature-driven-implementation/SKILL.md:50 at the time of
+    # writing, and is now mechanically enforced.
     "karpathy-check-performance": (
         "issue #312 - the two statements of the 4-point Karpathy and Pipeline "
         "Compliance Check and their scope sentence are now registered as the "
@@ -424,17 +439,27 @@ MERMAID_FAMILY = ContractFamily(
     doc_heading_pattern=MERMAID_FAMILY.doc_heading_pattern,
     doc_only=DOC_ONLY_MERMAID_RULES,
 )
-# Every family must be relisted here. This rebinding shadows the list built above, so a
-# family added there and not here is silently dropped from ALL_CONTRACTS and from every
-# parametrized assertion. That is what happened to DOC_REFERENCE_FAMILY: added to the
-# first list at #310, never added here, so its contracts have never been asserted while
-# the suite reported green. It is deliberately still omitted rather than fixed in passing
-# — restoring it fails test_documented_rule_scan_is_not_vacuous, because
-# rules/document-references.md states 3 rules against a guard of 4, and the fix is either
-# a fourth documented rule or a lowered guard. Both are out of scope for #312 and are
-# recorded in KNOWN_UNREGISTERED_FAMILIES instead.
-FAMILIES = [MERMAID_FAMILY, FILENAME_FAMILY, KARPATHY_FAMILY]
-ALL_CONTRACTS = [c for f in FAMILIES for c in f.contracts]
+# The single binding of FAMILIES. It must stay here, below the MERMAID_FAMILY rebinding
+# above, because that rebinding is what attaches the doc-only exemptions; a list built
+# before it would capture the exemption-less instance.
+#
+# There were formerly two bindings, and the second shadowed the first. The shadowed list
+# held DOC_REFERENCE_FAMILY and the live one did not, so from #310 onward the three
+# doc-ref contracts were derived into neither ALL_CONTRACTS nor any parametrized
+# assertion — registered on paper, checked by nothing, suite green. That is this
+# registry failing its own premise: it exists to detect a documented contract diverging
+# from an enforced one, and the divergence was inside the detector.
+#
+# Any new family must be added to this list. tests/test_families_binding_is_unique.py
+# asserts both halves of the invariant: exactly one binding of the name, and no
+# ContractFamily defined in this module that is missing from it.
+FAMILIES: List[ContractFamily] = [
+    MERMAID_FAMILY,
+    FILENAME_FAMILY,
+    DOC_REFERENCE_FAMILY,
+    KARPATHY_FAMILY,
+]
+ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
 
 # The `id` field of each contract is the same string validators pass as Finding.rule_id.

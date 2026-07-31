@@ -185,3 +185,53 @@ def test_step_citations_resolve_issue307():
         f"only {checked} cross-document step citations examined; the scan is near-vacuous"
     )
     assert not offenders, f"governance documents cite steps that do not exist: {offenders}"
+
+
+# A concrete subagent dispatch/lifecycle tool identifier: an action verb joined to
+# "subagent". The verb prefix is what distinguishes a dispatch tool from an incidental
+# compound — `browser_subagent` in rules/no-browser-automation.md is named in order to be
+# *prohibited*, and a prohibition that stops matching the runtime goes inert rather than
+# unexecutable, so it is deliberately out of scope.
+_DISPATCH_TOOL = re.compile(
+    r"`((?:invoke|dispatch|spawn|launch|create|manage|run|start|stop|terminate|kill|"
+    r"reclaim|list)_[a-z0-9_]*sub_?agents?[a-z0-9_]*)`"
+)
+
+
+def test_no_document_names_a_runtime_dispatch_tool_issue312():
+    """A normative directive must name the capability, not the tool. Issue #312.
+
+    ``.agents/AGENTS.md`` and ``rules/user-authorization-lock.md`` both state this, each
+    scoped to its own file, so nothing covered ``skills/`` and the #312 sweep left
+    ``feature-driven-implementation/SKILL.md`` still directing the coordinator at a tool
+    that does not exist in this runtime. An agent meeting an unexecutable directive does
+    not halt — it does the work itself, which is the failure #312 records.
+
+    The per-runtime dispatch table in ``.agents/AGENTS.md`` is the sanctioned home for
+    concrete names, so table rows there are exempt; that is the one place a change of
+    runtime is meant to be reflected.
+    """
+    offenders = []
+    for path in _governance_docs():
+        rel = os.path.relpath(path, REPO_ROOT)
+        for lineno, line in enumerate(_read(path).splitlines(), 1):
+            if rel == ".agents/AGENTS.md" and line.lstrip().startswith("|"):
+                continue  # the per-runtime dispatch table
+            for name in _DISPATCH_TOOL.findall(line):
+                offenders.append(f"{rel}:{lineno} -> {name}")
+
+    # Vacuity guard. The scan matches nothing once the corpus is clean, so a broken
+    # regex and a compliant corpus look identical. Prove the pattern still recognises
+    # the two names issue #312 removed, and that the corpus was actually read.
+    assert _DISPATCH_TOOL.findall("use `invoke_subagent` and `manage_subagents`") == [
+        "invoke_subagent",
+        "manage_subagents",
+    ], "the dispatch-tool pattern no longer matches the names issue #312 removed"
+    assert len(_governance_docs()) >= 28, "governance corpus not scanned"
+
+    assert not offenders, (
+        "governance documents name concrete dispatch tools: "
+        f"{offenders}. State the capability required and point at the per-runtime "
+        "dispatch table in .agents/AGENTS.md, so a change of runtime cannot make the "
+        "sentence unexecutable."
+    )
