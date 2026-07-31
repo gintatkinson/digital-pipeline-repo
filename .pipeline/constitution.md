@@ -117,7 +117,7 @@ last_updated: "2026-07-31"
 - If you suspect the failure is due to a pipeline tooling bug or schema limitation, report it as an issue to the upstream repository.
 
 ### Strict Planning Mode Gate (Insurmountable Approval Gate)
-- Under NO circumstances may the agent invoke any file-writing, file-modifying, or command-running tools that alter the codebase/repository files unless the user has explicitly typed "Proceed", "Approved", or "Approve plan" in the conversation history of the current turn sequence.
+- Under NO circumstances may the agent invoke any file-writing, file-modifying, or command-running tools that alter the codebase/repository files unless BOTH of the following hold: (1) the specific file and its exact changes are documented in an approved implementation plan, AND (2) the user has explicitly typed "Proceed", "Approved", or "Approve plan" in the conversation history of the current turn sequence. An authorization keyword alone is NOT sufficient. See `.agents/AGENTS.md` § Strict Planning Gate, which takes precedence, and `rules/user-authorization-lock.md` § Precedence.
 - If a plan is written, the agent MUST immediately terminate its turn and stop calling tools to wait for approval.
 
 ## Universal Quality Gates

@@ -112,3 +112,53 @@ from the enforced one — created while closing the third.
 Non-destructive: the original requirement is preserved in full and an exemption is
 carved out. The second clause restates the requirement for all non-actor lifelines so
 no obligation is weakened by implication.
+
+---
+
+## AMEND-0002 — Authorization requires an approved plan, not only a keyword
+
+- **Date:** 2026-07-31
+- **Logged:** 2026-07-31
+- **Motivating issue:** #295
+- **Approved by:** "approve both" — in response to Amendments A and B quoted verbatim as current-versus-proposed text, per Step 9 items 2 and 3.
+- **Destructive:** no
+- **Line count:** 161
+- **Resulting SHA-256:** `5dc3da88e38fa9333e1dd297701fdd4082fda48b343363f850e1ab20a26e5e50`
+
+### Change
+
+Section *Strict Planning Mode Gate (Insurmountable Approval Gate)*, line 120. Line 121
+is untouched.
+
+Before:
+
+> - Under NO circumstances may the agent invoke any file-writing, file-modifying, or command-running tools that alter the codebase/repository files unless the user has explicitly typed "Proceed", "Approved", or "Approve plan" in the conversation history of the current turn sequence.
+
+After:
+
+> - Under NO circumstances may the agent invoke any file-writing, file-modifying, or command-running tools that alter the codebase/repository files unless BOTH of the following hold: (1) the specific file and its exact changes are documented in an approved implementation plan, AND (2) the user has explicitly typed "Proceed", "Approved", or "Approve plan" in the conversation history of the current turn sequence. An authorization keyword alone is NOT sufficient. See `.agents/AGENTS.md` § Strict Planning Gate, which takes precedence, and `rules/user-authorization-lock.md` § Precedence.
+
+### Rationale
+
+Issue #295 found three documents stating three different rules for what authorizes a
+file write. This sentence and `rules/user-authorization-lock.md:9` both treated an
+authorization keyword as sufficient, while `.agents/AGENTS.md:7` states explicitly that
+a keyword is **not** sufficient without an approved implementation plan.
+
+The decisive defect was reading order: `rules/constitution-first.md` enumerated the
+mandatory reads without listing `.agents/AGENTS.md`, and `.agents/` is a hidden
+directory that glob and ripgrep skip. An agent complying fully with constitution-first
+therefore read only the two keyword-sufficient documents and never saw the strictest
+rule. That is exactly what happened during this session: two commits reached `main`
+before `AGENTS.md` was discovered.
+
+#295 unified on the strictest reading, on the grounds that under-authorizing costs one
+redundant question whereas over-authorizing causes unapproved writes. This amendment
+brings the Tier 1 document into agreement with that resolution, so the highest-authority
+statement is no longer the weakest.
+
+**This amendment tightens a constraint on the agent.** It removes an authorization path
+the agent previously had, and adds no capability.
+
+Non-destructive: no principle is removed. Condition (2) preserves the original clause
+verbatim, and condition (1) is added alongside it.
