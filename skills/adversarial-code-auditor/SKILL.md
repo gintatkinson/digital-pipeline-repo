@@ -58,6 +58,8 @@ Critical and Important findings require a Mermaid diagram in Section 4. Select t
 
 Must use ````mermaid` fenced blocks with valid syntax. No ASCII art. Named lifelines. `alt/loop` fragments for branches. No isolated classes. `stateDiagram-v2` syntax. Trace to file:line from Section 3.
 
+**All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full.** Most importantly here: no semicolons in `Note` statements or message text, and no curly braces in class member lines. Step D check 7 enforces these mechanically.
+
 ## 2. Output Format
 
 Every finding MUST produce output matching this skeleton character-for-character in section headers and field labels. Replace `[...]` placeholders with real content. Do not change the structure.
@@ -162,13 +164,42 @@ Before filing, run these checks on the body. All must pass.
 | 4 | File location line | Matches `FILE_LOCATION: [path]:[line]` |
 | 5 | Section 1 bullets | Three lines matching `^[-*] \*\*(File|Pillar|Symptom)\*\*:` |
 | 6 | Section 2 Whys | Five lines matching `^[1-5]\. \*\*Why .*\?\*\* Because .*` |
-| 7 | Section 4 Critical/Important | Contains ````mermaid` block with valid diagram |
+| 7 | Section 4 Critical/Important | Contains ````mermaid` block, AND the offline syntax gate below exits 0 |
 | 8 | Section 4 Suggestion/Nitpick | Contains `N/A — ` |
 | 9 | Balanced code blocks | Even number of ````` occurrences |
 | 10 | No ASCII art UML | Does NOT contain unescaped `->>` or `→` outside mermaid blocks |
 | 11 | Title-format | Matches `\[AUDIT\] \[[file.ext]\]: [description]` |
 
 If any check fails, fix the body and re-verify. Do NOT file until all checks pass.
+
+**Check 7 is executable and MUST be run — it is not an eyeball check.** Presence of a
+fenced block does not establish validity. An unparseable diagram previously cleared all
+eleven checks and was filed on issue #283, where GitHub reported a parse error instead of
+rendering Section 4. Run:
+
+```bash
+python3 - "$BODY_FILE" <<'EOF'
+import sys, os
+sys.path.insert(0, "skills/spec-orchestrator/parity_auditor/src")
+from parity_auditor.validators.mermaid_syntax_validator import check_mermaid_text
+body = open(sys.argv[1], encoding="utf-8").read()
+errors = check_mermaid_text(body, source=os.path.basename(sys.argv[1]))
+if errors:
+    print("check 7 FAILED:")
+    for e in errors:
+        print("  -", e)
+    sys.exit(1)
+print("check 7 passed")
+EOF
+```
+
+The gate is **offline by mandate**. Do NOT substitute a remote renderer: a blocking gate
+that depends on a third-party service fails when that service is unavailable or
+rate-limits, and it ships specification content to a third party. See
+`.pipeline/upstream/pipeline-tooling.md` § *Validation Gates*.
+
+Scope limit: this enforces the documented rules in `rules/platform-independence.md`. It is
+not a full Mermaid grammar parser, so a pass is not proof the diagram renders.
 
 ### Step E — File
 
