@@ -888,3 +888,80 @@ point of K1 and K2 is that local and CI disagreed.
   absolute path, but `get_git_remote_repo` is monkeypatched there so nothing touches the
   filesystem. Harmless; left alone.
 - #309, the reconciler auto-close, is unaffected by this Part.
+
+---
+
+## Part L — Reconciler stops closing issues — issue #309  **[AWAITING APPROVAL]**
+
+`reconcile_backlog.py` calls `close_issue_on_tracker` at lines 1366 (Epic), 1424 (User
+Story) and 1457 (Use Case). `.pipeline/constitution.md:161` makes `Closed` unreachable
+without Product Owner validation, and `AGENTS.md` § *Backlog Reconciliation Mandate*
+requires this script run before every merge — so the violation is mandated to execute.
+J3 corrected the skills; the tooling is the remaining half.
+
+### The non-obvious part: idempotency currently depends on closing
+
+All three call sites are guarded identically:
+
+```python
+is_open = str(issue_dict[issue_num][state_key]).upper() == "OPEN"
+if is_open:
+    sync_issue_body_to_tracker(...)
+    if completed:
+        close_issue_on_tracker(...)
+        issue_dict[issue_num][state_key] = closed_state
+```
+
+Closing is what makes the next run skip the item. Delete the close and keep the guard,
+and every subsequent run re-posts the completion comment on the same issue — forever,
+before every merge. Removing a constitutional violation would create a spam loop.
+
+So the guard must move from **state** to **label**: skip when the resolved label is
+already present. `tracker_rules.commands.list_issues` already requests `labels`, so the
+data is in `issue_dict` and no extra API call is needed.
+
+### L1 — configuration
+
+| File | Exact change |
+|---|---|
+| `.pipeline/logical-ui/codebase_rules.json` | Under `tracker_rules.commands`: **remove** `close_issue`; **add** `resolve_issue` = `["gh","issue","edit","{number}","--add-label","{label}"]`, `comment_issue` = `["gh","issue","comment","{number}","--body","{comment}"]`, and `create_label` = `["gh","label","create","{label}","--description","{description}","--color","0E8A16","--force"]`. Under `tracker_rules.labels`: add `"resolved": "status:fixed-resolved"`. |
+
+`close_issue` is removed rather than left unused. A close command template sitting in
+config is a loaded gun for the next contributor who greps for it.
+
+### L2 — script
+
+| File | Exact change |
+|---|---|
+| `skills/spec-orchestrator/scripts/reconcile_backlog.py` | Replace `close_issue_on_tracker` (L517) with `resolve_issue_on_tracker(issue_num, comment, rules)`: bootstrap the resolved label via `create_label` (`--force` makes it idempotent), apply it via `resolve_issue`, post the evidence comment via `comment_issue`. Never closes. Update all three call sites (L1366, L1424, L1457) to call it, and to guard on the resolved label rather than on open/closed state. Replace the `issue_dict[...][state_key] = closed_state` bookkeeping with appending the resolved label to the cached record, so a single run does not double-apply. Update the module docstring (L10) — "auto-closes completed items" is no longer true. |
+
+### L3 — documentation
+
+| File | Exact change |
+|---|---|
+| `skills/spec-orchestrator/SKILL.md` | L147: "automatically closes completed Epics, User Stories, and Use Cases" -> marks them `Fixed / Resolved` and leaves them open for Product Owner validation. L149: same correction to the Phase 4 scope note. |
+| `.pipeline/upstream/pipeline-tooling.md` | Replace the "**Still open: #309**" bullet added in J3 with the resolved statement. |
+| `tests/rule_contracts.py` | Move `reconciler-auto-closes-issues` from `KNOWN_DOC_DIVERGENCES` to `RESOLVED_DIVERGENCES`, formatted `RESOLVED by #309`. |
+
+### L4 — tests
+
+| File | Exact change |
+|---|---|
+| `.../tests/test_reconciler_never_closes_issue309.py` | **New.** RED first. (1) No close: `resolve_issue_on_tracker` with a stub subprocess emits no `gh issue close`, and `close_issue` is absent from the config. (2) Correct action: emits `--add-label status:fixed-resolved` plus a comment carrying the passed text. (3) **Idempotency** — the case that matters: given an issue whose cached record already carries the resolved label, a second reconcile emits no command at all. (4) Label bootstrap runs before the first apply. Fixture guard asserting the stub actually captured commands, so a test that exercises nothing cannot pass. |
+
+### Consequences you should weigh before approving
+
+- **Completed specs will accumulate as open issues.** Today they disappear on
+  reconciliation. After this, an Epic whose features are all done stays open carrying
+  `status:fixed-resolved` until you close it. That is the constitutional behaviour, but
+  it changes your working view: the open list grows and needs periodic triage.
+- **No `--close` escape hatch is proposed.** A flag on a script that `AGENTS.md` mandates
+  before every merge would be set once and forgotten. Closing stays a UI action by you,
+  as it has been throughout this session.
+- **Already-closed issues are untouched.** No migration; this changes future runs only.
+
+### Verification
+
+RED demonstrated and pasted; GREEN after. Both suites with real exit codes captured
+separately, never through a pipe. Own branch, `--no-ff` merge, push, CI run watched to
+a `success` conclusion before #309 is labelled.
