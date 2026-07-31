@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "parity_auditor"
 version = "0.1.0"
 description = "A modular package to verify model coverage and UML compliance"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
