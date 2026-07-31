@@ -474,8 +474,17 @@ def test_extend_stereotype_formats_recognized():
         shutil.rmtree(tmpdir)
 
 
-def test_bypassed_lifelines_accepted():
-    """Verify that lifelines ending with standard actor/helper suffixes are bypassed in sequence diagram lifeline checks."""
+def test_actor_lifelines_exempt_participants_required():
+    """Exemption keys on UML role, not name spelling (issue #277).
+
+    An `actor` lifeline is an entity outside the system boundary and is correctly
+    absent from the structural models. A `participant` is an internal object and
+    MUST resolve to a class defined in a feature class diagram.
+
+    Replaces the former suffix-list test. That version declared all 12 lifelines as
+    `actor` and asserted 10 were skipped purely because of how their names ended,
+    which is the behaviour #277 reports as defective.
+    """
     class_diagram = """classDiagram
     class B {
         +void call()
@@ -512,7 +521,7 @@ sequenceDiagram
     actor sys as "sys: ValidatorSystem"
     actor s as "s: RemoteSystem"
     actor b as "b: B"
-    actor x as "x: InvalidClass"
+    participant x as "x: InvalidClass"
     a->>b: call()
 ```
 
@@ -530,11 +539,17 @@ sequenceDiagram
         invalid_errors = [e for e in errors if "InvalidClass" in e]
         assert len(invalid_errors) >= 1, f"Expected validation error for InvalidClass, got: {errors}"
         
-        # Check that we DO NOT get errors for any of the bypassed suffixes
-        bypassed_suffixes = ["MyActor", "SuperCalculator", "DataProvider", "UserMapper", "SessionManager", "AuthConfigurator", "SystemArchitect", "FormValidator", "ValidatorSystem", "RemoteSystem"]
-        for suffix in bypassed_suffixes:
-            suffix_errors = [e for e in errors if suffix in e]
-            assert len(suffix_errors) == 0, f"Expected no error for bypassed class {suffix}, got: {suffix_errors}"
+        # Actors are exempt regardless of how their names end.
+        exempt_actors = ["MyActor", "SuperCalculator", "DataProvider", "UserMapper", "SessionManager", "AuthConfigurator", "SystemArchitect", "FormValidator", "ValidatorSystem", "RemoteSystem"]
+        for actor_cls in exempt_actors:
+            actor_errors = [e for e in errors if actor_cls in e]
+            assert len(actor_errors) == 0, f"Expected no error for external actor {actor_cls}, got: {actor_errors}"
+
+        # And the exemption must be about the role, not the spelling: a participant
+        # whose name ends in a former bypass suffix must now be required to resolve.
+        assert "InvalidClass" in " ".join(invalid_errors), (
+            "a participant with an undefined classifier must be reported"
+        )
     finally:
         import shutil
         shutil.rmtree(tmpdir)

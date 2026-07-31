@@ -283,8 +283,21 @@ class UmlValidator(IValidator):
                         errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' is missing the name : Classifier pattern in its label: '{label}'")
                     else:
                         cls_name = lf.classifier_name
-                        bypass_suffixes = ("Actor", "Calculator", "Provider", "Mapper", "Manager", "Configurator", "Architect", "Validator", "ValidatorSystem", "System")
-                        if cls_name not in global_classes and not cls_name.endswith(bypass_suffixes):
+                        # Exemption keys on UML role, not name spelling (issue #277).
+                        #
+                        # A tuple of suffixes previously exempted classifiers ending in
+                        # Manager, System, Actor and similar. That was arbitrary --
+                        # PaymentManager passed while PaymentHandler did not -- and it
+                        # disabled a second check: an exempt classifier never enters
+                        # global_classes, so the operation-signature guard below was
+                        # also false and every message to that lifeline went unverified.
+                        #
+                        # An `actor` lifeline represents an entity outside the system
+                        # boundary and is correctly absent from the structural models.
+                        # Every other lifeline, including one auto-created by being
+                        # referenced without declaration, must resolve.
+                        is_external_actor = (lf.role or "").lower() == "actor"
+                        if not is_external_actor and cls_name not in global_classes:
                             errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' specifies classifier '{cls_name}' which is not defined in any feature class diagram.")
                             
                 for msg in messages:

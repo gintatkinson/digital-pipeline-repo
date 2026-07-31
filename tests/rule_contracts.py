@@ -121,6 +121,29 @@ KNOWN_UNREGISTERED_FAMILIES = {
 # Documented Mermaid rule headings in rules/platform-independence.md that are
 # intentionally not paired with an enforcement anchor, with the reason. Anything not
 # listed here and not in the registry is an orphan-documentation failure.
+# Known divergences between a governing document and the implemented rule, recorded so
+# they are visible rather than forgotten. Each must name the amendment that resolves it.
+# An agent may not edit .pipeline/constitution.md (AGENTS.md:59, project-constitution
+# Core Mandate 4), so constitution-level divergences can only be recorded here and
+# submitted for human approval.
+KNOWN_DOC_DIVERGENCES = {
+    "constitution-lifeline-actor-exemption": (
+        ".pipeline/constitution.md:41 states 'Every lifeline in a sequence diagram MUST "
+        "represent an instance of a defined logical Class or Component'. Issue #277 "
+        "option B exempts lifelines declared as external UML actors, so the implemented "
+        "rule is narrower than that sentence. The operative rule is documented in "
+        "skills/spec-user-story-engineering/SKILL.md. A constitution amendment is "
+        "pending human approval; see implementation_plan.md D6."
+    ),
+    "constitution-proceed-keyword-sufficiency": (
+        ".pipeline/constitution.md:120 states that typing 'Proceed' is sufficient "
+        "authorization. .agents/AGENTS.md:7 states a keyword is explicitly insufficient "
+        "without an approved plan, and issue #295 unified on the stricter reading. The "
+        "constitution sentence remains weaker. Amendment pending human approval."
+    ),
+}
+
+
 DOC_ONLY_MERMAID_RULES = {
     "Mermaid Class Naming Rules": (
         "Backtick/quote requirements for class names are enforced inside the class "
