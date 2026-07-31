@@ -43,7 +43,11 @@ def sanitize_github_token_env():
         if val and any(kw in val.lower() for kw in dummy_keywords):
             os.environ.pop(var, None)
 
-sanitize_github_token_env()
+# NOTE: sanitize_github_token_env() is deliberately NOT called at module level.
+# Doing so mutated os.environ on import, so importing this module stripped
+# GITHUB_TOKEN/GH_TOKEN from the process and unrelated tests failed depending on
+# import order (issue #276). Both real entry points, main() and _main_impl(),
+# already invoke it, so nothing is lost.
 
 def assert_no_mock_cli(workspace_dir: str = None):
     if not workspace_dir:
