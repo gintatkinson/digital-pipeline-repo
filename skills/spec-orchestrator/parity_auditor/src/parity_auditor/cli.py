@@ -300,24 +300,12 @@ def _main_impl():
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
                 
-    alternative_extensions = set(rules.validation_rules.alternative_schema_extensions)
-    has_parseable_schemas = False
-    has_alternative_schemas = False
-    
-    from .parsers.schema_router import SchemaRouter
-    router = SchemaRouter(repo)
-    
-    if os.path.exists(schema_dir):
-        for filename in os.listdir(schema_dir):
-            filepath = os.path.join(schema_dir, filename)
-            if os.path.isdir(filepath):
-                continue
-            ext = os.path.splitext(filename)[1].lower()
-            if router.can_parse(filepath):
-                has_parseable_schemas = True
-            elif ext in alternative_extensions:
-                has_alternative_schemas = True
-                
+    # A second pass over schema_dir used to classify files as parseable or
+    # merely alternative-extension. Both flags were dead: nothing read them.
+    # The surviving guard is the `all_definitions` emptiness check below, which
+    # keys on what was actually parsed rather than on what could have been.
+    # Removed in issue #303.
+
     # 2. Load all feature markdown files
     features = repo.get_feature_files(features_dir)
     print(f"Loaded {len(features)} feature specifications.\n")

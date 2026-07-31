@@ -38,11 +38,7 @@ select = ["F", "E9"]
 # Imports in a package __init__ are the module's public API, not dead code. Ruff would
 # otherwise offer to delete the re-exports that define the package surface.
 "__init__.py" = ["F401"]
-# Three F841 unused-variable findings in these files are refactor remnants, not style:
-#   cli.py has_parseable_schemas / has_alternative_schemas - superseded by the
-#     all_definitions check at cli.py:562 and never removed
-#   sync_validator.py spec_type - computed alongside is_spec but never stored
-# Baselined rather than deleted so the finding is not silently erased.
-# Tracked in issue #303; remove these ignores when it is resolved.
-"src/parity_auditor/cli.py" = ["F841"]
-"src/parity_auditor/validators/sync_validator.py" = ["F841"]
+# The three F841 findings baselined here for cli.py and sync_validator.py were resolved
+# in issue #303 - the cli.py probe loop was vestigial and was deleted, and
+# sync_validator.py's spec_type was a lost consumer and is now stored in the
+# tracker_specs / local_specs keys. F841 is enforced on both files again.

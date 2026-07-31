@@ -48,9 +48,13 @@ class SyncValidator(IValidator):
         epic_label = labels_config.get("epic", "epic").lower()
         feature_label = labels_config.get("feature", "feature").lower()
         
+        # Keyed by (spec_type, normalized_title). The spec type comes from the issue
+        # label and is part of the identity of a spec: an epic issue is not satisfied
+        # by a same-titled feature file, and two issues that normalize to the same
+        # title must not overwrite one another. Issue #303.
         tracker_specs = {}
         tracker_indices = {}
-        
+
         for issue in issues:
             labels = []
             for l in issue.get("labels", []):
@@ -73,14 +77,16 @@ class SyncValidator(IValidator):
                 
             title = issue.get("title", "")
             norm_title = normalize_title(title)
-            tracker_specs[norm_title] = issue
-            
+            tracker_specs[(spec_type, norm_title)] = issue
+
             # Extract index, e.g. "Epic 2: Common Types" -> index 2
             match = re.search(r'\b(epic|feature|feat)[s]?[- ]*(\d+)', title, re.IGNORECASE)
             if match:
                 idx = int(match.group(2))
                 std_type = "epic" if match.group(1).lower().startswith("epic") else "feature"
-                tracker_indices[(std_type, idx)] = norm_title
+                # Store the full tracker_specs key so the collision report can look the
+                # issue back up even when the title-derived type differs from the label.
+                tracker_indices[(std_type, idx)] = (spec_type, norm_title)
                 
         # 2. Scan local files
         local_specs = set()
@@ -109,7 +115,7 @@ class SyncValidator(IValidator):
                     
                 if title:
                     norm_title = normalize_title(title)
-                    local_specs.add(norm_title)
+                    local_specs.add((std_type, norm_title))
                     
                     match = re.search(r'\b(epic|feature|feat)[s]?[- ]*(\d+)', filename, re.IGNORECASE)
                     if not match:
@@ -122,15 +128,15 @@ class SyncValidator(IValidator):
         scan_local_dir(features_dir, "feature")
         
         # 3. Check for missing local specs
-        for norm_title, issue in tracker_specs.items():
-            if norm_title not in local_specs:
+        for spec_key, issue in tracker_specs.items():
+            if spec_key not in local_specs:
                 errors.append(f"Missing specification file for registered Issue #{issue['number']} - '{issue['title']}'. Please check your branch baseline.")
-                
+
         # 4. Check for index collisions
         for (std_type, idx), norm_title in local_indices.items():
-            tracker_title = tracker_indices.get((std_type, idx))
-            if tracker_title and tracker_title != norm_title:
-                issue_num = tracker_specs.get(tracker_title, {}).get("number", "unknown")
-                errors.append(f"Index collision detected. Local specification with index {idx} ('{norm_title}') overlaps with registered Issue #{issue_num} ('{tracker_title}').")
+            tracker_key = tracker_indices.get((std_type, idx))
+            if tracker_key and tracker_key[1] != norm_title:
+                issue_num = tracker_specs.get(tracker_key, {}).get("number", "unknown")
+                errors.append(f"Index collision detected. Local specification with index {idx} ('{norm_title}') overlaps with registered Issue #{issue_num} ('{tracker_key[1]}').")
                 
         return errors
