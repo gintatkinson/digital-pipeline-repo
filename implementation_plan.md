@@ -839,3 +839,52 @@ which is what Part D exists to do.
 
 The Part I text commingled into `a95dca9` stays. Cleaning it rewrites pushed history,
 which costs more than the untidiness.
+
+---
+
+## Part K — Make the build green  **[APPROVED — "it's all up to you ... go with your recommendation"]**
+
+`main` passes locally but CI has failed on every `push` run since before this session,
+for two independent causes. Neither is governance; both are small. Executed serially per
+`rules/serial-execution.md`, each its own branch, commit and merge.
+
+### K1 — CI never installs `pyang` — issue #311
+
+| File | Exact change |
+|---|---|
+| `.github/workflows/auto_regression_testing.yml` | L35: `pip install pytest pyyaml ruff` -> `pip install -r requirements.txt` followed by `pip install pytest ruff`. Installing from the declared manifest rather than a hand-kept list is what stops the drift recurring; `pyyaml` is dropped from the explicit list because `requirements.txt` already pins `PyYAML>=6.0`. |
+
+No local test can catch this — the failure only exists on a machine that lacks `pyang`.
+Verification is the CI run itself, checked in K3.
+
+### K2 — machine-dependent test — issue #308
+
+`test_reconcile_backlog_issue236.py` hardcodes `/Users/perkunas/jail/digital-pipeline-repo`
+as `workspace_dir` and hardcodes `blob/main` in its assertions, while
+`sanitize_source_references` derives the branch live via `get_current_branch(workspace_dir)`.
+Three outcomes: passes on `main` locally by coincidence, fails on any feature branch,
+raises `FileNotFoundError` on CI where the path does not exist.
+
+| File | Exact change |
+|---|---|
+| `.../tests/test_reconcile_backlog_issue236.py` | Derive `REPO_ROOT` from `__file__` (four levels up). Build the `file://` fixtures from `REPO_ROOT` so they match the workspace under test on any machine. Derive the expected branch by calling the same `get_current_branch` the code under test uses, rather than asserting a literal `blob/main`. Applies to both failing tests. |
+
+The foreign path `file:///Users/developer/...` on line 18 stays literal — it is
+deliberately *not* the workspace, and exists to prove non-workspace `file://` URIs are
+sanitised too.
+
+### K3 — confirm CI is actually green
+
+Push, wait for the run, read its conclusion. Not inferred from a local pass — the whole
+point of K1 and K2 is that local and CI disagreed.
+
+### Explicitly out of scope
+
+- 109 committed files contain `/Users/perkunas`, almost all `.pipeline/diagnostics/*.json`
+  repro payloads. `pipeline-tooling.md` § *Security & Ops* forbids absolute developer
+  paths in committed files, so a repo-wide guard is warranted — but it would require
+  cleaning 109 files and is not part of getting the build green. Needs its own issue.
+- `test_get_upstream_repository_prioritizes_git_remote_over_rules_meta` also passes an
+  absolute path, but `get_git_remote_repo` is monkeypatched there so nothing touches the
+  filesystem. Harmless; left alone.
+- #309, the reconciler auto-close, is unaffected by this Part.
