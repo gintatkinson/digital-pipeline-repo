@@ -74,8 +74,14 @@ On completion of the current bug, query the repository for the next unresolved b
   1. Select the next highest priority or oldest bug.
   2. Skip any issues that are already assigned to someone else or explicitly marked as in-progress.
   3. Start a new Step 1-7 debugging loop on that bug.
+- **Reclassification (MANDATORY — see issue #287):** If the Step 0 gate determines the selected issue is NOT a defect (feature request, enhancement, epic, chore, refactor, or documentation change), do **NOT** halt the loop. Instead:
+  1. Post a comment on the issue explaining the reclassification and why the protocol does not apply.
+  2. Run `gh issue edit <ID> --remove-label bug --add-label enhancement`.
+  3. Continue to the next item in the backlog.
+
+  Halting here would be unsatisfiable. The terminating condition below cannot be met while a non-defect still carries the `bug` label, and the 3-iteration skip does not rescue the loop because Step 0 halts **before iteration one** — there is no runtime symptom for the Step 1 Reproduction Subagent to reproduce. Reclassifying removes the item from the selection set, which is the only exit that both respects Step 0 and allows the loop to finish.
 - If a bug cannot be resolved or reproduced after 3 full hypothesis/fix iterations (Steps 1-7), post a detailed status comment summarizing the reproduction/investigation findings on the issue, skip it, and proceed to the next unresolved bug in the backlog.
-- Do NOT stop until there are ZERO unresolved bugs remaining in the repository backlog.
+- Do NOT stop until no open issue labelled `bug` remains that passes the **Step 0 defect gate**. Items reclassified above no longer carry the label and therefore no longer block completion.
 
 ## Persistence Rules
 - **Subagent Self-Reading Mandate**: Every subagent dispatched under this protocol MUST use the file-reading tool to read `.agents/skills/debug-protocol/SKILL.md` in full as its VERY FIRST action. It must then follow the output format, evidence standards, and closing procedures defined in this file exactly. Do NOT rely on the coordinator's abbreviated step summary.
