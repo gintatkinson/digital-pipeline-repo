@@ -285,6 +285,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    > **Mermaid Block Closing Constraints & Code Fence Integrity:**
     > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
     > - Ensure there are no stray backticks or unmatched code fences in the document.
+    > - **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full** — including the prohibition on curly braces in class member lines, colons in class members and note strings, stereotypes on relationship lines, and semicolons in `Note` and message text. Do not maintain a local subset here; subsets drift (issue #289).
 
 3. **Source References Block (CRITICAL):**
    - At the bottom of every feature markdown file, you MUST append a `## Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
