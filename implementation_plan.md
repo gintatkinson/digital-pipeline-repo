@@ -458,3 +458,46 @@ Both targets are recorded in `tests/rule_contracts.py` `KNOWN_DOC_DIVERGENCES`:
 
 Each will be applied as its own commit, per Step 9's constraint that an amendment be
 reviewable in isolation.
+
+---
+
+## Part F — #300 spec filename uniqueness and format validator
+
+Second rule family for the #298 contract registry, chosen deliberately as the cheapest
+test of whether that registry design generalises beyond Mermaid.
+
+**The rule is already documented**; only enforcement is missing. `spec-usecase-engineering`
+specifies `uc-[XX]-[name].md` "zero-padded, dash-separated";
+`spec-user-story-engineering` specifies `us-[XX]-[name].md` likewise;
+`schema-specification-engineering` specifies `docs/features/feat-01-name.md` and
+`docs/epics/epic-01-name.md`. So this is orphan documentation — a stated convention that
+nothing enforces — which is #289's defect class, not #299's.
+
+| File | Exact change |
+|---|---|
+| `.../validators/spec_filename_validator.py` | **New.** `IValidator`. Per backlog directory: ordinal uniqueness, format conformance against the documented `<prefix>-<zero-padded-ordinal>-<kebab-name>.md` shape, and consistent padding width. |
+| `.../validators/__init__.py` | Export it. |
+| `.../cli.py` | Wire in a *Spec Filename Validation* section contributing to the exit code. |
+| `tests/rule_contracts.py` | Add a `FILENAME_CONTRACTS` family with entries pairing each check to the skill text that documents it. Extend `ALL_CONTRACTS`. |
+| `.../tests/test_spec_filename_validator_issue300.py` | **New.** Duplicate ordinals, malformed names, mixed padding width, and a clean directory that must pass. Fixture guard on discovery. |
+
+Known live symptoms this will surface, which are **not** to be repaired — `docs/` is
+disposable diagnostic output: `feat-04` and `feat-05` each appear twice, and
+`feat-002-alternate-systems.md` uses 3-digit padding where the directory otherwise uses 2.
+
+### F1. Plan amendment — generalise orphan detection into families
+
+Discovered while implementing Part F, and the point of choosing #300 as the trial.
+
+The #298 registry **half** generalises. The two anchor-resolution tests are parametrized
+over `ALL_CONTRACTS` and pick up a new family for free. But orphan detection is hardcoded
+to Mermaid: `_documented_mermaid_rule_headings()` scans `platform-independence.md` for
+`**Mermaid ... Rules**:`, and `_enforced_error_messages()` scans
+`mermaid_syntax_validator.py`. A second family gets anchor checks and **no** orphan
+detection — so a future filename rule could be added to the validator with no
+documentation and nothing would notice, which is exactly #299's defect.
+
+| File | Additional change |
+|---|---|
+| `tests/rule_contracts.py` | Introduce a `ContractFamily` descriptor carrying the family's contracts plus its documentation scanner and enforcement scanner (file + regex + doc-only exemptions). Declare `MERMAID_FAMILY` and `FILENAME_FAMILY`; derive `ALL_CONTRACTS` from `FAMILIES`. |
+| `tests/test_rule_contracts.py` | Parametrize the orphan-documentation and orphan-enforcement tests over `FAMILIES` rather than hardcoding Mermaid, keeping the vacuity guard per family. |

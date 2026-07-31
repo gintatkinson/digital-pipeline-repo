@@ -19,17 +19,13 @@ import pytest
 
 from rule_contracts import (
     ALL_CONTRACTS,
+    FAMILIES,
     DOC_ONLY_MERMAID_RULES,
     KNOWN_UNREGISTERED_FAMILIES,
     RuleContract,
 )
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PLATFORM_RULES = os.path.join(REPO_ROOT, "rules", "platform-independence.md")
-MERMAID_VALIDATOR = os.path.join(
-    REPO_ROOT, "skills", "spec-orchestrator", "parity_auditor", "src",
-    "parity_auditor", "validators", "mermaid_syntax_validator.py",
-)
 
 
 def _read(path):
@@ -89,68 +85,76 @@ def test_enforcement_anchor_resolves(contract):
 
 
 # --------------------------------------------------------------------------- #
-# (c) Orphan documentation. This is issue #289's defect class.
+# (c) and (d) Orphan detection, parametrized over families.
+#
+# Choosing #300 as the second family was a deliberate test of whether the #298
+# design generalises. It half did: the anchor tests above are family-agnostic and
+# picked up the new family for free, but orphan detection was hardcoded to Mermaid.
+# These are now driven by each family's own scanners.
 # --------------------------------------------------------------------------- #
 
-def _documented_mermaid_rule_headings():
-    """Every '**Mermaid ... Rules**:' bullet heading in the normative rules file."""
-    return set(re.findall(r"\*\*(Mermaid[^*]*?)\*\*:", _read(PLATFORM_RULES)))
+def _documented_headings(family):
+    path = os.path.join(REPO_ROOT, family.doc_file)
+    return set(re.findall(family.doc_heading_pattern, _read(path)))
 
 
-def test_documented_mermaid_rules_scan_is_not_vacuous():
-    headings = _documented_mermaid_rule_headings()
+def _enforced_messages(family):
+    path = os.path.join(REPO_ROOT, family.enforcement_file)
+    return set(re.findall(family.enforcement_pattern, _read(path)))
+
+
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_documented_rule_scan_is_not_vacuous(family):
+    if family.doc_heading_pattern is None:
+        pytest.skip(f"{family.name}: {family.doc_orphan_blocked_by}")
+    headings = _documented_headings(family)
     assert len(headings) >= 4, (
-        f"only {len(headings)} Mermaid rule headings parsed from {PLATFORM_RULES}; "
-        f"the orphan-documentation test would be near-vacuous. Found: {headings}"
+        f"{family.name}: only {len(headings)} rule headings parsed from "
+        f"{family.doc_file}; the orphan-documentation test would be near-vacuous. "
+        f"Found: {headings}"
     )
 
 
-def test_every_documented_mermaid_rule_is_registered():
-    registered = {c.doc_anchor for c in ALL_CONTRACTS}
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_every_documented_rule_is_registered(family):
+    """A rule stated as prohibited but enforced by nothing. Issue #289."""
+    if family.doc_heading_pattern is None:
+        pytest.skip(f"{family.name}: {family.doc_orphan_blocked_by}")
+    registered = {c.doc_anchor for c in family.contracts}
+    exempt = family.doc_only or {}
     orphans = sorted(
-        h for h in _documented_mermaid_rule_headings()
-        if h not in registered and h not in DOC_ONLY_MERMAID_RULES
+        h for h in _documented_headings(family)
+        if h not in registered and h not in exempt
     )
     assert not orphans, (
-        f"documented Mermaid rules with no registry entry: {orphans}. Either pair each "
-        "with the code that enforces it, or record it in DOC_ONLY_MERMAID_RULES with a "
-        "reason. A rule stated as prohibited but enforced by nothing is issue #289."
+        f"{family.name}: documented rules with no registry entry: {orphans}. Either pair "
+        "each with the code that enforces it, or record it in the family's doc_only map "
+        "with a reason."
     )
 
 
-# --------------------------------------------------------------------------- #
-# (d) Orphan enforcement. This is issue #299's defect class.
-# --------------------------------------------------------------------------- #
-
-def _enforced_error_messages():
-    """Literal error prefixes the Mermaid validator can emit.
-
-    Extracted from the f-string bodies appended to ``errors``. Deliberately keyed on
-    the human-readable phrase rather than a rule id, because that phrase is what a
-    maintainer greps for when a downstream symptom appears.
-    """
-    source = _read(MERMAID_VALIDATOR)
-    return set(re.findall(r'f"\{source\}:\{lineno\}: ([a-z][^"{]*?)(?:\s*"|\()', source))
-
-
-def test_enforced_message_scan_is_not_vacuous():
-    messages = _enforced_error_messages()
-    assert len(messages) >= 4, (
-        f"only {len(messages)} enforced Mermaid messages parsed; the orphan-enforcement "
-        f"test would be near-vacuous. Found: {messages}"
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_enforced_message_scan_is_not_vacuous(family):
+    messages = _enforced_messages(family)
+    assert len(messages) >= 3, (
+        f"{family.name}: only {len(messages)} enforced messages parsed from "
+        f"{family.enforcement_file}; the orphan-enforcement test would be "
+        f"near-vacuous. Found: {messages}"
     )
 
 
-def test_every_enforced_mermaid_rule_is_registered():
-    registered = [c.enforcement_anchor for c in ALL_CONTRACTS]
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_every_enforced_rule_is_registered(family):
+    """A rule the code rejects that no document mentions. Issue #299."""
+    registered = [c.enforcement_anchor for c in family.contracts]
     orphans = sorted(
-        msg for msg in _enforced_error_messages()
+        msg for msg in _enforced_messages(family)
         if not any(anchor in msg or msg in anchor for anchor in registered)
     )
     assert not orphans, (
-        f"the Mermaid validator rejects content for reasons with no registry entry: "
+        f"{family.name}: content is rejected for reasons with no registry entry: "
         f"{orphans}. Every enforced rule must be paired with the document that states "
-        "it, or a generating subagent cannot comply. This is issue #299."
+        "it, or a generating subagent cannot comply."
     )
 
 
