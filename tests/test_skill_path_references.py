@@ -21,8 +21,24 @@ import os
 import re
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SCAN_ROOTS = ("skills", "rules")
-EXCLUDED_DIRS = {".git", "__pycache__", "node_modules", "decisions", "designs"}
+# `.agents` and `.pipeline` are hidden, and were omitted here until issue #305. The
+# omission was self-defeating: the prefix ban below exists to keep `.agents/skills/`
+# out of governance documents, and the only document using that prefix lived in the
+# one directory this scan skipped. The test was green because it could not see its
+# own subject. Same root cause as #295 — hidden directories dropped by
+# convention-based enumeration — with a test doing the skipping rather than an agent.
+#
+# os.walk does not follow symlinks by default, so `.agents/skills -> ../skills` is
+# not descended into and `skills/` documents are not counted twice.
+SCAN_ROOTS = ("skills", "rules", ".agents", ".pipeline")
+EXCLUDED_DIRS = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    "decisions",
+    "designs",
+    "diagnostics",  # .pipeline/diagnostics holds ~78 repro payloads, none of them .md
+}
 
 # Paths appearing inside prose as examples of the *wrong* form are allowed only in
 # documents that exist to explain the convention.
@@ -49,9 +65,25 @@ def _read(path):
 
 
 def test_governance_docs_are_discoverable():
-    """Guard: both assertions below iterate this corpus."""
+    """Guard: every assertion below iterates this corpus.
+
+    The count alone is a weak guard — it cleared comfortably on ``skills/`` and
+    ``rules/`` alone while the hidden roots were missing entirely (#305). The
+    membership assertions are the real check: they name one document from each hidden
+    root, so dropping a scan root fails here loudly instead of silently shrinking
+    what the suite examines.
+    """
     docs = _governance_docs()
-    assert len(docs) >= 8, f"expected the skill and rule documents, found {len(docs)}"
+    rels = {os.path.relpath(p, REPO_ROOT) for p in docs}
+
+    assert len(docs) >= 28, (
+        f"expected the skill, rule and hidden governance documents, found {len(docs)}"
+    )
+    for required in (".agents/AGENTS.md", ".pipeline/constitution.md"):
+        assert required in rels, (
+            f"{required} is missing from the scanned corpus — a SCAN_ROOTS regression. "
+            "This is the #305 blind spot; do not fix it by lowering the guard."
+        )
 
 
 def test_no_document_uses_the_agents_skills_prefix_issue285():
