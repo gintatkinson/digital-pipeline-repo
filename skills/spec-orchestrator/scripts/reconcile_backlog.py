@@ -1121,7 +1121,7 @@ def main():
             features_dir = os.path.join(workspace_dir, features_rel)
             stories_dir = os.path.join(workspace_dir, stories_rel)
             usecases_dir = os.path.join(workspace_dir, usecases_rel)
-            print(f"Scanning backlog files...")
+            print("Scanning backlog files...")
 
         # Build Epic Alias Map for robust child-to-epic title/ID resolution
         epic_alias_map = {}
