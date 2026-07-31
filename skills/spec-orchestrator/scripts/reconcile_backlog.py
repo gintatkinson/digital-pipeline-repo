@@ -1107,7 +1107,6 @@ def main():
         title_key = keys.get("title", "title")
         labels_key = keys.get("labels", "labels")
         state_key = keys.get("state", "state")
-        closed_state = keys.get("closed_state_value", "CLOSED").upper()
         
         close_comments = tracker_rules.get("close_comments", {})
         epic_comment = close_comments.get("epic", "Epic completed. All constituent features successfully delivered and verified.")
