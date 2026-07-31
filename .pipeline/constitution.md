@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Systems Engineering Pipeline"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-06-29"
+last_updated: "2026-07-31"
 ---
 
 # Project Constitution: Digital Systems Engineering Pipeline
@@ -38,7 +38,7 @@ last_updated: "2026-06-29"
 
 ### Universal Model Consistency Rules
 - Dynamic-to-Static Alignment: No class, component, interface, attribute, operation, signal, or message may be used in dynamic behavior specifications unless it is explicitly defined in the structural models.
-- Every lifeline in a sequence diagram MUST represent an instance of a defined logical Class or Component.
+- Every lifeline in a sequence diagram MUST represent an instance of a defined logical Class or Component, except lifelines declared as external actors (UML `actor`), which represent entities outside the system boundary and are therefore not defined in the structural models. Every non-actor lifeline MUST resolve to a defined classifier.
 - Every message (synchronous, asynchronous, or return) in a sequence diagram must map to an active Operation or Signal defined on the target classifier's interface/class definition.
 - Every trigger, event, or action on a state machine transition must be defined as an Operation or Signal in the class metamodel.
 - Auto-verification Failure: Any diagram or spec that references undefined operations, classes, or signals will violate the quality gates and halt the pipeline.
