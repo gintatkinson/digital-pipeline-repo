@@ -663,3 +663,144 @@ Recorded here so they are not lost, each needing its own atomic package per
   execution. Same divergence class #298 exists to detect.
 * **`pipeline-tooling.md:131` cites `feature-driven-implementation` "Step 5.5"**, which
   does not exist; the closure instructions are Step 5 item 5 and Step 6 item 2.
+
+---
+
+## Part J — governance document defects  **[AWAITING APPROVAL]**
+
+Four atomic packages per `AGENTS.md:51-53`, each with its own branch, commit and
+walkthrough, executed serially per `rules/serial-execution.md`. Human selected
+**option (a)** for J3: amend the skills themselves rather than rely on the override.
+
+### A trap found while enumerating — J3 is not safe on its own
+
+`debug-protocol` selects work with `gh issue list --label "bug"` (line 72) and
+terminates only when *"no open issue labelled `bug` remains that passes the Step 0
+defect gate"* (line 84). Both assume a finished bug **leaves** the selection set,
+which today happens by closing it.
+
+Remove the agent's ability to close (which is what the constitution already requires
+and J3 makes literal) and a fixed bug stays **open**, still labelled `bug`, still
+passing the Step 0 defect gate — because it genuinely is a defect. The loop reselects
+it forever. This is the #287 deadlock class in a new form, and the reclassification
+clause does not rescue it: that clause only removes *non*-defects.
+
+So J3 MUST also move the selection set from "open and labelled bug" to "open,
+labelled bug, and NOT labelled `status:fixed-resolved`". The label exists already
+(verified via `gh label list`: `status:fixed-resolved` — *"Dev complete, tests pass,
+merged to main. Awaiting Product Owner validation."*). Shipping J3 without this
+converts a documentation defect into a live non-terminating loop.
+
+### J0 — file the three defects and re-populate the divergence register
+
+`KNOWN_DOC_DIVERGENCES` is `{}` at `tests/rule_contracts.py:215`; both prior entries
+moved to `RESOLVED_DIVERGENCES` when AMEND-0001/0002 landed. The register therefore
+asserts zero known divergences while three exist. `project-constitution` Step 9:
+*"A divergence left undocumented becomes indistinguishable from a bug."*
+
+| File | Exact change |
+|---|---|
+| *(tracker)* | Three issues via `gh issue create`, label `bug`, label `pipeline-tooling`. Titles: (1) "`AGENTS.md:33` directs subagents to a path that does not exist"; (2) "Two skills instruct agents to close issues the constitution forbids closing"; (3) "`pipeline-tooling.md:131` cites a `feature-driven-implementation` step that does not exist". Body of (2) MUST include the non-termination trap above. |
+| `tests/rule_contracts.py` | Add one `KNOWN_DOC_DIVERGENCES` entry for defect 2, naming the issue number from above and stating that `pipeline-tooling.md:130` claims an override the skill text never received. Defects 1 and 3 are factually wrong references, not divergences — they are not registered here. |
+
+No test. This package is registration only; the gate that would catch it is J4.
+
+### Correction — J1's premise was wrong  **[REVISED, NEEDS RE-APPROVAL]**
+
+J1 was approved on the claim that `.agents/skills/debug-protocol/SKILL.md` does not
+exist. **It does.** `.agents/skills` is a git-tracked symlink, mode `120000`, blob
+`42c5394`, pointing at `../skills`:
+
+```
+$ git ls-files -s .agents/
+100644 51737df... 0	.agents/AGENTS.md
+120000 42c5394... 0	.agents/skills
+$ readlink .agents/skills
+../skills
+```
+
+The false claim came from `find .agents -type f`, which lists neither symlinks nor
+their targets, read as proof of absence — the parametric assertion `AGENTS.md:96`
+prohibits. Issue #305 has been retitled and its body corrected, with the withdrawal
+recorded as a comment. The claim that every subagent dispatch is degraded is withdrawn.
+
+**What survives.** `AGENTS.md:33` still violates the #285 convention — governance
+documents must use the repo-relative `skills/` prefix, because symlink materialisation
+is not guaranteed under archive extraction, `core.symlinks=false`, or filesystems
+without symlink support. The one-token edit is unchanged. Its justification and
+severity change: drift risk, not broken dispatch.
+
+**The better finding.** `tests/test_skill_path_references.py:57` is
+`test_no_document_uses_the_agents_skills_prefix_issue285` — a green test whose sole
+purpose is to ban this exact prefix. It is green because line 24 reads
+`SCAN_ROOTS = ("skills", "rules")`. `.agents/` and `.pipeline/` are never scanned, so
+the only file using the banned prefix is the only file the test cannot see, and the
+corpus guard at line 51 (`len(docs) >= 8`) clears easily on `skills/` and `rules/`
+alone. Same root cause as #295 — hidden directories skipped by convention-based
+enumeration — with a test doing the skipping instead of an agent.
+
+This supersedes the "new test module" approach: the gate exists, only its scan roots
+are wrong. Extending it is strictly better than adding a parallel module that would
+duplicate its regex and its guard.
+
+### J1 (revised) — `AGENTS.md:33` prefix, and the #285 gate's blind spot — issue #305
+
+| File | Exact change |
+|---|---|
+| `tests/test_skill_path_references.py` | **RED first.** L24: `SCAN_ROOTS = ("skills", "rules")` → `("skills", "rules", ".agents", ".pipeline")`. With `.agents` scanned, `test_no_document_uses_the_agents_skills_prefix_issue285` fails on `AGENTS.md:33` — that is the RED. Raise the L54 corpus guard from `>= 8` to a value that proves the hidden docs were picked up, and assert by name that `.agents/AGENTS.md` and `.pipeline/constitution.md` are in the corpus, so a future scan-root regression cannot pass silently. Extend `EXCLUDED_DIRS` with `diagnostics` to keep the 78 `.pipeline/diagnostics/*.json` payloads out (they are `.json`, not `.md`, so this is belt-and-braces). |
+| `.agents/AGENTS.md` | L33: `.agents/skills/debug-protocol/SKILL.md` → `skills/debug-protocol/SKILL.md`. Single token; sentence otherwise untouched. This turns the test GREEN. |
+
+Note the ordering: the test change lands first and must be demonstrated failing, then
+the one-token doc fix makes it pass. That is the RED-GREEN pair, and it is the reverse
+of the usual order only in that the "code" here is a governance document.
+
+### J2 — `pipeline-tooling.md:131` phantom step citation — issue #307
+
+| File | Exact change |
+|---|---|
+| `.pipeline/upstream/pipeline-tooling.md` | L131: `feature-driven-implementation` Step 5.5" → "Step 5 item 5 and Step 6 item 2". |
+| `tests/test_skill_path_references.py` | Add `test_step_citations_resolve_issue307`: for each `<skill> Step N` citation in the governance corpus, assert a heading matching that step number exists in the cited file. Fixture guard asserting the citation scan is non-empty. |
+
+Shares J1's module — same invariant, *a document referring to something that is not
+there* — differing only in what is referred to. Separate commits.
+
+### J3 — option (a): amend both skills to stop at `Fixed / Resolved`
+
+Enumerated by grep; this is every site, not the four named earlier.
+
+| File | Exact change |
+|---|---|
+| `skills/debug-protocol/SKILL.md` | **L64** Step 7 item 5: "comment on the GitHub issue with the evidence and close it" → comment with the evidence, apply `status:fixed-resolved`, and leave the issue open for Product Owner validation. **L72** selection query → `gh issue list --label bug --search '-label:"status:fixed-resolved"'`. **L84** terminating condition → restate in terms of the reduced selection set. **L101** checklist → "issue marked `Fixed / Resolved` with mechanical proof". L87 and L102 unchanged ("closing procedures", "loop closed" — neither refers to issue state). |
+| `skills/feature-driven-implementation/SKILL.md` | **L197** Step 5 item 5 and **L206** Step 6 item 2: close → apply `status:fixed-resolved` + evidence comment, leave open. **L23** Mandate 3 "All closed issues MUST have a closing comment" → resolved issues, resolution comment. **L24** Mandate 4 "close the Epic issue itself" → mark the Epic `Fixed / Resolved`. **L5** description and **L15** intro: "automated closure" → "automated resolution". **L21** Mandate 1 "…verified, merged, documented, and closed" → "…and resolved". Headings L188 and L202 keep the word Closure (phase names, not instructions). |
+| `.pipeline/upstream/pipeline-tooling.md` | L130-132: the override paragraph becomes historical — the skills now state the rule directly. Retain a one-line pointer per the belt-and-braces recommendation; do not delete the section (Documentation Integrity, `AGENTS.md:59-62`). |
+| `tests/test_skills_never_close_issues_issue<J0-2>.py` | **New.** RED first. Assert no `SKILL.md` contains an instruction to close a tracker issue — scan for `gh issue close` and for imperative "close the ... issue" phrasing. Assert `debug-protocol` selection query excludes `status:fixed-resolved`. Fixture guard: assert the scan found all ten `SKILL.md` files. |
+| `tests/rule_contracts.py` | Move the J0 divergence entry to `RESOLVED_DIVERGENCES`, naming this package. |
+
+### J4 — extend the contract gate to doc-to-doc assertions (root cause)
+
+All three defects are one shape: *a document asserts something about another document
+that is not true* — a path that does not exist, a step that does not exist, an
+override that was never applied. J1-J3 fix three instances; J4 addresses the class,
+which is what Part D exists to do.
+
+| File | Exact change |
+|---|---|
+| `tests/rule_contracts.py` | New `DOC_REFERENCE_CONTRACTS` family alongside `MERMAID_CONTRACTS`, reusing `RuleContract` with `enforced_in` pointing at the referenced document and `enforcement_anchor` the text that must appear there. Register the `AGENTS.md`→`skills/`, `pipeline-tooling.md`→skills, and `constitution`→`AGENTS.md` pairings. |
+| `tests/test_rule_contracts.py` | Extend to iterate the new family. Remove `"authorization precedence"` from `KNOWN_UNREGISTERED_FAMILIES` once covered. |
+| `tests/test_doc_reference_contracts_issue<J0-3>.py` | **New.** The generalised gate: every registered doc-to-doc contract's anchor must resolve in its target file. |
+
+### Verification, every package
+
+1. RED demonstrated and pasted before the fix; GREEN after.
+2. Both suites green: `python3 -m pytest tests/ -q` and
+   `python3 -m pytest skills/spec-orchestrator/parity_auditor/tests -q`.
+3. Own branch `fix/<issue>-<slug>`, own commit, merged `--no-ff`, branch deleted.
+4. `git diff origin/main` empty after push (`AGENTS.md:19-20`).
+5. Walkthrough per package under the configured design directory.
+6. Issues taken to `Fixed / Resolved` + label only. **Not closed** — which is the rule
+   this Part exists to make literal.
+
+### Not in scope
+
+The Part I text commingled into `a95dca9` stays. Cleaning it rewrites pushed history,
+which costs more than the untidiness.
