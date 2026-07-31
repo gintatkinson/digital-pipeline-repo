@@ -213,20 +213,18 @@ KNOWN_UNREGISTERED_FAMILIES = {
 # OPEN divergences. Empty is the goal, not a defect — but the structure must remain so
 # a future divergence has a defined home rather than being left undocumented.
 KNOWN_DOC_DIVERGENCES: dict = {
-    "skills-instruct-closing-issues": (
-        "skills/debug-protocol/SKILL.md:64,101 and "
-        "skills/feature-driven-implementation/SKILL.md:5,15,21,23,24,197,206 instruct "
-        "the agent to close tracker issues, while .pipeline/constitution.md:161 makes "
-        "Closed unreachable without Product Owner validation. "
-        ".pipeline/upstream/pipeline-tooling.md:130 declares an override, but "
-        ".agents/AGENTS.md:75 mandates literal skill execution, and that override lives "
-        "in an upstream-only profile which a downstream project never receives. "
-        "Resolution pending: issue #306, implementation_plan.md Part J package J3, "
-        "which amends both skill files to stop at Fixed / Resolved. J3 must also narrow "
-        "the debug-protocol selection query to exclude status:fixed-resolved, or "
-        "removing the close step leaves its terminating condition unsatisfiable. Note "
-        "this is a skill-text amendment, not a constitution amendment, so it needs no "
-        "entry in .pipeline/constitution-amendments.md."
+    "reconciler-auto-closes-issues": (
+        "skills/spec-orchestrator/scripts/reconcile_backlog.py calls "
+        "close_issue_on_tracker at lines 1366, 1424 and 1457, closing Epics, User "
+        "Stories and Use Cases automatically, while .pipeline/constitution.md:161 makes "
+        "Closed unreachable without Product Owner validation. This is the enforced-side "
+        "twin of #306: the skills instructed closure, and the tooling performs it. "
+        ".agents/AGENTS.md requires the reconciler be run before every merge, so the "
+        "divergence is mandated to execute rather than merely possible. "
+        "Resolution pending: issue #309, which replaces the three call sites with a "
+        "status:fixed-resolved label transition and updates "
+        "skills/spec-orchestrator/SKILL.md:147,149 in the same package so the "
+        "documentation keeps describing real behaviour."
     ),
 }
 
@@ -235,6 +233,18 @@ KNOWN_DOC_DIVERGENCES: dict = {
 # resolved it, so the register records how divergences were closed and not merely that
 # they vanished.
 RESOLVED_DIVERGENCES = {
+    "skills-instruct-closing-issues": (
+        "skills/debug-protocol/SKILL.md and "
+        "skills/feature-driven-implementation/SKILL.md instructed the agent to close "
+        "tracker issues across 6 detected sites, while .pipeline/constitution.md:161 "
+        "reserves Closed for Product Owner validation. "
+        ".pipeline/upstream/pipeline-tooling.md declared an override, which could not "
+        "work: AGENTS.md:75 mandates literal skill execution and that profile is "
+        "upstream-only. RESOLVED by #306, which amended both skills to stop at "
+        "Fixed / Resolved, narrowed debug-protocol's selection query to exclude "
+        "status:fixed-resolved so the loop still terminates, and added "
+        "tests/test_skills_never_close_issues_issue306.py as the enforcing gate."
+    ),
     "constitution-lifeline-actor-exemption": (
         ".pipeline/constitution.md:41 required every sequence-diagram lifeline to resolve "
         "to a defined Class or Component, while issue #277 option B exempts external UML "

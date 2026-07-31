@@ -2,7 +2,7 @@
 
 ---
 name: feature-driven-implementation
-description: "Implements Agile features using serial, subagent-driven, TDD-disciplined execution with two-stage review gates. Use when you need to implement a feature from a GitHub backlog with micro-task decomposition, RED-GREEN-REFACTOR cycles, and automated Epic closure."
+description: "Implements Agile features using serial, subagent-driven, TDD-disciplined execution with two-stage review gates. Use when you need to implement a feature from a GitHub backlog with micro-task decomposition, RED-GREEN-REFACTOR cycles, and automated Epic resolution."
 compatibility: "Requires git and configured issue tracker. Works with major agent orchestrators."
 metadata:
   risk: low
@@ -12,16 +12,16 @@ metadata:
 
 # Feature-Driven Autonomous Delivery & Closure
 
-Use this skill to execute the end-to-end implementation lifecycle for prioritized Agile features and ensure complete automated closure of feature issues, walkthrough updates, and parent Epics.
+Use this skill to execute the end-to-end implementation lifecycle for prioritized Agile features and ensure complete automated resolution of feature issues, walkthrough updates, and parent Epics. Resolution means `Fixed / Resolved`; an agent never reaches `Closed`, which requires Product Owner validation (`.pipeline/constitution.md:161`).
 
 This skill integrates subagent-driven development, TDD execution discipline, two-stage review gates, micro-task decomposition, systematic debugging, and verification-before-completion — ensuring that agents cannot drift, falsely report success, or skip quality gates.
 
 ## Core Mandates
 
-1. **Serial Execution:** Strictly implement **one feature at a time**. Do not start feature N+1 until feature N is completely verified, merged, documented, and closed.
+1. **Serial Execution:** Strictly implement **one feature at a time**. Do not start feature N+1 until feature N is completely verified, merged, documented, and resolved.
 2. **The Grill Approval:** Create an implementation plan and obtain explicit human approval BEFORE modifying any source files.
-3. **Traceability:** All closed issues MUST have a closing comment referencing the relative path or GitHub URL of the committed solution walkthrough.
-4. **Agentic Epic Closure:** When all constituent features of an Epic are closed, the agent must check off the items in the local Epic markdown, update the Epic issue's body on GitHub, and close the Epic issue itself.
+3. **Traceability:** Every issue taken to `Fixed / Resolved` MUST carry a resolution comment referencing the relative path or GitHub URL of the committed solution walkthrough.
+4. **Agentic Epic Resolution:** When all constituent features of an Epic are resolved, the agent must check off the items in the local Epic markdown, update the Epic issue's body on GitHub, and mark the Epic issue `Fixed / Resolved`. The agent stops there; moving an Epic to `Closed` is the Product Owner's decision.
 5. **Verification Isolation:** Verification of the implemented feature must follow the specific testing frameworks and execution models defined in the platform profile (e.g., E2E, unit, or integration tests). Refrain from using unapproved browser automation, headless engines, or scripts unless explicitly allowed by the project profile.
 6. **Issue Tracker as Source of Truth:** Do not rely on local files or checklist documentation for feature definitions or backlog status as they may be contaminated or contain broken links. Always query the official issue tracker provider as the canonical source of truth.
 7. **Cumulative Walkthroughs & Document Integrity:** When writing or updating living artifacts (such as implementation plans, task lists, and verification walkthroughs), you MUST NOT perform destructive overwrites. Always read the existing file first. Append or merge new details so the historical record remains fully intact.
@@ -194,7 +194,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
    > **ZERO-TRUST COLLISION CHECK:** Before updating or creating this file, search the repository and history for the target filename to check its existing content. If it exists, read it first and append/merge the new changes rather than overwriting. If there is a filename mismatch or conflict, alert the user and resolve the naming conflict immediately.
 3. **Backlog Reconciliation**: Run the backlog reconciliation script to synchronize all checklists, updated spec bodies (such as fixed Mermaid diagrams), and issue states back to GitHub: python3 skills/spec-orchestrator/scripts/reconcile_backlog.py
 4. Commit and push the solution document using the configured commit command template.
-5. Close the feature issue on the active issue tracker provider, embedding a comment pointing to the committed solution document, dynamically constructing the URL using `meta.upstream_repository` from configuration.
+5. Mark the feature issue `Fixed / Resolved` on the active issue tracker provider: apply the `status:fixed-resolved` label and embed a comment pointing to the committed solution document, dynamically constructing the URL using `meta.upstream_repository` from configuration. Leave the issue open — `Closed` requires Product Owner validation (`.pipeline/constitution.md:161`).
 6. Update the local parent Epic checklist:
    - Mark the completed feature as completed (`[x]`).
    - Commit and push the updated Epic checklist file.
@@ -203,7 +203,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 1. Inspect the local Epic checklist.
 2. If **all** features listed in the Epic checklist are checked off (`[x]`):
    - Update the Epic issue body on the active tracker provider with the completed task list.
-   - Close the Epic issue on the active tracker provider, embedding a comment indicating successful completion.
+   - Mark the Epic issue `Fixed / Resolved` on the active tracker provider: apply the `status:fixed-resolved` label and embed a comment indicating successful completion. Leave it open for Product Owner validation.
 3. Delete the feature branch locally and remotely using the configured branch cleanup commands.
 
 ## Error Recovery

@@ -142,11 +142,21 @@ Per `.pipeline/constitution.md` § *CMMI Level 3 & Scrum Issue Lifecycle Rules*:
   validation. Agents MUST NOT close issues.
 - This repository has no Projects board, so the state is carried by the
   `status:fixed-resolved` label.
-- This overrides `debug-protocol` Step 7 and `feature-driven-implementation`
-  Step 5 item 5 and Step 6 item 2, all of which instruct the agent to close the
-  issue. The constitution is Tier 1 and takes precedence. Step 6 closes the
-  parent Epic and was omitted from the earlier citation, so on a literal reading
-  the override did not reach it.
+- **Historical, resolved by #306.** This bullet formerly declared that it *overrode*
+  `debug-protocol` Step 7 and `feature-driven-implementation` Step 5 item 5 and
+  Step 6 item 2, all of which instructed the agent to close the issue. An override
+  was the wrong instrument: `AGENTS.md:75` mandates literal skill execution, and
+  this profile is upstream-only, so a downstream project never receives it — the
+  skills would have kept instructing closure with nothing to countermand them.
+  Both skills now state the rule directly, and
+  `tests/test_skills_never_close_issues_issue306.py` enforces it across every
+  `SKILL.md`. Retained rather than deleted per *Documentation Integrity*
+  (`AGENTS.md:59-62`).
+- **Still open: #309.** `reconcile_backlog.py` calls `close_issue_on_tracker` at
+  lines 1366, 1424 and 1457, so the reconciler closes Epics, User Stories and Use
+  Cases automatically. `AGENTS.md` § *Backlog Reconciliation Mandate* requires that
+  script be run before every merge, so this violation is not merely possible but
+  mandated to run. The skills are now correct; the tooling is not yet.
 
 ## Upstream-Only Scoping
 

@@ -61,7 +61,7 @@ Dispatch a subagent to:
 2. Grep the fix location (FILE_LOCATION from issue body) and confirm the fix code is present.
 3. Run the full test suite and paste raw terminal output.
 4. Show `git diff` of the fix commit to confirm only expected changes.
-5. If all three proofs pass, comment on the GitHub issue with the evidence and close it.
+5. If all three proofs pass, comment on the GitHub issue with the evidence and apply the `status:fixed-resolved` label. Leave the issue open — `Closed` requires Product Owner validation and is unreachable by an agent (`.pipeline/constitution.md:161`).
 Return: grep output, raw test output, git diff output. Do NOT return a pass/fail summary without evidence.
 
 ## Step 8 — Loop Decision
@@ -69,7 +69,14 @@ If Step 7 failed, return to Step 1. Do NOT give up after one or two failed hypot
 
 If the issue is a meta-issue with multiple independent sub-items (e.g. "eliminate all hardcoded data" with 14 items), treat each sub-item as one pass through Steps 1-7. After Step 7 passes for the current sub-item, return to Step 1 for the next sub-item. Do NOT stop to ask, report, or plan — just loop.
 
-On completion of the current bug, query the repository for the next unresolved bug/defect issue (e.g. using `gh issue list --label "bug"`).
+On completion of the current bug, query the repository for the next unresolved bug/defect issue using `gh issue list --label bug --search '-label:"status:fixed-resolved"'`.
+
+> [!IMPORTANT]
+> The `-label:"status:fixed-resolved"` exclusion is load-bearing, not cosmetic. Agents
+> may not close issues, so a finished bug stays **open** and keeps its `bug` label. It
+> also still passes the Step 0 defect gate, because it genuinely is a defect. Selecting
+> on `--label bug` alone therefore reselects work that is already done, forever. The
+> resolved label is what removes an item from the selection set now that closing cannot.
 - If other unresolved bugs exist:
   1. Select the next highest priority or oldest bug.
   2. Skip any issues that are already assigned to someone else or explicitly marked as in-progress.
@@ -81,7 +88,7 @@ On completion of the current bug, query the repository for the next unresolved b
 
   Halting here would be unsatisfiable. The terminating condition below cannot be met while a non-defect still carries the `bug` label, and the 3-iteration skip does not rescue the loop because Step 0 halts **before iteration one** — there is no runtime symptom for the Step 1 Reproduction Subagent to reproduce. Reclassifying removes the item from the selection set, which is the only exit that both respects Step 0 and allows the loop to finish.
 - If a bug cannot be resolved or reproduced after 3 full hypothesis/fix iterations (Steps 1-7), post a detailed status comment summarizing the reproduction/investigation findings on the issue, skip it, and proceed to the next unresolved bug in the backlog.
-- Do NOT stop until no open issue labelled `bug` remains that passes the **Step 0 defect gate**. Items reclassified above no longer carry the label and therefore no longer block completion.
+- Do NOT stop until no issue in the selection set above — open, labelled `bug`, and NOT labelled `status:fixed-resolved` — remains that passes the **Step 0 defect gate**. Two things leave the selection set: reclassification removes the `bug` label from non-defects, and reaching `Fixed / Resolved` adds `status:fixed-resolved` to genuine defects. Neither requires closing an issue.
 
 ## Persistence Rules
 - **Subagent Self-Reading Mandate**: Every subagent dispatched under this protocol MUST use the file-reading tool to read `skills/debug-protocol/SKILL.md` in full as its VERY FIRST action. It must then follow the output format, evidence standards, and closing procedures defined in this file exactly. Do NOT rely on the coordinator's abbreviated step summary.
@@ -98,5 +105,5 @@ On completion of the current bug, query the repository for the next unresolved b
 - [ ] Step 4 subagent dispatched and reported
 - [ ] Step 5 subagent dispatched and reported
 - [ ] Step 6 subagent dispatched, fix applied, changes committed and pushed, issue updated
-- [ ] Step 7: Verification subagent dispatched, three proofs validated, issue closed with mechanical proof
+- [ ] Step 7: Verification subagent dispatched, three proofs validated, issue marked `Fixed / Resolved` with mechanical proof
 - [ ] Loop closed (bug fixed) or loop restarted (bug persists)
