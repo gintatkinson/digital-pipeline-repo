@@ -89,6 +89,18 @@ MERMAID_CONTRACTS: List[RuleContract] = [
         enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
         enforcement_anchor="unclosed ```mermaid fence",
     ),
+    RuleContract(
+        id="mermaid-relationship-label-must-be-quoted",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Relationship Label Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="unquoted Mermaid relationship label",
+        note=(
+            "Issue #299. Enforced by parsers/mermaid.py:447 but documented nowhere, so "
+            "a generating subagent could not comply. 6 symptoms observed in downstream "
+            "feat-10 and feat-11 output."
+        ),
+    ),
 ]
 
 ALL_CONTRACTS: List[RuleContract] = list(MERMAID_CONTRACTS)

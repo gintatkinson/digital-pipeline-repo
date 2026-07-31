@@ -48,6 +48,10 @@ _MESSAGE = re.compile(r"^\s*\S+\s*-{1,2}[->x)]{1,2}>?\s*\S+\s*:(?P<text>.*)$")
 # classDiagram note forms: `note "..."` / `note for X "..."`
 _CLASS_NOTE = re.compile(r'^\s*note\b.*?"(?P<text>[^"]*)"', re.I)
 _RELATIONSHIP = re.compile(r"(\*--|o--|<\|--|--\|>|-->|<--|\.\.>|--)")
+# `ClassA *-- ClassB : label`  -- captures whatever follows the colon.
+_RELATIONSHIP_LABEL = re.compile(
+    r"^\s*\S+\s*(?:\*--|o--|<\|--|--\|>|-->|<--|\.\.>|--)\s*\S+\s*:\s*(?P<label>.*)$"
+)
 _STEREOTYPE = re.compile(r"(<<|>>|&lt;&lt;|&gt;&gt;|\u00ab|\u00bb)")
 # A member line inside `class X { ... }`.
 #
@@ -62,16 +66,13 @@ _BRACE_ONLY = re.compile(r"^[{}\s]*$")
 
 _DIAGRAM_KINDS = ("sequencediagram", "classdiagram", "statediagram", "graph", "flowchart")
 
-# Directory names skipped by the default scan.
+# No directories are excluded from the default scan.
 #
-# `decisions/` and `designs/` hold historical audit reports and solution
-# walkthroughs. They are narrative records, frequently contain embedded diffs of
-# other documents, and are never published to the issue tracker, so a rendering
-# fault there does not affect a consumer of the specifications. They also predate
-# this checker: scanning them today surfaces pre-existing violations that are
-# tracked separately rather than silently rewritten, since AGENTS.md forbids
-# rewriting documentation without explicit approval.
-EXCLUDED_DIR_NAMES = frozenset({"decisions", "designs"})
+# An earlier revision skipped `decisions/` and `designs/` to keep the linter green on
+# historical records. That was wrong: downstream output is a diagnostic instrument,
+# and excluding directories suppresses the signal it exists to provide -- the
+# exclusion concealed 13 confirmed non-rendering diagrams behind a green check.
+# Findings in disposable content are the measurement, not a problem to manage.
 
 
 def _blocks(text: str) -> Tuple[List[Tuple[int, List[str], str]], List[int]]:
@@ -183,6 +184,16 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
                     f"({line.strip()!r}). Use a plain label such as 'references'."
                 )
 
+            rel_label = _RELATIONSHIP_LABEL.match(line)
+            if rel_label:
+                label = rel_label.group("label").strip()
+                if label and not label.startswith('"') and re.search(r"[\s:]", label):
+                    errors.append(
+                        f"{source}:{lineno}: unquoted Mermaid relationship label "
+                        f"containing spaces or colons ({line.strip()!r}). Enclose it in "
+                        f'double quotes, e.g. : "renders one instance".'
+                    )
+
     return errors
 
 
@@ -202,9 +213,7 @@ class MermaidSyntaxValidator(IValidator):
         for root in search_dirs:
             if not os.path.isdir(root):
                 continue
-            for dirpath, dirnames, filenames in os.walk(root):
-                # prune in place so os.walk does not descend
-                dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIR_NAMES]
+            for dirpath, _dirnames, filenames in os.walk(root):
                 for name in sorted(filenames):
                     if not name.endswith(".md"):
                         continue
