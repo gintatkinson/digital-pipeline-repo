@@ -116,7 +116,8 @@ each, plus a comment on each explaining the reclassification and citing #287.
 |---|---|
 | `rules/tracker-source-of-truth.md` | Merge in the two clauses unique to the sibling file: the `issue_id: <int>` frontmatter mandate and the *Relationship to other rules* section. |
 | `rules/github-source-of-truth.md` | **Delete.** |
-| Referencing files | Update any references to the deleted filename. |
+| `tests/test_rules_consolidation_issue284.py` | **New.** Assert the deleted file is gone, the surviving file carries the migrated clauses, and no live document references the deleted filename. |
+| Referencing files | Update any references to the deleted filename. **Exception:** `docs/decisions/adversarial_hardcode_audit_report.md:58` is a historical audit record describing the repository's past state. Per `AGENTS.md:59` and the reasoning recorded in #296, historical records under `docs/decisions/` are not rewritten. The test therefore excludes that directory. |
 
 ### C7. #285 — mixed script path prefixes
 | File | Exact change |
