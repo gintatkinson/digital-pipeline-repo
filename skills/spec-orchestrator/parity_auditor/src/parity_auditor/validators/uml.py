@@ -12,6 +12,47 @@ import re
 from typing import List, Dict, Any, Set
 from .base import IValidator
 from ..core.workspace import WorkspaceRepository
+
+# Unresolved template placeholders (issue #281).
+#
+# Detection is pattern-based rather than literal-membership. The previous
+# implementation held a hardcoded list -- ["*(none registered)*", "*to be
+# populated*", "*tbd*", "*n/a*"] -- so near-variants slipped through: "*(None)*"
+# differed from "*(none registered)*" only in case and wording, and "#[EpicID]"
+# evaded a substring test for "IssueID" because "EpicID" does not contain it.
+#
+# Every pattern below is case-insensitive and each carries a human-readable label
+# so the error names what is actually wrong rather than echoing a raw line.
+# Never valid in any document, under any circumstances.
+ALWAYS_INVALID_PLACEHOLDER_PATTERNS = [
+    # Real references look like '#43'. Any bracketed token is unresolved.
+    (re.compile(r"#\[[^\]]+\]"), "unresolved issue reference token"),
+    (re.compile(r"\[(?:Epic|Feature|User Story|Use Case)\s+Title\]", re.I),
+     "unpopulated template title"),
+    (re.compile(r"\(\s*semantic linkage justification[^)]*\)", re.I),
+     "template text left in place of a written linkage justification"),
+    (re.compile(r"\b(?:epic|feat|us|uc)-XX-name\b", re.I), "placeholder file path"),
+]
+
+# Conditionally valid. "*(None registered)*" is a truthful statement when nothing is
+# in fact registered, and a placeholder only when matching items exist. Issue #239
+# established that distinction and covers it with two paired tests, so these patterns
+# must stay gated on the caller's knowledge of what exists.
+CONDITIONAL_STUB_PATTERNS = [
+    (re.compile(r"\*\(\s*none(?:\s+registered)?\s*\)\*", re.I), "placeholder stub"),
+    (re.compile(r"\*\s*(?:to be populated|tbd|n/a)\s*\*", re.I), "placeholder stub"),
+]
+
+
+def find_unresolved_placeholders(content: str, patterns=None):
+    """Yield ``(line_number, label, line_text)`` for each unresolved placeholder."""
+    if patterns is None:
+        patterns = ALWAYS_INVALID_PLACEHOLDER_PATTERNS
+    for lineno, line in enumerate(content.splitlines(), 1):
+        for pattern, label in patterns:
+            if pattern.search(line):
+                yield lineno, label, line.strip()
+                break
 from ..core.models import FeatureFile
 from ..parsers.mermaid import MermaidClassDiagramParser, MermaidFlowchartParser, MermaidSequenceDiagramParser
 
@@ -627,20 +668,34 @@ class UmlValidator(IValidator):
         has_usecases: bool = False,
         has_userstories: bool = False
     ):
-        if "IssueID" in content:
-            errors.append(f"{doc_type} {filename} contains unresolved placeholder 'IssueID' or '#[IssueID]'.")
-            
-        PLACEHOLDER_STUBS = ["*(none registered)*", "*to be populated*", "*tbd*", "*n/a*"]
+        # Applies to EVERY document type. The previous implementation ran the stub
+        # scan only for Epic, Use Case and User Story, so Feature files were checked
+        # for the literal string "IssueID" alone -- which is why 8 Feature files in
+        # the live corpus carried entirely unpopulated '## Parent Epic' sections and
+        # still passed validation (issue #281).
+        for lineno, label, line_text in find_unresolved_placeholders(content):
+            errors.append(
+                f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
+                f"Specification templates must be populated before registration."
+            )
+
+        # Conditional stubs. Gated exactly as before, preserving issue #239: an Epic
+        # may legitimately say "*(None registered)*" when no Use Cases or User Stories
+        # exist, and only lies once they do.
+        check_stubs = (
+            (has_usecases or has_userstories) if doc_type == "Epic"
+            else doc_type in ("Use Case", "User Story")
+        )
+        if check_stubs:
+            for lineno, label, line_text in find_unresolved_placeholders(
+                content, CONDITIONAL_STUB_PATTERNS
+            ):
+                errors.append(
+                    f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
+                    f"All referenced items must be explicitly registered."
+                )
 
         if doc_type == "Epic":
-            if has_usecases or has_userstories:
-                for line in content.splitlines():
-                    line_clean = line.strip().lower()
-                    if any(stub in line_clean for stub in PLACEHOLDER_STUBS):
-                        errors.append(
-                            f"Epic {filename} contains unpopulated placeholder '{line.strip()}' in checklist when matching Use Cases or User Stories exist in workspace."
-                        )
-
             req_match = re.search(r"##\s+2\.\s+Requirements\s+&\s+Checklist(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             if req_match:
                 req_section = req_match.group(1)
@@ -648,13 +703,6 @@ class UmlValidator(IValidator):
                 for cb in checkboxes:
                     if not re.search(r"\[[^\]]+\]\(https?://[^)]+\)", cb):
                         errors.append(f"Epic {filename} checklist item '{cb.strip()}' must be a valid markdown link pointing to the feature file absolute URL.")
-        elif doc_type in ("Use Case", "User Story"):
-            for line in content.splitlines():
-                line_clean = line.strip().lower()
-                if any(stub in line_clean for stub in PLACEHOLDER_STUBS):
-                    errors.append(
-                        f"{doc_type} {filename} contains unpopulated placeholder '{line.strip()}' in realization matrix. All realization items must be explicitly registered."
-                    )
 
     def _validate_class_diagram(self, doc_type: str, filename: str, content: str, errors: List[str], class_parser, val_rules, uml_primitives, visibility_prefixes, relationship_connectors, choice_stereotypes, multiplicity_regex):
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
