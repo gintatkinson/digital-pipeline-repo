@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright Gint Atkinson, gint.atkinson@gmail.com
 
 """
