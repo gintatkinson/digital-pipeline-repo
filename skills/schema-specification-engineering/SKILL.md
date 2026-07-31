@@ -115,7 +115,9 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ---
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
-    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) !=2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
+    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
+
+2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ```markdown
     ---
     title: "[Epic Title]"
@@ -287,7 +289,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     > - Ensure there are no stray backticks or unmatched code fences in the document.
     > - **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full** — including the prohibition on curly braces in class member lines, colons in class members and note strings, stereotypes on relationship lines, and semicolons in `Note` and message text. Do not maintain a local subset here; subsets drift (issue #289).
 
-3. **Source References Block (CRITICAL):**
+4. **Source References Block (CRITICAL):**
    - At the bottom of every feature markdown file, you MUST append a `## Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
    ```markdown
    ## Source References
@@ -296,7 +298,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ```
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 
-4. **Logical UI & Layout Bindings Block (MANDATORY):**
+5. **Logical UI & Layout Bindings Block (MANDATORY):**
    - Every feature specification markdown file MUST contain a `## Logical UI & Layout Bindings` section at the end of the file.
    - You MUST map the feature's container and leaf nodes to:
      - The target LUI component (e.g. `PropertyGrid`, `TableView`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`).
