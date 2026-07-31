@@ -42,13 +42,11 @@ CLOSE_PATTERNS = [
 # Documented exemptions. An entry here is a visible gap with an owning issue, not a
 # silent exclusion. Empty is the goal.
 KNOWN_EXEMPT = {
-    "spec-orchestrator/SKILL.md": (
-        "Describes reconcile_backlog.py's auto-close behaviour, which is real: "
-        "close_issue_on_tracker is called at lines 1366, 1424 and 1457. The script, not "
-        "the document, is the violation. Correcting the prose here first would make the "
-        "documentation describe behaviour the code does not have. Owned by issue #309, "
-        "which fixes the script and this text together."
-    ),
+    # Emptied by #309. spec-orchestrator/SKILL.md was exempt while it accurately
+    # described reconcile_backlog.py's auto-close behaviour — correcting the prose
+    # before the script would have replaced a true statement about broken behaviour
+    # with a false one. #309 fixed both together, so the exemption is retired rather
+    # than left standing as a permanent excuse.
 }
 
 
