@@ -26,6 +26,15 @@ else
     echo "[GATE] Linter passed."
 fi
 
+REPO_FLAG=""
+if [ -n "$REPO" ]; then
+    REPO_FLAG="--repo $REPO"
+fi
+if ! gh label list $REPO_FLAG 2>/dev/null | grep -Fq "$LABEL"; then
+    echo "[GATE] Label '$LABEL' not found. Creating..."
+    gh label create "$LABEL" $REPO_FLAG --color "0366d6" --description "${LABEL} specification"
+fi
+
 if [ -n "$REPO" ]; then
     gh issue create --repo "$REPO" --title "$TITLE" --label "$LABEL" --body-file "$LOCAL_FILE"
 else
