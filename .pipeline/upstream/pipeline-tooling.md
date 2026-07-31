@@ -72,6 +72,13 @@ last_updated: "2026-07-31"
 - **Fixture guard mandate:** any test that iterates over discovered files MUST
   include a companion assertion proving the discovery found something. A test
   that passes by discovering nothing is worse than no test.
+- **`PYTHONDONTWRITEBYTECODE=1` is mandatory when running tests.** macOS system Python
+  caches `.pyc` under `~/Library/Caches/com.apple.python/`, *outside* the repository, so
+  clearing `./tests/__pycache__` has no effect. Because `.pyc` invalidation keys on mtime
+  and size, an edit that does not change a file's byte length can leave stale bytecode in
+  place — a test then passes or fails against source no longer on disk. This invalidates
+  negative-control probes, which are the only evidence that a gate can actually fail. Set
+  in CI job `env`; set it locally too. See issue #302.
 - **No coverage percentage threshold.** Deliberate. The observed failure mode in
   this repository is specific defects escaping, not low aggregate coverage — a
   percentage gate would have prevented none of issues #276 through #294, and on a
