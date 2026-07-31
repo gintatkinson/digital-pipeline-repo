@@ -7,7 +7,9 @@ with an external issue tracker (e.g. GitHub Issues).
 
 Scans epics/, features/, user-stories/ and use-cases/ directories,
 resolves issue-ID placeholders, updates dependency checklists, syncs
-issue bodies, and auto-closes completed items.  Hard-exits on any
+issue bodies, and marks completed items Fixed / Resolved.
+Never closes an issue: constitution.md:161 reserves Closed for Product Owner
+validation (#309).  Hard-exits on any
 referenced issue that does not exist in the tracker (hallucination gate).
 """
 
@@ -514,15 +516,74 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         if os.path.exists(temp_path):
             os.remove(temp_path)
  
-def close_issue_on_tracker(issue_num, comment, rules=None):
+RESOLVED_LABEL_DESCRIPTION = (
+    "Dev complete, tests pass, merged to main. Awaiting Product Owner validation."
+)
+
+
+def get_resolved_label(rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    return tracker_rules.get("labels", {}).get("resolved", "status:fixed-resolved")
+
+
+def is_already_resolved(issue_record, rules=None):
+    """Has this issue already been marked Fixed / Resolved?
+
+    This guard replaces closing (#309). The call sites were gated on the issue being
+    open, so closing it was what stopped the next run from acting again. Without a
+    replacement guard the reconciler would re-post the completion comment on every run,
+    and AGENTS.md requires a run before every merge.
+
+    Tracker payloads express labels either as objects with a "name" or as bare strings,
+    so both are accepted.
+    """
+    label = get_resolved_label(rules)
+    for item in (issue_record or {}).get("labels") or []:
+        name = item.get("name", "") if isinstance(item, dict) else str(item)
+        if name == label:
+            return True
+    return False
+
+
+def resolve_issue_on_tracker(issue_num, comment, rules=None):
+    """Mark an issue Fixed / Resolved. Never closes it.
+
+    `.pipeline/constitution.md:161` makes `Closed` unreachable without Product Owner
+    validation. This function applies the resolved label and posts the evidence comment,
+    leaving the issue open for that decision.
+    """
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    commands = tracker_rules.get("commands", {})
+    label = get_resolved_label(rules)
     ref_str = format_issue_reference(issue_num, tracker_rules)
-    print(f"  [Close Issue] Closing issue {ref_str} on tracker...")
-    close_cmd_template = tracker_rules.get("commands", {}).get("close_issue")
-    if not close_cmd_template:
-        raise ValueError("Missing 'tracker_rules.commands.close_issue' in codebase_rules.json")
-    cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in close_cmd_template]
+    print(f"  [Resolve Issue] Marking {ref_str} Fixed / Resolved via label '{label}'...")
+
+    # Bootstrap the label first — a downstream repository will not have it, and applying
+    # a non-existent label fails. --force makes this idempotent where it already exists.
+    create_template = commands.get("create_label")
+    if create_template:
+        cmd = [
+            label if c == "{label}" else (RESOLVED_LABEL_DESCRIPTION if c == "{description}" else c)
+            for c in create_template
+        ]
+        subprocess.run(cmd, capture_output=True, timeout=30)
+
+    resolve_template = commands.get("resolve_issue")
+    if not resolve_template:
+        raise ValueError("Missing 'tracker_rules.commands.resolve_issue' in codebase_rules.json")
+    cmd = [
+        str(issue_num) if c == "{number}" else (label if c == "{label}" else c)
+        for c in resolve_template
+    ]
     subprocess.run(cmd, check=True, capture_output=True, timeout=30)
+
+    comment_template = commands.get("comment_issue")
+    if comment_template and comment:
+        cmd = [
+            str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c)
+            for c in comment_template
+        ]
+        subprocess.run(cmd, check=True, capture_output=True, timeout=30)
 
 def get_current_branch(workspace_dir):
     res = subprocess.run(["git", "branch", "--show-current"], cwd=workspace_dir, capture_output=True, text=True, timeout=30)
@@ -1362,13 +1423,15 @@ def main():
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
                         sync_issue_body_to_tracker(issue_num, filepath, issue_type="Epic", rules=rules)
-                        if completed:
-                            close_issue_on_tracker(
+                        if completed and not is_already_resolved(issue_dict[issue_num], rules):
+                            resolve_issue_on_tracker(
                                 issue_num, 
                                 epic_comment,
                                 rules=rules
                             )
-                            issue_dict[issue_num][state_key] = closed_state
+                            issue_dict[issue_num].setdefault("labels", []).append(
+                                {"name": get_resolved_label(rules)}
+                            )
                 else:
                     print(f"Warning: No Epic issue found on tracker matching: '{title}'")
 
@@ -1420,13 +1483,15 @@ def main():
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
                         sync_issue_body_to_tracker(issue_num, filepath, issue_type="User Story", rules=rules)
-                        if completed:
-                            close_issue_on_tracker(
+                        if completed and not is_already_resolved(issue_dict[issue_num], rules):
+                            resolve_issue_on_tracker(
                                 issue_num,
                                 story_comment_template.format(title=title),
                                 rules=rules
                             )
-                            issue_dict[issue_num][state_key] = closed_state
+                            issue_dict[issue_num].setdefault("labels", []).append(
+                                {"name": get_resolved_label(rules)}
+                            )
                 else:
                     print(f"Warning: No User Story issue found on tracker matching: '{title}'")
 
@@ -1453,13 +1518,15 @@ def main():
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
                         sync_issue_body_to_tracker(issue_num, filepath, issue_type="Use Case", rules=rules)
-                        if completed:
-                            close_issue_on_tracker(
+                        if completed and not is_already_resolved(issue_dict[issue_num], rules):
+                            resolve_issue_on_tracker(
                                 issue_num,
                                 usecase_comment_template.format(title=title),
                                 rules=rules
                             )
-                            issue_dict[issue_num][state_key] = closed_state
+                            issue_dict[issue_num].setdefault("labels", []).append(
+                                {"name": get_resolved_label(rules)}
+                            )
                 else:
                     print(f"Warning: No Use Case issue found on tracker matching: '{title}'")
 

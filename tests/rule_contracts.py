@@ -249,27 +249,25 @@ KNOWN_UNREGISTERED_FAMILIES = {
 # submitted for human approval.
 # OPEN divergences. Empty is the goal, not a defect — but the structure must remain so
 # a future divergence has a defined home rather than being left undocumented.
-KNOWN_DOC_DIVERGENCES: dict = {
-    "reconciler-auto-closes-issues": (
-        "skills/spec-orchestrator/scripts/reconcile_backlog.py calls "
-        "close_issue_on_tracker at lines 1366, 1424 and 1457, closing Epics, User "
-        "Stories and Use Cases automatically, while .pipeline/constitution.md:161 makes "
-        "Closed unreachable without Product Owner validation. This is the enforced-side "
-        "twin of #306: the skills instructed closure, and the tooling performs it. "
-        ".agents/AGENTS.md requires the reconciler be run before every merge, so the "
-        "divergence is mandated to execute rather than merely possible. "
-        "Resolution pending: issue #309, which replaces the three call sites with a "
-        "status:fixed-resolved label transition and updates "
-        "skills/spec-orchestrator/SKILL.md:147,149 in the same package so the "
-        "documentation keeps describing real behaviour."
-    ),
-}
+KNOWN_DOC_DIVERGENCES: dict = {}
 
 
 # RESOLVED divergences, retained as history. Each MUST name the amendment or change that
 # resolved it, so the register records how divergences were closed and not merely that
 # they vanished.
 RESOLVED_DIVERGENCES = {
+    "reconciler-auto-closes-issues": (
+        "skills/spec-orchestrator/scripts/reconcile_backlog.py closed Epics, User "
+        "Stories and Use Cases automatically at three call sites, while "
+        ".pipeline/constitution.md:161 makes Closed unreachable without Product Owner "
+        "validation. This was the enforced-side twin of the documentation divergence: "
+        "the skills instructed closure and the tooling performed it, and AGENTS.md "
+        "requires the reconciler run before every merge, so it was mandated to execute. "
+        "RESOLVED by #309, which replaced close_issue_on_tracker with "
+        "resolve_issue_on_tracker applying status:fixed-resolved plus an evidence "
+        "comment, moved the idempotency guard from issue state onto the label, and "
+        "corrected skills/spec-orchestrator/SKILL.md in the same change."
+    ),
     "skills-instruct-closing-issues": (
         "skills/debug-protocol/SKILL.md and "
         "skills/feature-driven-implementation/SKILL.md instructed the agent to close "

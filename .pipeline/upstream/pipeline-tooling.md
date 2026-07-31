@@ -152,11 +152,13 @@ Per `.pipeline/constitution.md` § *CMMI Level 3 & Scrum Issue Lifecycle Rules*:
   `tests/test_skills_never_close_issues_issue306.py` enforces it across every
   `SKILL.md`. Retained rather than deleted per *Documentation Integrity*
   (`AGENTS.md:59-62`).
-- **Still open: #309.** `reconcile_backlog.py` calls `close_issue_on_tracker` at
-  lines 1366, 1424 and 1457, so the reconciler closes Epics, User Stories and Use
-  Cases automatically. `AGENTS.md` § *Backlog Reconciliation Mandate* requires that
-  script be run before every merge, so this violation is not merely possible but
-  mandated to run. The skills are now correct; the tooling is not yet.
+- **Resolved by #309.** `reconcile_backlog.py` formerly closed Epics, User Stories
+  and Use Cases automatically at three call sites, and `AGENTS.md` § *Backlog
+  Reconciliation Mandate* requires that script run before every merge — so the
+  violation was mandated to execute. It now applies `status:fixed-resolved` with an
+  evidence comment and leaves the issue open. The guard moved from issue state to the
+  label: closing was what stopped a second run from acting, so removing it without
+  that replacement would have re-posted the completion comment on every merge.
 
 ## Upstream-Only Scoping
 
