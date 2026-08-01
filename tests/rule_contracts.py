@@ -818,6 +818,239 @@ COVERAGE_GATE_FAMILY = ContractFamily(
 )
 
 
+DOCUMENT_INTEGRITY_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="doc-obsolete-token-namespace-reference",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Obsolete Token Namespace Rules",
+        enforced_in=f"{PARITY_SRC}/validators/docs.py",
+        enforcement_anchor="doc-obsolete-token-namespace-reference",
+        note="Issue #304. Enforced since docs.py was written, documented nowhere.",
+    ),
+    RuleContract(
+        id="doc-hardcoded-standard-reference",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Hardcoded Standard Reference Rules",
+        enforced_in=f"{PARITY_SRC}/validators/docs.py",
+        enforcement_anchor="doc-hardcoded-standard-reference",
+        note=(
+            "The blocklist itself is workspace configuration "
+            "(spec_rules.forbidden_standards_blocklist); the rule that a document may "
+            "not name what is on it is what belongs in a rule file."
+        ),
+    ),
+    RuleContract(
+        id="spec-standard-or-platform-leak",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Backlog Standard And Platform Leak Rules",
+        enforced_in=f"{PARITY_SRC}/validators/docs.py",
+        enforcement_anchor="spec-standard-or-platform-leak",
+        note=(
+            "Applies only to files under the configured backlog directories, not to "
+            "READMEs or profiles, which legitimately discuss implementation."
+        ),
+    ),
+    RuleContract(
+        id="spec-markdown-construct-inside-mermaid-block",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Markdown Construct Leak Rules",
+        enforced_in=f"{PARITY_SRC}/validators/docs.py",
+        enforcement_anchor="spec-markdown-construct-inside-mermaid-block",
+    ),
+    RuleContract(
+        id="spec-code-fence-must-be-closed",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Code Fence Closure Rules",
+        enforced_in=f"{PARITY_SRC}/validators/docs.py",
+        enforcement_anchor="spec-code-fence-must-be-closed",
+        note=(
+            "Deliberately a separate rule id from mermaid-fence-must-be-closed in the "
+            "Mermaid family. That rule governs a mermaid fence inside a diagram under "
+            "audit; this one governs any fence in the enclosing Markdown document, and "
+            "the two are owned by different validators. Sharing an id would make a "
+            "grouped multi-workspace report unable to say which checker fired -- the "
+            "one thing signature() grouping exists to make unambiguous."
+        ),
+    ),
+    RuleContract(
+        id="spec-mermaid-fence-count-must-be-even",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Diagram Fence Parity Rules",
+        enforced_in=f"{PARITY_SRC}/validators/docs.py",
+        enforcement_anchor="spec-mermaid-fence-count-must-be-even",
+        note=(
+            "The heading deliberately does not begin with 'Mermaid': MERMAID_FAMILY's "
+            "doc_heading_pattern claims every '**Mermaid...**:' heading in this file, "
+            "so a heading spelled that way would be reported as a Mermaid-family orphan."
+        ),
+    ),
+]
+
+DOCUMENT_INTEGRITY_FAMILY = ContractFamily(
+    name="specification-document-integrity",
+    contracts=DOCUMENT_INTEGRITY_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/docs.py",
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file="rules/platform-independence.md",
+    # This family and MERMAID_FAMILY share a documentation file and partition its rule
+    # headings between them: the Mermaid family claims every heading beginning
+    # "Mermaid", this one claims the rest. The negative lookahead is what keeps the two
+    # orphan scans from each reporting the other's rules. Without it, adding this family
+    # would have turned nine correctly-registered Mermaid rules into orphans.
+    doc_heading_pattern=r"\*\*((?!Mermaid)[A-Z][^*]*?)\*\*:",
+)
+
+
+LOGICAL_UI_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="logical-ui-layout-manifest-must-exist",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Layout Manifest Must Exist",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-layout-manifest-must-exist",
+        note=(
+            "Issue #304. The manifest-level rules are documented in the orchestrator "
+            "skill because logical-layout.json is produced in its Phase 0 and no worker "
+            "skill owns it; the Feature-level rules are documented in "
+            "schema-specification-engineering, which owns the Feature template."
+        ),
+    ),
+    RuleContract(
+        id="logical-ui-layout-manifest-must-parse",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Layout Manifest Must Parse",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-layout-manifest-must-parse",
+        note=(
+            "Distinct from the existence rule: an unparseable manifest is reported as "
+            "such rather than treated as an empty layout, which would report every "
+            "Feature binding as invalid and point at the wrong file."
+        ),
+    ),
+    RuleContract(
+        id="logical-ui-tabbed-container-child-must-be-a-table-view",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Tabbed Containers Accept Only Tabular Children",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-tabbed-container-child-must-be-a-table-view",
+        note=(
+            "Three emission sites, one rule: a missing children list, a non-object "
+            "child, and a child of a disallowed type. One rule id per rule, not per "
+            "site."
+        ),
+    ),
+    RuleContract(
+        id="logical-ui-features-directory-must-exist",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Features Directory Must Exist",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-features-directory-must-exist",
+    ),
+    RuleContract(
+        id="logical-ui-feature-requires-layout-bindings-section",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Layout Bindings Section Required",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-feature-requires-layout-bindings-section",
+        note=(
+            "The section itself was already mandated by the Feature template; the "
+            "interface_type exemption that decides which Features are excused was not "
+            "documented anywhere before #304."
+        ),
+    ),
+    RuleContract(
+        id="logical-ui-feature-frontmatter-must-parse",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Feature Frontmatter Must Parse",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-feature-frontmatter-must-parse",
+    ),
+    RuleContract(
+        id="logical-ui-component-type-must-exist-in-the-layout",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Target Component Must Exist In The Layout",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-component-type-must-exist-in-the-layout",
+    ),
+    RuleContract(
+        id="logical-ui-container-id-must-exist-in-the-layout",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Target Container Must Exist In The Layout",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-container-id-must-exist-in-the-layout",
+    ),
+    RuleContract(
+        id="logical-ui-component-must-match-its-container-type",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Component Must Match Its Container Type",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-component-must-match-its-container-type",
+    ),
+    RuleContract(
+        id="logical-ui-data-source-binding-must-be-a-schema-path",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Data Source Bindings Must Be Schema Paths",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-data-source-binding-must-be-a-schema-path",
+    ),
+    RuleContract(
+        id="logical-ui-data-source-binding-must-omit-choice-and-case-nodes",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Data Source Bindings Must Omit Choice And Case Nodes",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-data-source-binding-must-omit-choice-and-case-nodes",
+        note=(
+            "A YANG choice/case node is a modelling construct absent from the data "
+            "tree, so a data path containing one cannot resolve at runtime."
+        ),
+    ),
+    RuleContract(
+        id="logical-ui-augmented-node-must-carry-its-module-prefix",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Augmented Nodes Must Carry Their Module Prefix",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-augmented-node-must-carry-its-module-prefix",
+        note=(
+            "Two emission sites, one rule: the augmenting element itself and any "
+            "descendant segment beneath it."
+        ),
+    ),
+    RuleContract(
+        id="logical-ui-spatial-feature-requires-a-spatial-component",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Spatial Features Must Bind A Spatial Component",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-spatial-feature-requires-a-spatial-component",
+        note=(
+            "Complements the Geolocation & Geodetic Semantic Mapping Rules already in "
+            "the same skill, which state where geodetic attributes may NOT be mapped; "
+            "this states the positive requirement the validator actually enforces."
+        ),
+    ),
+]
+
+LOGICAL_UI_FAMILY = ContractFamily(
+    name="logical-ui-bindings",
+    contracts=LOGICAL_UI_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "The rules split across two skills by what they constrain, and neither file is "
+        "a summary of the other: four govern logical-layout.json, produced in "
+        "spec-orchestrator/SKILL.md Phase 0, and nine govern the Feature bindings block, "
+        "whose template lives in schema-specification-engineering/SKILL.md. Scanning "
+        "either alone would report the other's rules as orphans. A heading scan over a "
+        "SKILL.md is additionally unusable here: both files use bold-then-colon for "
+        "ordinary prose emphasis throughout, so the pattern the rule files support would "
+        "match dozens of non-rules. Both anchors of every contract above still resolve, "
+        "so deleting any statement fails the suite; only the heading-scan half of "
+        "orphan-documentation detection is blocked. Tracked as a follow-up to #304."
+    ),
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -960,6 +1193,8 @@ FAMILIES: List[ContractFamily] = [
     BACKLOG_INTEGRITY_FAMILY,
     PLATFORM_PROFILE_FAMILY,
     COVERAGE_GATE_FAMILY,
+    DOCUMENT_INTEGRITY_FAMILY,
+    LOGICAL_UI_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 

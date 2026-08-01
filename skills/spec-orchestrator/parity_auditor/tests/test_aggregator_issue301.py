@@ -59,6 +59,24 @@ MINIMAL_DART_TEST = """void main() {
 }
 """
 
+# The Logical UI bindings block every Feature must carry, bound to nothing. `N/A` is the
+# documented spelling for a Feature with no layout binding, so this satisfies the gate
+# rather than suppressing it.
+BINDINGS = """
+## Logical UI & Layout Bindings
+- **Target LUI Component:** N/A
+- **Target Layout Container ID:** N/A
+- **Data Source Binding:** N/A
+"""
+
+# The layout manifest every Feature's bindings resolve against. Present so that the
+# workspaces below are workspaces; absent, the manifest gate fires in all of them and
+# outranks the rules these tests are about.
+LAYOUT_MANIFEST = {
+    "id": "root", "type": "SplitContainer",
+    "children": [{"id": "properties_view", "type": "PropertyGrid"}],
+}
+
 # Violates mermaid-no-semicolon-in-note-or-message
 SEMICOLON_DIAGRAM = f"""# Spec
 
@@ -67,7 +85,7 @@ sequenceDiagram
     participant A as "a : A"
     Note over A: first thing; second thing
 {FENCE}
-"""
+{BINDINGS}"""
 
 CLEAN_DIAGRAM = f"""# Spec
 
@@ -76,7 +94,7 @@ sequenceDiagram
     participant A as "a : A"
     Note over A: first thing, second thing
 {FENCE}
-"""
+{BINDINGS}"""
 
 
 def _workspace(tmp_path, name, feature_files):
@@ -84,6 +102,7 @@ def _workspace(tmp_path, name, feature_files):
     pipeline = ws / ".pipeline" / "logical-ui"
     pipeline.mkdir(parents=True)
     (pipeline / "codebase_rules.json").write_text(json.dumps(RULES), encoding="utf-8")
+    (pipeline / "logical-layout.json").write_text(json.dumps(LAYOUT_MANIFEST), encoding="utf-8")
     feats = ws / "docs" / "features"
     feats.mkdir(parents=True)
     for fname, content in feature_files.items():

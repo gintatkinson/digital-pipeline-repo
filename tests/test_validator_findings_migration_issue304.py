@@ -47,6 +47,8 @@ MIGRATED = (
     "behavioral.py",
     "schema_mapping_validator.py",
     "test_completeness_validator.py",
+    "docs.py",
+    "logical_ui_validator.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states
@@ -81,8 +83,6 @@ AGGREGATION_EXEMPT = {
 NOT_YET_MIGRATED = {
     "uml.py": 78,
     "codebase.py": 18,
-    "logical_ui_validator.py": 16,
-    "docs.py": 6,
 }
 
 # Modules in the package that emit nothing and so are neither migrated nor pending.

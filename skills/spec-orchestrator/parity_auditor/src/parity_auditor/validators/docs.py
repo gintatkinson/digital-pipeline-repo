@@ -2,6 +2,7 @@ import os
 import re
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 MD_CONSTRUCTS_INVALID_IN_MERMAID = re.compile(
@@ -73,18 +74,30 @@ class DocsValidator(IValidator):
                 
             for pattern, name in obsolete_patterns:
                 if re.search(pattern, content, re.IGNORECASE):
-                    errors.append(f"Documentation file '{rel_path}' contains obsolete reference '{name}'. Please update it to standard-agnostic status mappings.")
+                    errors.append(Finding(
+                        "doc-obsolete-token-namespace-reference",
+                        f"Documentation file '{rel_path}' contains obsolete reference '{name}'. Please update it to standard-agnostic status mappings.",
+                        location=rel_path,
+                    ))
                     
             for standard in forbidden_standards:
                 if standard in content:
-                    errors.append(f"Documentation file '{rel_path}' contains hardcoded reference to '{standard}'. Target profiles and READMEs must remain strictly standard-agnostic.")
+                    errors.append(Finding(
+                        "doc-hardcoded-standard-reference",
+                        f"Documentation file '{rel_path}' contains hardcoded reference to '{standard}'. Target profiles and READMEs must remain strictly standard-agnostic.",
+                        location=rel_path,
+                    ))
                     
             # Check for standard/platform leaks only in backlog specifications
             is_backlog_spec = any(rel_path.startswith(dir_rel) for dir_rel in backlog_paths if dir_rel)
             if is_backlog_spec:
                 for pattern, desc in leak_checks:
                     if re.search(pattern, content, re.IGNORECASE):
-                        errors.append(f"Backlog specification '{rel_path}' contains standard/platform leak: '{desc}'. Tier 1 documents must be purely functional and platform-independent.")
+                        errors.append(Finding(
+                            "spec-standard-or-platform-leak",
+                            f"Backlog specification '{rel_path}' contains standard/platform leak: '{desc}'. Tier 1 documents must be purely functional and platform-independent.",
+                            location=rel_path,
+                        ))
 
             # Code block integrity check (Mermaid block leakage & stray fences)
             lines = content.splitlines()
@@ -108,16 +121,26 @@ class DocsValidator(IValidator):
                             mermaid_fence_count += 1
                 elif in_code_block and is_mermaid_block:
                     if MD_CONSTRUCTS_INVALID_IN_MERMAID.match(stripped):
-                        errors.append(
+                        errors.append(Finding(
+                            "spec-markdown-construct-inside-mermaid-block",
                             f"Specification '{rel_path}' has non-mermaid content "
                             f"'{stripped[:60]}' inside an unclosed Mermaid block "
-                            f"starting at line {code_block_start}."
-                        )
+                            f"starting at line {code_block_start}.",
+                            location=f"{rel_path}:{code_block_start}",
+                        ))
                         in_code_block = False
                         is_mermaid_block = False
             if in_code_block:
-                errors.append(f"Specification '{rel_path}' has an unclosed code block (or stray code fence) starting at line {code_block_start}.")
+                errors.append(Finding(
+                    "spec-code-fence-must-be-closed",
+                    f"Specification '{rel_path}' has an unclosed code block (or stray code fence) starting at line {code_block_start}.",
+                    location=f"{rel_path}:{code_block_start}",
+                ))
             if mermaid_fence_count % 2 != 0:
-                errors.append(f"Specification '{rel_path}' has unbalanced mermaid fences ({mermaid_fence_count} opening/closing found). A closing ``` may be missing after a mermaid block.")
+                errors.append(Finding(
+                    "spec-mermaid-fence-count-must-be-even",
+                    f"Specification '{rel_path}' has unbalanced mermaid fences ({mermaid_fence_count} opening/closing found). A closing ``` may be missing after a mermaid block.",
+                    location=rel_path,
+                ))
                         
         return errors
