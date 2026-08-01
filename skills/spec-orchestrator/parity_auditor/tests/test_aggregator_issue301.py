@@ -128,7 +128,24 @@ def _workspace(tmp_path, name, feature_files):
     # Epic-defined classes from the cross-document class registry.
     (ws / "docs" / "epics").mkdir(parents=True)
     for fname, content in feature_files.items():
-        (feats / fname).write_text(content, encoding="utf-8")
+        # Issue #318 wired the title-uniqueness gate into AGGREGATING_VALIDATORS. Every
+        # fixture here carried the same `# Spec` heading, so the H1 fallback gave all of
+        # them one title and the gate fired in all four workspaces — correctly: four
+        # same-titled Features in one directory really is the collision it reports. That
+        # symptom outranked the mermaid and filename rules these tests are about.
+        #
+        # The fixtures are corrected rather than the assertions relaxed, for the same
+        # reason recorded above for #304: "the broadest symptom ranks first" is the
+        # property under test, and scoping it to an allow-list of rule ids would stop it
+        # failing when a rule IS wrongly promoted. "Fixture" is deliberately not a spec
+        # type word, so normalize_spec_title leaves the distinguishing stem intact.
+        stem = os.path.splitext(fname)[0]
+        titled = content.replace(
+            'generation_mode: "subagent"',
+            f'generation_mode: "subagent"\ntitle: "Fixture {stem}"',
+            1,
+        )
+        (feats / fname).write_text(titled, encoding="utf-8")
 
     lib = ws / "app_flutter" / "lib"
     lib.mkdir(parents=True)
