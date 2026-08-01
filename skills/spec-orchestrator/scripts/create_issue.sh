@@ -32,8 +32,13 @@ fi
 # it gates whether an open tracker issue lacking a local spec file is fatal. Narrowing
 # the gate's scope to the item being filed remains an open design question recorded on
 # #331 and #321 — two views of one scoping defect that must be resolved together.
-echo "[GATE] Running linter: $LINTER --spec-only"
-if ! python3 "$LINTER" --spec-only; then
+# Issue #331 + #321 — the gate is scoped to the item being filed. Whole-corpus
+# invariants still run (uniqueness and cross-references cannot be checked per file),
+# but only findings naming this specification are reported. That is what makes
+# strictness affordable: the permissive --allow-missing-specs flag is gone, and an
+# unrelated work-in-progress draft no longer blocks this filing.
+echo "[GATE] Running linter: $LINTER --spec-only --only $(basename "$LOCAL_FILE")"
+if ! python3 "$LINTER" --spec-only --only "$(basename "$LOCAL_FILE")"; then
     echo "FATAL: Linter failed. Fix all specification violations before filing issues." >&2
     exit 1
 fi

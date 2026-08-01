@@ -163,6 +163,22 @@ def _extract_issue_id_from_frontmatter(fm_text: str, issue_number: int) -> bool:
     return False
 
 
+def _scope_findings(errors, only):
+    """Findings naming ``only``; everything else is another item's problem.
+
+    Whole-corpus invariants still ran — a duplicate title or a dangling cross-reference
+    is only visible across files — but a finding that does not name this item belongs to
+    a different one. Matching on the basename keeps a collision report, which names every
+    colliding file, visible to each of them (issues #331, #321).
+    """
+    if not only:
+        return errors
+    target = os.path.basename(str(only)).strip()
+    if not target:
+        return errors
+    return [e for e in errors if target in str(e)]
+
+
 def _main_impl():
     """
     Orchestrate the full parity audit pipeline.
@@ -187,6 +203,13 @@ def _main_impl():
     parser.add_argument("--allow-missing-specs", action="store_true", default=True, help="Skip exiting with status code 1 when there are missing specification files")
     parser.add_argument("--no-allow-missing-specs", dest="allow_missing_specs", action="store_false", help="Exit with error code when specification files are missing (strict mode)")
     parser.add_argument("--ignore-issues", help="Comma-separated list of issue numbers or ranges to ignore (e.g., 14,16-18)")
+    parser.add_argument("--only", metavar="SPEC",
+                        help="Scope reported findings to a single specification "
+                             "(file name or path). Whole-corpus invariants still "
+                             "run - uniqueness and cross-references cannot be "
+                             "checked per file - but only findings naming this "
+                             "item are reported. Lets a single-item gate be strict "
+                             "without blocking on unrelated drafts (issues #331, #321).")
     parser.add_argument("--scope-all", action="store_true", help="Check against ALL open feature issues (entire repo, not just local specs)")
     
     args = parser.parse_args()
@@ -656,7 +679,7 @@ def _main_impl():
     if not features and not epic_files:
         print("Note: No feature or epic specifications found. Skipping UML Diagrams Compliance Audit.")
     else:
-        uml_errors = uml_validator.validate(repo, global_classes=global_classes, epics_dir=epics_dir)
+        uml_errors = _scope_findings(uml_validator.validate(repo, global_classes=global_classes, epics_dir=epics_dir), getattr(args, 'only', None))
         
     if uml_errors:
         print("[!] UML Compliance Violations Identified:")
@@ -683,7 +706,7 @@ def _main_impl():
     if not features and not epic_files:
         print("Note: No feature or epic specifications found. Skipping Behavioral Coverage Triggers Audit.")
     else:
-        behavioral_errors = behavioral_validator.validate(repo, schema_dir=schema_dir, modules=modules)
+        behavioral_errors = _scope_findings(behavioral_validator.validate(repo, schema_dir=schema_dir, modules=modules), getattr(args, 'only', None))
         
     if behavioral_errors:
         print("[!] Behavioral Coverage Violations Identified:")
@@ -699,7 +722,7 @@ def _main_impl():
     else:
         print("\n=== Codebase AST / Compliance Audit ===")
         codebase_validator = CodebaseValidator()
-        codebase_errors = codebase_validator.validate(repo)
+        codebase_errors = _scope_findings(codebase_validator.validate(repo), getattr(args, 'only', None))
     
     if codebase_errors:
         print("[!] Codebase Compliance Violations Identified:")
@@ -711,7 +734,7 @@ def _main_impl():
         
     print("\n=== Documentation Consistency Audit ===")
     docs_validator = DocsValidator()
-    doc_errors = docs_validator.validate(repo)
+    doc_errors = _scope_findings(docs_validator.validate(repo), getattr(args, 'only', None))
     
     if doc_errors:
         print("[!] Documentation Consistency Violations Identified:")
@@ -723,7 +746,7 @@ def _main_impl():
         
     print("\n=== Schema Dependency Validation ===")
     dependency_validator = DependencyValidator()
-    dependency_errors = dependency_validator.validate(repo, schema_dir=schema_dir)
+    dependency_errors = _scope_findings(dependency_validator.validate(repo, schema_dir=schema_dir), getattr(args, 'only', None))
     
     if dependency_errors:
         print("[!] Schema Dependency Violations Identified:")
@@ -735,7 +758,7 @@ def _main_impl():
         
     print("\n=== Out-of-Sync Backlog Validation ===")
     sync_validator = SyncValidator()
-    sync_errors = sync_validator.validate(repo)
+    sync_errors = _scope_findings(sync_validator.validate(repo), getattr(args, 'only', None))
     
     if sync_errors:
         print("[!] Out-of-Sync Backlog Violations Identified:")
@@ -751,7 +774,7 @@ def _main_impl():
         schema_mapping_errors = []
     else:
         schema_mapping_validator = SchemaMappingValidator()
-        schema_mapping_errors = schema_mapping_validator.validate(repo)
+        schema_mapping_errors = _scope_findings(schema_mapping_validator.validate(repo), getattr(args, 'only', None))
         if schema_mapping_errors:
             print("[!] Schema Mapping Violations Identified:")
             for err in schema_mapping_errors:
@@ -766,7 +789,7 @@ def _main_impl():
         profile_scoping_errors = []
     else:
         profile_scoping_validator = ProfileScopingValidator()
-        profile_scoping_errors = profile_scoping_validator.validate(repo)
+        profile_scoping_errors = _scope_findings(profile_scoping_validator.validate(repo), getattr(args, 'only', None))
         if profile_scoping_errors:
             print("[!] Profile Scoping Violations Identified:")
             for err in profile_scoping_errors:
@@ -781,7 +804,7 @@ def _main_impl():
         test_completeness_errors = []
     else:
         test_completeness_validator = TestCompletenessValidator()
-        test_completeness_errors = test_completeness_validator.validate(repo)
+        test_completeness_errors = _scope_findings(test_completeness_validator.validate(repo), getattr(args, 'only', None))
         if test_completeness_errors:
             print("[!] Test Completeness Violations Identified:")
             for err in test_completeness_errors:
@@ -792,7 +815,7 @@ def _main_impl():
         
     print("\n=== Schema Cardinality Validation ===")
     cardinality_validator = SchemaCardinalityValidator()
-    cardinality_errors = cardinality_validator.validate(repo)
+    cardinality_errors = _scope_findings(cardinality_validator.validate(repo), getattr(args, 'only', None))
     if cardinality_errors:
         print("[!] Schema Cardinality Violations Identified:")
         for err in cardinality_errors:
@@ -803,7 +826,7 @@ def _main_impl():
 
     print("\n=== Spec Filename Validation ===")
     spec_filename_validator = SpecFilenameValidator()
-    spec_filename_errors = spec_filename_validator.validate(repo)
+    spec_filename_errors = _scope_findings(spec_filename_validator.validate(repo), getattr(args, 'only', None))
     if spec_filename_errors:
         print("[!] Spec Filename Violations Identified:")
         for err in spec_filename_errors:
@@ -814,7 +837,7 @@ def _main_impl():
 
     print("\n=== Spec Title Uniqueness Validation ===")
     spec_title_validator = SpecTitleUniquenessValidator()
-    spec_title_errors = spec_title_validator.validate(repo)
+    spec_title_errors = _scope_findings(spec_title_validator.validate(repo), getattr(args, 'only', None))
     if spec_title_errors:
         print("[!] Spec Title Uniqueness Violations Identified:")
         for err in spec_title_errors:
@@ -825,7 +848,7 @@ def _main_impl():
 
     print("\n=== Source Reference Integrity Validation ===")
     source_ref_validator = SourceReferenceValidator()
-    source_ref_errors = source_ref_validator.validate(repo)
+    source_ref_errors = _scope_findings(source_ref_validator.validate(repo), getattr(args, 'only', None))
     if source_ref_errors:
         print("[!] Source Reference Violations Identified:")
         for err in source_ref_errors:
@@ -836,7 +859,7 @@ def _main_impl():
 
     print("\n=== Mermaid Syntax Validation ===")
     mermaid_syntax_validator = MermaidSyntaxValidator()
-    mermaid_syntax_errors = mermaid_syntax_validator.validate(repo)
+    mermaid_syntax_errors = _scope_findings(mermaid_syntax_validator.validate(repo), getattr(args, 'only', None))
     if mermaid_syntax_errors:
         print("[!] Mermaid Syntax Violations Identified:")
         for err in mermaid_syntax_errors:
@@ -847,7 +870,7 @@ def _main_impl():
 
     print("\n=== Logical UI Validation ===")
     logical_ui_validator = LogicalUiValidator()
-    logical_ui_errors = logical_ui_validator.validate(repo, features_dir=features_dir)
+    logical_ui_errors = _scope_findings(logical_ui_validator.validate(repo, features_dir=features_dir), getattr(args, 'only', None))
     if logical_ui_errors:
         print("[!] Logical UI Violations Identified:")
         for err in logical_ui_errors:

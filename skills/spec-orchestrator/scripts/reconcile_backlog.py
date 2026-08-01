@@ -1534,6 +1534,7 @@ def main():
     assert_no_mock_cli(workspace_dir)
 
     # Programmatic gate: Run linter before proceeding with reconciliation
+    blocked_specs = set()
     print("Running pre-reconciliation linter validation...")
     linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
     cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
@@ -1558,10 +1559,19 @@ def main():
                 for err in error_lines:
                     print(f"  [Warning Detail] {err}", file=sys.stderr)
             else:
-                print("[FATAL] Pre-reconciliation linter validation failed. Aborting backlog reconciliation to prevent uploading specifications with UML/linter errors.", file=sys.stderr)
+                # Issue #321 - a failing linter used to abort the entire run, so one
+                # incomplete work-in-progress draft withheld synchronisation from every
+                # finished, unrelated specification. The gate is not weakened: the
+                # offending items are skipped and the run still exits non-zero at the
+                # end. What changes is that valid work is no longer held hostage.
+                blocked_specs = set(re.findall(r"([\w.-]+\.md)", output_text))
+                print("[BLOCKED] Pre-reconciliation linter validation failed for "
+                      f"{len(blocked_specs)} specification(s). These will be SKIPPED; "
+                      "everything else still synchronises, and this run will exit "
+                      "non-zero.", file=sys.stderr)
+                for name in sorted(blocked_specs):
+                    print(f"  [Blocked] {name}", file=sys.stderr)
                 print(res.stdout, file=sys.stderr)
-                print(res.stderr, file=sys.stderr)
-                sys.exit(1)
         else:
             print("Pre-reconciliation linter validation passed successfully.")
     except subprocess.TimeoutExpired:
@@ -1778,6 +1788,9 @@ def main():
                 if not filename.endswith(".md"):
                     continue
                 filepath = os.path.join(epics_dir, filename)
+                if filename in blocked_specs:
+                    print(f'  [Skipped] {filename} - blocked by linter findings (#321)')
+                    continue
                 title = extract_title(filepath)
                 if not title:
                     continue
@@ -1835,6 +1848,9 @@ def main():
                 if not filename.endswith(".md"):
                     continue
                 filepath = os.path.join(epics_dir, filename)
+                if filename in blocked_specs:
+                    print(f'  [Skipped] {filename} - blocked by linter findings (#321)')
+                    continue
                 resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
                 title = extract_title(filepath)
                 if not title:
@@ -1873,6 +1889,9 @@ def main():
                 if not filename.endswith(".md"):
                     continue
                 filepath = os.path.join(features_dir, filename)
+                if filename in blocked_specs:
+                    print(f'  [Skipped] {filename} - blocked by linter findings (#321)')
+                    continue
                 resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
                 title = extract_title(filepath)
                 if not title:
@@ -1901,6 +1920,9 @@ def main():
                 if not filename.endswith(".md"):
                     continue
                 filepath = os.path.join(stories_dir, filename)
+                if filename in blocked_specs:
+                    print(f'  [Skipped] {filename} - blocked by linter findings (#321)')
+                    continue
                 resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
                 title = extract_title(filepath)
                 if not title:
@@ -1939,6 +1961,9 @@ def main():
                 if not filename.endswith(".md"):
                     continue
                 filepath = os.path.join(usecases_dir, filename)
+                if filename in blocked_specs:
+                    print(f'  [Skipped] {filename} - blocked by linter findings (#321)')
+                    continue
                 resolve_issue_ids_in_file(filepath, epic_titles, feature_titles, story_titles, usecase_titles, rules=rules)
                 title = extract_title(filepath)
                 if not title:
@@ -1970,6 +1995,19 @@ def main():
                         f"Warning: No Use Case issue on the tracker for {filename} — "
                         f"no issue_id in its frontmatter and no title match for '{title}'"
                     )
+
+        if blocked_specs:
+            # Issue #321 - skipping is not tolerance. Everything valid has now been
+            # synchronised, but the corpus still contains specifications the linter
+            # rejected, so the run reports failure. A caller that treated a skipped
+            # item as published would be the gate quietly disappearing.
+            print(
+                f"Backlog reconciliation complete for valid specifications. "
+                f"{len(blocked_specs)} specification(s) were SKIPPED because the "
+                f"linter rejected them: {', '.join(sorted(blocked_specs))}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
         print("Backlog reconciliation complete.")
 
