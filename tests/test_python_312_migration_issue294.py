@@ -204,18 +204,26 @@ PYPROJECT = os.path.join(
 )
 
 
-def test_retained_floor_is_justified_in_pyproject_issue294():
+def test_floor_is_not_end_of_life_issue294():
+    """The floor must name a supported interpreter, and say where it came from.
+
+    Originally this asserted the *retained* 3.9 floor was justified in place. The
+    floor has since moved to 3.12 (#294), so the assertion inverts: what needs
+    guarding now is that it never silently slips back onto an end-of-life version.
+    """
     if not os.path.isfile(PYPROJECT):  # pragma: no cover - guarded by other tests
         pytest.skip("pyproject.toml absent")
     content = open(PYPROJECT, encoding="utf-8").read()
-    floor_line = next(
-        (ln for ln in content.splitlines() if ln.strip().startswith("requires-python")),
-        None,
+    match = re.search(r'requires-python\s*=\s*">=\s*(\d+)\.(\d+)"', content)
+    assert match, "requires-python is not declared as a >= floor in pyproject.toml"
+    floor = (int(match.group(1)), int(match.group(2)))
+    assert floor >= (3, 12), (
+        f"the declared Python floor is {floor[0]}.{floor[1]}, which is end-of-life. "
+        "3.9 lost security patches in October 2025 and the migration to 3.12 landed "
+        "in #294. Do not move the floor back."
     )
-    assert floor_line, "requires-python is not declared in pyproject.toml"
     assert "294" in content, (
-        "pyproject.toml declares a Python floor that is end-of-life without citing "
-        "the issue that assessed it (#294). An unexplained EOL floor reads as "
-        "neglect and invites someone to 'fix' it by raising it, which breaks every "
-        "local invocation."
+        "pyproject.toml declares a Python floor without citing the issue that "
+        "assessed it (#294). An unexplained floor invites someone to change it "
+        "without knowing what was verified."
     )
