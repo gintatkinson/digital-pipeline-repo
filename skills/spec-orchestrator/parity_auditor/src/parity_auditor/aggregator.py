@@ -35,6 +35,7 @@ from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.schema_mapping_validator import SchemaMappingValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_validator import SpecValidator
+from .validators.uml import UmlValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
 
 # Validators migrated to structured findings. Un-migrated validators are deliberately
@@ -56,6 +57,7 @@ AGGREGATING_VALIDATORS = (
     DocsValidator,
     LogicalUiValidator,
     CodebaseValidator,
+    UmlValidator,
 )
 # SyncValidator is migrated to structured findings but deliberately absent: it shells
 # out to the issue tracker, and `pipeline-tooling.md` § Validation Gates forbids network

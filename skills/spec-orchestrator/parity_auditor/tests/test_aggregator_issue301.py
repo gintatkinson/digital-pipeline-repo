@@ -22,7 +22,13 @@ RULES = {
         "use_cases": "docs/use-cases", "epics": "docs/epics", "schemas": "schema",
     },
     "target_directories": {}, "flutter_rules": {}, "python_rules": {},
-    "spec_rules": {}, "validation_rules": {},
+    "spec_rules": {},
+    # The UML model-integrity gate reports a missing requirement set rather than
+    # treating it as "nothing required", so both keys must be present. They are
+    # deliberately empty: these fixtures exist to exercise aggregation grouping, and
+    # making them satisfy 52 model-integrity rules would bury what the tests assert.
+    "validation_rules": {"required_sections": {"feature": []},
+                         "required_diagrams": {"feature": []}},
 }
 
 # Minimal platform source and test suite, so that the workspace fixtures below are
@@ -62,6 +68,13 @@ MINIMAL_DART_TEST = """void main() {
 # The Logical UI bindings block every Feature must carry, bound to nothing. `N/A` is the
 # documented spelling for a Feature with no layout binding, so this satisfies the gate
 # rather than suppressing it.
+# generation_mode records that the item was drafted by a context-isolated subagent. The
+# UML validator requires it on every specification (issue #278).
+FRONTMATTER = """---
+generation_mode: "subagent"
+---
+"""
+
 BINDINGS = """
 ## Logical UI & Layout Bindings
 - **Target LUI Component:** N/A
@@ -83,7 +96,7 @@ LAYOUT_MANIFEST = {
 DESIGN_TOKENS = {"color": {"status": {"nominal": "#1B7F3B", "degraded": "#B26B00"}}}
 
 # Violates mermaid-no-semicolon-in-note-or-message
-SEMICOLON_DIAGRAM = f"""# Spec
+SEMICOLON_DIAGRAM = f"""{FRONTMATTER}# Spec
 
 {FENCE}mermaid
 sequenceDiagram
@@ -92,7 +105,7 @@ sequenceDiagram
 {FENCE}
 {BINDINGS}"""
 
-CLEAN_DIAGRAM = f"""# Spec
+CLEAN_DIAGRAM = f"""{FRONTMATTER}# Spec
 
 {FENCE}mermaid
 sequenceDiagram
@@ -111,6 +124,9 @@ def _workspace(tmp_path, name, feature_files):
     (pipeline / "design-tokens.json").write_text(json.dumps(DESIGN_TOKENS), encoding="utf-8")
     feats = ws / "docs" / "features"
     feats.mkdir(parents=True)
+    # Configured in RULES, so it must exist: an absent epics directory silently drops
+    # Epic-defined classes from the cross-document class registry.
+    (ws / "docs" / "epics").mkdir(parents=True)
     for fname, content in feature_files.items():
         (feats / fname).write_text(content, encoding="utf-8")
 

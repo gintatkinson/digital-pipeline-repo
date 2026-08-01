@@ -11,6 +11,7 @@ import os
 import re
 from typing import List, Dict, Any
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 # Unresolved template placeholders (issue #281).
@@ -75,11 +76,11 @@ class UmlValidator(IValidator):
         
         if epics_dir and not os.path.exists(epics_dir):
             errors.append(
-                f"Warning: Epic directory '{epics_dir}' configured in backlog_dirs.epics "
+                Finding("epic-directory-must-exist-when-configured", f"Warning: Epic directory '{epics_dir}' configured in backlog_dirs.epics "
                 f"does not exist on disk. Epic class diagrams will be excluded from the "
                 f"global class registry. Sequence diagram lifeline validation may produce "
                 f"false positive errors for classifiers defined in epic specifications. "
-                f"Create the directory and populate epic files before running validation."
+                f"Create the directory and populate epic files before running validation.")
             )
         
         def get_md_files(d):
@@ -156,7 +157,7 @@ class UmlValidator(IValidator):
                 with open(filepath, "r", encoding="utf-8") as f:
                     content = f.read()
             except Exception as e:
-                errors.append(f"System Error: Failed to read feature file '{filename}': {e}")
+                errors.append(Finding("backlog-document-must-be-readable", f"System Error: Failed to read feature file '{filename}': {e}", location=filename))
                 continue
                 
             self._validate_subagent_isolation(content, "Feature", filename, errors)
@@ -190,13 +191,13 @@ class UmlValidator(IValidator):
             if required_feature_sections is None:
                 required_feature_sections = required_sections.get("feature")
             if required_feature_sections is None:
-                errors.append(f"System Error: Missing '{req_key}' or 'feature' required sections config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", f"System Error: Missing '{req_key}' or 'feature' required sections config."))
                 continue
                 
             has_essential_sections = True
             for pattern, header_name in required_feature_sections:
                 if not re.search(pattern, content, re.IGNORECASE):
-                    errors.append(f"Feature {filename} is missing section '{header_name}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-sections", f"Feature {filename} is missing section '{header_name}'.", location=filename))
                     if any(essential in header_name for essential in essential_feature_sections):
                         has_essential_sections = False
                         
@@ -205,13 +206,13 @@ class UmlValidator(IValidator):
                 
             feature_req_diagrams = required_diagrams.get("feature")
             if feature_req_diagrams is None:
-                errors.append("System Error: Missing required_diagrams.feature config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_diagrams.feature config."))
                 continue
                 
             has_diag_error = False
             for diag_type in feature_req_diagrams:
                 if not re.search(r"```mermaid\s*\n\s*" + diag_type, content):
-                    errors.append(f"Feature {filename} is missing a valid diagram of type '{diag_type}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-diagrams", f"Feature {filename} is missing a valid diagram of type '{diag_type}'.", location=filename))
                     has_diag_error = True
             if has_diag_error:
                 continue
@@ -224,7 +225,7 @@ class UmlValidator(IValidator):
                         
             if re.search(test_data_shape_regex, content, re.IGNORECASE):
                 if not re.search(test_data_shape_regex + r".*?" + test_data_block_regex, content, re.DOTALL | re.IGNORECASE):
-                    errors.append(f"Feature {filename} is missing a payload example ({test_data_block_regex} block) under Test Data Shape.")
+                    errors.append(Finding("feature-requires-a-test-data-payload-example", f"Feature {filename} is missing a payload example ({test_data_block_regex} block) under Test Data Shape.", location=filename))
                     
         story_files = get_md_files(user_stories_dir)
         for filepath in story_files:
@@ -233,7 +234,7 @@ class UmlValidator(IValidator):
                 with open(filepath, "r", encoding="utf-8") as f:
                     content = f.read()
             except Exception as e:
-                errors.append(f"System Error: Failed to read user story file '{filename}': {e}")
+                errors.append(Finding("backlog-document-must-be-readable", f"System Error: Failed to read user story file '{filename}': {e}", location=filename))
                 continue
                 
             self._validate_subagent_isolation(content, "User Story", filename, errors)
@@ -244,13 +245,13 @@ class UmlValidator(IValidator):
                     
             required_story_sections = required_sections.get("user_story")
             if required_story_sections is None:
-                errors.append("System Error: Missing required_sections.user_story config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_sections.user_story config."))
                 continue
                 
             has_essential_sections = True
             for pattern, header_name in required_story_sections:
                 if not re.search(pattern, content, re.IGNORECASE):
-                    errors.append(f"User Story {filename} is missing section '{header_name}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-sections", f"User Story {filename} is missing section '{header_name}'.", location=filename))
                     if "Sequence Diagram" in header_name:
                         has_essential_sections = False
                         
@@ -259,7 +260,7 @@ class UmlValidator(IValidator):
                 
             story_req_diagrams = required_diagrams.get("user_story")
             if story_req_diagrams is None:
-                errors.append("System Error: Missing required_diagrams.user_story config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_diagrams.user_story config."))
                 continue
                 
             has_seq = False
@@ -273,14 +274,14 @@ class UmlValidator(IValidator):
                 seq_code = seq_match.group(0)
                 parsed = sequence_parser.parse(seq_code)
                 for err in parsed.parse_errors:
-                    errors.append(f"User Story {filename} sequence diagram parse error: {err}")
+                    errors.append(Finding("sequence-diagram-must-parse", f"User Story {filename} sequence diagram parse error: {err}", location=filename))
                 lifelines = parsed.lifelines
                 messages = parsed.messages
                 
                 for alias, lf in lifelines.items():
                     label = lf.label
                     if not lf.classifier_name:
-                        errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' is missing the name : Classifier pattern in its label: '{label}'")
+                        errors.append(Finding("sequence-lifeline-requires-name-and-classifier", f"User Story {filename} sequence diagram lifeline '{alias}' is missing the name : Classifier pattern in its label: '{label}'", location=filename))
                     else:
                         cls_name = lf.classifier_name
                         # Exemption keys on UML role, not name spelling (issue #277).
@@ -298,13 +299,13 @@ class UmlValidator(IValidator):
                         # referenced without declaration, must resolve.
                         is_external_actor = (lf.role or "").lower() == "actor"
                         if not is_external_actor and cls_name not in global_classes:
-                            errors.append(f"User Story {filename} sequence diagram lifeline '{alias}' specifies classifier '{cls_name}' which is not defined in any feature class diagram.")
+                            errors.append(Finding("sequence-lifeline-classifier-must-be-defined", f"User Story {filename} sequence diagram lifeline '{alias}' specifies classifier '{cls_name}' which is not defined in any feature class diagram.", location=filename))
                             
                 for msg in messages:
                     if msg.arrow_type in ("sync", "async"):
                         op_name = msg.operation
                         if not op_name:
-                            errors.append(f"User Story {filename} sequence diagram message '{msg.raw}' is missing an operation signature.")
+                            errors.append(Finding("sequence-message-requires-an-operation-signature", f"User Story {filename} sequence diagram message '{msg.raw}' is missing an operation signature.", location=filename))
                             continue
                         receiver = msg.receiver
                         rx_lf = lifelines.get(receiver)
@@ -318,18 +319,18 @@ class UmlValidator(IValidator):
                                         method_found = m
                                         break
                                 if not method_found:
-                                    errors.append(f"User Story {filename} sequence diagram message '{msg.raw}' calls operation '{op_name}' which is not defined on class '{rx_cls}' in any class diagram.")
+                                    errors.append(Finding("sequence-message-operation-must-exist-on-the-receiver", f"User Story {filename} sequence diagram message '{msg.raw}' calls operation '{op_name}' which is not defined on class '{rx_cls}' in any class diagram.", location=filename))
                                 elif method_found["visibility"] != "+":
-                                    errors.append(f"User Story {filename} sequence diagram message '{msg.raw}' calls non-public operation '{op_name}' on class '{rx_cls}' (visibility must be '+').")
+                                    errors.append(Finding("sequence-message-operation-must-be-public", f"User Story {filename} sequence diagram message '{msg.raw}' calls non-public operation '{op_name}' on class '{rx_cls}' (visibility must be '+').", location=filename))
                                     
                     if msg.arrow_type == "reply":
                         sequence_replies = val_rules.sequence_replies
                         if msg.arrow not in sequence_replies:
-                            errors.append(f"User Story {filename} sequence diagram return message '{msg.raw}' uses invalid reply arrow '{msg.arrow}'. Return arrows must strictly use standard open arrowhead {', '.join(sequence_replies)}.")
+                            errors.append(Finding("sequence-return-message-requires-a-reply-arrow", f"User Story {filename} sequence diagram return message '{msg.raw}' uses invalid reply arrow '{msg.arrow}'. Return arrows must strictly use standard open arrowhead {', '.join(sequence_replies)}.", location=filename))
                             
                         raw_msg_text = msg.raw.split(":", 1)[1].strip() if ":" in msg.raw else msg.raw
                         if "(" in raw_msg_text or ")" in raw_msg_text:
-                            errors.append(f"User Story {filename} sequence diagram return message '{msg.raw}' looks like an operation call (contains parentheses). Return messages must be simple assignments or return values (e.g. status : Status).")
+                            errors.append(Finding("sequence-return-message-must-not-be-an-operation-call", f"User Story {filename} sequence diagram return message '{msg.raw}' looks like an operation call (contains parentheses). Return messages must be simple assignments or return values (e.g. status : Status).", location=filename))
                             
                 for line in seq_code.splitlines():
                     line_clean = line.strip()
@@ -345,35 +346,35 @@ class UmlValidator(IValidator):
                         if guard_part:
                             guard_part = guard_part.strip()
                             if guard_part and not (guard_part.startswith('[') and guard_part.endswith(']')):
-                                errors.append(f"User Story {filename} sequence diagram contains a combined fragment '{keyword}' with guard '{guard_part}' that is not enclosed in square brackets [].")
+                                errors.append(Finding("sequence-combined-fragment-guard-requires-square-brackets", f"User Story {filename} sequence diagram contains a combined fragment '{keyword}' with guard '{guard_part}' that is not enclosed in square brackets [].", location=filename))
                                 
             if not has_seq:
-                errors.append(f"User Story {filename} is missing a required diagram matching pattern(s): {', '.join(story_req_diagrams)}")
+                errors.append(Finding("backlog-document-requires-its-configured-diagrams", f"User Story {filename} is missing a required diagram matching pattern(s): {', '.join(story_req_diagrams)}", location=filename))
                 
             bdd_scenario_present = any(re.search(pat, content, re.DOTALL | re.IGNORECASE) for pat in bdd_scenario_regexes)
             if not bdd_scenario_present:
-                errors.append(f"User Story {filename} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).")
+                errors.append(Finding("user-story-requires-a-bdd-scenario", f"User Story {filename} must contain a valid BDD scenario (Given-When-Then or As a/I want to/So that).", location=filename))
                 
             rf_match = re.search(required_features_matrix_regex, content, re.DOTALL | re.IGNORECASE)
             if not rf_match:
-                errors.append(f"User Story {filename} is missing '## Required Features Matrix' section.")
+                errors.append(Finding("user-story-requires-a-required-features-matrix", f"User Story {filename} is missing '## Required Features Matrix' section.", location=filename))
             else:
                 rf_section = rf_match.group(1)
                 checkboxes = re.findall(checkbox_syntax_regex, rf_section)
                 if not checkboxes:
-                    errors.append(f"User Story {filename} must have at least one feature reference checklist item in its Required Features Matrix.")
+                    errors.append(Finding("user-story-matrix-requires-a-feature-reference", f"User Story {filename} must have at least one feature reference checklist item in its Required Features Matrix.", location=filename))
                 for cb in checkboxes:
                     url_match = re.search(r"\]\((https?://[^)]+)\)", cb)
                     if not url_match:
-                        errors.append(f"User Story {filename} contains a checklist item with a missing or non-absolute URL: '{cb.strip()}'.")
+                        errors.append(Finding("checklist-item-requires-an-absolute-url", f"User Story {filename} contains a checklist item with a missing or non-absolute URL: '{cb.strip()}'.", location=filename))
                     else:
                         link = url_match.group(1)
                         if not re.match(r"^https?://[a-zA-Z0-9.-]+/", link):
-                            errors.append(f"User Story {filename} contains a non-absolute/invalid URL in Required Features Matrix: '{link}'.")
+                            errors.append(Finding("checklist-item-requires-an-absolute-url", f"User Story {filename} contains a non-absolute/invalid URL in Required Features Matrix: '{link}'.", location=filename))
                             
                     justification_match = re.search(r"\s+\(([^)]+)\)$", cb)
                     if not justification_match or (url_match and justification_match.group(1) == url_match.group(1)):
-                        errors.append(f"User Story {filename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.")
+                        errors.append(Finding("checklist-item-requires-a-semantic-justification", f"User Story {filename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.", location=filename))
                         
         usecase_files = get_md_files(use_cases_dir)
         use_case_naming = val_rules.naming_conventions.get("use_case", r"^uc-\d{2}-[a-z0-9\-]+\.md$")
@@ -381,13 +382,13 @@ class UmlValidator(IValidator):
             basename = os.path.basename(filepath)
             
             if not re.match(use_case_naming, basename):
-                errors.append(f"Use Case file '{basename}' does not follow the naming convention '{use_case_naming}'.")
+                errors.append(Finding("use-case-filename-must-follow-the-naming-convention", f"Use Case file '{basename}' does not follow the naming convention '{use_case_naming}'.", location=basename))
                 
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
                     content = f.read()
             except Exception as e:
-                errors.append(f"System Error: Failed to read use case file '{basename}': {e}")
+                errors.append(Finding("backlog-document-must-be-readable", f"System Error: Failed to read use case file '{basename}': {e}", location=basename))
                 continue
                 
             self._validate_subagent_isolation(content, "Use Case", basename, errors)
@@ -398,13 +399,13 @@ class UmlValidator(IValidator):
                     
             required_usecase_sections = required_sections.get("use_case")
             if required_usecase_sections is None:
-                errors.append("System Error: Missing required_sections.use_case config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_sections.use_case config."))
                 continue
                 
             has_essential_sections = True
             for pattern, header_name in required_usecase_sections:
                 if not re.search(pattern, content, re.IGNORECASE):
-                    errors.append(f"Use Case {basename} is missing section '{header_name}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-sections", f"Use Case {basename} is missing section '{header_name}'.", location=basename))
                     if "Diagrams" in header_name:
                         has_essential_sections = False
                         
@@ -413,19 +414,19 @@ class UmlValidator(IValidator):
                 
             usecase_req_diagrams = required_diagrams.get("use_case")
             if usecase_req_diagrams is None:
-                errors.append("System Error: Missing required_diagrams.use_case config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_diagrams.use_case config."))
                 continue
                 
             for diag_type in usecase_req_diagrams:
                 diag_matches = list(re.finditer(r"```mermaid\s*\n\s*" + diag_type + r"(.*?)(?=```|\Z)", content, re.DOTALL))
                 if not diag_matches:
-                    errors.append(f"Use Case {basename} is missing a valid diagram matching pattern '{diag_type}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-diagrams", f"Use Case {basename} is missing a valid diagram matching pattern '{diag_type}'.", location=basename))
                 elif "graph" in diag_type or "flowchart" in diag_type:
                     for match in diag_matches:
                         diagram_code = match.group(0)
                         parsed = flowchart_parser.parse(diagram_code)
                         for err in parsed.parse_errors:
-                            errors.append(f"Use Case {basename} flowchart parse error: {err}")
+                            errors.append(Finding("use-case-flowchart-must-parse", f"Use Case {basename} flowchart parse error: {err}", location=basename))
                         
                         boundary_sub = None
                         for sub_id, sub_info in parsed.subgraphs.items():
@@ -435,7 +436,7 @@ class UmlValidator(IValidator):
                                 break
                                 
                         if not boundary_sub:
-                            errors.append(f"Use Case {basename} is missing a system boundary subgraph (e.g. ID or label containing 'boundary' or 'system').")
+                            errors.append(Finding("use-case-requires-a-system-boundary-subgraph", f"Use Case {basename} is missing a system boundary subgraph (e.g. ID or label containing 'boundary' or 'system').", location=basename))
                             continue
                             
                         boundary_sub_id = boundary_sub.id
@@ -451,14 +452,14 @@ class UmlValidator(IValidator):
                             is_actor = is_actor_node(node)
                             if is_actor:
                                 if node.subgraph is not None:
-                                    errors.append(f"Use Case {basename} actor node '{node_id}' must be placed outside the system boundary subgraph (found in subgraph '{node.subgraph}').")
+                                    errors.append(Finding("use-case-actor-must-be-outside-the-system-boundary", f"Use Case {basename} actor node '{node_id}' must be placed outside the system boundary subgraph (found in subgraph '{node.subgraph}').", location=basename))
                             else:
                                 if node.subgraph != boundary_sub_id:
-                                    errors.append(f"Use Case {basename} use case node '{node_id}' must be defined inside the system boundary subgraph '{boundary_sub_id}'.")
+                                    errors.append(Finding("use-case-node-must-be-inside-the-system-boundary", f"Use Case {basename} use case node '{node_id}' must be defined inside the system boundary subgraph '{boundary_sub_id}'.", location=basename))
                                     
                                 if val_rules.use_case_stadium_nodes_only:
                                     if node.shape != "stadium":
-                                        errors.append(f"Use Case {basename} use case node '{node_id}' must use the Mermaid stadium/oval shape ('stadium').")
+                                        errors.append(Finding("use-case-node-must-use-the-stadium-shape", f"Use Case {basename} use case node '{node_id}' must use the Mermaid stadium/oval shape ('stadium').", location=basename))
                                         
                         for conn in parsed.connections:
                             src_id = conn.from_node
@@ -472,7 +473,7 @@ class UmlValidator(IValidator):
                             if val_rules.use_case_undirected_actor_links_only:
                                 if (src_is_actor and not tgt_is_actor) or (not src_is_actor and tgt_is_actor):
                                     if "arrow" in conn.style:
-                                        errors.append(f"Use Case {basename} connection from '{src_id}' to '{tgt_id}' between Actor and Use Case must use an undirected link, not '{conn.style}'.")
+                                        errors.append(Finding("use-case-actor-association-must-be-undirected", f"Use Case {basename} connection from '{src_id}' to '{tgt_id}' between Actor and Use Case must use an undirected link, not '{conn.style}'.", location=basename))
                                         
                             if val_rules.use_case_extend_arrow_direction_check:
                                 has_extend_stereotype = bool(conn.label and re.search(r'(?:<<|&lt;&lt;|«)\s*extend\s*(?:>>|&gt;&gt;|»)', conn.label, re.I))
@@ -554,20 +555,20 @@ class UmlValidator(IValidator):
                 
                 required_flow_count = max(use_case_flow_limit, total_constraints)
                 if len(flows) < required_flow_count:
-                    errors.append(f"Use Case {basename} must contain at least {required_flow_count} detailed Alternate/Exception flows. Found only {len(flows)} flows. (Referenced features define {total_constraints} schema validation constraints, requiring at least that many alternate flows, with a minimum floor of {use_case_flow_limit}.)")
+                    errors.append(Finding("use-case-requires-alternate-and-exception-flows", f"Use Case {basename} must contain at least {required_flow_count} detailed Alternate/Exception flows. Found only {len(flows)} flows. (Referenced features define {total_constraints} schema validation constraints, requiring at least that many alternate flows, with a minimum floor of {use_case_flow_limit}.)", location=basename))
                 else:
                     for idx, flow in enumerate(flows):
                         steps = re.findall(use_case_numbered_step_regex, flow)
                         if len(steps) < use_case_step_limit:
-                            errors.append(f"Use Case {basename} alternate flow {idx+1} is too thin (must contain at least {use_case_step_limit} numbered steps).")
+                            errors.append(Finding("use-case-alternate-flow-requires-numbered-steps", f"Use Case {basename} alternate flow {idx+1} is too thin (must contain at least {use_case_step_limit} numbered steps).", location=basename))
             else:
-                errors.append(f"Use Case {basename} is missing '{use_case_alternate_flows_header}' content block.")
+                errors.append(Finding("use-case-requires-an-alternate-flows-block", f"Use Case {basename} is missing '{use_case_alternate_flows_header}' content block.", location=basename))
                 
             if re.search(realization_matrix_header, content, re.IGNORECASE):
                 if not re.search(realization_stories_header, content, re.IGNORECASE):
-                    errors.append(f"Use Case {basename} is missing '{realization_stories_header}' under Realization Matrix.")
+                    errors.append(Finding("use-case-requires-a-complete-realization-matrix", f"Use Case {basename} is missing '{realization_stories_header}' under Realization Matrix.", location=basename))
                 if not re.search(realization_features_header, content, re.IGNORECASE):
-                    errors.append(f"Use Case {basename} is missing '### Required Features' under Realization Matrix.")
+                    errors.append(Finding("use-case-requires-a-complete-realization-matrix", f"Use Case {basename} is missing '### Required Features' under Realization Matrix.", location=basename))
                     
                 stories_section_match = re.search(r"###\s+Required\s+User\s+Stories(.*?)(?=###\s+Required\s+Features|##\s+Source\s+References|\Z)", content, re.DOTALL | re.IGNORECASE)
                 features_section_match = re.search(r"###\s+Required\s+Features(.*?)(?=###\s+Required\s+User\s+Stories|##\s+Source\s+References|\Z)", content, re.DOTALL | re.IGNORECASE)
@@ -581,23 +582,23 @@ class UmlValidator(IValidator):
                     feature_checkboxes = re.findall(r"-\s+\[[ xX]\]\s+.*", features_section_match.group(1))
                     
                 if not story_checkboxes:
-                    errors.append(f"Use Case {basename} Realization Matrix contains no User Story checkboxes under '### Required User Stories'.")
+                    errors.append(Finding("use-case-realization-matrix-requires-checklist-entries", f"Use Case {basename} Realization Matrix contains no User Story checkboxes under '### Required User Stories'.", location=basename))
                 if not feature_checkboxes:
-                    errors.append(f"Use Case {basename} Realization Matrix contains no Feature checkboxes under '### Required Features'.")
+                    errors.append(Finding("use-case-realization-matrix-requires-checklist-entries", f"Use Case {basename} Realization Matrix contains no Feature checkboxes under '### Required Features'.", location=basename))
                     
                 all_checkboxes = story_checkboxes + feature_checkboxes
                 for cb in all_checkboxes:
                     url_match = re.search(r"\]\((https?://[^)]+)\)", cb)
                     if not url_match:
-                        errors.append(f"Use Case {basename} contains a checklist item with a missing or non-absolute markdown link URL: '{cb.strip()}'.")
+                        errors.append(Finding("checklist-item-requires-an-absolute-url", f"Use Case {basename} contains a checklist item with a missing or non-absolute markdown link URL: '{cb.strip()}'.", location=basename))
                     else:
                         url_str = url_match.group(1)
                         if not re.match(r"^https?://[a-zA-Z0-9.-]+/", url_str):
-                            errors.append(f"Use Case {basename} contains an invalid URL in realization matrix: '{url_str}'.")
+                            errors.append(Finding("checklist-item-requires-an-absolute-url", f"Use Case {basename} contains an invalid URL in realization matrix: '{url_str}'.", location=basename))
                             
                     justification_match = re.search(r"\s+\(([^)]+)\)$", cb)
                     if not justification_match or (url_match and justification_match.group(1) == url_match.group(1)):
-                        errors.append(f"Use Case {basename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.")
+                        errors.append(Finding("checklist-item-requires-a-semantic-justification", f"Use Case {basename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.", location=basename))
                         
         epic_files = get_md_files(epics_dir)
         for filepath in epic_files:
@@ -606,7 +607,7 @@ class UmlValidator(IValidator):
                 with open(filepath, "r", encoding="utf-8") as f:
                     content = f.read()
             except Exception as e:
-                errors.append(f"System Error: Failed to read epic file '{filename}': {e}")
+                errors.append(Finding("backlog-document-must-be-readable", f"System Error: Failed to read epic file '{filename}': {e}", location=filename))
                 continue
                 
             self._validate_subagent_isolation(content, "Epic", filename, errors)
@@ -620,19 +621,19 @@ class UmlValidator(IValidator):
                     
             required_epic_sections = required_sections.get("epic")
             if required_epic_sections is None:
-                errors.append("System Error: Missing required_sections.epic config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_sections.epic config."))
                 continue
             for pattern, header_name in required_epic_sections:
                 if not re.search(pattern, content, re.IGNORECASE):
-                    errors.append(f"Epic {filename} is missing section '{header_name}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-sections", f"Epic {filename} is missing section '{header_name}'.", location=filename))
                     
             epic_req_diagrams = required_diagrams.get("epic")
             if epic_req_diagrams is None:
-                errors.append("System Error: Missing required_diagrams.epic config.")
+                errors.append(Finding("uml-validator-configuration-must-be-complete", "System Error: Missing required_diagrams.epic config."))
                 continue
             for diag_type in epic_req_diagrams:
                 if not re.search(r"```mermaid\s*\n\s*" + diag_type, content):
-                    errors.append(f"Epic {filename} is missing a valid diagram of type '{diag_type}'.")
+                    errors.append(Finding("backlog-document-requires-its-configured-diagrams", f"Epic {filename} is missing a valid diagram of type '{diag_type}'.", location=filename))
                 elif diag_type == "classDiagram":
                     self._validate_class_diagram(
                         "Epic", filename, content, errors, class_parser, val_rules,
@@ -669,7 +670,7 @@ class UmlValidator(IValidator):
                             has_subagent_tag = True
                             break
         if not has_subagent_tag:
-            errors.append(f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.")
+            errors.append(Finding("specification-requires-the-subagent-generation-mode-marker", f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.", location=filename))
 
     def _validate_placeholders_and_links(
         self,
@@ -688,8 +689,8 @@ class UmlValidator(IValidator):
         # still passed validation (issue #281).
         for lineno, label, line_text in find_unresolved_placeholders(content):
             errors.append(
-                f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
-                f"Specification templates must be populated before registration."
+                Finding("specification-must-not-contain-template-placeholders", f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
+                f"Specification templates must be populated before registration.", location=filename)
             )
 
         # Conditional stubs. Gated exactly as before, preserving issue #239: an Epic
@@ -704,8 +705,8 @@ class UmlValidator(IValidator):
                 content, CONDITIONAL_STUB_PATTERNS
             ):
                 errors.append(
-                    f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
-                    f"All referenced items must be explicitly registered."
+                    Finding("specification-must-not-contain-unresolved-registration-tokens", f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
+                    f"All referenced items must be explicitly registered.", location=filename)
                 )
 
         if doc_type == "Epic":
@@ -715,7 +716,7 @@ class UmlValidator(IValidator):
                 checkboxes = re.findall(checkbox_syntax_regex, req_section)
                 for cb in checkboxes:
                     if not re.search(r"\[[^\]]+\]\(https?://[^)]+\)", cb):
-                        errors.append(f"Epic {filename} checklist item '{cb.strip()}' must be a valid markdown link pointing to the feature file absolute URL.")
+                        errors.append(Finding("epic-checklist-item-requires-a-feature-file-link", f"Epic {filename} checklist item '{cb.strip()}' must be a valid markdown link pointing to the feature file absolute URL.", location=filename))
 
     def _validate_class_diagram(self, doc_type: str, filename: str, content: str, errors: List[str], class_parser, val_rules, uml_primitives, visibility_prefixes, relationship_connectors, choice_stereotypes, multiplicity_regex):
         class_diagram_matches = re.finditer(r"```mermaid\s*\n\s*classDiagram(.*?)(?=```|\Z)", content, re.DOTALL)
@@ -732,7 +733,7 @@ class UmlValidator(IValidator):
                     is_block_start = re.match(r'^(class|namespace)\s+(?:`[^`]+`|[a-zA-Z0-9_\-.]+)\s*\{', line_strip, re.IGNORECASE)
                     is_block_end = (line_strip == "}")
                     if not is_block_start and not is_block_end:
-                        errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.")
+                        errors.append(Finding("class-diagram-member-must-not-contain-braces", f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Curly braces '{{}}' inside members/attributes are prohibited due to Mermaid parse errors. Use standard attribute notation or separate notes for constraints.", location=filename))
                 if line_strip.lower().startswith("note ") or line_strip.lower().startswith("note\t") or line_strip.lower() == "note":
                     note_match = re.match(r'^\s*note\s+(?:for\s+(?:`[^`]+`|[a-zA-Z0-9_\-.]+)\s*)?(.*)$', line_strip, re.IGNORECASE)
                     if note_match:
@@ -740,26 +741,26 @@ class UmlValidator(IValidator):
                         if note_content.startswith(':'):
                             note_content = note_content[1:].strip()
                         if ':' in note_content:
-                            errors.append(f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Colons ':' inside note strings are prohibited due to Mermaid rendering issues.")
+                            errors.append(Finding("class-diagram-note-must-not-contain-colons", f"{doc_type} {filename} contains a syntax conflict in classDiagram on line {line_idx+1}: '{line_strip}'. Colons ':' inside note strings are prohibited due to Mermaid rendering issues.", location=filename))
 
             try:
                 parsed_cd = class_parser.parse(diagram_full)
             except Exception as e:
-                errors.append(f"{doc_type} {filename} contains an unparsable UML Class Diagram: {e}")
+                errors.append(Finding("class-diagram-must-parse", f"{doc_type} {filename} contains an unparsable UML Class Diagram: {e}", location=filename))
                 continue
 
             for err in parsed_cd.parse_errors:
-                errors.append(f"{doc_type} {filename} class diagram parse error: {err}")
+                errors.append(Finding("class-diagram-must-parse", f"{doc_type} {filename} class diagram parse error: {err}", location=filename))
 
             if not re.search(relationship_connectors, diagram_body):
                 if not parsed_cd.relationships:
-                    errors.append(f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.")
+                    errors.append(Finding("class-diagram-requires-relationships", f"{doc_type} {filename} contains a UML Class Diagram with no relationships. Isolated classes are prohibited; you must illustrate containment/inheritance/choice composition.", location=filename))
                 else:
                     errors.append(
-                        f"{doc_type} {filename} contains UML Class Diagram relationships "
+                        Finding("class-diagram-connector-must-be-recognised", f"{doc_type} {filename} contains UML Class Diagram relationships "
                         f"using connector formats not recognized by the configured relationship_connectors. "
                         f"The parser detected {len(parsed_cd.relationships)} relationship(s) in non-standard format. "
-                        f"Verify connectors match the configured set."
+                        f"Verify connectors match the configured set.", location=filename)
                     )
                 
             classes = parsed_cd.classes
@@ -767,7 +768,7 @@ class UmlValidator(IValidator):
             
             for rel in relationships:
                 if rel.label and any(stereo in rel.label for stereo in ["<<", ">>", "&lt;&lt;", "&gt;&gt;", "«", "»"]):
-                    errors.append(f"{doc_type} {filename} contains invalid stereotype/double angle brackets on relationship line between '{rel.from_class}' and '{rel.to_class}': '{rel.label}'. Relationship labels must not contain stereotypes.")
+                    errors.append(Finding("class-diagram-relationship-must-not-carry-a-stereotype", f"{doc_type} {filename} contains invalid stereotype/double angle brackets on relationship line between '{rel.from_class}' and '{rel.to_class}': '{rel.label}'. Relationship labels must not contain stereotypes.", location=filename))
             
             adj = {c: set() for c in classes}
             for rel in relationships:
@@ -782,7 +783,7 @@ class UmlValidator(IValidator):
                 
             for c, neighbors in adj.items():
                 if len(neighbors) == 0:
-                    errors.append(f"{doc_type} {filename} contains class '{c}' with zero relationships. Isolated classes are prohibited.")
+                    errors.append(Finding("class-diagram-class-must-not-be-isolated", f"{doc_type} {filename} contains class '{c}' with zero relationships. Isolated classes are prohibited.", location=filename))
                     
             if classes:
                 start_node = next(iter(classes))
@@ -797,7 +798,7 @@ class UmlValidator(IValidator):
                             queue.append(neighbor)
                 unvisited = set(classes.keys()) - visited
                 if unvisited:
-                    errors.append(f"{doc_type} {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.")
+                    errors.append(Finding("class-diagram-must-be-connected", f"{doc_type} {filename} contains a disconnected UML Class Diagram. Classes {list(unvisited)} are not structurally connected to '{start_node}'.", location=filename))
                     
             for cls_name, cls_info in classes.items():
                 is_enum = any("<<enumeration>>" in (a.name or "") or "<<enumeration>>" in (a.raw or "") for a in cls_info.attributes)
@@ -808,12 +809,12 @@ class UmlValidator(IValidator):
                         continue
                     attr_type = attr.type
                     if not attr_type:
-                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a type.")
+                        errors.append(Finding("class-attribute-requires-a-type", f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a type.", location=filename))
                         continue
                         
                     base_type = re.sub(multiplicity_regex + r'$', '', attr_type).strip()
                     if base_type not in uml_primitives and base_type not in classes:
-                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' has invalid type '{attr_type}'. UML primitive types must be {', '.join(sorted(uml_primitives))} (case-sensitive), or reference another class.")
+                        errors.append(Finding("class-attribute-type-must-be-a-uml-primitive", f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' has invalid type '{attr_type}'. UML primitive types must be {', '.join(sorted(uml_primitives))} (case-sensitive), or reference another class.", location=filename))
                         
             choice_classes = set()
             for line in diagram_full.splitlines():
@@ -858,7 +859,7 @@ class UmlValidator(IValidator):
                             has_subclass = True
                             break
                 if not has_subclass:
-                    errors.append(f"{doc_type} {filename} choice class '{choice_cls}' must have at least one subclass inheriting from it via generalization (<|--).")
+                    errors.append(Finding("choice-class-requires-a-generalization-subclass", f"{doc_type} {filename} choice class '{choice_cls}' must have at least one subclass inheriting from it via generalization (<|--).", location=filename))
                     
             for cls_name, cls_info in classes.items():
                 is_enum = any("<<enumeration>>" in (a.name or "") or "<<enumeration>>" in (a.raw or "") for a in cls_info.attributes)
@@ -868,17 +869,17 @@ class UmlValidator(IValidator):
                     if is_enum:
                         continue
                     if attr.visibility not in visibility_prefixes:
-                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
+                        errors.append(Finding("class-member-requires-a-visibility-prefix", f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).", location=filename))
                     has_mult = bool(attr.multiplicity)
                     if not has_mult and attr.type:
                         if re.search(multiplicity_regex + r'$', attr.type):
                             has_mult = True
                     if not has_mult:
-                        errors.append(f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).")
+                        errors.append(Finding("class-member-requires-a-multiplicity", f"{doc_type} {filename} class '{cls_name}' attribute '{attr.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]).", location=filename))
                         
                 for method in cls_info.methods:
                     if method.visibility not in visibility_prefixes:
-                        errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).")
+                        errors.append(Finding("class-member-requires-a-visibility-prefix", f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a valid UML visibility prefix ({', '.join(sorted(visibility_prefixes))}).", location=filename))
                     if not method.return_type or method.return_type.lower() in ("void", "none"):
                         continue
                     has_mult = False
@@ -895,7 +896,7 @@ class UmlValidator(IValidator):
                                 if (re.search(r'\)\s*' + multiplicity_regex, method.raw) or re.search(multiplicity_regex + r'\s*$', method.raw)):
                                     has_mult = True
                     if not has_mult:
-                        errors.append(f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.")
+                        errors.append(Finding("class-member-requires-a-multiplicity", f"{doc_type} {filename} class '{cls_name}' method '{method.name}' is missing a multiplicity (e.g. [1], [0..1], [0..*]) in its return signature.", location=filename))
 
             for cls_name, cls_info in classes.items():
                 is_component = any("<<component>>" in (a.name or "") or "<<component>>" in (a.raw or "") for a in cls_info.attributes)
@@ -911,7 +912,7 @@ class UmlValidator(IValidator):
                 if is_component:
                     real_attributes = [a for a in cls_info.attributes if not (a.raw and "<<" in a.raw and ">>" in a.raw)]
                     if not real_attributes and not cls_info.methods:
-                        errors.append(f"{doc_type} {filename} subsystem component class '{cls_name}' is empty. Subsystem components must define at least one attribute or operation.")
+                        errors.append(Finding("subsystem-component-class-must-declare-members", f"{doc_type} {filename} subsystem component class '{cls_name}' is empty. Subsystem components must define at least one attribute or operation.", location=filename))
 
             # Validate schema containers
             import yaml
@@ -956,9 +957,9 @@ class UmlValidator(IValidator):
                             resolved_classes.append((seg, classes_lower_map[fallback_cls.lower()]))
                         else:
                             if fallback_cls:
-                                errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' or '{fallback_cls}' for schema container path segment '{seg}' in path '{path}'.")
+                                errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' or '{fallback_cls}' for schema container path segment '{seg}' in path '{path}'.", location=filename))
                             else:
-                                errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container path segment '{seg}' in path '{path}'.")
+                                errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container path segment '{seg}' in path '{path}'.", location=filename))
                             all_exist = False
                             
                     if all_exist:
@@ -967,7 +968,7 @@ class UmlValidator(IValidator):
                             seg_next, actual_cls_next = resolved_classes[i+1]
                             
                             if actual_cls_next not in adj.get(actual_cls_i, set()):
-                                errors.append(f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing relationship between class '{actual_cls_i}' and class '{actual_cls_next}' representing adjacent schema container path segments '{seg_i}' and '{seg_next}' in path '{path}'.")
+                                errors.append(Finding("class-diagram-must-model-the-schema-containment-relationships", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing relationship between class '{actual_cls_i}' and class '{actual_cls_next}' representing adjacent schema container path segments '{seg_i}' and '{seg_next}' in path '{path}'.", location=filename))
 
         
     def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:
