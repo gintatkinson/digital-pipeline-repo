@@ -24,15 +24,29 @@ from typing import Dict, List, Sequence
 
 from .core.findings import Finding, unmigrated_count
 from .core.workspace import WorkspaceRepository
+from .validators.cardinality_validator import SchemaCardinalityValidator
+from .validators.dependency_validator import DependencyValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
+from .validators.spec_validator import SpecValidator
 
 # Validators migrated to structured findings. Un-migrated validators are deliberately
 # excluded rather than included and silently ungroupable — see `coverage_note`.
+# Migration progress is gated by tests/test_validator_findings_migration_issue304.py,
+# which asserts that every module listed as migrated is also listed here: wrapping an
+# emission in Finding without wiring the validator in produces rule ids that reach no
+# report, which looks like progress and is not.
 AGGREGATING_VALIDATORS = (
     MermaidSyntaxValidator,
     SpecFilenameValidator,
+    SchemaCardinalityValidator,
+    SpecValidator,
+    DependencyValidator,
 )
+# SyncValidator is migrated to structured findings but deliberately absent: it shells
+# out to the issue tracker, and `pipeline-tooling.md` § Validation Gates forbids network
+# egress inside a blocking gate. See AGGREGATION_EXEMPT in
+# tests/test_validator_findings_migration_issue304.py.
 
 
 @dataclass

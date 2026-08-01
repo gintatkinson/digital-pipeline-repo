@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 import yaml
 
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 
@@ -57,10 +58,12 @@ class SpecValidator(IValidator):
                     path = container
 
                 if path and ":" not in path:
-                    errors.append(
+                    errors.append(Finding(
+                        "schema-container-path-must-be-fully-qualified",
                         f"Feature '{filename}': schema container path '{path}' is unqualified (missing module prefix colon ':'). "
-                        f"Expected format e.g. 'ietf-geo-location:geo-location/reference-frame'."
-                    )
+                        f"Expected format e.g. 'ietf-geo-location:geo-location/reference-frame'.",
+                        location=os.path.basename(os.path.normpath(features_dir)),
+                    ))
 
         return errors
 

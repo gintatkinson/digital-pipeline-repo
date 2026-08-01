@@ -2,6 +2,7 @@ import os
 import re
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 class DependencyValidator(IValidator):
@@ -59,7 +60,11 @@ class DependencyValidator(IValidator):
                         re.search(r'\[.*?Parent Epic.*?\]\(.*?\)', content, re.IGNORECASE)
                     )
                     if not has_parent_link:
-                        errors.append(f"Epic '{filename}' references imported schema '{imp}' without linking to prerequisite parent Epic.")
+                        errors.append(Finding(
+                            "epic-imported-schema-prerequisite-link-missing",
+                            f"Epic '{filename}' references imported schema '{imp}' without linking to prerequisite parent Epic.",
+                            location=imp,
+                        ))
                         
         return errors
 
@@ -136,7 +141,11 @@ class DependencyValidator(IValidator):
                         break
                         
                 if not covered:
-                    errors.append(f"Missing specification files for imported schema dependency '{dep}'. Please ensure the dependent specifications are kept in the workspace.")
+                    errors.append(Finding(
+                        "schema-import-dependency-unspecified",
+                        f"Missing specification files for imported schema dependency '{dep}'. Please ensure the dependent specifications are kept in the workspace.",
+                        location=dep,
+                    ))
 
         # 4. Check Epic parent prerequisite links for imported schemas
         errors.extend(self.validate_epic_prerequisite_links(repo, **kwargs))

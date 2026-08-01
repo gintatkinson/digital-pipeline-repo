@@ -160,6 +160,15 @@ class ContractFamily:
     documents has no single file to scan for orphan documentation, so the field is None
     and ``doc_orphan_blocked_by`` must explain why. Orphan **enforcement** detection
     still works for such a family, because that scans one validator.
+
+    ``enforcement_files`` is the symmetric relaxation, added for issue #304. The first
+    five families each had exactly one enforcing file, so ``enforcement_file`` was
+    sufficient. It stops being sufficient as soon as a rule family spans validators —
+    the schema-traceability rules are enforced by ``cardinality_validator`` and
+    ``spec_validator`` together, and neither alone parses enough messages to clear the
+    vacuity floor. When set, it lists every file to scan; ``enforcement_file`` remains
+    the primary one, so existing families are unaffected and error messages still name
+    a single obvious place to look.
     """
 
     name: str
@@ -170,6 +179,11 @@ class ContractFamily:
     doc_heading_pattern: Optional[str] = None
     doc_only: Optional[dict] = None
     doc_orphan_blocked_by: str = ""
+    enforcement_files: Optional[List[str]] = None
+
+    def enforcement_paths(self) -> List[str]:
+        """Every file the orphan-enforcement scanner reads for this family."""
+        return list(self.enforcement_files or [self.enforcement_file])
 
 
 MERMAID_FAMILY = ContractFamily(
@@ -471,6 +485,160 @@ SUBAGENT_ISOLATION_FAMILY = ContractFamily(
 )
 
 
+SCHEMA_TRACEABILITY_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="schema-container-declaration-missing",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Every Feature MUST declare exactly one schema container",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="schema-container-declaration-missing",
+        note=(
+            "Issue #304. The first family whose enforcement anchors are rule ids rather "
+            "than message fragments -- see SCHEMA_TRACEABILITY_FAMILY for why."
+        ),
+    ),
+    RuleContract(
+        id="schema-container-field-must-be-a-list",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="with exactly one entry containing the fully-qualified container path",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="schema-container-field-must-be-a-list",
+        note=(
+            "The YAML shape, not merely the count: `schema_containers: module/thing` "
+            "parses to a str and would otherwise be length-tested character by character."
+        ),
+    ),
+    RuleContract(
+        id="schema-container-declaration-empty",
+        documented_in="skills/spec-usecase-engineering/SKILL.md",
+        doc_anchor="with exactly one entry containing the container path",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="schema-container-declaration-empty",
+    ),
+    RuleContract(
+        id="schema-container-consolidation-forbidden",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Multi-container Features are forbidden",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="schema-container-consolidation-forbidden",
+        note="The threshold corrected by issue #283; documented in both worker skills.",
+    ),
+    RuleContract(
+        id="schema-container-path-must-be-fully-qualified",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="fully-qualified schema container path format",
+        enforced_in=f"{PARITY_SRC}/validators/spec_validator.py",
+        enforcement_anchor="schema-container-path-must-be-fully-qualified",
+        note=(
+            "A path without a module prefix colon cannot be resolved back to a YANG "
+            "module, so container traceability is unverifiable."
+        ),
+    ),
+]
+
+SCHEMA_TRACEABILITY_FAMILY = ContractFamily(
+    name="schema-traceability",
+    contracts=SCHEMA_TRACEABILITY_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/cardinality_validator.py",
+    enforcement_files=[
+        f"{PARITY_SRC}/validators/cardinality_validator.py",
+        f"{PARITY_SRC}/validators/spec_validator.py",
+    ],
+    # The five families above scan for message *text*. This one scans for the rule id
+    # passed to Finding(), which is strictly stronger now that validators are migrating
+    # to structured findings (#304): a text scanner has to be re-tuned every time a
+    # message is reworded, and silently stops matching when it is -- an orphan-detection
+    # test that quietly matches nothing is the failure this registry exists to prevent.
+    # The rule id is the thing the aggregator actually groups on, so pairing *it* with a
+    # document is what the contract is really asserting.
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "Container traceability has no single normative home: it is stated for Features "
+        "in schema-specification-engineering/SKILL.md:57,118 and for Use Cases in "
+        "spec-usecase-engineering/SKILL.md:149, and neither is a summary of the other. "
+        "Scanning either alone would report the other's statement as an orphan. Both "
+        "anchors of every contract above still resolve, so deleting either statement "
+        "fails the suite; only the heading-scan half of orphan-documentation detection "
+        "is blocked. Same fragmentation issue #289 fixed for the Mermaid rules by "
+        "designating a normative home. Tracked as a follow-up to #304."
+    ),
+)
+
+
+BACKLOG_INTEGRITY_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="tracker-issue-without-local-specification",
+        documented_in="rules/tracker-source-of-truth.md",
+        doc_anchor="Registered Issues Must Have A Local Specification",
+        enforced_in=f"{PARITY_SRC}/validators/sync_validator.py",
+        enforcement_anchor="tracker-issue-without-local-specification",
+        note=(
+            "Issue #304 found this enforced since the validator was written and stated "
+            "in no document -- the #299 shape. Documented as part of the migration."
+        ),
+    ),
+    RuleContract(
+        id="spec-index-collides-with-tracker-issue",
+        documented_in="rules/tracker-source-of-truth.md",
+        doc_anchor="Local Indices Must Not Collide With Registered Issues",
+        enforced_in=f"{PARITY_SRC}/validators/sync_validator.py",
+        enforcement_anchor="spec-index-collides-with-tracker-issue",
+        note=(
+            "Also undocumented before #304. Distinct from "
+            "spec-filename-ordinal-uniqueness, which is a collision between two local "
+            "files; this is a local ordinal colliding with a differently-titled issue "
+            "already holding that ordinal on the tracker."
+        ),
+    ),
+    RuleContract(
+        id="schema-import-dependency-unspecified",
+        documented_in=".pipeline/constitution.md",
+        doc_anchor=(
+            "Cross-module or external schema references must be explicitly documented "
+            "with source and target module names"
+        ),
+        enforced_in=f"{PARITY_SRC}/validators/dependency_validator.py",
+        enforcement_anchor="schema-import-dependency-unspecified",
+    ),
+    RuleContract(
+        id="epic-imported-schema-prerequisite-link-missing",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Schema Import Prerequisite Links",
+        enforced_in=f"{PARITY_SRC}/validators/dependency_validator.py",
+        enforcement_anchor="epic-imported-schema-prerequisite-link-missing",
+        note=(
+            "Undocumented before #304. The import ordering constraint was enforced and "
+            "recorded nowhere a generating subagent would read it."
+        ),
+    ),
+]
+
+BACKLOG_INTEGRITY_FAMILY = ContractFamily(
+    name="backlog-tracker-integrity",
+    contracts=BACKLOG_INTEGRITY_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/sync_validator.py",
+    enforcement_files=[
+        f"{PARITY_SRC}/validators/sync_validator.py",
+        f"{PARITY_SRC}/validators/dependency_validator.py",
+    ],
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "Three of the four rules are stated in rules/tracker-source-of-truth.md and "
+        "the fourth in skills/schema-specification-engineering/SKILL.md, because the "
+        "import-prerequisite rule governs how a specification is drafted rather than "
+        "how the tracker is treated. Scanning either file alone would report the "
+        "other's statement as an orphan. Both anchors of every contract above still "
+        "resolve, so deleting any statement fails the suite; only the heading-scan "
+        "half of orphan-documentation detection is blocked. Tracked as a follow-up "
+        "to #304."
+    ),
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -604,6 +772,8 @@ FAMILIES: List[ContractFamily] = [
     DOC_REFERENCE_FAMILY,
     KARPATHY_FAMILY,
     SUBAGENT_ISOLATION_FAMILY,
+    SCHEMA_TRACEABILITY_FAMILY,
+    BACKLOG_INTEGRITY_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 

@@ -13,6 +13,7 @@ from typing import List
 import yaml
 
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 
@@ -73,34 +74,42 @@ class SchemaCardinalityValidator(IValidator):
 
                 containers = fm.get("schema_containers", None)
                 if containers is None:
-                    errors.append(
+                    errors.append(Finding(
+                        "schema-container-declaration-missing",
                         f"{file_type} '{filename}': schema_containers is missing from frontmatter. "
                         f"Every {file_type.lower()} must declare exactly one schema container "
-                        f"(e.g. path: 'module/container', node_type: container)."
-                    )
+                        f"(e.g. path: 'module/container', node_type: container).",
+                        location=dir_label,
+                    ))
                     continue
 
                 if not isinstance(containers, list):
-                    errors.append(
+                    errors.append(Finding(
+                        "schema-container-field-must-be-a-list",
                         f"{file_type} '{filename}': schema_containers must be a list, "
-                        f"got {type(containers).__name__}"
-                    )
+                        f"got {type(containers).__name__}",
+                        location=dir_label,
+                    ))
                     continue
 
                 n = len(containers)
                 if n == 0:
-                    errors.append(
+                    errors.append(Finding(
+                        "schema-container-declaration-empty",
                         f"{file_type} '{filename}': schema_containers is empty. "
                         f"Every {file_type.lower()} must declare exactly one schema container "
-                        f"(e.g. path: 'module/container', node_type: container)."
-                    )
+                        f"(e.g. path: 'module/container', node_type: container).",
+                        location=dir_label,
+                    ))
                 elif n > 1:
                     paths = [c.get("path", "?") if isinstance(c, dict) else str(c) for c in containers]
-                    errors.append(
+                    errors.append(Finding(
+                        "schema-container-consolidation-forbidden",
                         f"{file_type} '{filename}': Consolidation violation — "
                         f"schema_containers has {n} entries ({', '.join(paths)}). "
                         f"Each {file_type.lower()} must map to exactly one schema container. "
-                        f"Split into separate files."
-                    )
+                        f"Split into separate files.",
+                        location=dir_label,
+                    ))
 
         return errors

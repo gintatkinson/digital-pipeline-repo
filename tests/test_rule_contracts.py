@@ -98,8 +98,17 @@ def _documented_headings(family):
 
 
 def _enforced_messages(family):
-    path = os.path.join(REPO_ROOT, family.enforcement_file)
-    return set(re.findall(family.enforcement_pattern, _read(path)))
+    """Union across every enforcing file the family declares.
+
+    Single-file families are the common case and are unchanged: ``enforcement_paths()``
+    returns ``[enforcement_file]`` for them. A family whose rules span validators — the
+    schema-traceability family added for #304 — lists all of them, so a rule enforced in
+    the second file is not invisible to orphan detection.
+    """
+    messages = set()
+    for rel in family.enforcement_paths():
+        messages |= set(re.findall(family.enforcement_pattern, _read(os.path.join(REPO_ROOT, rel))))
+    return messages
 
 
 @pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
@@ -137,7 +146,7 @@ def test_enforced_message_scan_is_not_vacuous(family):
     messages = _enforced_messages(family)
     assert len(messages) >= 3, (
         f"{family.name}: only {len(messages)} enforced messages parsed from "
-        f"{family.enforcement_file}; the orphan-enforcement test would be "
+        f"{', '.join(family.enforcement_paths())}; the orphan-enforcement test would be "
         f"near-vacuous. Found: {messages}"
     )
 

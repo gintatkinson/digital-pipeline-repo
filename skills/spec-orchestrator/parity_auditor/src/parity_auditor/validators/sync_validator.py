@@ -4,6 +4,7 @@ import subprocess
 import json
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 class SyncValidator(IValidator):
@@ -130,13 +131,21 @@ class SyncValidator(IValidator):
         # 3. Check for missing local specs
         for spec_key, issue in tracker_specs.items():
             if spec_key not in local_specs:
-                errors.append(f"Missing specification file for registered Issue #{issue['number']} - '{issue['title']}'. Please check your branch baseline.")
+                errors.append(Finding(
+                    "tracker-issue-without-local-specification",
+                    f"Missing specification file for registered Issue #{issue['number']} - '{issue['title']}'. Please check your branch baseline.",
+                    location=spec_key[0],
+                ))
 
         # 4. Check for index collisions
         for (std_type, idx), norm_title in local_indices.items():
             tracker_key = tracker_indices.get((std_type, idx))
             if tracker_key and tracker_key[1] != norm_title:
                 issue_num = tracker_specs.get(tracker_key, {}).get("number", "unknown")
-                errors.append(f"Index collision detected. Local specification with index {idx} ('{norm_title}') overlaps with registered Issue #{issue_num} ('{tracker_key[1]}').")
+                errors.append(Finding(
+                    "spec-index-collides-with-tracker-issue",
+                    f"Index collision detected. Local specification with index {idx} ('{norm_title}') overlaps with registered Issue #{issue_num} ('{tracker_key[1]}').",
+                    location=std_type,
+                ))
                 
         return errors
