@@ -8,6 +8,10 @@ with an external issue tracker (e.g. GitHub Issues).
 Scans epics/, features/, user-stories/ and use-cases/ directories,
 resolves issue-ID placeholders, updates dependency checklists, syncs
 issue bodies, and marks completed items Fixed / Resolved.
+A spec file is matched to its issue by the canonical `issue_id` in its YAML
+frontmatter; normalized-title matching is a warning-only fallback for a spec
+that has none yet.  See resolve_spec_issue_number and
+constitution.md:57-59 § Unique Backlog Identifiers (#314, #316).
 Never closes an issue: constitution.md:161 reserves Closed for Product Owner
 validation (#309).  Hard-exits on any
 referenced issue that does not exist in the tracker (hallucination gate).
@@ -607,6 +611,105 @@ def extract_metadata(filepath):
     except Exception as e:
         print(f"Error parsing metadata from {filepath}: {e}")
     return {}
+
+def lookup_canonical_issue_key(raw_id, issue_dict):
+    """Return the key under which `raw_id` sits in `issue_dict`, or None if absent.
+
+    `issue_dict` is keyed twice per issue — once int, once str — because tracker
+    payloads and frontmatter disagree about the type. Frontmatter may also quote the
+    value or write it as a reference (`"901"`, `#901`), so all three spellings are
+    reduced to the one key the caller can index with.
+    """
+    if raw_id is None or isinstance(raw_id, bool):
+        return None
+    if isinstance(raw_id, int):
+        candidates = [raw_id, str(raw_id)]
+    else:
+        text = str(raw_id).strip().strip('"\'').lstrip("#").strip()
+        if not text:
+            return None
+        candidates = [text, int(text)] if text.isdigit() else [text]
+    for candidate in candidates:
+        if candidate in issue_dict:
+            return candidate
+    return None
+
+
+def resolve_spec_issue_number(filepath, title, title_map, issue_dict, rules=None,
+                              item_type="Feature", claimed=None):
+    """Resolve a local spec file to its tracker issue. Canonical `issue_id` first.
+
+    `.pipeline/constitution.md:57-59` § *Unique Backlog Identifiers* mandates an
+    `issue_id: <int>` in every spec's frontmatter and states that "Matching by title
+    normalization is prohibited as a primary selector." This function is where that
+    precedence is enforced (#314), and it is the only resolution path the four spec
+    loops in main() use (#316).
+
+    Order:
+
+    1. Frontmatter `issue_id` present and on the tracker — used, full stop.
+    2. Frontmatter `issue_id` present but absent from the tracker — **hard error**. A
+       fall-through to title matching here is exactly #316: the title can match some
+       unrelated issue, and `sync_issue_body_to_tracker` would then overwrite that
+       issue's body. It is also the same class of defect as the referenced-but-missing
+       issue the module already refuses to invent.
+    3. No `issue_id` yet (first registration) — title normalization, with a warning
+       naming the file, because the constitution allows it only as a fallback.
+
+    `claimed` is an optional dict shared across all four loops. Two spec files
+    resolving to one issue number means one of them is about to be overwritten, so it
+    fails loudly with both paths rather than syncing.
+    """
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    meta = extract_metadata(filepath)
+    fm_id = meta.get("issue_id")
+    basename = os.path.basename(filepath)
+
+    declared = str(fm_id).strip().strip('"\'').lstrip("#").strip() if fm_id is not None else ""
+
+    issue_num = None
+    if declared:
+        issue_num = lookup_canonical_issue_key(fm_id, issue_dict)
+        if issue_num is None:
+            declared_ref = format_issue_reference(declared, tracker_rules)
+            print(
+                f"[FATAL] {item_type} '{basename}' declares issue_id {declared_ref}, "
+                "which does not exist on the tracker. Refusing to fall back to title "
+                "matching: that is how an unrelated issue's body gets overwritten "
+                f"(#316). Correct or remove the issue_id in {filepath}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    else:
+        issue_num = title_map.get(normalize_title(title, rules))
+        if issue_num is not None:
+            print(
+                f"  [Warning] {item_type} '{basename}' has no issue_id in its "
+                f"frontmatter; fell back to matching by normalized title and resolved "
+                f"{format_issue_reference(issue_num, tracker_rules)}. "
+                ".pipeline/constitution.md:58-59 prohibits title normalization as a "
+                f"primary selector — add 'issue_id: {issue_num}' to {filepath}"
+            )
+
+    if issue_num is None:
+        return None
+
+    if claimed is not None:
+        key = str(issue_num)
+        previous = claimed.get(key)
+        if previous is not None and os.path.abspath(previous) != os.path.abspath(filepath):
+            print(
+                "[FATAL] Two specification files resolve to the same issue "
+                f"{format_issue_reference(issue_num, tracker_rules)}: "
+                f"{previous} and {filepath}. Syncing both would overwrite one body with "
+                "the other (#316). Give each file its own issue_id.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        claimed[key] = filepath
+
+    return issue_num
+
 
 def resolve_type_context(line, filepath, section_context):
     # 1. URL path check
@@ -1399,6 +1502,10 @@ def main():
                     rules
                 )
 
+        # One issue belongs to exactly one spec file. Shared across all four loops so a
+        # collision is caught whatever type the colliding files are (#316).
+        claimed_issues = {}
+
         # Process Epics
         if os.path.exists(epics_dir):
             for filename in sorted(os.listdir(epics_dir)):
@@ -1410,14 +1517,11 @@ def main():
                 if not title:
                     continue
                 
-                norm = normalize_title(title, rules=rules)
-                issue_num = epic_titles.get(norm)
-                if not issue_num:
-                    meta = extract_metadata(filepath)
-                    fm_id = meta.get('issue_id')
-                    if fm_id and fm_id in issue_dict:
-                        issue_num = fm_id
-                if issue_num:
+                issue_num = resolve_spec_issue_number(
+                    filepath, title, epic_titles, issue_dict, rules=rules,
+                    item_type="Epic", claimed=claimed_issues,
+                )
+                if issue_num is not None:
                     updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
@@ -1432,7 +1536,10 @@ def main():
                                 {"name": get_resolved_label(rules)}
                             )
                 else:
-                    print(f"Warning: No Epic issue found on tracker matching: '{title}'")
+                    print(
+                        f"Warning: No Epic issue on the tracker for {filename} — "
+                        f"no issue_id in its frontmatter and no title match for '{title}'"
+                    )
 
         # Process Features
         if os.path.exists(features_dir):
@@ -1445,19 +1552,19 @@ def main():
                 if not title:
                     continue
                 
-                norm = normalize_title(title, rules=rules)
-                issue_num = feature_titles.get(norm)
-                if not issue_num:
-                    meta = extract_metadata(filepath)
-                    fm_id = meta.get('issue_id')
-                    if fm_id and fm_id in issue_dict:
-                        issue_num = fm_id
-                if issue_num:
+                issue_num = resolve_spec_issue_number(
+                    filepath, title, feature_titles, issue_dict, rules=rules,
+                    item_type="Feature", claimed=claimed_issues,
+                )
+                if issue_num is not None:
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
                         sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=rules)
                 else:
-                    print(f"Warning: No Feature issue found on tracker matching: '{title}'")
+                    print(
+                        f"Warning: No Feature issue on the tracker for {filename} — "
+                        f"no issue_id in its frontmatter and no title match for '{title}'"
+                    )
 
         # Process User Stories
         if os.path.exists(stories_dir):
@@ -1470,14 +1577,11 @@ def main():
                 if not title:
                     continue
                 
-                norm = normalize_title(title, rules=rules)
-                issue_num = story_titles.get(norm)
-                if not issue_num:
-                    meta = extract_metadata(filepath)
-                    fm_id = meta.get('issue_id')
-                    if fm_id and fm_id in issue_dict:
-                        issue_num = fm_id
-                if issue_num:
+                issue_num = resolve_spec_issue_number(
+                    filepath, title, story_titles, issue_dict, rules=rules,
+                    item_type="User Story", claimed=claimed_issues,
+                )
+                if issue_num is not None:
                     _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
@@ -1492,7 +1596,10 @@ def main():
                                 {"name": get_resolved_label(rules)}
                             )
                 else:
-                    print(f"Warning: No User Story issue found on tracker matching: '{title}'")
+                    print(
+                        f"Warning: No User Story issue on the tracker for {filename} — "
+                        f"no issue_id in its frontmatter and no title match for '{title}'"
+                    )
 
         # Process Use Cases
         if os.path.exists(usecases_dir):
@@ -1505,14 +1612,11 @@ def main():
                 if not title:
                     continue
                 
-                norm = normalize_title(title, rules=rules)
-                issue_num = usecase_titles.get(norm)
-                if not issue_num:
-                    meta = extract_metadata(filepath)
-                    fm_id = meta.get('issue_id')
-                    if fm_id and fm_id in issue_dict:
-                        issue_num = fm_id
-                if issue_num:
+                issue_num = resolve_spec_issue_number(
+                    filepath, title, usecase_titles, issue_dict, rules=rules,
+                    item_type="Use Case", claimed=claimed_issues,
+                )
+                if issue_num is not None:
                     _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
@@ -1527,7 +1631,10 @@ def main():
                                 {"name": get_resolved_label(rules)}
                             )
                 else:
-                    print(f"Warning: No Use Case issue found on tracker matching: '{title}'")
+                    print(
+                        f"Warning: No Use Case issue on the tracker for {filename} — "
+                        f"no issue_id in its frontmatter and no title match for '{title}'"
+                    )
 
         print("Backlog reconciliation complete.")
 
