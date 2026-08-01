@@ -1,9 +1,13 @@
 """Issue #304 — validators must emit structured ``Finding`` objects, not bare strings.
 
 #301 built ``Finding`` and the multi-downstream aggregator but migrated only 2 of the
-14 validators. The other 12 still return plain ``str``, so every symptom they detect is
-invisible to cross-downstream grouping: ``aggregator.collect`` skips anything that is
-not a ``Finding``, and ``unmigrated_count`` is the only trace it leaves.
+14 validators. The other 12 still returned plain ``str``, so every symptom they detected
+was invisible to cross-downstream grouping: ``aggregator.collect`` skips anything that is
+not a ``Finding``, and ``unmigrated_count`` was the only trace it left.
+
+**All 14 are now migrated.** This file stops being a progress ledger and becomes a
+regression gate: it is what fails if a new emission site is added without a rule id, or
+if a validator is quietly dropped from the list rather than migrated.
 
 This file is the gate for the migration. It is deliberately **static** rather than
 behavioural. ``tests/test_rule_contracts.py::test_every_emitted_rule_id_is_registered``
@@ -50,6 +54,7 @@ MIGRATED = (
     "docs.py",
     "logical_ui_validator.py",
     "codebase.py",
+    "uml.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states
@@ -81,9 +86,19 @@ AGGREGATION_EXEMPT = {
 # codebase is empty, logical_ui twice and test_completeness once. Those messages reach
 # the same consumers and are equally invisible to aggregation, so they are sites too.
 # Measured: 152 emission sites in total, 12 migrated by #301, 140 remaining — not 135.
-NOT_YET_MIGRATED = {
-    "uml.py": 78,
-}
+#
+# **Now empty: the migration is complete.** All 140 remaining sites were migrated, in the
+# order profile_scoping (2), behavioral (2), schema_mapping (3), test_completeness (6),
+# docs (6), logical_ui (16), codebase (18), uml (78).
+#
+# An empty mapping is exactly the state invariant 3 was written to distrust, because
+# "finished" and "nobody kept the ledger" render identically here. The structure is kept
+# rather than deleted so a future un-migrated validator has a defined home, and
+# `test_the_remainder_is_empty_because_migration_is_complete_issue304` below asserts the
+# stronger property directly: emptiness is only acceptable while every discovered
+# validator is listed as migrated. Deleting a name from MIGRATED without adding it here
+# fails that test rather than quietly shrinking what the suite checks.
+NOT_YET_MIGRATED = {}
 
 # Modules in the package that emit nothing and so are neither migrated nor pending.
 _NON_EMITTING = {"__init__.py", "base.py"}
@@ -220,6 +235,38 @@ def test_aggregation_exemptions_state_a_reason_issue304():
 # --------------------------------------------------------------------------- #
 # Invariant 3 — the remainder stays counted.
 # --------------------------------------------------------------------------- #
+
+def test_the_remainder_is_empty_because_migration_is_complete_issue304():
+    """An empty remainder must be *proved* complete, not merely observed empty.
+
+    The parametrized count assertion below generates zero cases once NOT_YET_MIGRATED is
+    empty, so on its own it stops checking anything at exactly the moment the ledger
+    claims success. This test is what keeps that state honest: while the remainder is
+    empty, every emitting validator in the package must appear in MIGRATED, and each must
+    genuinely have emission sites — a module silently emptied of its checks would
+    otherwise satisfy "migrated" for free.
+    """
+    if NOT_YET_MIGRATED:
+        pytest.skip(
+            f"migration still in progress; {len(NOT_YET_MIGRATED)} validator(s) pending, "
+            "so the per-module count assertions below are the live gate"
+        )
+    discovered = {
+        n for n in os.listdir(VALIDATORS_DIR)
+        if n.endswith(".py") and n not in _NON_EMITTING
+    }
+    unaccounted = sorted(discovered - set(MIGRATED))
+    assert not unaccounted, (
+        f"the remainder ledger is empty but {unaccounted} are in neither MIGRATED nor "
+        "NOT_YET_MIGRATED. An empty remainder must mean 'all migrated', never 'no longer "
+        "tracked'."
+    )
+    assert len(MIGRATED) >= 14, (
+        f"only {len(MIGRATED)} validators listed as migrated; #304 covers 14. A shrinking "
+        "MIGRATED tuple with an empty remainder is the ledger being abandoned, not a "
+        "completed migration."
+    )
+
 
 @pytest.mark.parametrize("filename,expected", sorted(NOT_YET_MIGRATED.items()))
 def test_unmigrated_site_count_is_recorded_issue304(filename, expected):

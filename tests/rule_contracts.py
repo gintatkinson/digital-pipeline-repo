@@ -1205,6 +1205,440 @@ CODEBASE_COMPLIANCE_FAMILY = ContractFamily(
 )
 
 
+UML_MODEL_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="epic-directory-must-exist-when-configured",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Epic Directory Must Exist When Configured",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="epic-directory-must-exist-when-configured",
+        note=(
+            "Issue #304. A missing Epic directory silently drops Epic-defined classes from the cross-document registry, so User Story lifelines resolving against them are then reported as undefined for the wrong reason."
+        ),
+    ),
+    RuleContract(
+        id="uml-validator-configuration-must-be-complete",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Validator Configuration Must Be Complete",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="uml-validator-configuration-must-be-complete",
+        note=(
+            "Eight emission sites, one rule: each document type has two configuration keys and each is reported the same way. One rule id per rule, not per site."
+        ),
+    ),
+    RuleContract(
+        id="backlog-document-must-be-readable",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Backlog Documents Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="backlog-document-must-be-readable",
+        note=(
+            "Distinct id from specification-file-must-be-readable in the codebase-compliance family: that one governs spec_rules.spec_files read by codebase.py, this one governs the backlog corpus read by uml.py. Different validators, so a grouped report must be able to say which failed."
+        ),
+    ),
+    RuleContract(
+        id="backlog-document-requires-its-configured-sections",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Documents Must Carry Their Configured Sections",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="backlog-document-requires-its-configured-sections",
+    ),
+    RuleContract(
+        id="backlog-document-requires-its-configured-diagrams",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Documents Must Carry Their Configured Diagrams",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="backlog-document-requires-its-configured-diagrams",
+    ),
+    RuleContract(
+        id="feature-requires-a-test-data-payload-example",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Features Must Carry A Test Data Payload Example",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="feature-requires-a-test-data-payload-example",
+    ),
+    RuleContract(
+        id="user-story-requires-a-bdd-scenario",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="User Stories Must Carry A BDD Scenario",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="user-story-requires-a-bdd-scenario",
+    ),
+    RuleContract(
+        id="user-story-requires-a-required-features-matrix",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="User Stories Must Carry A Required Features Matrix",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="user-story-requires-a-required-features-matrix",
+    ),
+    RuleContract(
+        id="user-story-matrix-requires-a-feature-reference",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="The Features Matrix Must Reference At Least One Feature",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="user-story-matrix-requires-a-feature-reference",
+    ),
+    RuleContract(
+        id="use-case-filename-must-follow-the-naming-convention",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Case Filenames Must Follow The Naming Convention",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-filename-must-follow-the-naming-convention",
+        note=(
+            "Distinct from spec-filename-format in the spec-filename family, which checks ordinal and padding shape across a directory; this checks one file against the pattern configured for use cases."
+        ),
+    ),
+    RuleContract(
+        id="use-case-requires-alternate-and-exception-flows",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Cases Must Carry Alternate And Exception Flows",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-requires-alternate-and-exception-flows",
+        note=(
+            "The required count is derived from the schema validation constraints declared by the referenced Features, so it scales with the contract rather than being a fixed floor."
+        ),
+    ),
+    RuleContract(
+        id="use-case-alternate-flow-requires-numbered-steps",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Alternate Flows Must Be Detailed",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-alternate-flow-requires-numbered-steps",
+    ),
+    RuleContract(
+        id="use-case-requires-an-alternate-flows-block",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Cases Must Carry An Alternate Flows Block",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-requires-an-alternate-flows-block",
+    ),
+    RuleContract(
+        id="use-case-requires-a-complete-realization-matrix",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Cases Must Carry A Complete Realization Matrix",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-requires-a-complete-realization-matrix",
+        note=(
+            "Two sites, one rule: the User Stories header and the Features header are the two halves of the same matrix."
+        ),
+    ),
+    RuleContract(
+        id="use-case-realization-matrix-requires-checklist-entries",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="The Realization Matrix Must Carry Checklist Entries",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-realization-matrix-requires-checklist-entries",
+        note=(
+            "Distinct from the rule above: the headers can both be present and both sections empty, which asserts traceability that does not exist."
+        ),
+    ),
+    RuleContract(
+        id="checklist-item-requires-an-absolute-url",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Checklist Items Must Carry An Absolute URL",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="checklist-item-requires-an-absolute-url",
+        note=(
+            "Four sites, one rule: two in the User Story Required Features Matrix and two in the Use Case Realization Matrix."
+        ),
+    ),
+    RuleContract(
+        id="checklist-item-requires-a-semantic-justification",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Checklist Items Must Carry A Semantic Justification",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="checklist-item-requires-a-semantic-justification",
+    ),
+    RuleContract(
+        id="epic-checklist-item-requires-a-feature-file-link",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Epic Checklist Items Must Link To A Feature File",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="epic-checklist-item-requires-a-feature-file-link",
+    ),
+    RuleContract(
+        id="specification-must-not-contain-template-placeholders",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Specifications Must Not Contain Template Placeholders",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="specification-must-not-contain-template-placeholders",
+        note=(
+            "The detector this rule states was repaired by issue #281, which found it blind to '[Epic Title]', '(semantic linkage justification)' and '*(None)*'."
+        ),
+    ),
+    RuleContract(
+        id="specification-must-not-contain-unresolved-registration-tokens",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Specifications Must Not Contain Unresolved Registration Tokens",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="specification-must-not-contain-unresolved-registration-tokens",
+        note=(
+            "Also #281: the check was 'IssueID' in content, which does not match '#[EpicID]'."
+        ),
+    ),
+    RuleContract(
+        id="specification-requires-the-subagent-generation-mode-marker",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="generation_mode",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="specification-requires-the-subagent-generation-mode-marker",
+        note=(
+            "Keeps its existing home rather than being restated here. Already registered as subagent-isolation-marker-enforced-by-parity-auditor in the subagent-isolation family, which pairs the mandate with the documents stating it; this contract pairs the emitted rule id with the same statement, which is what #304 requires."
+        ),
+    ),
+    RuleContract(
+        id="sequence-diagram-must-parse",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Sequence Diagrams Must Parse",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-diagram-must-parse",
+    ),
+    RuleContract(
+        id="sequence-lifeline-requires-name-and-classifier",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Lifelines Must Declare A Name And A Classifier",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-lifeline-requires-name-and-classifier",
+    ),
+    RuleContract(
+        id="sequence-lifeline-classifier-must-be-defined",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Lifeline Classifiers Must Be Defined",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-lifeline-classifier-must-be-defined",
+        note=(
+            "The actor exemption is the resolution of issue #277 and of AMEND-0001; it keys on the UML role the parser records, not on a name suffix."
+        ),
+    ),
+    RuleContract(
+        id="sequence-message-requires-an-operation-signature",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Messages Must Carry An Operation Signature",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-message-requires-an-operation-signature",
+    ),
+    RuleContract(
+        id="sequence-message-operation-must-exist-on-the-receiver",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Message Operations Must Exist On The Receiver",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-message-operation-must-exist-on-the-receiver",
+    ),
+    RuleContract(
+        id="sequence-message-operation-must-be-public",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Message Operations Must Be Public",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-message-operation-must-be-public",
+    ),
+    RuleContract(
+        id="sequence-return-message-requires-a-reply-arrow",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Return Messages Must Use A Reply Arrow",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-return-message-requires-a-reply-arrow",
+    ),
+    RuleContract(
+        id="sequence-return-message-must-not-be-an-operation-call",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Return Messages Must Not Look Like Calls",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-return-message-must-not-be-an-operation-call",
+    ),
+    RuleContract(
+        id="sequence-combined-fragment-guard-requires-square-brackets",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Combined Fragment Guards Must Be Bracketed",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="sequence-combined-fragment-guard-requires-square-brackets",
+    ),
+    RuleContract(
+        id="use-case-flowchart-must-parse",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Case Flowcharts Must Parse",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-flowchart-must-parse",
+    ),
+    RuleContract(
+        id="use-case-requires-a-system-boundary-subgraph",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Cases Must Declare A System Boundary Subgraph",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-requires-a-system-boundary-subgraph",
+    ),
+    RuleContract(
+        id="use-case-actor-must-be-outside-the-system-boundary",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Actors Must Sit Outside The System Boundary",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-actor-must-be-outside-the-system-boundary",
+    ),
+    RuleContract(
+        id="use-case-node-must-be-inside-the-system-boundary",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Case Nodes Must Sit Inside The System Boundary",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-node-must-be-inside-the-system-boundary",
+    ),
+    RuleContract(
+        id="use-case-node-must-use-the-stadium-shape",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Use Case Nodes Must Use The Stadium Shape",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-node-must-use-the-stadium-shape",
+    ),
+    RuleContract(
+        id="use-case-actor-association-must-be-undirected",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Actor Associations Must Be Undirected",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="use-case-actor-association-must-be-undirected",
+    ),
+    RuleContract(
+        id="class-diagram-member-must-not-contain-braces",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Class Member Brace Rules",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-member-must-not-contain-braces",
+        note=(
+            "Not restated in rules/uml-model-integrity.md. platform-independence.md is the single normative home for Mermaid syntax constraints and restating it would breach its own Normative home clause. Distinct rule id from mermaid-no-curly-brace-in-class-member because a different validator emits it, per the decision recorded on #304."
+        ),
+    ),
+    RuleContract(
+        id="class-diagram-note-must-not-contain-colons",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Note Rules",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-note-must-not-contain-colons",
+        note=(
+            "Same arrangement as the brace rule above."
+        ),
+    ),
+    RuleContract(
+        id="class-diagram-relationship-must-not-carry-a-stereotype",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Relationship Rules",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-relationship-must-not-carry-a-stereotype",
+        note=(
+            "Same arrangement as the brace rule above."
+        ),
+    ),
+    RuleContract(
+        id="class-diagram-must-parse",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Class Diagrams Must Parse",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-must-parse",
+    ),
+    RuleContract(
+        id="class-diagram-requires-relationships",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Class Diagrams Must Declare Relationships",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-requires-relationships",
+    ),
+    RuleContract(
+        id="class-diagram-connector-must-be-recognised",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Relationship Connectors Must Be Recognised",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-connector-must-be-recognised",
+    ),
+    RuleContract(
+        id="class-diagram-class-must-not-be-isolated",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Classes Must Not Be Isolated",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-class-must-not-be-isolated",
+        note=(
+            "Narrower than the requires-relationships rule: a diagram can be richly connected and still leave one class attached to nothing."
+        ),
+    ),
+    RuleContract(
+        id="class-diagram-must-be-connected",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Class Diagrams Must Be Connected",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-must-be-connected",
+    ),
+    RuleContract(
+        id="class-attribute-requires-a-type",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Attributes Must Declare A Type",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-attribute-requires-a-type",
+    ),
+    RuleContract(
+        id="class-attribute-type-must-be-a-uml-primitive",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Attribute Types Must Be UML Primitives",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-attribute-type-must-be-a-uml-primitive",
+    ),
+    RuleContract(
+        id="choice-class-requires-a-generalization-subclass",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Choice Classes Must Have A Subclass",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="choice-class-requires-a-generalization-subclass",
+    ),
+    RuleContract(
+        id="class-member-requires-a-visibility-prefix",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Members Must Declare A Visibility Prefix",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-member-requires-a-visibility-prefix",
+        note=(
+            "Two sites, one rule: attributes and methods. Visibility is what the sequence-message-operation-must-be-public rule is evaluated against, so an unprefixed member makes that rule unevaluable rather than merely untidy."
+        ),
+    ),
+    RuleContract(
+        id="class-member-requires-a-multiplicity",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Members Must Declare A Multiplicity",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-member-requires-a-multiplicity",
+        note=(
+            "Two sites, one rule: attributes and method return signatures."
+        ),
+    ),
+    RuleContract(
+        id="subsystem-component-class-must-declare-members",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Subsystem Component Classes Must Declare Members",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="subsystem-component-class-must-declare-members",
+        note=(
+            "Deliberately narrower than a ban on attribute-less classes, which would reject the canonical Feature template -- the distinction issue #279 established."
+        ),
+    ),
+    RuleContract(
+        id="class-diagram-must-model-the-schema-container-path",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Class Diagrams Must Model The Schema Container Path",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-must-model-the-schema-container-path",
+    ),
+    RuleContract(
+        id="class-diagram-must-model-the-schema-containment-relationships",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Class Diagrams Must Model The Schema Containment Relationships",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-must-model-the-schema-containment-relationships",
+    ),
+]
+
+UML_MODEL_FAMILY = ContractFamily(
+    name="uml-model-integrity",
+    contracts=UML_MODEL_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/uml.py",
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file="rules/uml-model-integrity.md",
+    doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -1350,6 +1784,7 @@ FAMILIES: List[ContractFamily] = [
     DOCUMENT_INTEGRITY_FAMILY,
     LOGICAL_UI_FAMILY,
     CODEBASE_COMPLIANCE_FAMILY,
+    UML_MODEL_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
