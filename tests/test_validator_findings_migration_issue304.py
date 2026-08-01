@@ -48,6 +48,7 @@ MIGRATED = (
     # test_validator_discovery_is_not_vacuous_issue304's ledger-equals-package
     # assertion true, and what forces any future emission site in it to carry a rule id.
     "spec_title_uniqueness_validator.py",
+    "source_reference_validator.py",
     "cardinality_validator.py",
     "spec_validator.py",
     "dependency_validator.py",
