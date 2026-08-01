@@ -593,6 +593,54 @@ BACKLOG_INTEGRITY_CONTRACTS: List[RuleContract] = [
         ),
     ),
     RuleContract(
+        id="spec-title-must-be-unique-within-its-spec-type",
+        documented_in="rules/tracker-source-of-truth.md",
+        doc_anchor="Local Specification Titles Must Be Unique Within A Spec Type",
+        enforced_in=f"{PARITY_SRC}/validators/spec_title_uniqueness_validator.py",
+        enforcement_anchor="spec-title-must-be-unique-within-its-spec-type",
+        note=(
+            "Issue #318. Distinct from spec-index-collides-with-tracker-issue and from "
+            "spec-filename-ordinal-uniqueness, which are collisions of the ordinal; "
+            "this is a collision of the title, which is the key reconcile_backlog.py "
+            "actually builds its issue lookup on. Scoped per spec type rather than "
+            "globally, matching the (spec_type, normalised_title) identity #303 "
+            "settled for sync_validator: an Epic and a Feature may share a subject, "
+            "and a global set would reject that ordinary pairing."
+        ),
+    ),
+    RuleContract(
+        id="generated-title-namespacing-in-tracker-rule",
+        documented_in="rules/tracker-source-of-truth.md",
+        doc_anchor="Generated Item Titles Must Be Namespaced To Their Source Module",
+        enforced_in="tests/test_title_namespacing_issue317.py",
+        enforcement_anchor=(
+            "namespacing-gate: the tracker rule omits the title namespacing constraint"
+        ),
+        note=(
+            "Issue #317. The normative home for the constraint. Its enforced half is "
+            "the uniqueness rule above; the prefix shape is deliberately not checked, "
+            "recorded in KNOWN_UNREGISTERED_FAMILIES rather than left silent."
+        ),
+    ),
+    RuleContract(
+        id="generated-title-namespacing-in-orchestrator-skill",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="rules/tracker-source-of-truth.md",
+        enforced_in="tests/test_title_namespacing_issue317.py",
+        enforcement_anchor=(
+            "namespacing-gate: the drafting step omits the title namespacing constraint"
+        ),
+        note=(
+            "Not a co-normative restatement but a reference, per "
+            "rules/platform-independence.md section Normative home & enforcement. The "
+            "defect in #317 was that the dispatch payload never mentioned the "
+            "constraint, so an item subagent could not comply -- the #299 shape, with "
+            "the rule reaching the generator as the missing half. The companion "
+            "assertion forbids the skill from copying the normative heading, which "
+            "would fork the rule the way the four Mermaid statements had before #289."
+        ),
+    ),
+    RuleContract(
         id="schema-import-dependency-unspecified",
         documented_in=".pipeline/constitution.md",
         doc_anchor=(
@@ -622,16 +670,22 @@ BACKLOG_INTEGRITY_FAMILY = ContractFamily(
     enforcement_files=[
         f"{PARITY_SRC}/validators/sync_validator.py",
         f"{PARITY_SRC}/validators/dependency_validator.py",
+        f"{PARITY_SRC}/validators/spec_title_uniqueness_validator.py",
     ],
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
     doc_file=None,
     doc_heading_pattern=None,
     doc_orphan_blocked_by=(
-        "Three of the four rules are stated in rules/tracker-source-of-truth.md and "
-        "the fourth in skills/schema-specification-engineering/SKILL.md, because the "
+        "Four of the seven rules are stated in rules/tracker-source-of-truth.md, one "
+        "in .pipeline/constitution.md, one in "
+        "skills/schema-specification-engineering/SKILL.md and one in "
+        "skills/spec-orchestrator/SKILL.md, because the "
         "import-prerequisite rule governs how a specification is drafted rather than "
-        "how the tracker is treated. Scanning either file alone would report the "
-        "other's statement as an orphan. Both anchors of every contract above still "
+        "how the tracker is treated, and because the namespacing constraint is "
+        "additionally referenced -- not restated -- from "
+        "skills/spec-orchestrator/SKILL.md, which is where the generating subagent "
+        "reads it. Scanning any one of those files alone would report the others' "
+        "statements as orphans. Both anchors of every contract above still "
         "resolve, so deleting any statement fails the suite; only the heading-scan "
         "half of orphan-documentation detection is blocked. Tracked as a follow-up "
         "to #304."
@@ -1669,6 +1723,27 @@ KNOWN_UNREGISTERED_FAMILIES = {
     # That rule was already normative in two file-scoped statements written for #312,
     # was violated by skills/feature-driven-implementation/SKILL.md:50 at the time of
     # writing, and is now mechanically enforced.
+    "generated-title-prefix-shape": (
+        "issue #317 - the namespacing rule's two halves are enforced unequally, and "
+        "that is deliberate. Its *effect* is gated: "
+        "spec-title-must-be-unique-within-its-spec-type rejects two specifications of "
+        "one type whose titles normalise to the same key, which is the collision that "
+        "actually corrupts the tracker. Its *shape* - a bracketed module short-code at "
+        "the front of every generated title - is not checked, and a checker would be "
+        "wrong here rather than merely absent. Every one of the 25 specifications in "
+        "this repository and in every downstream corpus predates the rule and carries "
+        "no prefix, so a shape check turns the linter red everywhere on a cosmetic "
+        "criterion while the invariant it approximates is already gated. It is also "
+        "the pattern issue #279 warned about: enforcing the remedy proposed on the "
+        "issue rather than the invariant behind it would reject the canonical "
+        "template. What IS enforced is that the constraint is stated normatively in "
+        "rules/tracker-source-of-truth.md and reaches the drafting subagent through "
+        "skills/spec-orchestrator/SKILL.md - see the two "
+        "generated-title-namespacing-* contracts in BACKLOG_INTEGRITY_CONTRACTS, "
+        "which is the half that was actually missing when #317 was filed. Closing "
+        "this would need the corpus to be regenerated under the rule first, so the "
+        "shape check has something to be true of."
+    ),
     "karpathy-check-performance": (
         "issue #312 - the two statements of the 4-point Karpathy and Pipeline "
         "Compliance Check and their scope sentence are now registered as the "

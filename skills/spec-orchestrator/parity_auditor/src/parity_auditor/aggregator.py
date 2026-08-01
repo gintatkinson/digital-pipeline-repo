@@ -34,6 +34,7 @@ from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.profile_scoping_validator import ProfileScopingValidator
 from .validators.schema_mapping_validator import SchemaMappingValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
+from .validators.spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .validators.spec_validator import SpecValidator
 from .validators.uml import UmlValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
@@ -47,6 +48,7 @@ from .validators.test_completeness_validator import TestCompletenessValidator
 AGGREGATING_VALIDATORS = (
     MermaidSyntaxValidator,
     SpecFilenameValidator,
+    SpecTitleUniquenessValidator,
     SchemaCardinalityValidator,
     SpecValidator,
     DependencyValidator,

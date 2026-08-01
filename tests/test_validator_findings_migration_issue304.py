@@ -43,6 +43,11 @@ VALIDATORS_DIR = os.path.join(
 MIGRATED = (
     "mermaid_syntax_validator.py",
     "spec_filename_validator.py",
+    # Added by #318 rather than migrated: it was written against Finding from the
+    # start, so it joins the ledger fully migrated. Listing it here is what keeps
+    # test_validator_discovery_is_not_vacuous_issue304's ledger-equals-package
+    # assertion true, and what forces any future emission site in it to carry a rule id.
+    "spec_title_uniqueness_validator.py",
     "cardinality_validator.py",
     "spec_validator.py",
     "dependency_validator.py",
