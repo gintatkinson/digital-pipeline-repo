@@ -221,11 +221,28 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
             rel_label = _RELATIONSHIP_LABEL.match(line)
             if rel_label:
                 label = rel_label.group("label").strip()
-                if label and not label.startswith('"') and re.search(r"[\s:]", label):
+                # Issue #333: a colon is not a "special character that quoting fixes".
+                # Mermaid treats ':' as a statement separator, so it ends the statement
+                # wherever it appears — inside quotes as much as outside. The quoting
+                # rule was generalised from spaces, where quoting genuinely works, and
+                # the resulting label satisfied the gate while GitHub refused to render
+                # it. Checked before the quoting rule so a quoted colon is still caught.
+                if ":" in label:
+                    errors.append(Finding(
+                        "mermaid-no-colon-in-relationship-label",
+                        f"{source}:{lineno}: colon inside a Mermaid relationship label "
+                        f"({line.strip()!r}). Quoting does not help: Mermaid parses ':' "
+                        f"as a statement separator wherever it occurs, so the renderer "
+                        f"fails with \"Expecting 'NEWLINE', 'EOF', got 'LABEL'\". Drop "
+                        f"the namespace prefix or replace the colon, e.g. "
+                        f': "augments nw node".',
+                        location=f"{source}",
+                    ))
+                elif label and not label.startswith('"') and re.search(r"\s", label):
                     errors.append(Finding(
                     "mermaid-relationship-label-must-be-quoted",
                         f"{source}:{lineno}: unquoted Mermaid relationship label "
-                        f"containing spaces or colons ({line.strip()!r}). Enclose it in "
+                        f"containing spaces ({line.strip()!r}). Enclose it in "
                         f'double quotes, e.g. : "renders one instance".'
                     , location=f"{source}"))
 
