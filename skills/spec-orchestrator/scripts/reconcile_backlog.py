@@ -834,6 +834,31 @@ def resolve_issue_on_tracker(issue_num, comment, rules=None):
         ]
         subprocess.run(cmd, check=True, capture_output=True, timeout=30)
 
+def blocked_specs_from_linter_output(output_text, workspace_dir, rules=None):
+    """Specification files the linter rejected, from its output.
+
+    Intersected with the files that actually exist in the backlog directories. A bare
+    regex over the output also catches documents merely *cited* by a finding — a
+    remediation note reading "see rules/document-references.md" made the reconciler
+    skip the constitution, which it had never been asked to validate. Only items the
+    linter genuinely rejected belong in the skip set (#321).
+    """
+    mentioned = set(re.findall(r"([\w.-]+\.md)", output_text or ""))
+    if not mentioned:
+        return set()
+
+    backlog = (rules or {}).get("backlog_directories", {}) or {}
+    spec_names = set()
+    for key in ("epics", "features", "user_stories", "use_cases"):
+        rel = backlog.get(key) if isinstance(backlog, dict) else getattr(backlog, key, None)
+        if not rel:
+            continue
+        target = os.path.join(workspace_dir, rel)
+        if os.path.isdir(target):
+            spec_names.update(n for n in os.listdir(target) if n.endswith(".md"))
+    return mentioned & spec_names
+
+
 def get_current_branch(workspace_dir):
     res = subprocess.run(["git", "branch", "--show-current"], cwd=workspace_dir, capture_output=True, text=True, timeout=30)
     if res.returncode == 0 and res.stdout.strip():
@@ -1535,6 +1560,12 @@ def main():
 
     # Programmatic gate: Run linter before proceeding with reconciliation
     blocked_specs = set()
+    try:
+        with open(os.path.join(workspace_dir, ".pipeline", "logical-ui",
+                               "codebase_rules.json"), encoding="utf-8") as _fh:
+            rules_preview = json.load(_fh)
+    except Exception:
+        rules_preview = {}
     print("Running pre-reconciliation linter validation...")
     linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
     cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
@@ -1564,7 +1595,9 @@ def main():
                 # finished, unrelated specification. The gate is not weakened: the
                 # offending items are skipped and the run still exits non-zero at the
                 # end. What changes is that valid work is no longer held hostage.
-                blocked_specs = set(re.findall(r"([\w.-]+\.md)", output_text))
+                blocked_specs = blocked_specs_from_linter_output(
+                    output_text, workspace_dir, rules_preview
+                )
                 print("[BLOCKED] Pre-reconciliation linter validation failed for "
                       f"{len(blocked_specs)} specification(s). These will be SKIPPED; "
                       "everything else still synchronises, and this run will exit "
