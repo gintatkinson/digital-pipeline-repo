@@ -19,14 +19,16 @@ The backlog directory is the spec type: one directory per type is the layout eve
 other validator here assumes.
 
 **Normalisation is ``reconcile_backlog.py``'s, deliberately.** Including its guard that
-keeps the original title when prefix-stripping would empty it, which
-``sync_validator.py``'s otherwise-identical copy lacks. A gate that exists to prevent
-the reconciler mis-resolving has to collide in exactly the space the reconciler
+keeps the original title when prefix-stripping would empty it. A gate that exists to
+prevent the reconciler mis-resolving has to collide in exactly the space the reconciler
 collides in; a stricter normaliser invents collisions the reconciler does not have, and
-a looser one misses the ones it does. The three copies of this function that now exist
-in the repository are noted as an adjacent defect rather than unified here, because
-unifying them changes ``sync_validator``'s behaviour and that belongs with the
-reconciler work, not with this gate.
+a looser one misses the ones it does.
+
+**Resolved.** This module used to carry its own copy of that function, noting the three
+divergent copies in the repository as an adjacent defect deferred to the reconciler work.
+That work is done: ``normalize_spec_title`` is now the reconciler's own function, bound
+by reference in ``utils/spec_titles.py``, which also records why the dependency runs in
+that direction. The name is kept here because it is this module's published surface.
 """
 
 import os
@@ -36,6 +38,7 @@ from typing import Dict, List, NamedTuple, Optional
 from .base import IValidator
 from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
+from ..utils.spec_titles import normalize_spec_title
 
 # Key in ``backlog_directories`` -> the spec type its files declare. Uniqueness is
 # asserted within each of these independently.
@@ -46,40 +49,11 @@ DIRECTORY_SPEC_TYPES: Dict[str, str] = {
     "use_cases": "Use Case",
 }
 
-# The prefix ``reconcile_backlog.py::normalize_title`` strips: a type word, an optional
-# ordinal, and an optional separator.
-_PREFIX_RE = re.compile(
-    r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*",
-    re.IGNORECASE,
-)
-
-
 class DiscoveredTitle(NamedTuple):
     spec_type: str
     directory: str
     filename: str
     title: str
-
-
-def normalize_spec_title(title: Optional[str]) -> str:
-    """The lookup key ``reconcile_backlog.py`` addresses tracker issues by.
-
-    Kept byte-for-byte equivalent to that function on purpose — see the module
-    docstring. If it changes there, it must change here, or the gate stops describing
-    the collision space it was built to protect.
-    """
-    if not title:
-        return ""
-    title = title.strip().strip("\"'")
-    stripped = _PREFIX_RE.sub("", title)
-    # Strip only when something survives: a title that is *only* a prefix ("Epic 2")
-    # would otherwise normalise to the empty string, and every such title would then
-    # collide with every other one.
-    if stripped.strip():
-        title = stripped
-    title = title.replace("-", " ")
-    title = re.sub(r"[^\w\s]", "", title)
-    return " ".join(title.split()).lower()
 
 
 def _extract_title(filepath: str) -> Optional[str]:
