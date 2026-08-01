@@ -41,7 +41,28 @@ MIGRATED = (
     "spec_filename_validator.py",
     "cardinality_validator.py",
     "spec_validator.py",
+    "dependency_validator.py",
+    "sync_validator.py",
 )
+
+# Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states
+# why, at length, because "not wired" and "forgotten to wire" are indistinguishable
+# otherwise — the same reason `KNOWN_UNREGISTERED_FAMILIES` exists.
+AGGREGATION_EXEMPT = {
+    "sync_validator.py": (
+        "SyncValidator shells out to the issue tracker (subprocess.run on "
+        "tracker_rules.commands.list_issues, 30s timeout) to fetch registered issues. "
+        ".pipeline/upstream/pipeline-tooling.md, section Validation Gates, forbids "
+        "network egress inside a blocking validation gate: a gate that calls a "
+        "third-party service fails when that service is down or rate-limits, blocking "
+        "work for reasons unrelated to correctness. The aggregator runs over N "
+        "workspaces and is exercised by the contract gate in CI, so wiring this in "
+        "would put N tracker round-trips on the critical path of every run. Its "
+        "findings are still structured, so its rule ids are registered and orphan "
+        "detection covers it; only the aggregation wiring is withheld. Making it "
+        "aggregate needs an offline issue snapshot, which is out of scope for #304."
+    ),
+}
 
 # The remainder, with the emission-site count measured at the time of writing. The count
 # is asserted, so a module that grows new bare-string sites while awaiting migration is
@@ -61,8 +82,6 @@ NOT_YET_MIGRATED = {
     "test_completeness_validator.py": 6,
     "schema_mapping_validator.py": 3,
     "behavioral.py": 2,
-    "dependency_validator.py": 2,
-    "sync_validator.py": 2,
     "profile_scoping_validator.py": 2,
 }
 
@@ -168,11 +187,34 @@ def test_migrated_validators_are_wired_into_the_aggregator_issue304():
         cls.__module__.rsplit(".", 1)[-1] + ".py" for cls in AGGREGATING_VALIDATORS
     }
     assert wired, "AGGREGATING_VALIDATORS is empty; this assertion would be vacuous"
-    missing = sorted(set(MIGRATED) - wired)
+    missing = sorted(set(MIGRATED) - wired - set(AGGREGATION_EXEMPT))
     assert not missing, (
         f"validators migrated to Finding but absent from AGGREGATING_VALIDATORS: "
-        f"{missing}. Their rule ids reach no report, so the migration bought nothing."
+        f"{missing}. Their rule ids reach no report, so the migration bought nothing. "
+        "If the omission is deliberate, record it in AGGREGATION_EXEMPT with a reason."
     )
+    stale = sorted(set(AGGREGATION_EXEMPT) & wired)
+    assert not stale, (
+        f"AGGREGATION_EXEMPT still excuses validators that are in fact wired in: "
+        f"{stale}. A stale exemption reads as a known gap that no longer exists."
+    )
+
+
+def test_aggregation_exemptions_state_a_reason_issue304():
+    """An unexplained exemption is indistinguishable from an oversight."""
+    assert AGGREGATION_EXEMPT, (
+        "no exemptions recorded; if that becomes true this guard should be deleted "
+        "along with AGGREGATION_EXEMPT, not left asserting an empty mapping"
+    )
+    for filename, reason in AGGREGATION_EXEMPT.items():
+        assert filename in MIGRATED, (
+            f"{filename} is exempt from aggregation but is not listed as migrated; "
+            "the exemption is about wiring, not about skipping the migration"
+        )
+        assert len(reason) > 200, (
+            f"{filename}: the exemption needs a reason naming the governing constraint "
+            "and what it would take to lift, not a one-line excuse"
+        )
 
 
 # --------------------------------------------------------------------------- #

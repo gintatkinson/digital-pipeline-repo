@@ -25,6 +25,7 @@ from typing import Dict, List, Sequence
 from .core.findings import Finding, unmigrated_count
 from .core.workspace import WorkspaceRepository
 from .validators.cardinality_validator import SchemaCardinalityValidator
+from .validators.dependency_validator import DependencyValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_validator import SpecValidator
@@ -40,7 +41,12 @@ AGGREGATING_VALIDATORS = (
     SpecFilenameValidator,
     SchemaCardinalityValidator,
     SpecValidator,
+    DependencyValidator,
 )
+# SyncValidator is migrated to structured findings but deliberately absent: it shells
+# out to the issue tracker, and `pipeline-tooling.md` § Validation Gates forbids network
+# egress inside a blocking gate. See AGGREGATION_EXEMPT in
+# tests/test_validator_findings_migration_issue304.py.
 
 
 @dataclass

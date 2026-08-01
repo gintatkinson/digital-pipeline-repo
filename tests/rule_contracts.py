@@ -567,6 +567,78 @@ SCHEMA_TRACEABILITY_FAMILY = ContractFamily(
 )
 
 
+BACKLOG_INTEGRITY_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="tracker-issue-without-local-specification",
+        documented_in="rules/tracker-source-of-truth.md",
+        doc_anchor="Registered Issues Must Have A Local Specification",
+        enforced_in=f"{PARITY_SRC}/validators/sync_validator.py",
+        enforcement_anchor="tracker-issue-without-local-specification",
+        note=(
+            "Issue #304 found this enforced since the validator was written and stated "
+            "in no document -- the #299 shape. Documented as part of the migration."
+        ),
+    ),
+    RuleContract(
+        id="spec-index-collides-with-tracker-issue",
+        documented_in="rules/tracker-source-of-truth.md",
+        doc_anchor="Local Indices Must Not Collide With Registered Issues",
+        enforced_in=f"{PARITY_SRC}/validators/sync_validator.py",
+        enforcement_anchor="spec-index-collides-with-tracker-issue",
+        note=(
+            "Also undocumented before #304. Distinct from "
+            "spec-filename-ordinal-uniqueness, which is a collision between two local "
+            "files; this is a local ordinal colliding with a differently-titled issue "
+            "already holding that ordinal on the tracker."
+        ),
+    ),
+    RuleContract(
+        id="schema-import-dependency-unspecified",
+        documented_in=".pipeline/constitution.md",
+        doc_anchor=(
+            "Cross-module or external schema references must be explicitly documented "
+            "with source and target module names"
+        ),
+        enforced_in=f"{PARITY_SRC}/validators/dependency_validator.py",
+        enforcement_anchor="schema-import-dependency-unspecified",
+    ),
+    RuleContract(
+        id="epic-imported-schema-prerequisite-link-missing",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Schema Import Prerequisite Links",
+        enforced_in=f"{PARITY_SRC}/validators/dependency_validator.py",
+        enforcement_anchor="epic-imported-schema-prerequisite-link-missing",
+        note=(
+            "Undocumented before #304. The import ordering constraint was enforced and "
+            "recorded nowhere a generating subagent would read it."
+        ),
+    ),
+]
+
+BACKLOG_INTEGRITY_FAMILY = ContractFamily(
+    name="backlog-tracker-integrity",
+    contracts=BACKLOG_INTEGRITY_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/sync_validator.py",
+    enforcement_files=[
+        f"{PARITY_SRC}/validators/sync_validator.py",
+        f"{PARITY_SRC}/validators/dependency_validator.py",
+    ],
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "Three of the four rules are stated in rules/tracker-source-of-truth.md and "
+        "the fourth in skills/schema-specification-engineering/SKILL.md, because the "
+        "import-prerequisite rule governs how a specification is drafted rather than "
+        "how the tracker is treated. Scanning either file alone would report the "
+        "other's statement as an orphan. Both anchors of every contract above still "
+        "resolve, so deleting any statement fails the suite; only the heading-scan "
+        "half of orphan-documentation detection is blocked. Tracked as a follow-up "
+        "to #304."
+    ),
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -701,6 +773,7 @@ FAMILIES: List[ContractFamily] = [
     KARPATHY_FAMILY,
     SUBAGENT_ISOLATION_FAMILY,
     SCHEMA_TRACEABILITY_FAMILY,
+    BACKLOG_INTEGRITY_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
