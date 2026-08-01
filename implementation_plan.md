@@ -1085,9 +1085,13 @@ mean fixing them twice.
 
 ### The spine: identity is derived from prose, not from the canonical ID
 
-`rules/tracker-source-of-truth.md` already mandates `issue_id: <int>` in every spec's
-frontmatter and states plainly: *"Matching by title normalization is prohibited as a
-primary selector."* `reconcile_backlog.py` does exactly that anyway. This is the same
+**Correction (recorded, not silently fixed):** this Part originally attributed the
+prohibition to `rules/tracker-source-of-truth.md`. It is not there. It is
+`.pipeline/constitution.md:59` § *Unique Backlog Identifiers* — *"Matching by title
+normalization is prohibited as a primary selector."* — alongside the `issue_id`
+frontmatter mandate on line 58. That makes the spine **Tier 1 constitutional**, a
+stronger footing than claimed, but the citation was wrong and a subagent caught it
+while working N1. `reconcile_backlog.py` does exactly that anyway. This is the same
 documented-contract-versus-enforced-contract divergence that produced #295, #299, #306
 and #309 — the rule exists, is correct, and nothing makes the code obey it.
 
