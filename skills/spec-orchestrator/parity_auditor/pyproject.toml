@@ -6,6 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "parity_auditor"
 version = "0.1.0"
 description = "A modular package to verify model coverage and UML compliance"
+# 3.9 is end-of-life (October 2025) and is retained deliberately, not by neglect.
+# The development machine exposes only a bare `python3` at 3.9.6 — a probe for
+# python3.10 through python3.13 finds no versioned binaries — so raising this floor
+# breaks every local invocation and the `pip install -e` step. Assessed in issue
+# #294, which is blocked on installing a newer interpreter, an environment change
+# no code change can deliver. Two guards make retaining an EOL floor safe: CI also
+# runs 3.12, and tests/test_python_312_migration_issue294.py statically rejects
+# APIs that 3.12+ removes, which the 3.9 suites cannot see. Do not raise this line
+# without doing both halves of #294.
 requires-python = ">=3.9"
 license = {text = "MIT"}
 classifiers = [

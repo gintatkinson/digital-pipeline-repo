@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 
 def get_git_info(workspace_dir):
     try:
@@ -15,7 +15,9 @@ def get_git_info(workspace_dir):
 def serialize_diagnostics(workspace_dir, tool_name, exit_code, errors, traceback_str, target_file=None, snippet_content=None):
     os.makedirs(os.path.join(workspace_dir, ".pipeline", "diagnostics"), exist_ok=True)
     remote_url, commit_hash = get_git_info(workspace_dir)
-    timestamp = datetime.utcnow().isoformat() + "Z"
+    # datetime.utcnow() is deprecated in 3.12 and scheduled for removal. timezone.utc
+    # exists on 3.9, so this does not raise the declared floor (#294).
+    timestamp = datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
     
     payload = {
         "timestamp": timestamp,
