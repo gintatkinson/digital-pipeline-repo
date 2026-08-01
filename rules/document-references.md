@@ -36,6 +36,17 @@ document must refer to something that exists.
   than a path or a step. **Naming a tool in order to prohibit its use remains permitted** —
   a prohibition that no longer matches the runtime becomes inert, not unexecutable.
 
+- **Authoritative Source Locators Must Be Preserved Verbatim**: A `Source References`
+  entry describing an external artefact — a structural schema or a normative
+  specification — MUST carry the authoritative upstream URL exactly as supplied, and MUST
+  NOT be rewritten to point at this repository. Those artefacts are external by
+  definition, so a self-referential locator means the upstream URL was replaced during
+  drafting, breaking the traceability the reference exists to provide. Generative models
+  bias heavily toward local paths, so this needs stating rather than assuming (issue
+  #322). Enforcement is structural and offline: reachability is deliberately NOT checked,
+  because `.pipeline/upstream/pipeline-tooling.md` § *Validation Gates* forbids network
+  egress in a blocking gate and forbids sending specification content to a third party.
+
 ## Scope
 
 These constraints apply to every document under `rules/`, `skills/`, `.agents/` and

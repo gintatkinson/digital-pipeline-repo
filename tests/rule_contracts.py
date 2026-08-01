@@ -254,6 +254,44 @@ DOC_REFERENCE_CONTRACTS: List[RuleContract] = [
             "above, with a tool as the referent instead of a path or a step."
         ),
     ),
+    RuleContract(
+        id="external-source-reference-must-not-be-self-referential",
+        documented_in="rules/document-references.md",
+        doc_anchor="Authoritative Source Locators Must Be Preserved Verbatim",
+        enforced_in=f"{PARITY_SRC}/validators/source_reference_validator.py",
+        enforcement_anchor="external-source-reference-must-not-be-self-referential",
+        note=(
+            "Issue #322, enforced by #320. A Structural Schema or Normative "
+            "Specification is external by definition, so a locator pointing at this "
+            "repository is the upstream URL having been rewritten during drafting. "
+            "Reachability is deliberately NOT checked: pipeline-tooling.md "
+            "Validation Gates forbids network egress in a blocking gate."
+        ),
+    ),
+    RuleContract(
+        id="source-reference-placeholder-must-be-populated",
+        documented_in="rules/document-references.md",
+        doc_anchor="Authoritative Source Locators Must Be Preserved Verbatim",
+        enforced_in=f"{PARITY_SRC}/validators/source_reference_validator.py",
+        enforcement_anchor="source-reference-placeholder-must-be-populated",
+        note=(
+            "Issue #320. 'link-to-schema' and 'link-to-specification' ship in the "
+            "schema-specification-engineering and spec-usecase-engineering templates; "
+            "surviving into a published spec means the block was never populated."
+        ),
+    ),
+    RuleContract(
+        id="source-reference-relative-link-must-resolve",
+        documented_in="rules/document-references.md",
+        doc_anchor="Cited Paths Must Resolve",
+        enforced_in=f"{PARITY_SRC}/validators/source_reference_validator.py",
+        enforcement_anchor="source-reference-relative-link-must-resolve",
+        note=(
+            "Issue #320. Extends the Cited Paths rule from governance documents, "
+            "where test_skill_path_references.py already enforces it, to the "
+            "backlog specifications under docs/."
+        ),
+    ),
 ]
 
 DOC_REFERENCE_FAMILY = ContractFamily(
@@ -262,6 +300,10 @@ DOC_REFERENCE_FAMILY = ContractFamily(
     doc_file="rules/document-references.md",
     doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
     enforcement_file="tests/test_skill_path_references.py",
+    enforcement_files=[
+        "tests/test_skill_path_references.py",
+        f"{PARITY_SRC}/validators/source_reference_validator.py",
+    ],
     # Terminate on ": " or ". " rather than a bare "." — one message embeds
     # ".agents/skills/", whose dot would otherwise truncate the extraction mid-path
     # and weaken orphan-enforcement detection for that rule.

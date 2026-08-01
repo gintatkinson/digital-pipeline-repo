@@ -31,6 +31,7 @@ from .validators.cardinality_validator import SchemaCardinalityValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_title_uniqueness_validator import SpecTitleUniquenessValidator
+from .validators.source_reference_validator import SourceReferenceValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_comments_and_strings
 
@@ -821,6 +822,17 @@ def _main_impl():
         has_failed = True
     else:
         print("Success: Specification titles are unique within each spec type.")
+
+    print("\n=== Source Reference Integrity Validation ===")
+    source_ref_validator = SourceReferenceValidator()
+    source_ref_errors = source_ref_validator.validate(repo)
+    if source_ref_errors:
+        print("[!] Source Reference Violations Identified:")
+        for err in source_ref_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Source References carry authoritative locators.")
 
     print("\n=== Mermaid Syntax Validation ===")
     mermaid_syntax_validator = MermaidSyntaxValidator()

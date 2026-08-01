@@ -70,6 +70,13 @@ When executing a phase, the worker agent must follow this lifecycle:
    - The relevant schema node(s) or specification paragraph(s) for that item.
    - The specific skill instructions (e.g., Feature, User Story, or Use Case template guidelines).
    - Core project rules and the constitution.
+   - **The authoritative upstream locators verbatim.** Any schema or normative
+     specification URL passed for retrieval MUST appear unchanged in the item's
+     `Source References` block. Do not rewrite it to a path under this
+     repository: those artefacts are external, and a self-referential locator
+     breaks the traceability the reference exists to provide. Stated in
+     `rules/document-references.md`; enforced offline by
+     `source_reference_validator.py` (issues #322, #320).
    - **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full** — pass that file to the subagent rather than a paraphrase of it. A subagent that is never shown the constraints cannot comply with them, and a local subset drifts from the normative home (issue #289). This covers, among others, empty class bodies written on one line, curly braces and colons in class member lines, colons in note strings, stereotypes on relationship lines, unquoted relationship labels, and semicolons in `Note` and message text.
    - **The title namespacing constraint defined in `rules/tracker-source-of-truth.md` MUST be observed** — pass that file to the subagent rather than a paraphrase of it. Each subagent drafts in isolation and never sees the other items in the run, so a schema node name that recurs across modules yields the same title twice and neither subagent can detect it (issue #317). The rule lives in `rules/` and is referenced here rather than restated, per `rules/platform-independence.md` § *Normative home & enforcement*; a local subset drifts from the normative home (issue #289).
    - Do **NOT** pass the history of other items generated in the same run.
