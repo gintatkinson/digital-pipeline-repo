@@ -131,7 +131,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
       ```
 4. **Validation Gate**: Verify that the `user-story` issues have been created in GitHub and that their tasklists successfully render the intersecting `#IssueID`s generated during Phase 1.
 
-## Phase 3 `[P]`: System Interaction Extraction - UML Use Cases (Worker C)
+## Phase 3: System Interaction Extraction - UML Use Cases (Worker C)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `System Interaction Spec Worker`) with the `spec-usecase-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
 2. **Execution**: The `System Interaction Spec Worker` subagent identifies required System Use Cases and dispatches a fresh context-isolated subagent for each Use Case. Before committing, pushing, or creating issues, it MUST execute the local validation check (`./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only --allow-missing-specs`) and fix all reported errors until the linter passes with exit code 0. The subagent registers the completed Use Cases in the tracker using `./skills/spec-orchestrator/scripts/create_issue.sh "<local-md-file>" "use-case" "<Extract_Title_From_YAML_Metadata>"`, runs immediate verification check (`gh issue view <ID> --json body`) to ensure their bodies are fully populated in the tracker, cross-links them to stories and features, and commits/pushes the changes.
 3. **Wait & Verify**: The Coordinator waits for the subagent to report completion, reads its final report, and:
@@ -143,7 +143,22 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
       ```
 4. **Validation Gate**: Verify that the `use-case` issues have been created in GitHub and that the Realization Matrix successfully links back to User Stories and Features.
 
-> **`[P]` Note:** Phases 2 and 3 are marked parallel-capable because Worker C queries GitHub for User Story Issue IDs (created by Worker B) via `gh issue list`. If both are dispatched simultaneously, Worker C will find the User Story issues as soon as Worker B creates them. On single-agent runtimes, execute Phase 2 first, then Phase 3.
+> **Phase 3 is NOT parallel-capable (issue #328).** It was previously marked `[P]`
+> on the claim that *"Worker C will find the User Story issues as soon as Worker B
+> creates them."* That claim is false. `gh issue list` is a one-shot query: it neither
+> blocks nor polls, so dispatching both workers simultaneously lets Worker C read the
+> tracker before Worker B has finished writing to it. The result is a Use Case whose
+> Realization Matrix silently omits User Stories that did not exist at query time —
+> a time-of-check-to-time-of-use race with no synchronisation barrier.
+>
+> Phase 3 consumes Phase 2's output, so it carries a hard data dependency and is
+> strictly sequential under the rule stated above: Phase 2's validation gate must pass
+> before Phase 3 begins. Marking it `[P]` did not make it concurrent-safe; it removed
+> the barrier that made it correct.
+>
+> Phase 2 remains `[P]`-eligible with respect to Phase 1, whose Feature issues already
+> exist by the time it runs. Parallelism is available where the dependency is genuinely
+> absent — not asserted where it is inconvenient.
 
 ## Phase 4: Reconciliation & Automated Verification (Worker D & Coverage Check)
 1. **Trigger Backlog Reconciliation**: Run the automated backlog reconciliation script:
