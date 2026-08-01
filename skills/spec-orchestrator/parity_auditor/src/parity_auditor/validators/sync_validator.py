@@ -1,3 +1,15 @@
+"""Compares the registered issue backlog against the local specification files.
+
+Titles normalise through ``reconcile_backlog.py``'s own function, bound by reference in
+``utils/spec_titles.py``. This module used to carry a private copy that had drifted from
+it in two ways — it lacked the guard that keeps the original title when prefix-stripping
+would empty it (so every prefix-only title, "Epic 2" and "Epic 3" alike, collapsed to one
+key), and it folded ``_`` to a space (so two titles the reconciler keys apart looked
+identical here). A gate that collides in a different space from the consumer it protects
+reports collisions that do not exist and misses the ones that do; see
+``utils/spec_titles.py`` for why the reconciler is the definition site.
+"""
+
 import os
 import re
 import subprocess
@@ -6,6 +18,7 @@ from typing import List
 from .base import IValidator
 from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
+from ..utils.spec_titles import normalize_spec_title
 
 class SyncValidator(IValidator):
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
@@ -33,16 +46,6 @@ class SyncValidator(IValidator):
         except Exception as e:
             print(f"Warning: Issue backlog offline or unavailable: {e}")
             return []
-            
-        # Helper to normalize titles
-        def normalize_title(title):
-            if not title: return ""
-            title = title.strip().strip('"\'')
-            regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
-            title = re.sub(regex, '', title, flags=re.IGNORECASE)
-            title = title.replace("-", " ").replace("_", " ")
-            title = re.sub(r'[^\w\s]', '', title)
-            return " ".join(title.split()).lower()
             
         # Parse tracker issues
         labels_config = tracker_rules.get("labels", {}) if isinstance(tracker_rules, dict) else {}
@@ -77,7 +80,7 @@ class SyncValidator(IValidator):
                 continue
                 
             title = issue.get("title", "")
-            norm_title = normalize_title(title)
+            norm_title = normalize_spec_title(title)
             tracker_specs[(spec_type, norm_title)] = issue
 
             # Extract index, e.g. "Epic 2: Common Types" -> index 2
@@ -115,7 +118,7 @@ class SyncValidator(IValidator):
                     pass
                     
                 if title:
-                    norm_title = normalize_title(title)
+                    norm_title = normalize_spec_title(title)
                     local_specs.add((std_type, norm_title))
                     
                     match = re.search(r'\b(epic|feature|feat)[s]?[- ]*(\d+)', filename, re.IGNORECASE)

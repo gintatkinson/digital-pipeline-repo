@@ -109,6 +109,77 @@ def normalize_title(title, rules=None):
     title = " ".join(title.split())
     return title.lower()
 
+
+def normalize_label(label):
+    """Reduce a tracker label to the form every label comparison happens in (#329).
+
+    The reconciler compared labels for exact equality, so an issue filed with
+    `"User Story"` lowercased to `"user story"`, never matched the configured
+    `"user-story"`, was bucketed nowhere, and stayed orphaned while its specification
+    reported "no issue on the tracker". Case and word separators are presentation, not
+    identity: `"User Story"`, `"user story"` and `"user_story"` all name one label.
+
+    Only whitespace, underscores and hyphens fold. A namespaced label such as
+    `status:fixed-resolved` keeps its colon, because that *is* part of the name.
+
+    #313 (package N3) introduced `issue_has_label` with deliberately exact matching and
+    recorded case-insensitivity as belonging to this issue. Every comparison site in the
+    module now routes through here so there is one rule rather than two.
+    """
+    if not label:
+        return ""
+    text = str(label).strip().lower()
+    if not text:
+        return ""
+    return re.sub(r"[\s_\-]+", "-", text).strip("-")
+
+
+# The spec type a reference declares about itself, keyed by the spelling found. The
+# values are the constitutional type names; `SPEC_TYPE_ALIASES` is consulted only with a
+# separator-folded key, so one entry covers "User Story", "user-story" and "user_story".
+SPEC_TYPE_ALIASES = {
+    "epic": "epic",
+    "epics": "epic",
+    "feature": "feature",
+    "features": "feature",
+    "feat": "feature",
+    "user story": "user-story",
+    "user stories": "user-story",
+    "us": "user-story",
+    "use case": "use-case",
+    "use cases": "use-case",
+    "uc": "use-case",
+}
+
+# A type word only marks a type when a separator, a digit or the end of the reference
+# follows it. Without that boundary `us` would claim "User Access Control" and `uc`
+# would claim "UCS Migration" — the same over-eager prefix stripping that produced #319
+# in the first place, reintroduced in the code meant to contain it.
+_REFERENCE_TYPE_RE = re.compile(
+    r'^\s*["\'#]*\s*'
+    r'(?P<type>epics?|features?|feat|user[-_ ]?stor(?:y|ies)|use[-_ ]?cases?|us|uc)'
+    r'(?=[\s\-_:.#]|\d|$)',
+    re.IGNORECASE,
+)
+
+
+def spec_type_of_reference(reference):
+    """The spec type a reference names explicitly, or None when it is type-neutral.
+
+    `"feat-07-geo-location"` declares itself a Feature; `"Geo Location"` and `"#101"`
+    declare nothing. This is the namespace discriminator #319 asks for: entity
+    resolution must isolate namespaces by entity type, and a reference that names its
+    own type is the only evidence available for doing so.
+    """
+    if reference is None:
+        return None
+    match = _REFERENCE_TYPE_RE.match(str(reference))
+    if not match:
+        return None
+    key = re.sub(r"[\s\-_]+", " ", match.group("type").strip().lower())
+    return SPEC_TYPE_ALIASES.get(key)
+
+
 def extract_title(filepath):
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -510,14 +581,18 @@ def issue_has_label(issue_record, label):
     """Does this tracker record already carry `label`?
 
     Tracker payloads express labels either as objects with a "name" or as bare strings,
-    so both are accepted — the same shapes `is_already_resolved` handles. Comparison is
-    exact; case-insensitive matching is issue #329 and is deliberately not changed here.
+    so both are accepted — the same shapes `is_already_resolved` handles.
+
+    Comparison folds case and word separators through `normalize_label` (#329). It was
+    exact when #313 added this function, which meant an issue already carrying
+    `"User Story"` was re-labelled on every run; the module now has one comparison rule.
     """
-    if not label:
+    target = normalize_label(label)
+    if not target:
         return False
     for item in (issue_record or {}).get("labels") or []:
         name = item.get("name", "") if isinstance(item, dict) else str(item)
-        if name == label:
+        if normalize_label(name) == target:
             return True
     return False
 
@@ -705,12 +780,16 @@ def is_already_resolved(issue_record, rules=None):
     and AGENTS.md requires a run before every merge.
 
     Tracker payloads express labels either as objects with a "name" or as bare strings,
-    so both are accepted.
+    so both are accepted. Comparison folds through `normalize_label` for the same reason
+    `issue_has_label` does (#329): a case variant read as "not resolved" would re-post
+    the completion comment on the next run, which is exactly what this guard prevents.
     """
-    label = get_resolved_label(rules)
+    label = normalize_label(get_resolved_label(rules))
+    if not label:
+        return False
     for item in (issue_record or {}).get("labels") or []:
         name = item.get("name", "") if isinstance(item, dict) else str(item)
-        if name == label:
+        if normalize_label(name) == label:
             return True
     return False
 
@@ -875,6 +954,145 @@ def resolve_spec_issue_number(filepath, title, title_map, issue_dict, rules=None
         claimed[key] = filepath
 
     return issue_num
+
+
+def build_epic_alias_map(epics_dir, rules=None):
+    """Every spelling an Epic can be referenced by -> that Epic's canonical normalized title.
+
+    The map resolves *cross-references between items* — the `epic:` frontmatter key and
+    the parent-epic link in a body — so that a child ends up in the right Epic's
+    checklist. It has never resolved a file's own identity, and after #314/#316 it must
+    not: `resolve_spec_issue_number` is the sole authority there, and an alias that
+    claimed a Feature's slug would assert an identity the resolver never granted.
+
+    Aliases are deliberately generous, including type-erased ones: an Epic titled
+    "Epic 07: Geo Location" is reachable as `geo location`, because children routinely
+    name their parent by bare title. #319 is what that generosity cost — `feat-07-geo-
+    location` normalizes to `geo location` too, so a Feature-typed reference resolved to
+    the Epic. The gate for that is at *lookup* time in `resolve_epic_reference`, on the
+    type the reference declares about itself, rather than by deleting the alias: deleting
+    it would break every legitimate reference-by-title, which is the common case.
+
+    What is enforced here is the other half of the collision. An alias claimed by two
+    Epics with different canonical titles is dropped rather than kept, because keeping it
+    resolves by `os.listdir` order — a filesystem accident, not a resolution rule.
+    """
+    alias_map = {}
+    ambiguous = set()
+    if not epics_dir or not os.path.exists(epics_dir):
+        return alias_map
+
+    for fn in sorted(os.listdir(epics_dir)):
+        if not fn.endswith(".md"):
+            continue
+        fp = os.path.join(epics_dir, fn)
+        title = extract_title(fp)
+        meta = extract_metadata(fp)
+        canonical_norm = normalize_title(title, rules) if title else ""
+        if not canonical_norm:
+            canonical_norm = fn[:-3].lower()
+
+        aliases = set()
+        if title:
+            aliases.add(title.strip().strip('"\'').lower())
+            aliases.add(normalize_title(title, rules))
+            aliases.add(re.sub(r'^\w+[- ]*\d+\s*[:\-]?\s*', '', title, flags=re.IGNORECASE).strip().lower())
+
+        fn_slug = fn[:-3]
+        aliases.add(fn_slug.lower())
+        aliases.add(fn_slug.lower().replace("-", " "))
+        aliases.add(normalize_title(fn_slug, rules))
+
+        fm_id = meta.get("id") or meta.get("epic")
+        if fm_id:
+            fm_id_str = str(fm_id).strip().strip('"\'')
+            aliases.add(fm_id_str.lower())
+            aliases.add(fm_id_str.lower().replace("-", " "))
+            aliases.add(normalize_title(fm_id_str, rules))
+
+        for sample in [title, fn_slug, str(fm_id) if fm_id else ""]:
+            if sample:
+                m = re.search(r'\b(epic[- ]*\d+)\b', sample, re.IGNORECASE)
+                if m:
+                    id_prefix = m.group(1).lower()
+                    aliases.add(id_prefix)
+                    aliases.add(id_prefix.replace("-", " "))
+                    aliases.add(id_prefix.replace(" ", "-"))
+
+        for alias in sorted(a for a in aliases if a):
+            if alias in ambiguous:
+                continue
+            existing = alias_map.get(alias)
+            if existing is not None and existing != canonical_norm:
+                print(
+                    f"  [Warning] Epic alias '{alias}' is claimed by both "
+                    f"'{existing}' and '{canonical_norm}'; dropping it rather than "
+                    "resolving by directory order (#319). Reference the intended Epic "
+                    "by its filename slug or issue number."
+                )
+                del alias_map[alias]
+                ambiguous.add(alias)
+                continue
+            alias_map[alias] = canonical_norm
+
+    return alias_map
+
+
+def resolve_epic_reference(epic_ref, epic_alias_map, epic_id_to_norm, rules=None):
+    """Resolve a parent-epic reference to the referenced Epic's normalized title.
+
+    Order: issue number first, then the alias map, then bare normalization.
+
+    The namespace gate for #319 sits between those last two. A reference that names its
+    own type — `feat-07-geo-location`, `us-03-operator`, `uc-04-device-state` — is not an
+    Epic reference, so the alias map is not consulted for it and no epic is returned.
+    Falling through to `normalize_title` instead would not be enough: the whole point of
+    the collision is that a Feature and an Epic sharing a suffix normalize to the same
+    string, so the bare normalization matches the Epic's canonical title just as the
+    alias did.
+
+    Returning None is reported rather than silent. A parent link that quietly fails to
+    resolve is indistinguishable from a specification that declares no parent at all,
+    and the reference itself is the thing that needs correcting.
+    """
+    if not epic_ref:
+        return None
+
+    if isinstance(epic_ref, int):
+        if epic_ref in epic_id_to_norm:
+            return epic_id_to_norm[epic_ref]
+        ref_str = str(epic_ref)
+    else:
+        ref_str = str(epic_ref).strip().strip('"\'')
+
+    clean_ref = ref_str
+    if clean_ref.startswith('#'):
+        clean_ref = clean_ref[1:].strip()
+
+    if clean_ref in epic_id_to_norm:
+        return epic_id_to_norm[clean_ref]
+    if clean_ref.isdigit() and int(clean_ref) in epic_id_to_norm:
+        return epic_id_to_norm[int(clean_ref)]
+
+    declared_type = spec_type_of_reference(ref_str)
+    if declared_type is not None and declared_type != "epic":
+        print(
+            f"  [Warning] Parent-epic reference '{ref_str}' names a {declared_type}, "
+            "not an Epic; refusing to resolve it through the Epic alias map (#319). A "
+            "type-erased alias would otherwise attach this item to an unrelated Epic "
+            "sharing the same title suffix."
+        )
+        return None
+
+    if ref_str.lower() in epic_alias_map:
+        return epic_alias_map[ref_str.lower()]
+    norm = normalize_title(ref_str, rules)
+    if norm in epic_alias_map:
+        return epic_alias_map[norm]
+    ref_space = ref_str.lower().replace("-", " ")
+    if ref_space in epic_alias_map:
+        return epic_alias_map[ref_space]
+    return norm
 
 
 def resolve_type_context(line, filepath, section_context):
@@ -1396,11 +1614,15 @@ def main():
         usecase_titles = {}
         feature_titles = {}
 
+        # Both sides of every comparison fold through normalize_label (#329): an issue
+        # filed as "User Story" lowercases to "user story", never matched "user-story",
+        # and was bucketed nowhere — its specification then reported no issue on the
+        # tracker and the duplicate stayed open and orphaned.
         labels_config = tracker_rules.get("labels", {})
-        epic_label = labels_config.get("epic", "epic").lower()
-        story_label = labels_config.get("user_story", "user-story").lower()
-        usecase_label = labels_config.get("use_case", "use-case").lower()
-        feature_label = labels_config.get("feature", "feature").lower()
+        epic_label = normalize_label(labels_config.get("epic", "epic"))
+        story_label = normalize_label(labels_config.get("user_story", "user-story"))
+        usecase_label = normalize_label(labels_config.get("use_case", "use-case"))
+        feature_label = normalize_label(labels_config.get("feature", "feature"))
 
         for num, issue in issue_dict.items():
             if isinstance(num, str) and num.isdigit() and int(num) in epic_titles:
@@ -1409,10 +1631,10 @@ def main():
             labels = []
             for l in issue.get(labels_key, []):
                 if isinstance(l, dict):
-                    labels.append(l.get("name", "").lower())
+                    labels.append(normalize_label(l.get("name", "")))
                 elif isinstance(l, str):
-                    labels.append(l.lower())
-            
+                    labels.append(normalize_label(l))
+
             if epic_label in labels:
                 epic_titles[norm_title] = num
             elif story_label in labels:
@@ -1452,48 +1674,9 @@ def main():
             usecases_dir = os.path.join(workspace_dir, usecases_rel)
             print("Scanning backlog files...")
 
-        # Build Epic Alias Map for robust child-to-epic title/ID resolution
-        epic_alias_map = {}
-        if os.path.exists(epics_dir):
-            for fn in os.listdir(epics_dir):
-                if fn.endswith(".md"):
-                    fp = os.path.join(epics_dir, fn)
-                    title = extract_title(fp)
-                    meta = extract_metadata(fp)
-                    canonical_norm = normalize_title(title, rules) if title else ""
-                    if not canonical_norm:
-                        canonical_norm = fn[:-3].lower()
-
-                    aliases = set()
-                    if title:
-                        aliases.add(title.strip().strip('"\'').lower())
-                        aliases.add(normalize_title(title, rules))
-                        aliases.add(re.sub(r'^\w+[- ]*\d+\s*[:\-]?\s*', '', title, flags=re.IGNORECASE).strip().lower())
-                    
-                    fn_slug = fn[:-3]
-                    aliases.add(fn_slug.lower())
-                    aliases.add(fn_slug.lower().replace("-", " "))
-                    aliases.add(normalize_title(fn_slug, rules))
-                    
-                    fm_id = meta.get("id") or meta.get("epic")
-                    if fm_id:
-                        fm_id_str = str(fm_id).strip().strip('"\'')
-                        aliases.add(fm_id_str.lower())
-                        aliases.add(fm_id_str.lower().replace("-", " "))
-                        aliases.add(normalize_title(fm_id_str, rules))
-                        
-                    for sample in [title, fn_slug, str(fm_id) if fm_id else ""]:
-                        if sample:
-                            m = re.search(r'\b(epic[- ]*\d+)\b', sample, re.IGNORECASE)
-                            if m:
-                                id_prefix = m.group(1).lower()
-                                aliases.add(id_prefix)
-                                aliases.add(id_prefix.replace("-", " "))
-                                aliases.add(id_prefix.replace(" ", "-"))
-
-                    for alias in aliases:
-                        if alias:
-                            epic_alias_map[alias] = canonical_norm
+        # Build Epic Alias Map for robust child-to-epic title/ID resolution. Extracted to
+        # module scope by #319 so the collision it used to contain is testable.
+        epic_alias_map = build_epic_alias_map(epics_dir, rules)
 
         # Build reverse lookup map for Epic issue IDs to normalized titles
         epic_id_to_norm = {}
@@ -1505,33 +1688,7 @@ def main():
                 epic_id_to_norm[int(issue_id)] = norm_title
 
         def resolve_epic_norm(epic_ref):
-            if not epic_ref:
-                return None
-            if isinstance(epic_ref, int):
-                if epic_ref in epic_id_to_norm:
-                    return epic_id_to_norm[epic_ref]
-                ref_str = str(epic_ref)
-            else:
-                ref_str = str(epic_ref).strip().strip('"\'')
-            
-            clean_ref = ref_str
-            if clean_ref.startswith('#'):
-                clean_ref = clean_ref[1:].strip()
-                
-            if clean_ref in epic_id_to_norm:
-                return epic_id_to_norm[clean_ref]
-            if clean_ref.isdigit() and int(clean_ref) in epic_id_to_norm:
-                return epic_id_to_norm[int(clean_ref)]
-                
-            if ref_str.lower() in epic_alias_map:
-                return epic_alias_map[ref_str.lower()]
-            norm = normalize_title(ref_str, rules)
-            if norm in epic_alias_map:
-                return epic_alias_map[norm]
-            ref_space = ref_str.lower().replace("-", " ")
-            if ref_space in epic_alias_map:
-                return epic_alias_map[ref_space]
-            return norm
+            return resolve_epic_reference(epic_ref, epic_alias_map, epic_id_to_norm, rules)
 
         # Dynamic relationship scanning
         feature_to_epic = {}
