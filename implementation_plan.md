@@ -1175,3 +1175,51 @@ never through a pipe. `ruff --select F,E9 --target-version py312` clean — lint
 pytest in CI and halts the job. Own branch, `--no-ff` merge, CI watched to `success` with
 `headSha` verified against local `HEAD`. Issue taken to `Fixed / Resolved` with pasted
 evidence and never closed.
+
+---
+
+## Part N — executed change record
+
+Appended after the fact, as Part M's was. The plan requires the coordinator to record
+each package's exact changes before the next begins; that was again done at the end
+rather than between packages.
+
+| Pkg | Issues | Merge | Files |
+|---|---|---|---|
+| N1 | #318 #317 | `1032d69` | **new** `validators/spec_title_uniqueness_validator.py`, `tests/test_spec_title_uniqueness_issue318.py`, `tests/test_title_namespacing_issue317.py`; `rules/tracker-source-of-truth.md` (+2 constraints), `skills/spec-orchestrator/SKILL.md`, `validators/__init__.py`, `cli.py`, `aggregator.py`, `tests/rule_contracts.py` |
+| N2 | #314 #316 | `85db887` | `scripts/reconcile_backlog.py` — `resolve_spec_issue_number`, `lookup_canonical_issue_key`, `claimed` registry; all four call sites collapsed |
+| N3 | #315 #313 | `9c67b75` | `reconcile_backlog.py` — `sync_issue_title_to_tracker`, `apply_structural_label`, `issue_has_label`, `get_structural_label`; `codebase_rules.json` (+`edit_issue_title`, `add_label`); **new** `tests/test_tracker_title_and_labels_issue315_issue313.py` |
+| N4 | #319 #329 | `d05af5a` | `reconcile_backlog.py` — `spec_type_of_reference`, `normalize_label`, `build_epic_alias_map`/`resolve_epic_reference` extracted; **new** `utils/spec_titles.py`; `sync_validator.py`, `spec_title_uniqueness_validator.py` unified onto one `normalize_title` |
+| N5 | #330 #332 | `763a70b` | `create_issue.sh` — fail closed, idempotency guard, exact label match; **new** `tests/test_create_issue_gate_issue330_issue332.py` |
+| N6 | #331 #321 | `e226cec` | `cli.py` (+`--only`, `_scope_findings`, 15 call sites wrapped), `create_issue.sh` (scoped, strict), `reconcile_backlog.py` (`blocked_specs`, skip-not-abort, non-zero exit); **new** `tests/test_gate_scope_issue321_issue331.py` |
+| N7 | #320 #322 | `ab073d4` | **new** `validators/source_reference_validator.py`, `tests/test_source_reference_integrity_issue320_issue322.py`; `rules/document-references.md`, `skills/spec-orchestrator/SKILL.md`, `rule_contracts.py` |
+| — | #333 | `3c61854` | `rules/platform-independence.md` (rule split), `mermaid_syntax_validator.py`, `rule_contracts.py`; **new** `tests/test_relationship_label_colon_issue333.py` |
+| — | #328 | `60b2b0d` | `skills/spec-orchestrator/SKILL.md` (Phase 3 de-parallelised); **new** `tests/test_phase_ordering_issue328.py` |
+| — | #323 | `6019aab` | **new** `scripts/bootstrap_tracker_labels.py`, `tests/test_label_bootstrap_issue323.py`; `README.md` |
+| — | #280 | `5239e4c` | `validators/uml.py` (parenthesised stub gap); **new** `tests/test_semantic_blindspots_issue280.py` |
+
+### Defect found in N6's own fix, after the fact
+
+The mandated pre-merge reconciler run — `AGENTS.md` § *Backlog Reconciliation Mandate* —
+had not been executed once during the session. Running it exposed a defect in N6: the
+`blocked_specs` set was built by regexing every `.md` name out of the linter output, so
+it also captured documents merely **cited** by a finding. A remediation note reading
+"see `rules/document-references.md`" put that file and `.pipeline/constitution.md` into
+the skip set, neither of which the reconciler validates or synchronises. 27 names
+reported blocked; 21 were real.
+
+Over-broad matching is the defect class the whole sprint has been closing — #319's alias
+map claiming a Feature's slug, #332's `grep -Fq` matching `feature-request` for
+`feature`. Reproducing it inside the fix for #321 is the same mistake one layer up.
+
+Fixed by intersecting with the files that actually exist in the backlog directories,
+extracted to `blocked_specs_from_linter_output()` so it is testable rather than buried
+in `main()`, and covered by `tests/test_blocked_spec_scope_issue321.py`.
+
+### Standing state of `docs/`
+
+The reconciler now reports 21 genuinely rejected specifications and synchronises the
+rest. Per Part D that content is disposable symptom source and is not repaired, so this
+run is expected to exit non-zero indefinitely — which is the gate working, not a
+regression. The specific data defects recorded during N2 remain: `feat-13` declaring a
+non-existent `issue_id #55`, and `feat-45`/`uc-01` both resolving to #45.
