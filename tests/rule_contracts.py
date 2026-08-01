@@ -105,6 +105,21 @@ MERMAID_CONTRACTS: List[RuleContract] = [
         ),
     ),
     RuleContract(
+        id="mermaid-no-colon-in-relationship-label",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Relationship Label Colon Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="colon inside a Mermaid relationship label",
+        note=(
+            "Issue #333. Distinct from mermaid-relationship-label-must-be-quoted: "
+            "quoting fixes spaces and does not fix colons, because Mermaid parses ':' "
+            "as a statement separator wherever it occurs. The documented rule grouped "
+            "the two, so a quoted colon satisfied the gate and GitHub then refused to "
+            "render the diagram - a wrong rule is invisible to a gate that enforces "
+            "documented rules rather than the grammar."
+        ),
+    ),
+    RuleContract(
         id="mermaid-relationship-label-must-be-quoted",
         documented_in="rules/platform-independence.md",
         doc_anchor="Mermaid Relationship Label Rules",
