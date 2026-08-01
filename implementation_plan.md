@@ -1048,3 +1048,29 @@ The run halts and reports, rather than improvising, on any of:
 - an issue whose fix would require closing a tracker issue;
 - CI failing twice on the same package after a fix attempt;
 - an issue that turns out to be unimplementable as specified.
+
+---
+
+## Part M — executed change record
+
+The gap this closes: Part M deferred the per-package exact-change record to "the
+coordinator appends them here before the next package begins", and the coordinator did
+not. Every package below was merged with CI green, but the Strict Planning Gate's
+documentation obligation went unmet at the time of writing. Recorded retrospectively,
+labelled as such rather than presented as prior authorisation.
+
+| Pkg | Issue | Merge | Files changed |
+|---|---|---|---|
+| 1 | #312 | `4eea560` | `.agents/AGENTS.md` (dispatch + termination sections rewritten as capabilities, per-runtime table, point-4 scope sentence), `rules/user-authorization-lock.md`, `rules/role-boundary-lock.md`, `tests/rule_contracts.py` (+`KARPATHY_FAMILY`, 5 contracts), `tests/test_karpathy_check_contract_issue312.py` **new** |
+| — | #310 repair | `f0633fe` | `tests/rule_contracts.py` (collapsed duplicate `FAMILIES` binding that had left `DOC_REFERENCE_FAMILY` unasserted since #310), `rules/document-references.md` (+4th constraint), `skills/feature-driven-implementation/SKILL.md:50` (`invoke_subagent` swept), `tests/test_families_binding_is_unique.py` **new** |
+| 2 | #303 | `75921bd` | `.../parity_auditor/src/parity_auditor/cli.py` (removed vestigial schema probe), `.../validators/sync_validator.py` (`spec_type` threaded into both index keys — fixed 2 latent bugs), `.../parity_auditor/pyproject.toml` (both `F841` baselines removed), `.pipeline/upstream/pipeline-tooling.md` (note marked historical), `.../tests/test_refactor_remnants_issue303.py` **new** |
+| 3 | #279 | `edb60f9` | `rules/platform-independence.md` (+*Mermaid Empty Class Body Rules*), `skills/spec-orchestrator/SKILL.md`, `.../validators/mermaid_syntax_validator.py`, `tests/rule_contracts.py`, `tests/test_mermaid_empty_class_issue279.py` **new**, `.../tests/test_mermaid_empty_class_issue279.py` **new** |
+| 4 | #278 | `2e6e29f` | `skills/spec-orchestrator/SKILL.md` (drafting step names the `generation_mode` marker and its check), `tests/rule_contracts.py` (+`SUBAGENT_ISOLATION_FAMILY`, 8 contracts), `tests/test_subagent_isolation_contract_issue278.py` **new** |
+| 5a | #304 | `ea6c4df` | 4 validators migrated to `Finding`; +`schema-traceability` and `backlog-tracker-integrity` families; `ContractFamily.enforcement_files`; `tests/test_validator_findings_migration_issue304.py` **new** (AST ledger) |
+| 5b | #304 | `16c93a8`, `0978d78` | remaining 8 validators (131 sites → 102 rule ids); **new** `rules/uml-model-integrity.md`, `rules/codebase-compliance.md`, `rules/behavioral-trigger-coverage.md`; additions to `rules/platform-independence.md`, `rules/tdd-mandate.md`, `.pipeline/profiles/flutter.md`, `skills/schema-specification-engineering/SKILL.md`, `skills/spec-orchestrator/SKILL.md`; `test_aggregator_issue301.py` fixtures made real workspaces; stale `KNOWN_UNREGISTERED_FAMILIES` entry removed |
+
+### Coordinator failures recorded against this Part
+
+1. **The exact-change record was deferred and then skipped** — this table is the remedy.
+2. **Subagent permission pre-flight was omitted.** `AGENTS.md` § *Strict Verification* requires verifying command prefixes are pre-authorised "to guarantee 100% unattended background execution", and `debug-protocol` Step 0.1 says the same. Three subagents were dispatched before `.claude/settings.local.json` was widened, so the Product Owner was prompted repeatedly during runs that were supposed to be unattended.
+3. **#279 was labelled against the wrong CI run.** `gh run list --limit 1` returned the previous push's run because the new one did not yet exist. The conclusion was later verified genuinely green, but the evidence cited at labelling time had not been checked. Every subsequent label verifies the run's `headSha` against local `HEAD`.
