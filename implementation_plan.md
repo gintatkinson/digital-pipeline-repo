@@ -1223,3 +1223,74 @@ rest. Per Part D that content is disposable symptom source and is not repaired, 
 run is expected to exit non-zero indefinitely — which is the gate working, not a
 regression. The specific data defects recorded during N2 remain: `feat-13` declaring a
 non-existent `issue_id #55`, and `feat-45`/`uc-01` both resolving to #45.
+
+---
+
+## Part O — Decouple the gates from corpus state, then repair the corpus
+
+### What went wrong
+
+I edited 19 defects in `docs/` — 6 unquoted Mermaid relationship labels, 13 curly braces
+in class members. Both categories went to zero. Then two tests failed:
+
+```
+test_detection_works_against_real_downstream_symptoms (#288)
+  "scanned 42 downstream file(s) with diagrams and found no violations. Given the
+   known symptoms in feat-10, feat-11 and docs/decisions/, detection has probably
+   regressed."
+test_only_scope_suppresses_findings_about_other_files_issue321
+  "feat-11 is expected to appear repeatedly in unscoped output; found 1"
+```
+
+I reverted. Two errors, and the second is the one that matters:
+
+1. **`docs/` is outside my target.** `.pipeline/upstream/pipeline-tooling.md`
+   § *Platform & Stack* names `scripts/`, `skills/*/scripts/`, `parity_auditor/` and the
+   Markdown under `rules/`, `skills/` and `.pipeline/`. `docs/` is not in that list. I
+   should not have edited it at all, and the test failures are a second-order reason.
+2. **The gates are coupled to corpus state.** #288 asserts its validator works by
+   pointing it at known-bad live files. That is a real design choice — it prevents the
+   gate passing vacuously — but it makes the corpus load-bearing, so repairing content
+   silently disarms a check. That coupling is the actual defect, and it *is* in my lane.
+
+### O1 — replace live-corpus evidence with purpose-built fixtures  **[my lane, unblocked]**
+
+The gates must keep proving they can detect a real violation, without that proof
+depending on which files happen to be broken today.
+
+| File | Change |
+|---|---|
+| `.../tests/fixtures/known_symptoms/` | **New.** Committed specimens, one per rule the gates must demonstrably catch: unquoted relationship label, curly brace in a class member, colon in a relationship label (#333), unresolved `#[EpicID]` token, self-referential source URL (#322). Each carries a header naming the rule it exists to trip. |
+| `.../tests/test_mermaid_syntax_validator_issue288.py` | Point `test_detection_works_against_real_downstream_symptoms` at the fixture directory instead of `docs/`. Keep the inverse assertion — the gate must still fail on something — because that is the whole point of the test. Rename to drop "downstream", which was never the right word for local specimen content. |
+| `tests/test_gate_scope_issue321_issue331.py` | Same: the `--only` suppression probe uses two fixture specs rather than `feat-10`/`feat-11`. |
+| Any other test in the list below that keys on live corpus state | Audited and migrated on the same basis. |
+
+Tests currently touching corpus paths, to audit: `test_linter_reliability.py`,
+`test_rules_consolidation_issue284.py`, `test_findings_issue301.py`,
+`test_spec_title_uniqueness_issue318.py`, `test_reconcile_backlog_issue235.py`,
+`test_cli_offline.py`, `test_uml_sequence_bypass_issue277.py`.
+
+**Gate on O1:** every migrated test must still fail when its fixture is repaired.
+Demonstrated per test, not assumed — a fixture-based test that cannot fail is worse than
+the coupling it replaced.
+
+### O2 — repair the corpus  **[NOT my lane; needs authority or input]**
+
+Only after O1, or repairing disarms the gates.
+
+| Defect | Count | What is missing |
+|---|---|---|
+| Unquoted Mermaid relationship labels | 6 | Nothing. Mechanical, already proven — the diff exists and worked. |
+| Curly braces in class members | 13 | Nothing. Mechanical, already proven. |
+| Unresolved `#[EpicID]` tokens | 8 | **`docs/epics/` is empty.** No Epic exists to link to. Authoring Epics is specification work, which `rules/role-boundary-lock.md` separates from implementation, and inventing an ID is the #322 fabrication class. |
+| Self-referential source URLs | 3 | The authoritative upstream URLs. Not present anywhere in the repository. Guessing one *is* the defect #322 describes. |
+| Duplicate ordinals / padding | 3 | A decision: `feat-04` and `feat-05` are each claimed twice; which file moves, and to what ordinal. Each has an inbound reference to update. |
+
+19 of 29 are mechanical and unblocked once O1 lands. 10 need either specification
+authority or information only the Product Owner holds.
+
+### Sequence
+
+O1 first, entirely inside my target and requiring nothing from anyone. Then the 19
+mechanical repairs, which O1 makes safe. Then the remaining 10, which stay blocked until
+the Epics exist, the upstream URLs are supplied, and the ordinal collisions are decided.
