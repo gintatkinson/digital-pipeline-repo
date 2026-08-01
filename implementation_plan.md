@@ -1294,3 +1294,70 @@ authority or information only the Product Owner holds.
 O1 first, entirely inside my target and requiring nothing from anyone. Then the 19
 mechanical repairs, which O1 makes safe. Then the remaining 10, which stay blocked until
 the Epics exist, the upstream URLs are supplied, and the ordinal collisions are decided.
+
+---
+
+## Part P — Full ownership: repair everything, starting with what I broke
+
+Supersedes Part O's scoping. The Product Owner's position is that the boundary I drew —
+`docs/` sits outside the tooling target in `pipeline-tooling.md` § *Platform & Stack* —
+is a dodge when the engagement is to fix the repository. Correct. Everything below is
+mine, including the parts that need judgement rather than mechanics.
+
+### P0 — a false positive I shipped  **[highest priority; my defect, one hour old]**
+
+`source_reference_validator.py` (#320/#322) rejects any `Structural Schema` or
+`Normative Specification` entry whose URL points at this repository, on the reasoning
+that such artefacts are "external by definition". That reasoning is wrong.
+
+`uc-02-local-firebase-emulator.md` and `uc-03-remote-firestore-cloud.md` cite
+`docs/designs/persistence-architecture-blueprint.md` and `.pipeline/constitution.md`.
+Those are **correct**. A Use Case about local persistence has no external YANG model;
+its structural source genuinely is an internal design document. `uc-02` even states
+"Structural Schema: None defined." honestly.
+
+So all 3 findings this validator reports against the corpus are false positives, and the
+rule as documented in `rules/document-references.md` would push an author to *replace a
+correct internal citation with a fabricated external one* — the exact defect #322 exists
+to prevent, inverted.
+
+Fix: narrow the rule to what is actually decidable. A locator is wrong when it points at
+a **path that does not exist**, or when it claims to be an upstream *schema module*
+while pointing at this repository's own `docs/`. Citing an internal design document or
+the constitution is legitimate and must pass. The `--only`-style narrowing applies:
+assert what is provably wrong, not what is merely unusual.
+
+### P1 — finish O1: 17 remaining coupled tests
+
+2 of 19 migrated. The rest are unaudited, so "repairing the corpus is safe" is proven
+for two tests, not the suite. Each must be checked for dependence on the corpus *being
+broken*, migrated to `fixtures/known_symptoms/` where it is, and demonstrated to still
+fail when its fixture is repaired.
+
+### P2 — corpus repair, all 29 defects
+
+| Defect | Count | Resolution |
+|---|---|---|
+| Unquoted relationship labels | 6 | Mechanical; diff already proven |
+| Curly braces in class members | 13 | Mechanical; diff already proven |
+| Self-referential source URLs | 3 | **Dissolved by P0** — they are correct as written |
+| Duplicate ordinals | 2 | `feat-04` and `feat-05` are each claimed twice. Highest in use is 45, so 46 and 47 are free. Move the later-created file of each pair, update its single inbound reference. Deterministic, no judgement needed. |
+| Padding inconsistency | 1 | `feat-002-alternate-systems.md` is the only 3-digit name. Rename to `feat-02-`; the ordinal is free. |
+| Unresolved `#[EpicID]` tokens | 8 | The genuinely hard one. `docs/epics/` is empty and Features carry no `epic:` frontmatter, so no parent can be derived. Two honest options, to be decided in P2 rather than deferred: author the missing Epics from the Features that would belong to them, or remove the `## Parent Epic` block and amend the Feature template so it is not mandatory for orphan Features. |
+
+### P3 — 85 committed files carrying absolute developer paths
+
+`pipeline-tooling.md` § *Security & Ops*: *"No credentials, tokens or absolute developer
+paths in committed files."* Violated 85 times. 55 are `.pipeline/diagnostics/` payloads,
+already gitignored but still tracked — untrack, as the venv was. 30 are live files
+including `app_flutter/integration_test/*.dart` and `docs/audits/*`, which need editing
+rather than untracking. `build/` is also tracked despite being gitignored.
+
+I filed #308 against a single instance of this and never measured the scale. That was
+the error: treating one symptom as the defect.
+
+### P4 — `a95dca9`
+
+Part I plan text is commingled into a #301 commit, pushed. Recommendation: leave it.
+Rewriting shared history costs more than the untidiness, and the record of it is in
+Part M. Raised so the decision is explicit rather than forgotten.
