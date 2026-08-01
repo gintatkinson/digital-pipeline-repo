@@ -127,15 +127,32 @@ class SourceReferenceValidator(IValidator):
                 ))
                 continue
 
-            if describes_external and upstream and upstream in ref.url:
+            # A self-referential locator is only wrong when the entry claims an
+            # upstream *schema module*. uc-02 and uc-03 cite
+            # docs/designs/persistence-architecture-blueprint.md and the constitution
+            # as their structural source, and both are correct: a Use Case about local
+            # persistence has no external YANG model. The first version of this rule
+            # rejected them, which would have pushed an author to replace a correct
+            # internal citation with a fabricated external one - #322 inverted.
+            # The discriminator is the *artefact*, not the path. #322's rewrite points
+            # at this repo's schema/ directory, so requiring "/docs/" would exclude the
+            # very case the rule exists for. What distinguishes a rewrite from a
+            # legitimate internal citation is that the locator names a schema module:
+            # uc-02 and uc-03 cite a design document and the constitution, which are
+            # correct sources for a Use Case with no external model.
+            points_at_this_repo = bool(upstream and upstream in ref.url)
+            claims_schema_module = bool(
+                re.search(r"\.(?:yang|proto|xsd)\b", ref.url, re.I)
+            )
+            if describes_external and points_at_this_repo and claims_schema_module:
                 errors.append(Finding(
                     "external-source-reference-must-not-be-self-referential",
                     f"{where}: a Structural Schema or Normative Specification "
-                    f"reference points at this repository ({ref.url!r}). Those "
-                    f"artefacts are external by definition, so a self-referential "
-                    f"locator is the upstream URL having been rewritten during "
-                    f"drafting (#322). Preserve the authoritative URL verbatim - see "
-                    f"rules/document-references.md.",
+                    f"reference names a schema module inside this repository's own "
+                    f"docs/ ({ref.url!r}). A schema module is an upstream artefact, "
+                    f"so this is an authoritative URL rewritten during drafting "
+                    f"(#322). Citing an internal design document or the constitution "
+                    f"is legitimate and not reported - see rules/document-references.md.",
                     location=ref.directory,
                 ))
                 continue
