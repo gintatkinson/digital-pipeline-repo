@@ -22,14 +22,18 @@ last_updated: "2026-07-31"
 - **Target:** this repository's own tooling. `scripts/`, `skills/*/scripts/`,
   `skills/spec-orchestrator/parity_auditor/`, plus the Markdown under
   `rules/`, `skills/` and `.pipeline/`.
-- **Python floor:** `>=3.9`. This is the empirically verified runtime — the
-  development machine exposes only bare `python3` at 3.9.6, and a probe for
-  `python3.9` through `python3.13` finds no versioned binaries.
-  > **3.9 is end-of-life (October 2025.)** The floor matches reality rather than
-  > endorsing it. Migration to 3.12 is tracked in issue #294. Do not raise the
-  > floor before that issue lands, or every local invocation breaks.
-- **CI matrix:** `['3.9', '3.12']` with `fail-fast: false` — the floor plus a
-  forward version, so post-3.9 syntax is caught before it reaches `main`.
+- **Python floor:** `>=3.12`. Empirically verified — both suites pass under
+  `python3.12` (3.12.13) and `pip install -e` succeeds against it. Raised from
+  `>=3.9` by issue #294.
+  > **The bare `python3` on the development machine is still 3.9.6.** Homebrew's
+  > `python@3.12` is installed alongside it and does not replace it, so invoke the
+  > toolchain explicitly — `/opt/homebrew/opt/python@3.12/bin/python3.12`, or a
+  > venv built from it. `requires-python` is the only thing that enforces the
+  > floor: `pip install -e` refuses under 3.9, while `pytest`, `ruff` and the
+  > scripts do not read it and would still run. That narrowness is why the
+  > migration was safe, and why the explicit interpreter matters.
+- **CI matrix:** `['3.12', '3.13']` with `fail-fast: false` — the floor plus a
+  forward version, so post-3.12 syntax is caught before it reaches `main`.
 - **Runtime dependencies:** `PyYAML>=6.0` and `pyang` (`requirements.txt`).
   `parity_auditor` additionally declares `pytest>=8.3.5` and `pyyaml>=6.0.3`.
 - **Forbidden:** new third-party runtime dependencies in `parity_auditor`. CI
@@ -51,7 +55,11 @@ last_updated: "2026-07-31"
   by `/bin/sh` on direct invocation and fails with ENOEXEC.
   Enforced by `parity_auditor/tests/test_script_shebang_issue282.py`.
 - Type hints use `typing` imports (`List`, `Optional`, `Dict`) rather than PEP 604
-  unions or builtin generics, to hold the 3.9 floor.
+  unions or builtin generics. This existed to hold the 3.9 floor; with the floor at
+  3.12 (#294) both spellings are valid, so the rule is now **consistency, not
+  necessity**. New code SHOULD match the surrounding file. A mechanical sweep of the
+  22 modules using `typing` imports is explicitly NOT wanted — it would be pure churn
+  across the package with no behavioural change and would swamp review.
 - **Linter:** `ruff`, configured in `parity_auditor/pyproject.toml` with
   `select = ["F", "E9"]` — pyflakes plus syntax/IO errors. Style families (`E1`-`E7`,
   `W`, `I`, `N`) are **deliberately excluded**: enabling them across ~70 previously
@@ -59,7 +67,7 @@ last_updated: "2026-07-31"
   right. Blocking in CI. Run locally with:
   ```bash
   cd skills/spec-orchestrator/parity_auditor && ruff check src tests
-  ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts
+  ruff check --select F,E9 --target-version py312 scripts tests skills/spec-orchestrator/scripts
   ```
   `__init__.py` is exempt from `F401` because its imports are the package's public API.
   Adopted via issue #293.
@@ -116,7 +124,8 @@ last_updated: "2026-07-31"
 
 - No build artifact. Install editable for development:
   ```bash
-  pip install -e skills/spec-orchestrator/parity_auditor
+  # Use the 3.12 interpreter explicitly; bare `python3` is 3.9.6 and pip will refuse.
+  /opt/homebrew/opt/python@3.12/bin/python3.12 -m pip install -e skills/spec-orchestrator/parity_auditor
   ```
 - CI is `.github/workflows/auto_regression_testing.yml`. It triggers on
   `pull_request`, on `push` to `main`, and on `issues` labelled `bug` or

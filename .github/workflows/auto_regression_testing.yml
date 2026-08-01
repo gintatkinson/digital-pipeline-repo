@@ -19,7 +19,7 @@ jobs:
       matrix:
         # 3.9 is the declared requires-python floor and the only interpreter
         # installed on the development machine. 3.12 gives forward warning.
-        python-version: ['3.9', '3.12']
+        python-version: ['3.12', '3.13']
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -57,7 +57,7 @@ jobs:
         if: github.event_name != 'issues'
         run: |
           ruff check skills/spec-orchestrator/parity_auditor/src skills/spec-orchestrator/parity_auditor/tests
-          ruff check --select F,E9 --target-version py39 scripts tests skills/spec-orchestrator/scripts
+          ruff check --select F,E9 --target-version py312 scripts tests skills/spec-orchestrator/scripts
 
       - name: Run Existing Regression Tests (PR / Push)
         if: github.event_name != 'issues'
