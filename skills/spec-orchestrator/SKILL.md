@@ -70,6 +70,7 @@ When executing a phase, the worker agent must follow this lifecycle:
    - The relevant schema node(s) or specification paragraph(s) for that item.
    - The specific skill instructions (e.g., Feature, User Story, or Use Case template guidelines).
    - Core project rules and the constitution.
+   - **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full** — pass that file to the subagent rather than a paraphrase of it. A subagent that is never shown the constraints cannot comply with them, and a local subset drifts from the normative home (issue #289). This covers, among others, empty class bodies written on one line, curly braces and colons in class member lines, colons in note strings, stereotypes on relationship lines, unquoted relationship labels, and semicolons in `Note` and message text.
    - Do **NOT** pass the history of other items generated in the same run.
 3. **Drafting**: The subagent drafts only the target markdown file for that single item.
 4. **Registration**: The worker agent aggregates the outputs, links them, and registers them sequentially in the issue tracker. All spec issues (Epics, Features, User Stories, Use Cases) MUST be created with their full body contents (via `--body-file <local-md-file>` and immediate post-creation verification) during Phases 1, 2, and 3. An immediate post-creation verification check must be run (e.g., `gh issue view <ID> --json body`) to ensure the tracker body is not a stub and is fully populated at the time of creation.

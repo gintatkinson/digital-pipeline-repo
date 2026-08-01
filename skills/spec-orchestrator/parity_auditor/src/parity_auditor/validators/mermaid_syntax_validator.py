@@ -20,9 +20,20 @@ Rules enforced
 * Stereotypes on class-diagram relationship lines (``<<`` ``>>`` ``«`` ``»`` and
   their HTML entities).
 * Curly braces inside class-diagram member lines.
+* Empty class bodies written on a single line (``class X {}``). A class block is
+  opened by ``class X {`` and closed only by a line consisting of ``}``, so the
+  same-line brace never closes it; a later ``}`` pops the leaked block and the
+  classes after it are silently attached to the wrong namespace. Issue #279.
 
 Deliberately not enforced
 -------------------------
+* *Attribute-less classes as such.* Only the single-line spelling above is
+  rejected. An ancestor container node on a schema containment path frequently has
+  no attributes of its own, and the canonical Feature template in
+  ``skills/schema-specification-engineering/SKILL.md`` ships one, so a blanket
+  prohibition would reject this repository's own template. Semantic emptiness is
+  governed elsewhere: the *isolated classes* rule in ``validators/uml.py`` covers
+  classes with no relationships, and schema coverage covers unmapped nodes.
 * *Participants declared before use.* Mermaid auto-declares participants on first
   reference, so requiring an explicit declaration would reject valid diagrams. A
   checker that produces false positives is worse than no checker.
@@ -64,6 +75,12 @@ _STEREOTYPE = re.compile(r"(<<|>>|&lt;&lt;|&gt;&gt;|\u00ab|\u00bb)")
 _MEMBER = re.compile(r"^\s*[+\-#~] ?(?P<rest>\S.*)$")
 # Structural brace lines are not members and must never be flagged for braces.
 _BRACE_ONLY = re.compile(r"^[{}\s]*$")
+# `class X {}` -- an empty body opened and closed on one line. The leading `\s*`
+# deliberately excludes unified-diff lines, whose `+`/`-` marker is not whitespace,
+# for the same reason as _MEMBER above.
+_ONE_LINE_EMPTY_CLASS = re.compile(
+    r"^\s*class\s+(?:`[^`]+`|[A-Za-z0-9_.\-]+)\s*\{\s*\}\s*$", re.I
+)
 
 _DIAGRAM_KINDS = ("sequencediagram", "classdiagram", "statediagram", "graph", "flowchart")
 
@@ -158,6 +175,16 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
                 continue
 
             # --- class-diagram-only rules --------------------------------------
+            if _ONE_LINE_EMPTY_CLASS.match(line):
+                errors.append(Finding(
+                    "mermaid-no-single-line-empty-class-body",
+                    f"{source}:{lineno}: single-line empty Mermaid class body "
+                    f"({line.strip()!r}). A same-line closing brace never closes the "
+                    f"block, so a later '}}' pops it instead and every class after it "
+                    f"is attached to the wrong namespace. Put the closing brace on its "
+                    f"own line, or omit the braces entirely."
+                , location=f"{source}"))
+
             member = _MEMBER.match(line)
             if member and not _BRACE_ONLY.match(member.group("rest")) \
                     and _in_class_body(body, offset):

@@ -90,6 +90,21 @@ MERMAID_CONTRACTS: List[RuleContract] = [
         enforcement_anchor="unclosed ```mermaid fence",
     ),
     RuleContract(
+        id="mermaid-no-single-line-empty-class-body",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Empty Class Body Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="single-line empty Mermaid class body",
+        note=(
+            "Issue #279. The reported rule -- forbid empty Mermaid classes outright -- "
+            "would reject the canonical Feature template, whose ancestor container node "
+            "is deliberately attribute-less. Only the single-line spelling is a defect: "
+            "parsers/mermaid.py closes a class block only on a line that is exactly "
+            "'}', so 'class X {}' leaves the block open and a later namespace-closing "
+            "brace pops it, silently reassigning every following class."
+        ),
+    ),
+    RuleContract(
         id="mermaid-relationship-label-must-be-quoted",
         documented_in="rules/platform-independence.md",
         doc_anchor="Mermaid Relationship Label Rules",
