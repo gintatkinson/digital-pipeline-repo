@@ -15,22 +15,52 @@ if [ ! -f "$LOCAL_FILE" ]; then
     exit 1
 fi
 
+# Issue #330 — fail closed. This block previously warned and carried on, so the gate
+# vanished in exactly the circumstance where it most needed to hold: a partial or broken
+# checkout with no checker present. A gate that yields when its checker is absent is not
+# a gate, it is a comment.
 if [ ! -f "$LINTER" ]; then
-    echo "WARNING: Linter not found at $LINTER — proceeding without gate." >&2
-else
-    echo "[GATE] Running linter: $LINTER --spec-only --allow-missing-specs"
-    if ! python3 "$LINTER" --spec-only --allow-missing-specs; then
-        echo "FATAL: Linter failed. Fix all specification violations before filing issues." >&2
-        exit 1
-    fi
-    echo "[GATE] Linter passed."
+    echo "FATAL: Linter not found at $LINTER." >&2
+    echo "       The specification gate cannot be satisfied, so no issue will be filed." >&2
+    exit 1
 fi
+
+# Issue #331 — the explicit --allow-missing-specs flag was removed from this invocation.
+# It was a no-op: cli.py declares it with default=True, so passing it changed nothing,
+# and its strict counterpart --no-allow-missing-specs is not used anywhere in the
+# repository. It also does not gate the 100% *model coverage* invariant as #331 states;
+# it gates whether an open tracker issue lacking a local spec file is fatal. Narrowing
+# the gate's scope to the item being filed remains an open design question recorded on
+# #331 and #321 — two views of one scoping defect that must be resolved together.
+echo "[GATE] Running linter: $LINTER --spec-only"
+if ! python3 "$LINTER" --spec-only; then
+    echo "FATAL: Linter failed. Fix all specification violations before filing issues." >&2
+    exit 1
+fi
+echo "[GATE] Linter passed."
 
 REPO_FLAG=""
 if [ -n "$REPO" ]; then
     REPO_FLAG="--repo $REPO"
 fi
-if ! gh label list $REPO_FLAG 2>/dev/null | grep -Fq "$LABEL"; then
+
+# Issue #332 — idempotency. Re-running filed a second issue with the same title. Since
+# #314/#316 the reconciler resolves specs by canonical issue_id, but a duplicate still
+# pollutes the tracker and re-triggers downstream automation, so the cheapest place to
+# stop it is before creation. Exact match on the title column, not a substring:
+# `gh issue list` emits TSV as number<TAB>title<TAB>labels<TAB>state.
+EXISTING=$(gh issue list --state all --limit 1000 $REPO_FLAG 2>/dev/null \
+    | awk -F'\t' -v t="$TITLE" '$2 == t { print $1; exit }')
+if [ -n "$EXISTING" ]; then
+    echo "[IDEMPOTENT] Issue #$EXISTING already carries the title '$TITLE'. Not filing a duplicate."
+    exit 0
+fi
+
+# Issue #332 — the label precondition used `grep -Fq "$LABEL"`, a substring match, so an
+# existing `feature-request` satisfied the check for `feature` and the real label was
+# never created. Exact match on the name column instead.
+if ! gh label list $REPO_FLAG 2>/dev/null \
+    | awk -F'\t' -v l="$LABEL" '$1 == l { found = 1 } END { exit !found }'; then
     echo "[GATE] Label '$LABEL' not found. Creating..."
     gh label create "$LABEL" $REPO_FLAG --color "0366d6" --description "${LABEL} specification"
 fi
