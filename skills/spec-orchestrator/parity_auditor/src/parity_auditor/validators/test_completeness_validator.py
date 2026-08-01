@@ -2,6 +2,7 @@ import os
 import re
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 class TestCompletenessValidator(IValidator):
@@ -20,7 +21,10 @@ class TestCompletenessValidator(IValidator):
                     test_files.append(os.path.join(root, file))
                     
         if not test_files:
-            return ["Test Completeness: No test files found in the workspace."]
+            return [Finding(
+                "test-suite-must-exist-in-the-workspace",
+                "Test Completeness: No test files found in the workspace.",
+            )]
             
         test_contents = []
         for f in test_files:
@@ -42,7 +46,10 @@ class TestCompletenessValidator(IValidator):
         if any(re.search(pat, combined_content) for pat in regex_patterns):
             has_regex_assertion = True
         if not has_regex_assertion:
-            errors.append("Test Completeness: Test suite lacks assertions verifying regex pattern matches for BDD spec constraints.")
+            errors.append(Finding(
+                "test-suite-requires-regex-pattern-assertions",
+                "Test Completeness: Test suite lacks assertions verifying regex pattern matches for BDD spec constraints.",
+            ))
             
         has_precision_assertion = False
         precision_patterns = [
@@ -51,7 +58,10 @@ class TestCompletenessValidator(IValidator):
         if any(re.search(pat, combined_content) for pat in precision_patterns):
             has_precision_assertion = True
         if not has_precision_assertion:
-            errors.append("Test Completeness: Test suite lacks assertions verifying numerical precision or decimal place constraints.")
+            errors.append(Finding(
+                "test-suite-requires-numerical-precision-assertions",
+                "Test Completeness: Test suite lacks assertions verifying numerical precision or decimal place constraints.",
+            ))
             
         has_style_assertion = False
         style_patterns = [
@@ -60,7 +70,10 @@ class TestCompletenessValidator(IValidator):
         if any(re.search(pat, combined_content) for pat in style_patterns):
             has_style_assertion = True
         if not has_style_assertion:
-            errors.append("Test Completeness: Test suite lacks computed style assertions (e.g. getComputedStyle) verifying layout highlight/selection states.")
+            errors.append(Finding(
+                "test-suite-requires-computed-style-assertions",
+                "Test Completeness: Test suite lacks computed style assertions (e.g. getComputedStyle) verifying layout highlight/selection states.",
+            ))
             
         has_width_assertion = False
         width_patterns = [
@@ -69,7 +82,10 @@ class TestCompletenessValidator(IValidator):
         if any(re.search(pat, combined_content) for pat in width_patterns):
             has_width_assertion = True
         if not has_width_assertion:
-            errors.append("Test Completeness: Test suite lacks layout size assertions verifying sidebar minimum width or pane dimension constraints.")
+            errors.append(Finding(
+                "test-suite-requires-layout-size-assertions",
+                "Test Completeness: Test suite lacks layout size assertions verifying sidebar minimum width or pane dimension constraints.",
+            ))
             
         has_exception_assertion = False
         exception_patterns = [
@@ -78,6 +94,9 @@ class TestCompletenessValidator(IValidator):
         if any(re.search(pat, combined_content) for pat in exception_patterns):
             has_exception_assertion = True
         if not has_exception_assertion:
-            errors.append("Test Completeness: Test suite lacks assertions verifying exception/failure paths or validation errors.")
+            errors.append(Finding(
+                "test-suite-requires-exception-path-assertions",
+                "Test Completeness: Test suite lacks assertions verifying exception/failure paths or validation errors.",
+            ))
             
         return errors

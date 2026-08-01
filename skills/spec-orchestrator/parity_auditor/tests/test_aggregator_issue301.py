@@ -25,6 +25,40 @@ RULES = {
     "spec_rules": {}, "validation_rules": {},
 }
 
+# Minimal platform source and test suite, so that the workspace fixtures below are
+# workspaces rather than bare documentation trees.
+#
+# Issue #304 wired the profile-scoping and test-completeness gates into
+# AGGREGATING_VALIDATORS. Both then fired on every fixture here, and correctly: a tree
+# with no Dart sources and no test files really does have an empty codebase and no test
+# suite. That made three of these workspaces share two symptoms they were never meant to
+# model, which promoted those symptoms to systemic and outranked the mermaid and filename
+# rules the tests are actually about.
+#
+# The fixtures are corrected rather than the assertions relaxed. `report.systemic == []`
+# and "the broadest symptom ranks first" are the properties under test; scoping them to
+# an allow-list of rule ids would make them stop failing when a rule IS wrongly promoted,
+# which is the only thing they exist to catch.
+#
+# The test body names one token from each assertion class required by
+# rules/tdd-mandate.md section Required assertion classes, so the completeness gate is
+# satisfied for the reason it exists rather than by suppression.
+MINIMAL_DART_SOURCE = """class AppRoot {
+  const AppRoot();
+}
+"""
+
+MINIMAL_DART_TEST = """void main() {
+  test('parses identifiers', () {
+    expect(RegExp(r'^[a-z]+$').hasMatch('abc'), isTrue);
+    expect(1.005, closeTo(1.0, 0.01));
+    expect(getComputedStyle(node).highlight, 'selected');
+    expect(pane.width, greaterThanOrEqualTo(240));
+    expect(() => parse(''), throwsA(isA<FormatException>()));
+  });
+}
+"""
+
 # Violates mermaid-no-semicolon-in-note-or-message
 SEMICOLON_DIAGRAM = f"""# Spec
 
@@ -54,6 +88,13 @@ def _workspace(tmp_path, name, feature_files):
     feats.mkdir(parents=True)
     for fname, content in feature_files.items():
         (feats / fname).write_text(content, encoding="utf-8")
+
+    lib = ws / "app_flutter" / "lib"
+    lib.mkdir(parents=True)
+    (lib / "app_root.dart").write_text(MINIMAL_DART_SOURCE, encoding="utf-8")
+    tests = ws / "app_flutter" / "test"
+    tests.mkdir(parents=True)
+    (tests / "app_root_test.dart").write_text(MINIMAL_DART_TEST, encoding="utf-8")
     return str(ws)
 
 

@@ -639,6 +639,185 @@ BACKLOG_INTEGRITY_FAMILY = ContractFamily(
 )
 
 
+PLATFORM_PROFILE_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="profile-scoping-requires-platform-sources",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Profile Scoping Requires Platform Sources",
+        enforced_in=f"{PARITY_SRC}/validators/profile_scoping_validator.py",
+        enforcement_anchor="profile-scoping-requires-platform-sources",
+        note=(
+            "Issue #304. The first family documented in a platform profile rather than "
+            "in rules/: every rule here names the Flutter source tree, a Flutter widget "
+            "or Flutter UI directories, so rules/platform-independence.md section Where "
+            "platform-specific details belong sends it to the profile."
+        ),
+    ),
+    RuleContract(
+        id="flutter-splitter-requires-pointer-gesture-listener",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Splitter Widgets Require Pointer Gesture Listeners",
+        enforced_in=f"{PARITY_SRC}/validators/profile_scoping_validator.py",
+        enforcement_anchor="flutter-splitter-requires-pointer-gesture-listener",
+        note=(
+            "Enforced since the validator was written and documented nowhere -- the "
+            "#299 shape. A splitter without a Listener or GestureDetector renders as a "
+            "divider that cannot be dragged, so the layout requirement is met visually "
+            "and not functionally."
+        ),
+    ),
+    RuleContract(
+        id="schema-mapping-requires-platform-sources",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Schema Mapping Requires Platform Sources",
+        enforced_in=f"{PARITY_SRC}/validators/schema_mapping_validator.py",
+        enforcement_anchor="schema-mapping-requires-platform-sources",
+        note=(
+            "Deliberately a distinct rule id from the profile-scoping precondition "
+            "above, though the underlying condition -- no platform sources -- is the "
+            "same. The two gates fail independently, and a grouped multi-workspace "
+            "report that could not say which one fired would be ambiguous."
+        ),
+    ),
+    RuleContract(
+        id="schema-field-must-be-realised-in-the-codebase",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Schema Fields Must Be Realised In The Codebase",
+        enforced_in=f"{PARITY_SRC}/validators/schema_mapping_validator.py",
+        enforcement_anchor="schema-field-must-be-realised-in-the-codebase",
+    ),
+    RuleContract(
+        id="schema-field-must-be-bound-to-a-ui-component",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Schema Fields Must Be Bound To A UI Component",
+        enforced_in=f"{PARITY_SRC}/validators/schema_mapping_validator.py",
+        enforcement_anchor="schema-field-must-be-bound-to-a-ui-component",
+        note=(
+            "Conditional on the workspace declaring flutter_rules.ui_directories; a "
+            "project with no UI layer is not asked to bind anything."
+        ),
+    ),
+]
+
+PLATFORM_PROFILE_FAMILY = ContractFamily(
+    name="platform-profile-compliance",
+    contracts=PLATFORM_PROFILE_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/profile_scoping_validator.py",
+    enforcement_files=[
+        f"{PARITY_SRC}/validators/profile_scoping_validator.py",
+        f"{PARITY_SRC}/validators/schema_mapping_validator.py",
+    ],
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    # Unlike every family registered before it, this one HAS a single normative home, so
+    # orphan-documentation detection is live rather than blocked. `.pipeline/profiles/`
+    # is where platform-specific constraints belong, and all five rules are Flutter-
+    # specific, so nothing is fragmented across files here.
+    doc_file=".pipeline/profiles/flutter.md",
+    doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+)
+
+
+COVERAGE_GATE_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="test-suite-must-exist-in-the-workspace",
+        documented_in="rules/tdd-mandate.md",
+        doc_anchor="Test Suite Must Exist",
+        enforced_in=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        enforcement_anchor="test-suite-must-exist-in-the-workspace",
+        note="Issue #304. Undocumented before the migration -- the #299 shape.",
+    ),
+    RuleContract(
+        id="test-suite-requires-regex-pattern-assertions",
+        documented_in="rules/tdd-mandate.md",
+        doc_anchor="Regex Pattern Assertions Required",
+        enforced_in=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        enforcement_anchor="test-suite-requires-regex-pattern-assertions",
+    ),
+    RuleContract(
+        id="test-suite-requires-numerical-precision-assertions",
+        documented_in="rules/tdd-mandate.md",
+        doc_anchor="Numerical Precision Assertions Required",
+        enforced_in=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        enforcement_anchor="test-suite-requires-numerical-precision-assertions",
+    ),
+    RuleContract(
+        id="test-suite-requires-computed-style-assertions",
+        documented_in="rules/tdd-mandate.md",
+        doc_anchor="Computed Style Assertions Required",
+        enforced_in=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        enforcement_anchor="test-suite-requires-computed-style-assertions",
+    ),
+    RuleContract(
+        id="test-suite-requires-layout-size-assertions",
+        documented_in="rules/tdd-mandate.md",
+        doc_anchor="Layout Size Assertions Required",
+        enforced_in=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        enforcement_anchor="test-suite-requires-layout-size-assertions",
+    ),
+    RuleContract(
+        id="test-suite-requires-exception-path-assertions",
+        documented_in="rules/tdd-mandate.md",
+        doc_anchor="Exception Path Assertions Required",
+        enforced_in=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        enforcement_anchor="test-suite-requires-exception-path-assertions",
+    ),
+    RuleContract(
+        id="behavioral-trigger-node-must-be-covered-by-a-specification",
+        documented_in="rules/behavioral-trigger-coverage.md",
+        doc_anchor="Active Trigger Nodes Must Be Covered",
+        enforced_in=f"{PARITY_SRC}/validators/behavioral.py",
+        enforcement_anchor="behavioral-trigger-node-must-be-covered-by-a-specification",
+        note=(
+            "Issue #304 found the whole behavioural trigger mechanism enforced and "
+            "stated in no document -- rules/behavioral_triggers.json carried the data "
+            "and nothing carried the rule. rules/behavioral-trigger-coverage.md was "
+            "written as its normative home."
+        ),
+    ),
+    RuleContract(
+        id="behavioral-trigger-rule-must-be-satisfied-by-the-specification",
+        documented_in="rules/behavioral-trigger-coverage.md",
+        doc_anchor="Trigger Rules Must Be Satisfied",
+        enforced_in=f"{PARITY_SRC}/validators/behavioral.py",
+        enforcement_anchor="behavioral-trigger-rule-must-be-satisfied-by-the-specification",
+        note=(
+            "Distinct from the coverage rule above: a file may reference the trigger "
+            "node and still omit the Mermaid block or body terms the trigger requires, "
+            "which looks like coverage and asserts nothing."
+        ),
+    ),
+]
+
+COVERAGE_GATE_FAMILY = ContractFamily(
+    name="downstream-coverage-gates",
+    contracts=COVERAGE_GATE_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/test_completeness_validator.py",
+    enforcement_files=[
+        f"{PARITY_SRC}/validators/test_completeness_validator.py",
+        f"{PARITY_SRC}/validators/behavioral.py",
+    ],
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "Both validators assert that the downstream demonstrates coverage of something "
+        "the pipeline declares, which is why they share a family: the test-completeness "
+        "gate asserts coverage of the assertion classes required by rules/tdd-mandate.md, "
+        "and the behavioural gate asserts coverage of the triggers declared in "
+        "rules/behavioral_triggers.json and stated in rules/behavioral-trigger-coverage.md. "
+        "Neither document is a summary of the other, so scanning either alone for orphan "
+        "documentation would report the other's rules as orphans. Both anchors of every "
+        "contract above still resolve, so deleting either statement fails the suite; only "
+        "the heading-scan half of orphan-documentation detection is blocked. Splitting "
+        "this into two families is the obvious alternative and does not work: the "
+        "behavioural half would hold two contracts, below the vacuity floor that "
+        "test_enforced_message_scan_is_not_vacuous applies to every family, and lowering "
+        "that floor to accommodate one family would weaken it for all of them. Tracked as "
+        "a follow-up to #304."
+    ),
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -654,7 +833,12 @@ KNOWN_UNREGISTERED_FAMILIES = {
     "schema-container-cardinality": "covered ad hoc by test_schema_container_docs_issue283.py",
     "authorization-precedence": "covered ad hoc by test_authorization_precedence.py",
     "python-version-reconciliation": "covered ad hoc by test_ci_workflow_config.py",
-    "spec-filename-uniqueness": "not yet enforced at all - issue #300",
+    # "spec-filename-uniqueness" was listed here as "not yet enforced at all - issue
+    # #300". That stopped being true when #300 shipped spec_filename_validator.py and
+    # FILENAME_FAMILY was registered in FAMILIES below, and the entry survived the
+    # change. Removed at #304. A stale disclaimer is worse than no disclaimer: this
+    # mapping exists so an incomplete registry is distinguishable from a complete one,
+    # and an entry claiming a registered family is unenforced inverts that signal.
     # "document-references" was listed here while DOC_REFERENCE_FAMILY sat outside the
     # live FAMILIES binding. It is now registered and asserted, so the entry is gone
     # rather than being left as a stale disclaimer. The vacuity guard it tripped
@@ -774,6 +958,8 @@ FAMILIES: List[ContractFamily] = [
     SUBAGENT_ISOLATION_FAMILY,
     SCHEMA_TRACEABILITY_FAMILY,
     BACKLOG_INTEGRITY_FAMILY,
+    PLATFORM_PROFILE_FAMILY,
+    COVERAGE_GATE_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 

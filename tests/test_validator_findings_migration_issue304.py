@@ -43,6 +43,10 @@ MIGRATED = (
     "spec_validator.py",
     "dependency_validator.py",
     "sync_validator.py",
+    "profile_scoping_validator.py",
+    "behavioral.py",
+    "schema_mapping_validator.py",
+    "test_completeness_validator.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states
@@ -79,10 +83,6 @@ NOT_YET_MIGRATED = {
     "codebase.py": 18,
     "logical_ui_validator.py": 16,
     "docs.py": 6,
-    "test_completeness_validator.py": 6,
-    "schema_mapping_validator.py": 3,
-    "behavioral.py": 2,
-    "profile_scoping_validator.py": 2,
 }
 
 # Modules in the package that emit nothing and so are neither migrated nor pending.

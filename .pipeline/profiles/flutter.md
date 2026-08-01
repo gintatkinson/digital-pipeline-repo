@@ -38,6 +38,41 @@ last_updated: "2026-06-29"
 - CI/CD: Configured per repository settings. All pushes to integration branches trigger lint + unit test + integration test pipeline.
 - Deployment target: Desktop (macOS, Linux, Windows) via direct bundle. Mobile (Android, iOS) via respective app stores when configured.
 
+## Platform Audit Gates
+
+These are the platform-specific constraints the parity auditor enforces against a
+Flutter workspace. They live here rather than in `rules/` because each one names the
+Flutter source tree, a Flutter widget, or Flutter UI directories, and would be
+meaningless on another platform — see `rules/platform-independence.md`
+§ *Where platform-specific details belong*. Enforced offline by
+`parity_auditor/validators/profile_scoping_validator.py` and
+`parity_auditor/validators/schema_mapping_validator.py`.
+
+- **Profile Scoping Requires Platform Sources**: profile-compliance auditing runs over
+  the Flutter source tree named by `target_directories.flutter`. A workspace with no
+  matching source files is reported rather than passed. A silent pass would be
+  indistinguishable from full compliance, and across a corpus of downstream projects an
+  empty codebase is itself the finding worth aggregating.
+- **Splitter Widgets Require Pointer Gesture Listeners**: any Dart source implementing a
+  splitter — by filename or by containing `Splitter` — MUST attach pointer gesture event
+  handling via `Listener` or `GestureDetector`. A splitter without one renders as a
+  divider that cannot be dragged, so the layout requirement is met visually and not
+  functionally.
+- **Schema Mapping Requires Platform Sources**: schema-to-codebase mapping likewise runs
+  over the Flutter source tree, and reports an empty codebase rather than reporting that
+  every schema field is unmapped. Stated separately from the profile-scoping precondition
+  above because the two gates fail independently and a grouped multi-workspace report
+  must say which one fired.
+- **Schema Fields Must Be Realised In The Codebase**: every container, list, grouping,
+  typedef, identity, RPC, action, notification and leaf defined in the workspace schema
+  modules MUST appear in the Flutter sources as a declaration of the corresponding kind.
+  A schema node with no realisation is specified and unimplemented, which the schema is
+  the source of truth for.
+- **Schema Fields Must Be Bound To A UI Component**: a schema field realised in the
+  codebase but absent from every file under `flutter_rules.ui_directories` is reachable
+  in the data layer and invisible to the operator. Where the workspace declares UI
+  directories at all, realisation without a UI binding is reported.
+
 ## Security & Ops
 - API key management: API keys and secrets MUST NOT be committed to the repository. Use platform-specific secure storage (e.g., macOS Keychain, Android Keystore) or environment variables resolved at build time via `--dart-define`.
 - Auth provider: Authentication is injected at the DataSource layer. The abstract `DataSource` interface does not prescribe an auth mechanism. Concrete implementations may use token-based, certificate-based, or unauthenticated access as appropriate.

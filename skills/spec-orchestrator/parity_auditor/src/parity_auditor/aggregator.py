@@ -24,11 +24,15 @@ from typing import Dict, List, Sequence
 
 from .core.findings import Finding, unmigrated_count
 from .core.workspace import WorkspaceRepository
+from .validators.behavioral import BehavioralValidator
 from .validators.cardinality_validator import SchemaCardinalityValidator
 from .validators.dependency_validator import DependencyValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
+from .validators.profile_scoping_validator import ProfileScopingValidator
+from .validators.schema_mapping_validator import SchemaMappingValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_validator import SpecValidator
+from .validators.test_completeness_validator import TestCompletenessValidator
 
 # Validators migrated to structured findings. Un-migrated validators are deliberately
 # excluded rather than included and silently ungroupable — see `coverage_note`.
@@ -42,6 +46,10 @@ AGGREGATING_VALIDATORS = (
     SchemaCardinalityValidator,
     SpecValidator,
     DependencyValidator,
+    ProfileScopingValidator,
+    SchemaMappingValidator,
+    TestCompletenessValidator,
+    BehavioralValidator,
 )
 # SyncValidator is migrated to structured findings but deliberately absent: it shells
 # out to the issue tracker, and `pipeline-tooling.md` § Validation Gates forbids network

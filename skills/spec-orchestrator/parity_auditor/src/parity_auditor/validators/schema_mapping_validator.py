@@ -2,6 +2,7 @@ import os
 import re
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 from ..parsers.schema_router import parse_schema_file
 
@@ -58,7 +59,11 @@ class SchemaMappingValidator(IValidator):
         collect_files(flutter_dir, flutter_rules.file_extensions, flutter_exclusions, flutter_ui_dirs)
         
         if not codebase_files:
-            return ["Schema Mapping: Codebase is empty. No source files found for validation."]
+            return [Finding(
+                "schema-mapping-requires-platform-sources",
+                "Schema Mapping: Codebase is empty. No source files found for validation.",
+                location=flutter_dir_name or "",
+            )]
             
         if not definitions:
             return []
@@ -123,8 +128,16 @@ class SchemaMappingValidator(IValidator):
                         found_in_ui = True
                         
             if not found_in_code:
-                errors.append(f"Schema field '{name}' is missing from the codebase source files.")
+                errors.append(Finding(
+                    "schema-field-must-be-realised-in-the-codebase",
+                    f"Schema field '{name}' is missing from the codebase source files.",
+                    location=name,
+                ))
             elif not found_in_ui and ui_files:
-                errors.append(f"Schema field '{name}' is not bound to a UI component or display element.")
+                errors.append(Finding(
+                    "schema-field-must-be-bound-to-a-ui-component",
+                    f"Schema field '{name}' is not bound to a UI component or display element.",
+                    location=name,
+                ))
                 
         return errors
