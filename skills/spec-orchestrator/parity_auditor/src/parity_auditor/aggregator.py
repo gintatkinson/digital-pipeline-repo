@@ -26,6 +26,7 @@ from .core.findings import Finding, unmigrated_count
 from .core.workspace import WorkspaceRepository
 from .validators.behavioral import BehavioralValidator
 from .validators.cardinality_validator import SchemaCardinalityValidator
+from .validators.codebase import CodebaseValidator
 from .validators.dependency_validator import DependencyValidator
 from .validators.docs import DocsValidator
 from .validators.logical_ui_validator import LogicalUiValidator
@@ -54,6 +55,7 @@ AGGREGATING_VALIDATORS = (
     BehavioralValidator,
     DocsValidator,
     LogicalUiValidator,
+    CodebaseValidator,
 )
 # SyncValidator is migrated to structured findings but deliberately absent: it shells
 # out to the issue tracker, and `pipeline-tooling.md` § Validation Gates forbids network

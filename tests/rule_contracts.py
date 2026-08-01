@@ -1051,6 +1051,160 @@ LOGICAL_UI_FAMILY = ContractFamily(
 )
 
 
+CODEBASE_COMPLIANCE_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="platform-directory-must-exist-when-configured",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Configured Platform Directory Must Exist",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="platform-directory-must-exist-when-configured",
+        note=(
+            "Issue #304. A configured platform directory that is absent while matching sources sit elsewhere makes every platform check scan nothing, which reads as a clean run -- the message calls it a compliance bypass loophole for that reason."
+        ),
+    ),
+    RuleContract(
+        id="design-tokens-path-must-be-configured",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Design Tokens Path Must Be Configured",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="design-tokens-path-must-be-configured",
+    ),
+    RuleContract(
+        id="design-tokens-file-must-exist",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Design Tokens File Must Exist",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="design-tokens-file-must-exist",
+    ),
+    RuleContract(
+        id="design-tokens-file-must-be-loadable",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Design Tokens File Must Be Loadable",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="design-tokens-file-must-be-loadable",
+    ),
+    RuleContract(
+        id="design-tokens-must-declare-colours",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Design Tokens Must Declare Colours",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="design-tokens-must-declare-colours",
+        note=(
+            "Four separate rules rather than one precondition, because each failure mode makes the hardcoded-colour checks vacuous in a different way and a vacuous check is indistinguishable from a compliant codebase."
+        ),
+    ),
+    RuleContract(
+        id="source-file-must-be-valid-utf8",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Source Files Must Be Valid UTF-8",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="source-file-must-be-valid-utf8",
+    ),
+    RuleContract(
+        id="source-file-must-be-readable",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Source Files Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="source-file-must-be-readable",
+    ),
+    RuleContract(
+        id="hardcoded-design-token-colour-forbidden",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Hardcoded Design Token Colours Are Forbidden",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="hardcoded-design-token-colour-forbidden",
+    ),
+    RuleContract(
+        id="selection-setter-requires-an-event-echo-guard",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Selection Setters Require An Event Echo Guard",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="selection-setter-requires-an-event-echo-guard",
+    ),
+    RuleContract(
+        id="ui-layer-must-not-import-banned-libraries",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="UI Layers Must Not Import Banned Libraries",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="ui-layer-must-not-import-banned-libraries",
+    ),
+    RuleContract(
+        id="network-gateway-requires-a-write-lock",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Network Gateways Require A Write Lock",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="network-gateway-requires-a-write-lock",
+    ),
+    RuleContract(
+        id="viewport-requires-playhead-rate-clamps",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Viewports Require Playhead Rate Clamps",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="viewport-requires-playhead-rate-clamps",
+    ),
+    RuleContract(
+        id="ffi-boundary-requires-a-native-finalizer",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="FFI Boundaries Require A Native Finalizer",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="ffi-boundary-requires-a-native-finalizer",
+    ),
+    RuleContract(
+        id="ffi-boundary-requires-reference-counting",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="FFI Boundaries Require Reference Counting",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="ffi-boundary-requires-reference-counting",
+        note=(
+            "Distinct from the finalizer rule: a finalizer frees on collection, reference counting is what makes shared native memory safe to free at all."
+        ),
+    ),
+    RuleContract(
+        id="python-source-must-not-hardcode-token-constants",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Python Source Must Not Hardcode Token Constants",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="python-source-must-not-hardcode-token-constants",
+        note=(
+            "The AST-based twin of the colour-literal rule, so a colour assembled from constants is caught as well as one written literally."
+        ),
+    ),
+    RuleContract(
+        id="specification-must-not-leak-dom-attributes",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Specifications Must Not Leak DOM Attributes",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="specification-must-not-leak-dom-attributes",
+        note=(
+            "Documented here rather than in rules/platform-independence.md, which owns the same concern for backlog documents: this one is enforced by codebase.py over spec_rules.spec_files, and a rule file may only be heading-scanned by one family. Splitting the codebase rules across two doc files would leave whichever family did not own the file reporting the other's headings as orphans."
+        ),
+    ),
+    RuleContract(
+        id="specification-must-not-hardcode-pixel-dimensions",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Specifications Must Not Hardcode Pixel Dimensions",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="specification-must-not-hardcode-pixel-dimensions",
+    ),
+    RuleContract(
+        id="specification-file-must-be-readable",
+        documented_in="rules/codebase-compliance.md",
+        doc_anchor="Specification Files Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/codebase.py",
+        enforcement_anchor="specification-file-must-be-readable",
+    ),
+]
+
+CODEBASE_COMPLIANCE_FAMILY = ContractFamily(
+    name="codebase-compliance",
+    contracts=CODEBASE_COMPLIANCE_CONTRACTS,
+    enforcement_file=f"{PARITY_SRC}/validators/codebase.py",
+    enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
+    doc_file="rules/codebase-compliance.md",
+    doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -1195,6 +1349,7 @@ FAMILIES: List[ContractFamily] = [
     COVERAGE_GATE_FAMILY,
     DOCUMENT_INTEGRITY_FAMILY,
     LOGICAL_UI_FAMILY,
+    CODEBASE_COMPLIANCE_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 

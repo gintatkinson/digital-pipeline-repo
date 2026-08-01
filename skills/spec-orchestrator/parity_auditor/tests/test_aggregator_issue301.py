@@ -77,6 +77,11 @@ LAYOUT_MANIFEST = {
     "children": [{"id": "properties_view", "type": "PropertyGrid"}],
 }
 
+# The design token authority. It must exist and must yield at least one hex colour, or
+# the codebase gate reports the workspace as unauditable — correctly, since with no token
+# file the hardcoded-colour checks would be vacuous.
+DESIGN_TOKENS = {"color": {"status": {"nominal": "#1B7F3B", "degraded": "#B26B00"}}}
+
 # Violates mermaid-no-semicolon-in-note-or-message
 SEMICOLON_DIAGRAM = f"""# Spec
 
@@ -103,6 +108,7 @@ def _workspace(tmp_path, name, feature_files):
     pipeline.mkdir(parents=True)
     (pipeline / "codebase_rules.json").write_text(json.dumps(RULES), encoding="utf-8")
     (pipeline / "logical-layout.json").write_text(json.dumps(LAYOUT_MANIFEST), encoding="utf-8")
+    (pipeline / "design-tokens.json").write_text(json.dumps(DESIGN_TOKENS), encoding="utf-8")
     feats = ws / "docs" / "features"
     feats.mkdir(parents=True)
     for fname, content in feature_files.items():

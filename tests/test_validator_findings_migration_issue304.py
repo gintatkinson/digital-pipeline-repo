@@ -49,6 +49,7 @@ MIGRATED = (
     "test_completeness_validator.py",
     "docs.py",
     "logical_ui_validator.py",
+    "codebase.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states
@@ -82,7 +83,6 @@ AGGREGATION_EXEMPT = {
 # Measured: 152 emission sites in total, 12 migrated by #301, 140 remaining — not 135.
 NOT_YET_MIGRATED = {
     "uml.py": 78,
-    "codebase.py": 18,
 }
 
 # Modules in the package that emit nothing and so are neither migrated nor pending.
