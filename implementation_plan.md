@@ -1074,3 +1074,100 @@ labelled as such rather than presented as prior authorisation.
 1. **The exact-change record was deferred and then skipped** — this table is the remedy.
 2. **Subagent permission pre-flight was omitted.** `AGENTS.md` § *Strict Verification* requires verifying command prefixes are pre-authorised "to guarantee 100% unattended background execution", and `debug-protocol` Step 0.1 says the same. Three subagents were dispatched before `.claude/settings.local.json` was widened, so the Product Owner was prompted repeatedly during runs that were supposed to be unattended.
 3. **#279 was labelled against the wrong CI run.** `gh run list --limit 1` returned the previous push's run because the new one did not yet exist. The conclusion was later verified genuinely green, but the evidence cited at labelling time had not been checked. Every subsequent label verifies the run's `headSha` against local `HEAD`.
+
+---
+
+## Part N — Sprint plan: tracker identity, gate integrity, validation gaps
+
+18 issues open. Sequenced below by dependency, not by number. The ordering matters:
+nine of these are one defect wearing nine faces, and fixing the symptoms first would
+mean fixing them twice.
+
+### The spine: identity is derived from prose, not from the canonical ID
+
+`rules/tracker-source-of-truth.md` already mandates `issue_id: <int>` in every spec's
+frontmatter and states plainly: *"Matching by title normalization is prohibited as a
+primary selector."* `reconcile_backlog.py` does exactly that anyway. This is the same
+documented-contract-versus-enforced-contract divergence that produced #295, #299, #306
+and #309 — the rule exists, is correct, and nothing makes the code obey it.
+
+Everything in cluster A follows from it:
+
+| Issue | Face of the same defect |
+|---|---|
+| #314 | lookup dict built from normalized titles instead of `issue_id` — **the root** |
+| #316 | `feature_titles.get(norm)` takes precedence over frontmatter `issue_id`; identical titles silently overwrite each other's bodies |
+| #315 | tracker titles never updated from frontmatter, so the two drift and normalization has more collisions to make |
+| #319 | `epic_alias_map` strips `epic-`/`feat-` prefixes, colliding Epics with Features sharing a suffix |
+| #329 | label equality is exact-match, so `"User Story"` never matches `"user-story"` and duplicates orphan |
+| #313 | structural labels never applied at all, so label-based disambiguation has nothing to work with |
+| #332 | `create_issue.sh` has no idempotency guard, so re-runs manufacture the duplicates the above then mis-resolve |
+| #317 | subagents generate identical titles across modules — the upstream source of the collisions |
+| #318 | linter has no uniqueness gate, so duplicates pass the one check that could stop them |
+
+### Sequence
+
+**N1 — prevention first: stop minting collisions.** #318 (uniqueness gate in
+`verify_model_coverage.py`) + #317 (namespace constraint in the orchestrator's subagent
+prompts). Cheap, independent, and every later package is easier once the corpus stops
+generating same-titled items. #318 is also the gate that would have caught #316's
+symptom without anyone reading code.
+
+**N2 — the root fix.** #314 + #316 together: `issue_id` from frontmatter becomes the
+primary selector, title normalization demoted to a fallback that warns. These cannot be
+split; #316 is the precedence half of #314's lookup.
+
+**N3 — make the tracker reflect the source.** #315 (sync title) + #313 (apply structural
+labels). Both are `sync_issue_body_to_tracker` sending an incomplete update.
+
+**N4 — residual matching bugs.** #319 (alias collision) + #329 (label normalization).
+Only meaningful once N2 has made ID the primary path, since these govern the fallback.
+
+**N5 — `create_issue.sh` integrity.** #330 (missing linter silently bypasses the gate),
+#331 (gate passes `--allow-missing-specs`, bypassing the 100% coverage invariant it
+exists to enforce), #332 (no idempotency guard). One file, three defects, one package.
+#330 and #331 are the same class as this session's findings: a gate that reports success
+while checking nothing.
+
+**N6 — gate granularity.** #321: the reconciler requires a global 100% pass, so one
+work-in-progress draft blocks synchronisation of every finished one. Needs a design
+decision — per-item scoping versus a staging directory — so it gets a plan of its own
+before implementation.
+
+**N7 — validation gaps.** #320 (no broken-link validator) + #322 (subagents overwrite
+authoritative upstream URLs with fabricated local ones). Paired deliberately: #320 is
+the gate that makes #322 detectable rather than reported.
+
+**N8 — #323**: JIT label bootstrapping leaves a fresh downstream tracker with an empty
+label filter until a full run completes. Provision the taxonomy at install time.
+
+**N9 — #328**: Phase 3 queries the tracker for User Stories before Phase 2 has finished
+creating them. The `[P]` parallel-dispatch marker in `spec-orchestrator/SKILL.md` asserts
+this is safe; the issue says it is not. Resolve the contradiction in the skill, not just
+the timing.
+
+**N10 — #280**: assess before implementing. It calls for LLM-as-a-judge validation, and
+`.pipeline/upstream/pipeline-tooling.md` § *Validation Gates* forbids network egress in a
+blocking gate and forbids sending specification content to a third-party API. If those
+cannot be reconciled, the correct outcome is to say so on the issue with the constraint
+quoted — not to build a gate that violates the profile.
+
+### Two observations worth acting on
+
+- **#317 and #322 cite `.agents/skills/spec-orchestrator/SKILL.md`** — the symlink path
+  #305 removed from the governance documents. The issues carry the stale form. Worth a
+  note on each when they are worked, so the next reader is not sent through a path the
+  repository has deliberately stopped using.
+- **#321 and #331 pull in opposite directions.** #331 says the gate is too permissive
+  (it passes `--allow-missing-specs`); #321 says it is too strict (one bad draft blocks
+  everything). Both are true, and they are the same underlying problem: the gate's scope
+  is the whole `docs/` tree when it should be the item under work. N5 and N6 must not be
+  planned independently, or the second will undo the first.
+
+### Standing constraints for every package
+
+RED demonstrated before the fix. Both suites green with exit codes captured separately,
+never through a pipe. `ruff --select F,E9 --target-version py312` clean — lint runs before
+pytest in CI and halts the job. Own branch, `--no-ff` merge, CI watched to `success` with
+`headSha` verified against local `HEAD`. Issue taken to `Fixed / Resolved` with pasted
+evidence and never closed.
