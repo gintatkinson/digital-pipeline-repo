@@ -58,6 +58,22 @@
         "--body-file",
         "{temp_path}"
       ],
+      "edit_issue_title": [
+        "gh",
+        "issue",
+        "edit",
+        "{number}",
+        "--title",
+        "{title}"
+      ],
+      "add_label": [
+        "gh",
+        "issue",
+        "edit",
+        "{number}",
+        "--add-label",
+        "{label}"
+      ],
       "resolve_issue": [
         "gh",
         "issue",

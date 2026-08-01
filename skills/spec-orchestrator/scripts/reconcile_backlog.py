@@ -469,7 +469,167 @@ def write_markdown_file(filepath, content, workspace_dir=None, rules=None):
         f.write(deduped_content)
     return deduped_content
 
-def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None):
+DEFAULT_STRUCTURAL_LABELS = {
+    "epic": "epic",
+    "feature": "feature",
+    "user_story": "user-story",
+    "use_case": "use-case",
+}
+
+STRUCTURAL_LABEL_DESCRIPTION_TEMPLATE = (
+    "{item_type} specification item, applied by the backlog reconciler."
+)
+
+
+def structural_label_key(issue_type):
+    """Reduce an item type ("User Story") to its `tracker_rules.labels` key.
+
+    The four spec loops name their type in prose; the configuration keys it in snake
+    case. Deriving one from the other keeps the taxonomy in a single place — the
+    configuration — instead of restating it at four call sites.
+    """
+    return re.sub(r"[\s\-]+", "_", str(issue_type or "").strip().lower())
+
+
+def get_structural_label(issue_type, rules=None):
+    """The configured tracker label for an item type, or None if it has none.
+
+    `.pipeline/constitution.md:93-95` § *Labeling Taxonomy* fixes exactly four label
+    types "or as defined by the issue tracker configuration", so the names are read
+    from `tracker_rules.labels` and never hardcoded here (#313). The module-level
+    default exists only so a configuration predating this key still labels correctly,
+    mirroring how `get_resolved_label` defaults.
+    """
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    key = structural_label_key(issue_type)
+    labels = tracker_rules.get("labels", {})
+    return labels.get(key) or DEFAULT_STRUCTURAL_LABELS.get(key)
+
+
+def issue_has_label(issue_record, label):
+    """Does this tracker record already carry `label`?
+
+    Tracker payloads express labels either as objects with a "name" or as bare strings,
+    so both are accepted — the same shapes `is_already_resolved` handles. Comparison is
+    exact; case-insensitive matching is issue #329 and is deliberately not changed here.
+    """
+    if not label:
+        return False
+    for item in (issue_record or {}).get("labels") or []:
+        name = item.get("name", "") if isinstance(item, dict) else str(item)
+        if name == label:
+            return True
+    return False
+
+
+def sync_issue_title_to_tracker(issue_num, filepath, rules=None, issue_record=None):
+    """Push the frontmatter title to the tracker when the two have drifted (#315).
+
+    Tracker issues are created with a generic title derived from the schema node, while
+    the spec's YAML `title` is refined afterwards; nothing ever pushed the refined value
+    back, so the two diverged permanently and normalized-title matching gained
+    collisions it need not have had.
+
+    The edit is issued **only when the titles actually differ**. `AGENTS.md` § *Backlog
+    Reconciliation Mandate* runs this script before every merge, so an unconditional
+    edit would rewrite an unchanged title on every run and bury real changes in tracker
+    noise. When no tracker record is available the title is sent, because correctness of
+    the sync outranks the noise it costs.
+
+    Returns True when an edit was issued.
+    """
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    title = extract_title(filepath)
+    if not title:
+        return False
+
+    keys = tracker_rules.get("keys", {})
+    current_title = (issue_record or {}).get(keys.get("title", "title"))
+    if current_title is not None and str(current_title) == title:
+        return False
+
+    template = tracker_rules.get("commands", {}).get("edit_issue_title")
+    if not template:
+        print(
+            "  [Warning] No 'tracker_rules.commands.edit_issue_title' configured; the "
+            f"tracker title for {format_issue_reference(issue_num, tracker_rules)} will "
+            "stay out of sync with the specification frontmatter (#315).",
+            file=sys.stderr,
+        )
+        return False
+
+    cmd = [
+        str(issue_num) if c == "{number}" else (title if c == "{title}" else c)
+        for c in template
+    ]
+    subprocess.run(cmd, check=True, capture_output=True, timeout=30)
+    return True
+
+
+def apply_structural_label(issue_num, issue_type, rules=None, issue_record=None):
+    """Apply the configured structural label for this item type (#313).
+
+    Bootstrapping reuses the `create_label` command #309 added — `--force` makes it a
+    no-op where the label already exists — because a fresh downstream repository has no
+    such label and applying one that does not exist fails the sync. This is the same
+    just-in-time provisioning #309 established; making it install-time is issue #323 and
+    is not attempted here.
+
+    Idempotent: an issue already carrying the label produces no tracker traffic at all,
+    and neither bootstrap nor application changes anything when repeated.
+
+    Returns True when the label was applied.
+    """
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    commands = tracker_rules.get("commands", {})
+    label = get_structural_label(issue_type, rules)
+    if not label:
+        print(
+            f"  [Warning] No structural label configured for item type '{issue_type}' "
+            "in tracker_rules.labels; skipping (#313).",
+            file=sys.stderr,
+        )
+        return False
+
+    if issue_has_label(issue_record, label):
+        return False
+
+    create_template = commands.get("create_label")
+    if create_template:
+        description = STRUCTURAL_LABEL_DESCRIPTION_TEMPLATE.format(item_type=issue_type)
+        cmd = [
+            label if c == "{label}" else (description if c == "{description}" else c)
+            for c in create_template
+        ]
+        subprocess.run(cmd, capture_output=True, timeout=30)
+
+    add_template = commands.get("add_label") or commands.get("resolve_issue")
+    if not add_template:
+        print(
+            "  [Warning] No 'tracker_rules.commands.add_label' configured; structural "
+            f"label '{label}' cannot be applied to "
+            f"{format_issue_reference(issue_num, tracker_rules)} (#313).",
+            file=sys.stderr,
+        )
+        return False
+
+    cmd = [
+        str(issue_num) if c == "{number}" else (label if c == "{label}" else c)
+        for c in add_template
+    ]
+    subprocess.run(cmd, check=True, capture_output=True, timeout=30)
+    print(f"  [Sync Issue Body] Applied structural label '{label}'.")
+    return True
+
+
+def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None,
+                               issue_record=None):
+    """Push the specification to its tracker issue: body, title (#315) and label (#313).
+
+    `issue_record` is the tracker's own payload for this issue, when the caller has it.
+    It is what makes the two additions conditional rather than unconditional — the title
+    is only re-sent when it differs, and the label only applied when it is absent.
+    """
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     ref_str = format_issue_reference(issue_num, tracker_rules)
     print(f"  [Sync Issue Body] Syncing {ref_str} ({issue_type}) to tracker...")
@@ -519,7 +679,13 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
- 
+
+    # The body is only part of the update. The tracker title drifts from the frontmatter
+    # (#315) and generated issues carry no structural tier (#313); both are this call
+    # site sending too little.
+    sync_issue_title_to_tracker(issue_num, filepath, rules=rules, issue_record=issue_record)
+    apply_structural_label(issue_num, issue_type, rules=rules, issue_record=issue_record)
+
 RESOLVED_LABEL_DESCRIPTION = (
     "Dev complete, tests pass, merged to main. Awaiting Product Owner validation."
 )
@@ -1525,7 +1691,10 @@ def main():
                     updated_content, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
-                        sync_issue_body_to_tracker(issue_num, filepath, issue_type="Epic", rules=rules)
+                        sync_issue_body_to_tracker(
+                            issue_num, filepath, issue_type="Epic", rules=rules,
+                            issue_record=issue_dict[issue_num],
+                        )
                         if completed and not is_already_resolved(issue_dict[issue_num], rules):
                             resolve_issue_on_tracker(
                                 issue_num, 
@@ -1559,7 +1728,10 @@ def main():
                 if issue_num is not None:
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
-                        sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=rules)
+                        sync_issue_body_to_tracker(
+                            issue_num, filepath, issue_type="Feature", rules=rules,
+                            issue_record=issue_dict[issue_num],
+                        )
                 else:
                     print(
                         f"Warning: No Feature issue on the tracker for {filename} — "
@@ -1585,7 +1757,10 @@ def main():
                     _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
-                        sync_issue_body_to_tracker(issue_num, filepath, issue_type="User Story", rules=rules)
+                        sync_issue_body_to_tracker(
+                            issue_num, filepath, issue_type="User Story", rules=rules,
+                            issue_record=issue_dict[issue_num],
+                        )
                         if completed and not is_already_resolved(issue_dict[issue_num], rules):
                             resolve_issue_on_tracker(
                                 issue_num,
@@ -1620,7 +1795,10 @@ def main():
                     _, completed = update_checklist_in_file(filepath, issue_dict, rules)
                     is_open = str(issue_dict[issue_num][state_key]).upper() == keys.get("open_state_value", "OPEN").upper()
                     if is_open:
-                        sync_issue_body_to_tracker(issue_num, filepath, issue_type="Use Case", rules=rules)
+                        sync_issue_body_to_tracker(
+                            issue_num, filepath, issue_type="Use Case", rules=rules,
+                            issue_record=issue_dict[issue_num],
+                        )
                         if completed and not is_already_resolved(issue_dict[issue_num], rules):
                             resolve_issue_on_tracker(
                                 issue_num,
