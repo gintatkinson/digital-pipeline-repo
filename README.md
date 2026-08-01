@@ -144,6 +144,11 @@ else
 fi
 rm -rf ./.tmp-pipeline
 python3 scripts/setup_git_hooks.py
+
+# Provision the tracker label taxonomy up front, rather than letting it appear one
+# label at a time during the first orchestrator run (issue #323). Idempotent, so it
+# is also the way to repair a tracker whose labels were deleted.
+python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py
 ```
 
 Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
