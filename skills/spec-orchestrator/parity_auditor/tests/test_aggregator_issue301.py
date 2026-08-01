@@ -25,6 +25,63 @@ RULES = {
     "spec_rules": {}, "validation_rules": {},
 }
 
+# Minimal platform source and test suite, so that the workspace fixtures below are
+# workspaces rather than bare documentation trees.
+#
+# Issue #304 wired the profile-scoping and test-completeness gates into
+# AGGREGATING_VALIDATORS. Both then fired on every fixture here, and correctly: a tree
+# with no Dart sources and no test files really does have an empty codebase and no test
+# suite. That made three of these workspaces share two symptoms they were never meant to
+# model, which promoted those symptoms to systemic and outranked the mermaid and filename
+# rules the tests are actually about.
+#
+# The fixtures are corrected rather than the assertions relaxed. `report.systemic == []`
+# and "the broadest symptom ranks first" are the properties under test; scoping them to
+# an allow-list of rule ids would make them stop failing when a rule IS wrongly promoted,
+# which is the only thing they exist to catch.
+#
+# The test body names one token from each assertion class required by
+# rules/tdd-mandate.md section Required assertion classes, so the completeness gate is
+# satisfied for the reason it exists rather than by suppression.
+MINIMAL_DART_SOURCE = """class AppRoot {
+  const AppRoot();
+}
+"""
+
+MINIMAL_DART_TEST = """void main() {
+  test('parses identifiers', () {
+    expect(RegExp(r'^[a-z]+$').hasMatch('abc'), isTrue);
+    expect(1.005, closeTo(1.0, 0.01));
+    expect(getComputedStyle(node).highlight, 'selected');
+    expect(pane.width, greaterThanOrEqualTo(240));
+    expect(() => parse(''), throwsA(isA<FormatException>()));
+  });
+}
+"""
+
+# The Logical UI bindings block every Feature must carry, bound to nothing. `N/A` is the
+# documented spelling for a Feature with no layout binding, so this satisfies the gate
+# rather than suppressing it.
+BINDINGS = """
+## Logical UI & Layout Bindings
+- **Target LUI Component:** N/A
+- **Target Layout Container ID:** N/A
+- **Data Source Binding:** N/A
+"""
+
+# The layout manifest every Feature's bindings resolve against. Present so that the
+# workspaces below are workspaces; absent, the manifest gate fires in all of them and
+# outranks the rules these tests are about.
+LAYOUT_MANIFEST = {
+    "id": "root", "type": "SplitContainer",
+    "children": [{"id": "properties_view", "type": "PropertyGrid"}],
+}
+
+# The design token authority. It must exist and must yield at least one hex colour, or
+# the codebase gate reports the workspace as unauditable — correctly, since with no token
+# file the hardcoded-colour checks would be vacuous.
+DESIGN_TOKENS = {"color": {"status": {"nominal": "#1B7F3B", "degraded": "#B26B00"}}}
+
 # Violates mermaid-no-semicolon-in-note-or-message
 SEMICOLON_DIAGRAM = f"""# Spec
 
@@ -33,7 +90,7 @@ sequenceDiagram
     participant A as "a : A"
     Note over A: first thing; second thing
 {FENCE}
-"""
+{BINDINGS}"""
 
 CLEAN_DIAGRAM = f"""# Spec
 
@@ -42,7 +99,7 @@ sequenceDiagram
     participant A as "a : A"
     Note over A: first thing, second thing
 {FENCE}
-"""
+{BINDINGS}"""
 
 
 def _workspace(tmp_path, name, feature_files):
@@ -50,10 +107,19 @@ def _workspace(tmp_path, name, feature_files):
     pipeline = ws / ".pipeline" / "logical-ui"
     pipeline.mkdir(parents=True)
     (pipeline / "codebase_rules.json").write_text(json.dumps(RULES), encoding="utf-8")
+    (pipeline / "logical-layout.json").write_text(json.dumps(LAYOUT_MANIFEST), encoding="utf-8")
+    (pipeline / "design-tokens.json").write_text(json.dumps(DESIGN_TOKENS), encoding="utf-8")
     feats = ws / "docs" / "features"
     feats.mkdir(parents=True)
     for fname, content in feature_files.items():
         (feats / fname).write_text(content, encoding="utf-8")
+
+    lib = ws / "app_flutter" / "lib"
+    lib.mkdir(parents=True)
+    (lib / "app_root.dart").write_text(MINIMAL_DART_SOURCE, encoding="utf-8")
+    tests = ws / "app_flutter" / "test"
+    tests.mkdir(parents=True)
+    (tests / "app_root_test.dart").write_text(MINIMAL_DART_TEST, encoding="utf-8")
     return str(ws)
 
 

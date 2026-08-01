@@ -10,6 +10,7 @@ import os
 import re
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 from ..utils.case_utils import normalize_case
 
@@ -84,7 +85,11 @@ class BehavioralValidator(IValidator):
                             trigger_files.append((filepath, content))
                             
                     if not trigger_files:
-                        errors.append(f"Validation failed: No {target_type} files found referencing trigger node '{trigger_node}'. {rule.get('error_message')}")
+                        errors.append(Finding(
+                            "behavioral-trigger-node-must-be-covered-by-a-specification",
+                            f"Validation failed: No {target_type} files found referencing trigger node '{trigger_node}'. {rule.get('error_message')}",
+                            location=trigger_node,
+                        ))
                         continue
                         
                     for filepath, content in trigger_files:
@@ -111,6 +116,10 @@ class BehavioralValidator(IValidator):
                                 file_valid = False
                                 
                         if not file_valid:
-                            errors.append(f"In {os.path.basename(filepath)}: {rule.get('error_message')}")
+                            errors.append(Finding(
+                                "behavioral-trigger-rule-must-be-satisfied-by-the-specification",
+                                f"In {os.path.basename(filepath)}: {rule.get('error_message')}",
+                                location=os.path.basename(filepath),
+                            ))
                             
         return errors

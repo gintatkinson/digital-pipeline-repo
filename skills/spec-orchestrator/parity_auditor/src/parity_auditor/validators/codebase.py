@@ -12,6 +12,7 @@ import re
 import json
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 from ..utils.comment_utils import strip_c_style_comments
 from ..utils.color_utils import extract_hex_colors_from_json
@@ -69,17 +70,28 @@ class CodebaseValidator(IValidator):
         flutter_dir = os.path.join(workspace_dir, flutter_dir_name) if flutter_dir_name else None
         if flutter_dir_name and not os.path.exists(flutter_dir):
             if has_files_with_extensions(flutter_rules.file_extensions):
-                errors.append(f"Compliance Bypass Loophole: Configured Flutter directory '{flutter_dir_name}' does not exist on disk.")
+                errors.append(Finding(
+                    "platform-directory-must-exist-when-configured",
+                    f"Compliance Bypass Loophole: Configured Flutter directory '{flutter_dir_name}' does not exist on disk.",
+                    location=flutter_dir_name,
+                ))
         
         # Design tokens / hardcoded color logic
         design_tokens_path_rel = spec_rules.design_tokens_path
         if not design_tokens_path_rel:
-            errors.append("Missing 'spec_rules.design_tokens_path' in codebase_rules.json")
+            errors.append(Finding(
+                "design-tokens-path-must-be-configured",
+                "Missing 'spec_rules.design_tokens_path' in codebase_rules.json",
+            ))
             return errors
             
         design_tokens_path = os.path.join(workspace_dir, design_tokens_path_rel)
         if not os.path.exists(design_tokens_path):
-            errors.append(f"Design tokens file does not exist at path: {design_tokens_path}")
+            errors.append(Finding(
+                "design-tokens-file-must-exist",
+                f"Design tokens file does not exist at path: {design_tokens_path}",
+                location=design_tokens_path_rel,
+            ))
             return errors
             
         try:
@@ -87,11 +99,19 @@ class CodebaseValidator(IValidator):
                 tokens_data = json.load(f)
             forbidden_colors_hex = extract_hex_colors_from_json(tokens_data)
         except Exception as e:
-            errors.append(f"Failed to load design tokens for compliance check: {e}")
+            errors.append(Finding(
+                "design-tokens-file-must-be-loadable",
+                f"Failed to load design tokens for compliance check: {e}",
+                location=design_tokens_path_rel,
+            ))
             return errors
             
         if not forbidden_colors_hex:
-            errors.append(f"No forbidden design token colors could be extracted from design tokens file at: {design_tokens_path}")
+            errors.append(Finding(
+                "design-tokens-must-declare-colours",
+                f"No forbidden design token colors could be extracted from design tokens file at: {design_tokens_path}",
+                location=design_tokens_path_rel,
+            ))
             return errors
             
         hardcoded_colors_flutter = {}
@@ -133,10 +153,18 @@ class CodebaseValidator(IValidator):
                             with open(filepath, "r", encoding="utf-8") as f:
                                 content = f.read()
                         except UnicodeDecodeError:
-                            errors.append(f"Compliance Bypass Risk: '{rel_path}' is not valid UTF-8. Binary files are not permitted.")
+                            errors.append(Finding(
+                                "source-file-must-be-valid-utf8",
+                                f"Compliance Bypass Risk: '{rel_path}' is not valid UTF-8. Binary files are not permitted.",
+                                location=rel_path,
+                            ))
                             continue
                         except OSError as e:
-                            errors.append(f"System Error: Failed to open '{rel_path}' for compliance read: {e}")
+                            errors.append(Finding(
+                                "source-file-must-be-readable",
+                                f"System Error: Failed to open '{rel_path}' for compliance read: {e}",
+                                location=rel_path,
+                            ))
                             continue
                             
                         if "design_tokens" in file:
@@ -145,7 +173,11 @@ class CodebaseValidator(IValidator):
                         for color_val, desc in hardcoded_colors_flutter.items():
                             pattern = re.compile(rf"\b0x{re.escape(color_val)}\b", re.IGNORECASE)
                             if pattern.search(content):
-                                errors.append(f"Flutter File '{rel_path}' contains hardcoded alarm color '0x{color_val.upper()}' ({desc}). Reference ThemeData or design-tokens config instead.")
+                                errors.append(Finding(
+                                    "hardcoded-design-token-colour-forbidden",
+                                    f"Flutter File '{rel_path}' contains hardcoded alarm color '0x{color_val.upper()}' ({desc}). Reference ThemeData or design-tokens config instead.",
+                                    location=rel_path,
+                                ))
                                 
                         clean_content = strip_c_style_comments(content)
                         clean_content_lower = clean_content.lower()
@@ -153,7 +185,11 @@ class CodebaseValidator(IValidator):
                         if any(setter in clean_content for setter in flutter_selection_setters):
                             if any(trigger in clean_content for trigger in flutter_selection_triggers):
                                 if not any(g in clean_content_lower for g in flutter_loop_guard_keywords):
-                                    errors.append(f"Flutter File '{rel_path}' contains selection setters and triggers updates, but lacks a loop guard variable (e.g. 'userInitiated' or 'programmatic') to satisfy the Event-Echo Guard.")
+                                    errors.append(Finding(
+                                        "selection-setter-requires-an-event-echo-guard",
+                                        f"Flutter File '{rel_path}' contains selection setters and triggers updates, but lacks a loop guard variable (e.g. 'userInitiated' or 'programmatic') to satisfy the Event-Echo Guard.",
+                                        location=rel_path,
+                                    ))
                                     
                         is_flutter_ui = False
                         for d in flutter_ui_dirs:
@@ -164,7 +200,11 @@ class CodebaseValidator(IValidator):
                             banned_libs = self._check_banned_imports(content, flutter_forbidden_words, ".dart")
                             if banned_libs:
                                 msg = flutter_rules.forbidden_words_message
-                                errors.append(f"Flutter File '{rel_path}' is a {msg}")
+                                errors.append(Finding(
+                                    "ui-layer-must-not-import-banned-libraries",
+                                    f"Flutter File '{rel_path}' is a {msg}",
+                                    location=rel_path,
+                                ))
                                 
                         is_flutter_net = False
                         for d in flutter_net_dirs:
@@ -178,7 +218,11 @@ class CodebaseValidator(IValidator):
                                 break
                         if is_flutter_net and is_flutter_net_file:
                             if not any(lock_kw in clean_content_lower for lock_kw in flutter_write_lock_keywords):
-                                errors.append(f"Flutter Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.")
+                                errors.append(Finding(
+                                    "network-gateway-requires-a-write-lock",
+                                    f"Flutter Network Gateway File '{rel_path}' does not define a write-lock control to block egress mutations during timeline playback/scrubbing.",
+                                    location=rel_path,
+                                ))
                                 
                         is_flutter_viewport = False
                         for pat in flutter_viewport_file_patterns:
@@ -187,13 +231,25 @@ class CodebaseValidator(IValidator):
                                 break
                         if is_flutter_viewport:
                             if not all(re.search(pat, clean_content) for pat in flutter_playhead_clamp_regex):
-                                errors.append(f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {playhead_rate_limits} for 4D spatial-temporal viewports.")
+                                errors.append(Finding(
+                                    "viewport-requires-playhead-rate-clamps",
+                                    f"Flutter Viewport File '{rel_path}' does not implement the mandatory playhead rate clamps {playhead_rate_limits} for 4D spatial-temporal viewports.",
+                                    location=rel_path,
+                                ))
                                 
                         if any(ffi_kw in clean_content for ffi_kw in flutter_ffi_keywords):
                             if not any(fn_kw in clean_content_lower for fn_kw in flutter_ffi_finalizer_keywords):
-                                errors.append(f"Flutter FFI File '{rel_path}' does not register a 'NativeFinalizer'. This violates memory safety rules.")
+                                errors.append(Finding(
+                                    "ffi-boundary-requires-a-native-finalizer",
+                                    f"Flutter FFI File '{rel_path}' does not register a 'NativeFinalizer'. This violates memory safety rules.",
+                                    location=rel_path,
+                                ))
                             if not any(ref_kw in clean_content_lower for ref_kw in flutter_ffi_refcount_keywords):
-                                errors.append(f"Flutter FFI File '{rel_path}' does not implement native allocation reference counting.")
+                                errors.append(Finding(
+                                    "ffi-boundary-requires-reference-counting",
+                                    f"Flutter FFI File '{rel_path}' does not implement native allocation reference counting.",
+                                    location=rel_path,
+                                ))
                                 
         # 3. Python AST-based Hardcoded Constants Audit
         python_scan_dirs = python_rules.scan_directories
@@ -212,7 +268,11 @@ class CodebaseValidator(IValidator):
                             filepath = os.path.join(root, file)
                             ast_err = verify_python_ast(filepath, forbidden_colors_hex)
                             if ast_err:
-                                errors.append(ast_err)
+                                errors.append(Finding(
+                                    "python-source-must-not-hardcode-token-constants",
+                                    ast_err,
+                                    location=filepath,
+                                ))
                                 
         # 4. Check specification files for platform/visual leakage
         dom_patterns = spec_rules.dom_leak_patterns
@@ -227,12 +287,24 @@ class CodebaseValidator(IValidator):
                         spec_content = f.read()
                     for pattern in dom_patterns:
                         if re.search(pattern, spec_content, re.IGNORECASE):
-                            errors.append(f"Specification '{os.path.basename(logical_components_path)}' contains hardcoded DOM/accessibility leaks matching pattern '{pattern}'.")
+                            errors.append(Finding(
+                                "specification-must-not-leak-dom-attributes",
+                                f"Specification '{os.path.basename(logical_components_path)}' contains hardcoded DOM/accessibility leaks matching pattern '{pattern}'.",
+                                location=spec_rel_path,
+                            ))
                     for pattern in pixel_leak_patterns:
                         if re.search(pattern, spec_content, re.IGNORECASE):
-                            errors.append(f"Specification '{os.path.basename(logical_components_path)}' contains hardcoded pixel dimensions (e.g., '150px'). Use dynamic configuration tokens instead.")
+                            errors.append(Finding(
+                                "specification-must-not-hardcode-pixel-dimensions",
+                                f"Specification '{os.path.basename(logical_components_path)}' contains hardcoded pixel dimensions (e.g., '150px'). Use dynamic configuration tokens instead.",
+                                location=spec_rel_path,
+                            ))
                 except Exception as e:
-                    errors.append(f"Failed to read specification '{logical_components_path}': {e}")
+                    errors.append(Finding(
+                        "specification-file-must-be-readable",
+                        f"Failed to read specification '{logical_components_path}': {e}",
+                        location=spec_rel_path,
+                    ))
                     
         return errors
         

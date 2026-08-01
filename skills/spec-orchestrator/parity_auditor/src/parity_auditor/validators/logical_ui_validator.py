@@ -3,6 +3,7 @@ import re
 import json
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 class LogicalUiValidator(IValidator):
@@ -45,18 +46,30 @@ class LogicalUiValidator(IValidator):
                             container_id_str = node_id if (isinstance(node_id, str) and node_id) else "unknown"
                             children = node.get("children")
                             if not isinstance(children, list):
-                                tabbed_container_errors.append(f"TabbedContainer '{container_id_str}' contains non-TableView child 'unknown' of type 'unknown'")
+                                tabbed_container_errors.append(Finding(
+                                    "logical-ui-tabbed-container-child-must-be-a-table-view",
+                                    f"TabbedContainer '{container_id_str}' contains non-TableView child 'unknown' of type 'unknown'",
+                                    location=container_id_str,
+                                ))
                             else:
                                 for child in children:
                                     if not isinstance(child, dict):
-                                        tabbed_container_errors.append(f"TabbedContainer '{container_id_str}' contains non-TableView child 'unknown' of type 'unknown'")
+                                        tabbed_container_errors.append(Finding(
+                                            "logical-ui-tabbed-container-child-must-be-a-table-view",
+                                            f"TabbedContainer '{container_id_str}' contains non-TableView child 'unknown' of type 'unknown'",
+                                            location=container_id_str,
+                                        ))
                                     else:
                                         raw_type = child.get("type")
                                         raw_id = child.get("id")
                                         child_type = raw_type if (isinstance(raw_type, str) and raw_type) else "unknown"
                                         child_id = raw_id if (isinstance(raw_id, str) and raw_id) else "unknown"
                                         if child_type not in ALLOWED_TABBED_CHILD_TYPES:
-                                            tabbed_container_errors.append(f"TabbedContainer '{container_id_str}' contains non-TableView child '{child_id}' of type '{child_type}'")
+                                            tabbed_container_errors.append(Finding(
+                                                "logical-ui-tabbed-container-child-must-be-a-table-view",
+                                                f"TabbedContainer '{container_id_str}' contains non-TableView child '{child_id}' of type '{child_type}'",
+                                                location=container_id_str,
+                                            ))
                             
                         # Recurse on values
                         for val in node.values():
@@ -67,9 +80,16 @@ class LogicalUiValidator(IValidator):
                             
                 traverse(layout_data)
             except Exception as e:
-                return [f"Logical UI Compliance: Failed to parse logical-layout.json: {e}"]
+                return [Finding(
+                    "logical-ui-layout-manifest-must-parse",
+                    f"Logical UI Compliance: Failed to parse logical-layout.json: {e}",
+                    location=layout_path,
+                )]
         else:
-            return ["Logical UI Compliance: logical-layout.json not found at expected paths."]
+            return [Finding(
+                "logical-ui-layout-manifest-must-exist",
+                "Logical UI Compliance: logical-layout.json not found at expected paths.",
+            )]
             
         features_dir = kwargs.get("features_dir")
         if not features_dir:
@@ -78,7 +98,11 @@ class LogicalUiValidator(IValidator):
         errors = []
         errors.extend(tabbed_container_errors)
         if not os.path.exists(features_dir):
-            errors.append(f"Logical UI Compliance: features directory not found at {features_dir}")
+            errors.append(Finding(
+                "logical-ui-features-directory-must-exist",
+                f"Logical UI Compliance: features directory not found at {features_dir}",
+                location=features_dir,
+            ))
             return errors
             
         feature_files = repo.get_feature_files(features_dir)
@@ -105,7 +129,11 @@ class LogicalUiValidator(IValidator):
                             if isinstance(parsed_fm, dict):
                                 fm = parsed_fm
                         except Exception as e:
-                            errors.append(f"Logical UI Compliance: Failed to parse frontmatter YAML in '{rel_path}': {e}")
+                            errors.append(Finding(
+                                "logical-ui-feature-frontmatter-must-parse",
+                                f"Logical UI Compliance: Failed to parse frontmatter YAML in '{rel_path}': {e}",
+                                location=rel_path,
+                            ))
                 
                 interface_type = fm.get("interface_type") if isinstance(fm, dict) else None
                 if isinstance(interface_type, str):
@@ -113,7 +141,11 @@ class LogicalUiValidator(IValidator):
                 non_ui_types = {"api", "config", "persistence", "gate", "cli", "backend"}
                 
                 if not interface_type or interface_type not in non_ui_types:
-                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.")
+                    errors.append(Finding(
+                        "logical-ui-feature-requires-layout-bindings-section",
+                        f"Logical UI Compliance: Feature '{rel_path}' is a UI feature but lacks the 'Logical UI & Layout Bindings' section.",
+                        location=rel_path,
+                    ))
                     target_match = None
             
             if target_match:
@@ -169,9 +201,11 @@ class LogicalUiValidator(IValidator):
                                     if not path or path.upper() == "N/A":
                                         continue
                                     if ' ' in path or not (path.startswith('/') or path.startswith('schema:') or path.startswith('provider:') or path.upper() == 'N/A'):
-                                        errors.append(
-                                            f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains plain-text English instead of valid schema path."
-                                        )
+                                        errors.append(Finding(
+                                            "logical-ui-data-source-binding-must-be-a-schema-path",
+                                            f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains plain-text English instead of valid schema path.",
+                                            location=rel_path,
+                                        ))
                                         continue
                                     segments = path.split('/')
                                     in_augmented_subtree = False
@@ -187,31 +221,45 @@ class LogicalUiValidator(IValidator):
                                             prefix, local_name = "", seg_clean
                                         
                                         if local_name in FORBIDDEN_CHOICE_NODES or local_name.endswith("-choice") or local_name.endswith("-case"):
-                                            errors.append(
-                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains forbidden YANG choice/case node '{local_name}'. Choice/case wrappers must be omitted from data paths."
-                                            )
+                                            errors.append(Finding(
+                                                "logical-ui-data-source-binding-must-omit-choice-and-case-nodes",
+                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains forbidden YANG choice/case node '{local_name}'. Choice/case wrappers must be omitted from data paths.",
+                                                location=rel_path,
+                                            ))
                                         
                                         if prefix == "nil" or local_name in nil_elements:
                                             in_augmented_subtree = True
                                             if local_name in nil_elements and prefix != "nil":
-                                                errors.append(
-                                                    f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{local_name}'. Must use 'nil:{local_name}'."
-                                                )
+                                                errors.append(Finding(
+                                                    "logical-ui-augmented-node-must-carry-its-module-prefix",
+                                                    f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented element '{local_name}'. Must use 'nil:{local_name}'.",
+                                                    location=rel_path,
+                                                ))
                                         elif in_augmented_subtree and prefix == "":
-                                            errors.append(
-                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented child segment '{local_name}' under augmented subtree. Must use 'nil:{local_name}'."
-                                            )
+                                            errors.append(Finding(
+                                                "logical-ui-augmented-node-must-carry-its-module-prefix",
+                                                f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains un-prefixed augmented child segment '{local_name}' under augmented subtree. Must use 'nil:{local_name}'.",
+                                                location=rel_path,
+                                            ))
                             
             # Ensure specified target component is a valid layout component (if not N/A)
             for c in sorted(specified_components):
                 if c.upper() != "N/A":
                     if c not in component_types and not (c == "TopologyMap" and ("topology_pane" in container_ids or "TopologyMap" in component_types)):
-                        errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{c}'. It must be instantiated in logical-layout.json.")
+                        errors.append(Finding(
+                            "logical-ui-component-type-must-exist-in-the-layout",
+                            f"Logical UI Compliance: Feature '{rel_path}' specifies invalid component type '{c}'. It must be instantiated in logical-layout.json.",
+                            location=rel_path,
+                        ))
                     
             # Ensure specified target container ID is valid (if not N/A)
             if container_val.upper() != "N/A":
                 if container_val not in container_ids:
-                    errors.append(f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.")
+                    errors.append(Finding(
+                        "logical-ui-container-id-must-exist-in-the-layout",
+                        f"Logical UI Compliance: Feature '{rel_path}' specifies invalid container ID '{container_val}'.",
+                        location=rel_path,
+                    ))
                 else:
                     expected_type = container_to_type.get(container_val)
                     if expected_type and specified_components:
@@ -219,9 +267,11 @@ class LogicalUiValidator(IValidator):
                             if c.upper() != "N/A" and c != expected_type:
                                 if c == "TopologyMap" and container_val == "topology_pane":
                                     continue
-                                errors.append(
-                                    f"Logical UI Compliance: Feature '{rel_path}' specifies component type '{c}' but target container '{container_val}' is of type '{expected_type}'."
-                                )
+                                errors.append(Finding(
+                                    "logical-ui-component-must-match-its-container-type",
+                                    f"Logical UI Compliance: Feature '{rel_path}' specifies component type '{c}' but target container '{container_val}' is of type '{expected_type}'.",
+                                    location=rel_path,
+                                ))
 
             # Enforce that geodetic/spatial features map to valid spatial view components
             VALID_SPATIAL_COMPONENTS = {"TopologyMap", "TopographicalView", "GeoSpatialViewer", "PropertyGrid", "TableView"}
@@ -229,9 +279,11 @@ class LogicalUiValidator(IValidator):
 
             if target_match and GEODETIC_REGEX.search(content):
                 if any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components) or not specified_components:
-                    errors.append(
-                        f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView')."
-                    )
+                    errors.append(Finding(
+                        "logical-ui-spatial-feature-requires-a-spatial-component",
+                        f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView').",
+                        location=rel_path,
+                    ))
 
         return errors
 

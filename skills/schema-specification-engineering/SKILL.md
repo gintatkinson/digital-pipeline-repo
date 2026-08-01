@@ -305,6 +305,45 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - The target LUI component (e.g. `PropertyGrid`, `TableView`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`).
      - The specific target layout container ID in `logical-layout.json`.
      - The data source bindings. **CRITICAL PATH DERIVATION RULE**: You are strictly forbidden from copy-pasting generic template or placeholder namespaces (such as `schema:generic-topology`). You MUST derive the data source path directly from the fully-qualified path of the target schema container augmented in the network inventory model (e.g. `/nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame` or `/nwi:network-inventory/nil:locations/nil:racks/nil:rack`).
+   - **Logical UI Binding Validation Rules**: the bindings block is checked mechanically
+     by `parity_auditor/validators/logical_ui_validator.py`. The checks below were
+     enforced before issue #304 and stated in no document, so a drafting subagent could
+     not comply with them; they are stated here because each one constrains how a Feature
+     file is written.
+     - **Layout Bindings Section Required**: every Feature MUST carry the
+       `## Logical UI & Layout Bindings` section. A Feature is exempt only if its
+       frontmatter declares an `interface_type` of `api`, `config`, `persistence`,
+       `gate`, `cli` or `backend` — a Feature with no interface at all has nothing to
+       bind. Anything else is treated as a UI Feature and must bind.
+     - **Feature Frontmatter Must Parse**: the YAML frontmatter MUST be well formed. It
+       carries `interface_type`, which is what decides whether the exemption above
+       applies, so a Feature whose frontmatter does not parse cannot be classified and is
+       reported rather than silently exempted.
+     - **Target Component Must Exist In The Layout**: the `Target LUI Component` MUST name
+       a component type actually instantiated in `logical-layout.json`, or be `N/A`.
+       Naming a component that the layout never instantiates specifies a binding to
+       nothing.
+     - **Target Container Must Exist In The Layout**: the `Target Layout Container ID`
+       MUST name a container `id` present in `logical-layout.json`, or be `N/A`.
+     - **Component Must Match Its Container Type**: where both are given, the component
+       type MUST equal the declared type of the target container. Binding a `TableView`
+       into a container the layout declares a `PropertyGrid` is a contradiction the
+       renderer resolves arbitrarily. `TopologyMap` in `topology_pane` is the one
+       sanctioned exception.
+     - **Data Source Bindings Must Be Schema Paths**: each entry MUST be `N/A`, or begin
+       with `/`, `schema:` or `provider:`, and MUST NOT contain spaces. Prose in this
+       field reads as a binding and resolves to nothing.
+     - **Data Source Bindings Must Omit Choice And Case Nodes**: a YANG `choice` or `case`
+       node is a schema-modelling construct and does not appear in the data tree, so it
+       MUST NOT appear in a data path. Bind to the node inside the case instead.
+     - **Augmented Nodes Must Carry Their Module Prefix**: once a path enters an augmented
+       subtree, every following segment MUST carry the augmenting module's prefix (e.g.
+       `nil:location`, not `location`). An un-prefixed segment resolves against the wrong
+       module or not at all.
+     - **Spatial Features Must Bind A Spatial Component**: a Feature whose text carries
+       geodetic or spatial attributes MUST bind to `TopologyMap`, `TopographicalView`,
+       `GeoSpatialViewer`, `PropertyGrid` or `TableView`. Spatial data bound to a
+       component that cannot render position is specified and undisplayable.
    - **Geolocation & Geodetic Semantic Mapping Rules**:
      - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, velocity, geo-location, geodetic, latitude, longitude, altitude, elevation, datum, position, and spatial) represent child properties of concrete parent components.
      - You MUST map these geodetic attributes to details panels and tables (such as `PropertyGrid` with container ID `properties_view`, or `TableView` with container ID `components_table`) that are actively instantiated in the layout.

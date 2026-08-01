@@ -1,6 +1,7 @@
 import os
 from typing import List
 from .base import IValidator
+from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 class ProfileScopingValidator(IValidator):
@@ -28,7 +29,11 @@ class ProfileScopingValidator(IValidator):
         flutter_files = find_files(flutter_dir, flutter_rules.file_extensions, set(flutter_rules.exclusions))
         
         if not flutter_files:
-            return ["Profile Compliance: Codebase is empty. No source files found for profile validation."]
+            return [Finding(
+                "profile-scoping-requires-platform-sources",
+                "Profile Compliance: Codebase is empty. No source files found for profile validation.",
+                location=flutter_dir_name or "",
+            )]
 
         if flutter_files:
             dart_contents = []
@@ -42,6 +47,10 @@ class ProfileScopingValidator(IValidator):
             for filepath, content in dart_contents:
                 if "splitter" in filepath.lower() or "Splitter" in content:
                     if "Listener" not in content and "GestureDetector" not in content:
-                        errors.append(f"Profile Compliance: Flutter Splitter widget in '{os.path.basename(filepath)}' is missing pointer gesture event listeners (Listener or GestureDetector).")
+                        errors.append(Finding(
+                            "flutter-splitter-requires-pointer-gesture-listener",
+                            f"Profile Compliance: Flutter Splitter widget in '{os.path.basename(filepath)}' is missing pointer gesture event listeners (Listener or GestureDetector).",
+                            location=os.path.basename(filepath),
+                        ))
                         
         return errors
