@@ -41,7 +41,10 @@ ALWAYS_INVALID_PLACEHOLDER_PATTERNS = [
 # must stay gated on the caller's knowledge of what exists.
 CONDITIONAL_STUB_PATTERNS = [
     (re.compile(r"\*\(\s*none(?:\s+registered)?\s*\)\*", re.I), "placeholder stub"),
-    (re.compile(r"\*\s*(?:to be populated|tbd|n/a)\s*\*", re.I), "placeholder stub"),
+    # Parentheses optional: "*(TBD)*" reads exactly like "*(None)*", which the
+    # pattern above already accepts in both forms. Without this, the near-variant
+    # slips through — the same gap the comment above records (#280).
+    (re.compile(r"\*\s*\(?\s*(?:to be populated|tbd|n/a)\s*\)?\s*\*", re.I), "placeholder stub"),
 ]
 
 
