@@ -341,6 +341,136 @@ KARPATHY_FAMILY = ContractFamily(
     ),
 )
 
+SUBAGENT_ISOLATION_CONTRACTS: List[RuleContract] = [
+    RuleContract(
+        id="subagent-isolation-mandate-in-orchestrator-skill",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Item-Level Subagent Context Isolation",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: a governance document omits the item level isolation mandate"
+        ),
+        note=(
+            "Issue #278. Every specification item is drafted by a fresh subagent with "
+            "no inherited session state."
+        ),
+    ),
+    RuleContract(
+        id="subagent-isolation-mandate-in-agents-md",
+        documented_in=".agents/AGENTS.md",
+        doc_anchor="Fresh, isolated context",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: a governance document omits the item level isolation mandate"
+        ),
+        note="The co-normative restatement. Deleting either statement must fail.",
+    ),
+    RuleContract(
+        id="subagent-isolation-no-session-history-in-orchestrator-skill",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Do **NOT** pass the history of other items generated in the same run.",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: a governance document omits the no session history constraint"
+        ),
+        note=(
+            "SKILL.md:74, the line issue #278 was filed against. It was already there; "
+            "nothing asserted it stayed."
+        ),
+    ),
+    RuleContract(
+        id="subagent-isolation-no-session-history-in-agents-md",
+        documented_in=".agents/AGENTS.md",
+        doc_anchor="Do not copy the entire conversation history",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: a governance document omits the no session history constraint"
+        ),
+    ),
+    RuleContract(
+        id="subagent-isolation-marker-named-at-point-of-generation",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="generation_mode",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: the drafting step omits the subagent generation mode marker"
+        ),
+        note=(
+            "Issue #278, the real gap. The mandate was stated in two documents and the "
+            "marker that proves compliance was named in neither, while the UML "
+            "validator rejected any item lacking it -- the #299 shape, a rule a "
+            "generating subagent was never shown."
+        ),
+    ),
+    RuleContract(
+        id="subagent-isolation-marker-in-spec-templates",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor='generation_mode: "subagent"',
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: a specification template omits the generation mode marker"
+        ),
+        note=(
+            "Also stated in spec-user-story-engineering and spec-usecase-engineering; "
+            "the test checks all three, this anchor pins the Epic/Feature home."
+        ),
+    ),
+    RuleContract(
+        id="subagent-isolation-marker-enforced-by-parity-auditor",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="_validate_subagent_isolation",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: the parity auditor no longer enforces the isolation marker"
+        ),
+        note=(
+            "Enforced for all four document types by validators/uml.py. Deleting the "
+            "check, or narrowing it to fewer types, fails here."
+        ),
+    ),
+    RuleContract(
+        id="subagent-isolation-markdown-tables-not-banned-outright",
+        documented_in="skills/spec-orchestrator/SKILL.md",
+        doc_anchor="Markdown tables are not otherwise restricted",
+        enforced_in="tests/test_subagent_isolation_contract_issue278.py",
+        enforcement_anchor=(
+            "isolation-gate: a governance document prohibits markdown tables outright"
+        ),
+        note=(
+            "Issue #278 proposed 'The generation of Markdown tables is strictly "
+            "prohibited'. reconcile_backlog.py::convert_frontmatter_to_table publishes "
+            "a '| Metadata | Value |' table into every tracker issue body, so the "
+            "literal remedy outlaws the pipeline's own output -- the #279 pattern, "
+            "where the reported rule would have rejected the canonical template and "
+            "only a narrower rule was correct."
+        ),
+    ),
+]
+
+SUBAGENT_ISOLATION_FAMILY = ContractFamily(
+    name="subagent-isolation",
+    contracts=SUBAGENT_ISOLATION_CONTRACTS,
+    enforcement_file="tests/test_subagent_isolation_contract_issue278.py",
+    # Only `isolation-gate:` messages are rules about the corpus. That file also emits
+    # `isolation-guard:` messages, which are self-checks on its own fixtures and
+    # scanners; pairing those with a document would be meaningless.
+    enforcement_pattern=r'"(isolation-gate: [a-z][a-z0-9 ]{5,90})"',
+    doc_file=None,
+    doc_heading_pattern=None,
+    doc_orphan_blocked_by=(
+        "The mandate has no single normative home: it is stated co-normatively in "
+        "skills/spec-orchestrator/SKILL.md and .agents/AGENTS.md, and the frontmatter "
+        "marker that evidences it is stated in the three worker skill templates. "
+        "Scanning any one of those for orphan documentation would report the others' "
+        "statements as orphans. Both anchors of every contract above still resolve, so "
+        "deleting any single statement fails the suite; only the heading-scan half of "
+        "orphan-documentation detection is blocked. Same fragmentation issue #289 "
+        "fixed for the Mermaid rules by designating a normative home. Tracked as a "
+        "follow-up to #278."
+    ),
+)
+
+
 # NOTE: `FAMILIES` is bound ONCE, at the very bottom of this module, after
 # `MERMAID_FAMILY` has been rebound with its doc-only exemptions. There used to be a
 # binding here as well; the lower one shadowed it and omitted `DOC_REFERENCE_FAMILY`,
@@ -473,6 +603,7 @@ FAMILIES: List[ContractFamily] = [
     FILENAME_FAMILY,
     DOC_REFERENCE_FAMILY,
     KARPATHY_FAMILY,
+    SUBAGENT_ISOLATION_FAMILY,
 ]
 ALL_CONTRACTS: List[RuleContract] = [c for f in FAMILIES for c in f.contracts]
 
