@@ -41,13 +41,12 @@ _NEEDS_ISSUE = re.compile(
 
 
 def test_every_needs_an_issue_note_cites_one():
+    matches = list(_NEEDS_ISSUE.finditer(_plan()))
+    assert len(matches) >= 1, "No 'needs issue' notes found in implementation_plan.md"
     unresolved = []
-    for match in _NEEDS_ISSUE.finditer(_plan()):
+    for match in matches:
         line = match.group("line")
-        # The sentence may promise the issue; the surrounding entry must name it.
-        start = max(0, match.start() - 400)
-        window = _plan()[start:match.end() + 400]
-        if not re.search(r"#\d{2,}", window):
+        if not re.search(r"#\d{2,}", line):
             unresolved.append(line.strip()[:110])
     assert not unresolved, (
         "the plan records work as needing its own issue without citing one. A note is "

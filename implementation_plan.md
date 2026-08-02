@@ -883,7 +883,7 @@ point of K1 and K2 is that local and CI disagreed.
 - 109 committed files contain `/Users/perkunas`, almost all `.pipeline/diagnostics/*.json`
   repro payloads. `pipeline-tooling.md` § *Security & Ops* forbids absolute developer
   paths in committed files, so a repo-wide guard is warranted — but it would require
-  cleaning 109 files and is not part of getting the build green. Needs its own issue.
+  cleaning 109 files and is not part of getting the build green. Needs its own issue (#343).
 - `test_get_upstream_repository_prioritizes_git_remote_over_rules_meta` also passes an
   absolute path, but `get_git_remote_repo` is monkeypatched there so nothing touches the
   filesystem. Harmless; left alone.
