@@ -337,4 +337,51 @@ void main() {
     await tester.pump();
     expect(rolledBack, isTrue);
   });
+
+  testWidgets('Renders epsgCode, projectionParameters, vNorth, vEast, vUp with correct field configurations',
+      (WidgetTester tester) async {
+    Map<String, dynamic>? savedData;
+
+    await tester.pumpWidget(
+      buildTestableWidget(
+        PropertyGrid(
+          activeView: 'root',
+          fields: const [
+            FieldDescriptor(key: 'epsgCode', label: 'EPSG Code', type: 'string'),
+            FieldDescriptor(key: 'projectionParameters', label: 'Projection Parameters', type: 'string'),
+            FieldDescriptor(key: 'vNorth', label: 'Velocity North', type: 'string'),
+            FieldDescriptor(key: 'vEast', label: 'Velocity East', type: 'string'),
+            FieldDescriptor(key: 'vUp', label: 'Velocity Up', type: 'string'),
+          ],
+          onSave: (data) {
+            savedData = data;
+          },
+        ),
+      ),
+    );
+
+    final epsgFinder = findTextFieldByLabel('EPSG Code');
+    expect(epsgFinder, findsOneWidget);
+    final epsgTextField = tester.widget<TextField>(epsgFinder);
+    expect(epsgTextField.inputFormatters, isNotNull);
+
+    final projFinder = findTextFieldByLabel('Projection Parameters');
+    expect(projFinder, findsOneWidget);
+    final projTextField = tester.widget<TextField>(projFinder);
+    expect(projTextField.maxLines, 4);
+
+    final vNorthFinder = findTextFieldByLabel('Velocity North');
+    expect(vNorthFinder, findsOneWidget);
+    final vNorthTextField = tester.widget<TextField>(vNorthFinder);
+    vNorthTextField.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
+    await tester.enterText(vNorthFinder, '12.34');
+    await tester.pumpAndSettle();
+    vNorthTextField.focusNode!.unfocus();
+    await tester.pumpAndSettle();
+
+    expect(savedData, isNotNull);
+    expect(savedData!['vNorth'], 12.34);
+  });
 }
+
