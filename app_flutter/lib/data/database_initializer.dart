@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -185,10 +186,14 @@ class DatabaseInitializer {
   static Future<bool> _probeFfiViability() async {
     try {
       sqfliteFfiInit();
-      final probe = await databaseFactoryFfi
-          .openDatabase(inMemoryDatabasePath)
-          .timeout(const Duration(seconds: 2));
-      await probe.close();
+      final openFuture = databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      unawaited(openFuture.then((db) async {
+        try {
+          await db.close();
+        } catch (_) {}
+      }).catchError((_) {}));
+
+      await openFuture.timeout(const Duration(seconds: 2));
       return true;
     } catch (_) {
       return false;

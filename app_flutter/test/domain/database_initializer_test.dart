@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -38,7 +39,55 @@ void main() {
       await gzFile.writeAsBytes(gzipped);
       expect(await gzFile.exists(), isTrue);
     });
+  });
 
+  group('DatabaseInitializer probe timeout handle leak', () {
+    test('unclosed SQLite database handle is safely closed when openDatabase probe times out', () async {
+      Database? capturedDb;
+      final slowFactory = _SlowDatabaseFactory(databaseFactoryFfi, (db) {
+        capturedDb = db;
+      });
 
+      try {
+        final openFuture = slowFactory.openDatabase(inMemoryDatabasePath);
+        unawaited(openFuture.then((db) async {
+          try {
+            await db.close();
+          } catch (_) {}
+        }).catchError((_) {}));
+
+        await openFuture.timeout(const Duration(milliseconds: 20));
+      } catch (_) {
+        // TimeoutException caught, probe failed
+      }
+
+      // Wait for openDatabase to complete in background
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      expect(capturedDb, isNotNull, reason: 'Database should have been opened in background');
+      expect(capturedDb!.isOpen, isFalse, reason: 'Database connection should be closed by unawaited handler');
+    });
   });
 }
+
+class _SlowDatabaseFactory implements DatabaseFactory {
+  final DatabaseFactory _delegate;
+  final void Function(Database) _onOpen;
+
+  _SlowDatabaseFactory(this._delegate, this._onOpen);
+
+  @override
+  Future<Database> openDatabase(String path, {OpenDatabaseOptions? options}) async {
+    final db = await _delegate.openDatabase(path, options: options);
+    _onOpen(db);
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    return db;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    return super.noSuchMethod(invocation);
+  }
+}
+
+
