@@ -1,7 +1,8 @@
 import 'package:app_flutter/features/tables/models/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/instance_record.dart';
+import 'package:app_flutter/domain/result.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
@@ -18,45 +19,50 @@ class _MockDataSource implements DataSource {
   })? onFetchRelatedInstances;
 
   @override
-  Future<List<TypeDescriptor>> discoverTypes() async => [];
+  Future<Result<List<TypeDescriptor>>> discoverTypes() async => const Result.success([]);
 
   @override
-  Future<TypeDescriptor?> typeFor(String typeName) async =>
-      onTypeFor?.call(typeName) ?? null;
+  Future<Result<TypeDescriptor?>> typeFor(String typeName) async =>
+      Result.success(await onTypeFor?.call(typeName));
 
   @override
-  Future<List<(String, String)>> discoverHierarchy() async => [];
+  Future<Result<List<(String, String)>>> discoverHierarchy() async => const Result.success([]);
 
   @override
-  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
+  Future<Result<Map<String, dynamic>>> fetchProperties(String nodeId) async => const Result.success({});
 
   @override
-  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
+  Future<Result<void>> saveProperties(String nodeId, Map<String, dynamic> data) async => const Result.success(null);
 
   @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) =>
+  Stream<Result<Map<String, dynamic>>> watchProperties(String nodeId) =>
       const Stream.empty();
 
   @override
-  Future<List<InstanceRecord>> fetchRelatedInstances({
+  Future<Result<List<InstanceRecord>>> fetchRelatedInstances({
     required String parentNodeId,
     required TypeDescriptor targetType,
-  }) async =>
-      onFetchRelatedInstances?.call(
+  }) async {
+    if (onFetchRelatedInstances != null) {
+      final records = await onFetchRelatedInstances!(
         parentNodeId: parentNodeId,
         targetType: targetType,
-      ) ?? [];
+      );
+      return Result.success(records);
+    }
+    return const Result.success([]);
+  }
 
   @override
-  Future<List<TreeNode>> fetchRootNodes() async => [];
+  Future<Result<List<TreeNode>>> fetchRootNodes() async => const Result.success([]);
   @override
-  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async => [];
+  Future<Result<List<TreeNode>>> fetchChildrenForNode(String parentId) async => const Result.success([]);
 
   @override
-  Future<TopologyData> fetchTopologyData() async => const TopologyData(coordinateMapping: {}, nodes: [], links: []);
+  Future<Result<TopologyData>> fetchTopologyData() async => const Result.success(TopologyData(coordinateMapping: {}, nodes: [], links: []));
 
   @override
-  Future<void> dispose() async {}
+  Future<Result<void>> dispose() async => const Result.success(null);
 }
 
 

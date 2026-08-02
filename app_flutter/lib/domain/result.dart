@@ -10,6 +10,12 @@ sealed class Result<T> {
   /// Abstract const constructor for [Result].
   const Result();
 
+  /// Creates a successful [Result] carrying [value].
+  const factory Result.success(T value) = Success<T>;
+
+  /// Creates a failed [Result] carrying [error].
+  const factory Result.failure(DomainError error) = Failure<T>;
+
   /// Returns `true` if this result is a [Success].
   bool get isSuccess => this is Success<T>;
 

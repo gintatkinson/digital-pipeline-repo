@@ -1,21 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
+import 'package:app_flutter/domain/validation.dart';
 
-final _patternCache = <String, RegExp>{};
-
-/// Exception thrown when schema validation of an [InstanceRecord] fails.
-class SchemaValidationException implements Exception {
-  /// The validation error message.
-  final String message;
-
-  /// Creates a new [SchemaValidationException] with the given message.
-  const SchemaValidationException(this.message);
-
-  @override
-  String toString() => 'SchemaValidationException: $message';
-}
-
+/// Realises: [Feat-10/InstanceRecord]
+///
 /// Represents an instance record of a specific type.
+@immutable
 class InstanceRecord {
   /// Unique identifier of the instance.
   final String id;
@@ -58,90 +50,57 @@ class InstanceRecord {
     );
   }
 
-  /// Creates an [InstanceRecord] from a raw map database entry and validates it.
+  /// Attempts to parse an [InstanceRecord] from a raw map database entry.
   ///
-  /// Throws [SchemaValidationException] if validation fails.
-  factory InstanceRecord.fromMapWithValidation(
-    Map<String, dynamic> map,
-    String typeName,
-    List<FieldDescriptor> fields,
-  ) {
-    final record = InstanceRecord.fromMap(map, typeName);
-    record.validate(fields);
-    return record;
+  /// Returns `null` if parsing fails.
+  static InstanceRecord? tryParse(Map<String, dynamic> map, String typeName) {
+    try {
+      return InstanceRecord.fromMap(map, typeName);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Validates all attributes against the provided [fields] descriptors constraints.
   ///
-  /// Checks for required fields, value ranges, pattern matches, and enum options.
-  /// Throws [SchemaValidationException] and logs a warning on failure.
-  void validate(List<FieldDescriptor> fields) {
-    for (final fd in fields) {
-      final value = attributes[fd.key];
+  /// Returns [Result.success] if valid, or [Result.failure] with a [DomainError] on failure.
+  Result<void> validate(List<FieldDescriptor> fields) {
+    return validateFields(attributes, fields);
+  }
 
-      // Required check
-      if (fd.required) {
-        if (value == null || (value is String && value.trim().isEmpty)) {
-          final msg = 'Attribute "${fd.key}" is required but missing or empty for instance "$id".';
-          print('WARNING: $msg');
-          throw SchemaValidationException(msg);
-        }
-      }
+  /// Creates a copy of this [InstanceRecord] with the given fields replaced.
+  InstanceRecord copyWith({
+    String? id,
+    String? parentNodeId,
+    String? typeName,
+    Map<String, dynamic>? attributes,
+  }) {
+    return InstanceRecord(
+      id: id ?? this.id,
+      parentNodeId: parentNodeId ?? this.parentNodeId,
+      typeName: typeName ?? this.typeName,
+      attributes: attributes ?? this.attributes,
+    );
+  }
 
-      if (value != null) {
-        final strVal = value.toString();
-        // Type validation and constraints check
-        if (fd.type == 'int') {
-          final parsed = int.tryParse(strVal);
-          if (parsed == null) {
-            final msg = 'Attribute "${fd.key}" expects an integer, got "$value" for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-          if (fd.minValue != null && parsed < fd.minValue!) {
-            final msg = 'Attribute "${fd.key}" value $parsed is below minimum limit ${fd.minValue} for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-          if (fd.maxValue != null && parsed > fd.maxValue!) {
-            final msg = 'Attribute "${fd.key}" value $parsed exceeds maximum limit ${fd.maxValue} for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-        } else if (fd.type == 'double' || fd.type == 'real') {
-          final parsed = double.tryParse(strVal);
-          if (parsed == null) {
-            final msg = 'Attribute "${fd.key}" expects a double/real, got "$value" for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-          if (fd.minValue != null && parsed < fd.minValue!) {
-            final msg = 'Attribute "${fd.key}" value $parsed is below minimum limit ${fd.minValue} for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-          if (fd.maxValue != null && parsed > fd.maxValue!) {
-            final msg = 'Attribute "${fd.key}" value $parsed exceeds maximum limit ${fd.maxValue} for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-        } else if (fd.type == 'string') {
-          if (fd.pattern != null && fd.pattern!.isNotEmpty) {
-            final regex = _patternCache.putIfAbsent(fd.pattern!, () => RegExp(fd.pattern!));
-            if (!regex.hasMatch(strVal)) {
-              final msg = 'Attribute "${fd.key}" value "$strVal" does not match pattern "${fd.pattern}" for instance "$id".';
-              print('WARNING: $msg');
-              throw SchemaValidationException(msg);
-            }
-          }
-        } else if (fd.type == 'enum') {
-          if (fd.enumOptions != null && !fd.enumOptions!.contains(strVal)) {
-            final msg = 'Attribute "${fd.key}" value "$strVal" is not a valid option (expected one of ${fd.enumOptions}) for instance "$id".';
-            print('WARNING: $msg');
-            throw SchemaValidationException(msg);
-          }
-        }
-      }
-    }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is InstanceRecord &&
+        other.id == id &&
+        other.parentNodeId == parentNodeId &&
+        other.typeName == typeName &&
+        mapEquals(other.attributes, attributes);
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      id,
+      parentNodeId,
+      typeName,
+      Object.hashAll(attributes.keys),
+      Object.hashAll(attributes.values),
+    );
   }
 }

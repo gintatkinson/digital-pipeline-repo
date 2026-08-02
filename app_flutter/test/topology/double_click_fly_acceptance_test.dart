@@ -6,8 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/instance_record.dart';
+import 'package:app_flutter/domain/result.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/map_viewport/cesium_3d/camera_controller.dart';
 import 'package:app_flutter/features/layout/layout.dart';
@@ -60,44 +61,45 @@ class FakeDataSource implements DataSource {
   });
 
   @override
-  Future<List<TypeDescriptor>> discoverTypes() async => types.values.toList();
+  Future<Result<List<TypeDescriptor>>> discoverTypes() async => Result.success(types.values.toList());
 
   @override
-  Future<TypeDescriptor?> typeFor(String typeName) async => types[typeName];
+  Future<Result<TypeDescriptor?>> typeFor(String typeName) async => Result.success(types[typeName]);
 
   @override
-  Future<List<(String, String)>> discoverHierarchy() async => [];
+  Future<Result<List<(String, String)>>> discoverHierarchy() async => const Result.success([]);
 
   @override
-  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => properties[nodeId] ?? {};
+  Future<Result<Map<String, dynamic>>> fetchProperties(String nodeId) async => Result.success(properties[nodeId] ?? {});
 
   @override
-  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
+  Future<Result<void>> saveProperties(String nodeId, Map<String, dynamic> data) async {
     properties[nodeId] = data;
+    return const Result.success(null);
   }
 
   @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) {
-    return Stream.value(properties[nodeId] ?? {});
+  Stream<Result<Map<String, dynamic>>> watchProperties(String nodeId) {
+    return Stream.value(Result.success(properties[nodeId] ?? {}));
   }
 
   @override
-  Future<List<InstanceRecord>> fetchRelatedInstances({
+  Future<Result<List<InstanceRecord>>> fetchRelatedInstances({
     required String parentNodeId,
     required TypeDescriptor targetType,
-  }) async => [];
+  }) async => const Result.success([]);
 
   @override
-  Future<List<TreeNode>> fetchRootNodes() async => roots;
+  Future<Result<List<TreeNode>>> fetchRootNodes() async => Result.success(roots);
 
   @override
-  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async => [];
+  Future<Result<List<TreeNode>>> fetchChildrenForNode(String parentId) async => const Result.success([]);
 
   @override
-  Future<TopologyData> fetchTopologyData() async => topology;
+  Future<Result<TopologyData>> fetchTopologyData() async => Result.success(topology);
 
   @override
-  Future<void> dispose() async {}
+  Future<Result<void>> dispose() async => const Result.success(null);
 }
 
 /// Logical layout JSON config definition to map sidebar tree + 3D viewport.

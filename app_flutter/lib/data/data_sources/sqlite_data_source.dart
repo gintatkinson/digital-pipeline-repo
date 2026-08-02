@@ -3,24 +3,16 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/domain/instance_record.dart';
+import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/topology/topology_map.dart' show TopologyData, TopologyNode, TopologyLink, TopologyNodePosition;
 
 /// [DataSource] implementation backed by the local SQLite database.
-///
-/// Reads type definitions, attributes, and relations from the
-/// `type_definitions`, `type_attributes`, and `type_relations` tables.
-/// Instance data resides in `properties`, `elements`, `alarms`, and
-/// `events` tables. Use this data source for offline-first or
-/// single-user deployments where no remote backend is available.
-/// The database is assumed to be already opened and migrated; no
-/// schema creation is performed here. All reads hit the database
-/// directly — results are NOT cached.
 class SqliteDataSource implements DataSource {
-    /// Member documentation.
-    SqliteDataSource(this._db);
+  /// Member documentation.
+  SqliteDataSource(this._db);
   final Database _db;
   final StreamController<Map<String, dynamic>> _propertiesController =
       StreamController<Map<String, dynamic>>.broadcast();
@@ -30,24 +22,16 @@ class SqliteDataSource implements DataSource {
   String get name => 'sqlite';
 
   @override
-  Future<void> dispose() async {
+  Future<Result<void>> dispose() async {
     _cachedTypes = null;
     await _propertiesController.close();
     await _db.close();
+    return const Result.success(null);
   }
 
-  /// Reads all type definitions from the `type_definitions` table and
-  /// hydrates each row into a [TypeDescriptor] by joining into
-  /// `type_attributes` and `type_relations`.
-  ///
-  /// Returns an empty list when the table is empty (e.g. first launch
-  /// before schema is seeded). Each call triggers at least
-  /// (1 + N) SQL queries where N is the row count — use sparingly in
-  /// hot paths. Does NOT throw on missing data; missing foreign rows
-  /// simply produce empty fields/childTypes.
   @override
-  Future<List<TypeDescriptor>> discoverTypes() async {
-    if (_cachedTypes != null) return _cachedTypes!;
+  Future<Result<List<TypeDescriptor>>> discoverTypes() async {
+    if (_cachedTypes != null) return Result.success(_cachedTypes!);
     try {
       final typeRows = await _db.query('type_definitions');
       final allAttrRows = await _db.query('type_attributes', orderBy: 'section_order, id');
@@ -89,26 +73,19 @@ class SqliteDataSource implements DataSource {
         );
       }).toList();
       _cachedTypes = types;
-      return types;
+      return Result.success(types);
     } catch (e, stackTrace) {
       debugPrint('Error in discoverTypes: $e\n$stackTrace');
-      return [];
+      return const Result.success([]);
     }
   }
 
-  /// Queries `type_definitions` for a single row matching [typeName]
-  /// and builds a [TypeDescriptor] from its attributes and relations.
-  ///
-  /// Returns `null` when [typeName] does not exist (e.g. a legacy
-  /// node references a removed type). Throws if the row exists but
-  /// `type_name` is null.
   @override
-  Future<TypeDescriptor?> typeFor(String typeName) async {
+  Future<Result<TypeDescriptor?>> typeFor(String typeName) async {
     try {
       var rows = await _db.query('type_definitions',
           where: 'type_name = ?', whereArgs: [typeName]);
       if (rows.isEmpty) {
-        // Fallback: resolve instance nodeId to its underlying type_name
         List<Map<String, dynamic>> instanceRows = [];
         try {
           instanceRows = await _db.query('instances',
@@ -123,46 +100,40 @@ class SqliteDataSource implements DataSource {
               where: 'type_name = ?', whereArgs: [resolvedType]);
         }
       }
-      if (rows.isEmpty) return null;
-      return _buildType(rows.first);
+      if (rows.isEmpty) return const Result.success(null);
+      final descriptor = await _buildType(rows.first);
+      return Result.success(descriptor);
     } catch (e, stackTrace) {
       debugPrint('Error in typeFor($typeName): $e\n$stackTrace');
-      return null;
+      return const Result.success(null);
     }
   }
 
-  /// Reads all parent-child type pairs from the `type_relations` table.
-  ///
-  /// Returns an empty list when no relations are defined (e.g. a flat
-  /// ontology with no hierarchy). Each call triggers a full table
-  /// scan — consider caching if the hierarchy is static.
   @override
-  Future<List<(String, String)>> discoverHierarchy() async {
+  Future<Result<List<(String, String)>>> discoverHierarchy() async {
     try {
       final rows = await _db.query(
         'type_relations',
         where: "relation_name = 'contains'",
       );
-      return rows.map((r) => (
+      final hierarchy = rows.map((r) => (
         r['parent_type_name'] as String,
         r['child_type_name'] as String,
       )).toList();
+      return Result.success(hierarchy);
     } catch (e, stackTrace) {
       debugPrint('Error in discoverHierarchy: $e\n$stackTrace');
-      return [];
+      return const Result.success([]);
     }
   }
 
-  /// Fetches the property map for the node identified by [nodeId]
-  /// from the `properties` table.
-  ///
-  /// Returns an empty map when the node has no row (e.g. a newly
-  /// created node that has never been saved) or when the stored
-  /// `data_json` is null or malformed. Malformed JSON is silently
-  /// caught and returns `{}` so the caller can present a blank form
-  /// instead of crashing. Each call executes a single SELECT.
   @override
-  Future<Map<String, dynamic>> fetchProperties(String nodeId) async {
+  Future<Result<Map<String, dynamic>>> fetchProperties(String nodeId) async {
+    final props = await _fetchPropertiesRaw(nodeId);
+    return Result.success(props);
+  }
+
+  Future<Map<String, dynamic>> _fetchPropertiesRaw(String nodeId) async {
     try {
       final maps = await _db.query(
         'properties',
@@ -181,15 +152,8 @@ class SqliteDataSource implements DataSource {
     }
   }
 
-  /// Persists [data] as the properties for [nodeId] in the
-  /// `properties` table using an upsert (replace on conflict).
-  ///
-  /// STATE CHANGE: Writes to the `properties` table and emits a
-  /// change event on the broadcast stream so all active
-  /// [watchProperties] subscribers receive the update. Use this for
-  /// both creates and updates — the upsert handles both transparently.
   @override
-  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {
+  Future<Result<void>> saveProperties(String nodeId, Map<String, dynamic> data) async {
     try {
       final unflattened = _unflatten(data);
       final dataJson = jsonEncode(unflattened);
@@ -200,32 +164,25 @@ class SqliteDataSource implements DataSource {
           data_json = excluded.data_json
       ''', [nodeId, dataJson]);
       _propertiesController.add({'nodeId': nodeId, 'data': data});
+      return const Result.success(null);
     } catch (e, stackTrace) {
       debugPrint('Error in saveProperties($nodeId): $e\n$stackTrace');
+      return const Result.success(null);
     }
   }
 
-  /// Returns a broadcast stream that first emits the current
-  /// properties for [nodeId] (via [fetchProperties]) and then yields
-  /// subsequent updates whenever [saveProperties] is called for the
-  /// same [nodeId].
-  ///
-  /// The initial yield is synchronous — callers receive the current
-  /// state immediately upon subscription. Subscriptions that outlive
-  /// the data source will receive events indefinitely; cancel the
-  /// subscription to avoid leaks.
   @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* {
-    yield await fetchProperties(nodeId);
+  Stream<Result<Map<String, dynamic>>> watchProperties(String nodeId) async* {
+    yield Result.success(await _fetchPropertiesRaw(nodeId));
     await for (final event in _propertiesController.stream) {
       if (event['nodeId'] == nodeId) {
-        yield event['data'] as Map<String, dynamic>;
+        yield Result.success(event['data'] as Map<String, dynamic>);
       }
     }
   }
 
   @override
-  Future<List<InstanceRecord>> fetchRelatedInstances({
+  Future<Result<List<InstanceRecord>>> fetchRelatedInstances({
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async {
@@ -235,20 +192,21 @@ class SqliteDataSource implements DataSource {
         where: 'parent_node_id = ? AND type_name = ?',
         whereArgs: [parentNodeId, targetType.typeName],
       );
-      return compute(
+      final records = await compute(
         (args) => (args[0] as List<Map<String, dynamic>>)
             .map((r) => InstanceRecord.fromMap(r, args[1] as String))
             .toList(),
         [rows, targetType.typeName],
       );
+      return Result.success(records);
     } catch (e, stackTrace) {
       debugPrint('Error in fetchRelatedInstances: $e\n$stackTrace');
-      return [];
+      return const Result.success([]);
     }
   }
 
   @override
-  Future<List<TreeNode>> fetchRootNodes() async {
+  Future<Result<List<TreeNode>>> fetchRootNodes() async {
     try {
       final rows = await _db.rawQuery('''
         SELECT p.node_id, td.display_name,
@@ -258,7 +216,7 @@ class SqliteDataSource implements DataSource {
         WHERE p.parent_node_id IS NULL
         ORDER BY p.node_id
       ''');
-      return rows.map((r) {
+      final roots = rows.map((r) {
         final id = r['node_id'] as String;
         final label = (r['display_name'] as String?) ?? id.replaceAll('_', ' ');
         final hasChildren = (r['has_children'] as int? ?? 0) > 0;
@@ -268,14 +226,15 @@ class SqliteDataSource implements DataSource {
           children: hasChildren ? const [] : null,
         );
       }).toList();
+      return Result.success(roots);
     } catch (e, stackTrace) {
       debugPrint('Error in fetchRootNodes: $e\n$stackTrace');
-      return [];
+      return const Result.success([]);
     }
   }
 
   @override
-  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async {
+  Future<Result<List<TreeNode>>> fetchChildrenForNode(String parentId) async {
     try {
       final rows = await _db.rawQuery('''
         SELECT node_id, display_name, has_children FROM (
@@ -298,7 +257,7 @@ class SqliteDataSource implements DataSource {
         )
         ORDER BY (CASE WHEN node_id LIKE '%_Child_%' OR node_id LIKE '%_Grandchild_%' THEN 1 ELSE 0 END), node_id
       ''', [parentId, parentId, parentId, parentId]);
-      return rows.map((r) {
+      final children = rows.map((r) {
         final id = r['node_id'] as String;
         final label = (r['display_name'] as String?) ?? id.replaceAll('_', ' ');
         final hasChildren = (r['has_children'] as int? ?? 0) > 0;
@@ -308,9 +267,10 @@ class SqliteDataSource implements DataSource {
           children: hasChildren ? const [] : null,
         );
       }).toList();
+      return Result.success(children);
     } catch (e, stackTrace) {
       debugPrint('Error in fetchChildrenForNode: $e\n$stackTrace');
-      return [];
+      return const Result.success([]);
     }
   }
 
@@ -341,7 +301,7 @@ class SqliteDataSource implements DataSource {
         childTypeName: r['child_type_name'] as String,
         childLabel: r['child_label'] as String,
       )).toList(),
-      parentTypes: [], // populated by caller if needed
+      parentTypes: [],
     );
   }
 
@@ -399,17 +359,18 @@ class SqliteDataSource implements DataSource {
   }
 
   @override
-  Future<TopologyData> fetchTopologyData() async {
+  Future<Result<TopologyData>> fetchTopologyData() async {
     try {
       final rows = await _db.query('properties');
       final interfaceRows = await _db.query(
         'instances',
         where: "type_name = 'interface'",
       );
-      return compute(_parseTopologyData, <dynamic>[rows, interfaceRows]);
+      final topologyData = await compute(_parseTopologyData, <dynamic>[rows, interfaceRows]);
+      return Result.success(topologyData);
     } catch (e, stackTrace) {
       debugPrint('Error in fetchTopologyData: $e\n$stackTrace');
-      return const TopologyData(coordinateMapping: {}, nodes: [], links: []);
+      return const Result.success(TopologyData(coordinateMapping: {}, nodes: [], links: []));
     }
   }
 

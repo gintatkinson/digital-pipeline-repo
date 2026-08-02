@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/domain/instance_record.dart';
+import 'package:app_flutter/domain/result.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
@@ -18,7 +19,7 @@ class _MockDataSource implements DataSource {
   String get name => 'mock';
 
   @override
-  Future<List<TypeDescriptor>> discoverTypes() async => [
+  Future<Result<List<TypeDescriptor>>> discoverTypes() async => Result.success([
     TypeDescriptor(
       typeName: 'Root', displayName: 'Root', iconName: 'folder',
       fields: [for (int i = 0; i < 5; i++) FieldDescriptor(key: 'c$i', label: 'Col $i', type: 'string', sectionOrder: i)],
@@ -30,46 +31,47 @@ class _MockDataSource implements DataSource {
       fields: [for (int i = 0; i < 5; i++) FieldDescriptor(key: 'c$i', label: 'Col $i', type: 'string', sectionOrder: i)],
       childTypes: [], relatedTypes: [], parentTypes: [],
     ),
-  ];
+  ]);
 
   @override
-  Future<TypeDescriptor?> typeFor(String typeName) async {
-    final types = await discoverTypes();
-    for (final t in types) { if (t.typeName == typeName) return t; }
-    return null;
+  Future<Result<TypeDescriptor?>> typeFor(String typeName) async {
+    final res = await discoverTypes();
+    final types = res.isSuccess ? (res as Success<List<TypeDescriptor>>).value : <TypeDescriptor>[];
+    for (final t in types) { if (t.typeName == typeName) return Result.success(t); }
+    return const Result.success(null);
   }
 
   @override
-  Future<List<(String, String)>> discoverHierarchy() async => [];
+  Future<Result<List<(String, String)>>> discoverHierarchy() async => const Result.success([]);
   @override
-  Future<Map<String, dynamic>> fetchProperties(String nodeId) async => {};
+  Future<Result<Map<String, dynamic>>> fetchProperties(String nodeId) async => const Result.success({});
   @override
-  Future<void> saveProperties(String nodeId, Map<String, dynamic> data) async {}
+  Future<Result<void>> saveProperties(String nodeId, Map<String, dynamic> data) async => const Result.success(null);
   @override
-  Stream<Map<String, dynamic>> watchProperties(String nodeId) async* { yield {}; }
+  Stream<Result<Map<String, dynamic>>> watchProperties(String nodeId) async* { yield const Result.success({}); }
   @override
-  Future<List<InstanceRecord>> fetchRelatedInstances({
+  Future<Result<List<InstanceRecord>>> fetchRelatedInstances({
     required String parentNodeId,
     required TypeDescriptor targetType,
   }) async {
-    return List.generate(rowCount, (i) => InstanceRecord(
+    return Result.success(List.generate(rowCount, (i) => InstanceRecord(
       id: 'id-$i',
       parentNodeId: parentNodeId,
       typeName: targetType.typeName,
       attributes: {for (int j = 0; j < 5; j++) 'c$j': 'V${i}_$j'},
-    ));
+    )));
   }
 
   @override
-  Future<List<TreeNode>> fetchRootNodes() async => [];
+  Future<Result<List<TreeNode>>> fetchRootNodes() async => const Result.success([]);
   @override
-  Future<List<TreeNode>> fetchChildrenForNode(String parentId) async => [];
+  Future<Result<List<TreeNode>>> fetchChildrenForNode(String parentId) async => const Result.success([]);
 
   @override
-  Future<TopologyData> fetchTopologyData() async => const TopologyData(coordinateMapping: {}, nodes: [], links: []);
+  Future<Result<TopologyData>> fetchTopologyData() async => const Result.success(TopologyData(coordinateMapping: {}, nodes: [], links: []));
 
   @override
-  Future<void> dispose() async {}
+  Future<Result<void>> dispose() async => const Result.success(null);
 }
 
 

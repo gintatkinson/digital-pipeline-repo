@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:app_flutter/features/tables/models/column_model.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/instance_record.dart';
+import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
 /// Metadata for a single tab in the table view, derived from either a child
@@ -28,28 +29,6 @@ class TabDescriptor {
 
 /// Drives the tabbed table view by discovering tabs from the data source and
 /// fetching tabular data asynchronously.
-///
-/// Exists to centralise data-source interaction for the tables feature and to
-/// keep the widget layer free of async orchestration. Use this view model
-/// wherever a [TabbedContainer] (or similar) needs reactive tab/table state.
-///
-/// Edge cases:
-///   - If the data source returns `null` for a type descriptor (unknown node),
-///     [loadForNode] exits early leaving [tabs] empty.
-///   - Stale requests are abandoned using a monotonically increasing request
-///     counter ([_requestId]) — responses for superseded requests are ignored.
-///   - If all types resolve but no child/related types exist, [tabs] is empty,
-///     [selectedTabId] is `null`, [loading] is `false`, and no data is fetched.
-///   - [selectTab] receives a [tabId] that does not match any tab — this throws
-///     because [firstWhere] without `orElse` is used; callers must ensure the
-///     id is valid (typically via [tabs] state).
-///
-/// State changes: each public method ([loadForNode], [selectTab]) sets
-/// [_loading] to `true`, clears errors, calls [notifyListeners], then fetches
-/// data asynchronously. On completion, [_loading] is `false`, [headers],
-/// [rows] are updated, and [notifyListeners] is called again. On failure,
-/// [_error] is set, [rows] and [headers] are cleared, and a stack trace is
-/// logged via [debugPrint].
 class TablesViewModel extends ChangeNotifier {
   final DataSource _dataSource;
   String _activeView;
@@ -65,7 +44,7 @@ class TablesViewModel extends ChangeNotifier {
   bool _disposed = false;
 
   final Map<(String, String), List<InstanceRecord>> _cache = {};
-  StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
+  StreamSubscription<Result<Map<String, dynamic>>>? _propertiesSubscription;
   Timer? _debounceTimer;
 
   List<ColumnModel>? _prevVisibleHeaders;
@@ -133,12 +112,6 @@ class TablesViewModel extends ChangeNotifier {
   String? get error => _error;
 
   /// Discovers tabs and loads the first tab's data for the given [nodeId].
-  ///
-  /// Fetches the [TypeDescriptor] for [nodeId], then iterates
-  /// [childTypes] and [relatedTypes] to build [tabs]. Once built, loads data
-  /// for the first tab. If the data source returns `null`, this is a no-op
-  /// (tabs remain empty). Stale responses (superseded by a newer call) are
-  /// silently dropped via the [_requestId] counter.
   Future<void> loadForNode(String nodeId) async {
     if (_disposed) return;
     final requestId = ++_requestId;
@@ -154,8 +127,9 @@ class TablesViewModel extends ChangeNotifier {
     _setupPropertiesSubscription(nodeId);
 
     try {
-      final typeDescriptor = await _dataSource.typeFor(nodeId);
+      final typeRes = await _dataSource.typeFor(nodeId);
       if (_disposed || requestId != _requestId) return;
+      final typeDescriptor = typeRes.isSuccess ? (typeRes as Success<TypeDescriptor?>).value : null;
       if (typeDescriptor == null) {
         _loading = false;
         notifyListeners();
@@ -166,8 +140,9 @@ class TablesViewModel extends ChangeNotifier {
 
       // 1. Child types (hierarchy containment)
       for (final ct in typeDescriptor.childTypes) {
-        final childDesc = await _dataSource.typeFor(ct.childTypeName);
+        final childRes = await _dataSource.typeFor(ct.childTypeName);
         if (_disposed || requestId != _requestId) return;
+        final childDesc = childRes.isSuccess ? (childRes as Success<TypeDescriptor?>).value : null;
         if (childDesc == null) continue;
         tabs.add(TabDescriptor(
           id: ct.childTypeName,
@@ -178,8 +153,9 @@ class TablesViewModel extends ChangeNotifier {
 
       // 2. Related types (events, alarms, etc.)
       for (final rt in typeDescriptor.relatedTypes) {
-        final relDesc = await _dataSource.typeFor(rt.childTypeName);
+        final relRes = await _dataSource.typeFor(rt.childTypeName);
         if (_disposed || requestId != _requestId) return;
+        final relDesc = relRes.isSuccess ? (relRes as Success<TypeDescriptor?>).value : null;
         if (relDesc == null) continue;
         tabs.add(TabDescriptor(
           id: rt.childTypeName,
@@ -215,12 +191,6 @@ class TablesViewModel extends ChangeNotifier {
   }
 
   /// Switches to the tab identified by [tabId] and loads its data.
-  ///
-  /// [tabId] must match one of the [tabs] identifiers (uses [firstWhere]
-  /// without `orElse` — an unknown id throws [StateError]). Sets [_loading]
-  /// to `true`, clears the error state, then calls [_loadData] to fetch rows.
-  /// When the node no longer has the tab referenced by [tabId], callers should
-  /// guard usage or call [loadForNode] first to refresh the tab list.
   Future<void> selectTab(String tabId) async {
     if (_disposed) return;
     if (!_tabs.any((t) => t.id == tabId)) return;
@@ -246,11 +216,12 @@ class TablesViewModel extends ChangeNotifier {
       if (_cache.containsKey(cacheKey)) {
         records = _cache[cacheKey]!;
       } else {
-        records = await _dataSource.fetchRelatedInstances(
+        final relRes = await _dataSource.fetchRelatedInstances(
           parentNodeId: _activeView,
           targetType: tab.type,
         );
         if (_disposed || requestId != _requestId) return;
+        records = relRes.isSuccess ? (relRes as Success<List<InstanceRecord>>).value : [];
         _cache[cacheKey] = records;
       }
 
@@ -281,7 +252,7 @@ class TablesViewModel extends ChangeNotifier {
     _debounceTimer?.cancel();
     bool isFirst = true;
     _propertiesSubscription = _dataSource.watchProperties(nodeId).listen(
-      (data) {
+      (res) {
         if (_disposed) return;
         if (isFirst) {
           isFirst = false;

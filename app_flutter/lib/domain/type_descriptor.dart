@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart';
+
+/// Realises: [Feat-10/TypeDescriptor]
+///
 /// Describes a single object type discovered at runtime from the connected
 /// [DataSource].
 ///
@@ -10,6 +14,7 @@
 /// All fields are immutable and must be provided at construction. An empty
 /// [TypeDescriptor] (no fields, no relations) is valid and renders as a
 /// bare label in the tree — it does not throw.
+@immutable
 class TypeDescriptor {
   /// Internal identifier matching the data source, e.g. "device".
   ///
@@ -60,7 +65,7 @@ class TypeDescriptor {
   /// An empty list means this type is a root node with no parent.
   final List<TypeRelationDescriptor> parentTypes;
 
-  /// Member documentation.
+  /// Creates a new [TypeDescriptor] instance.
   const TypeDescriptor({
     required this.typeName,
     required this.displayName,
@@ -70,8 +75,57 @@ class TypeDescriptor {
     required this.relatedTypes,
     required this.parentTypes,
   });
+
+  /// Creates a copy of this [TypeDescriptor] with the given fields replaced.
+  TypeDescriptor copyWith({
+    String? typeName,
+    String? displayName,
+    String? iconName,
+    List<FieldDescriptor>? fields,
+    List<TypeRelationDescriptor>? childTypes,
+    List<TypeRelationDescriptor>? relatedTypes,
+    List<TypeRelationDescriptor>? parentTypes,
+  }) {
+    return TypeDescriptor(
+      typeName: typeName ?? this.typeName,
+      displayName: displayName ?? this.displayName,
+      iconName: iconName ?? this.iconName,
+      fields: fields ?? this.fields,
+      childTypes: childTypes ?? this.childTypes,
+      relatedTypes: relatedTypes ?? this.relatedTypes,
+      parentTypes: parentTypes ?? this.parentTypes,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TypeDescriptor &&
+        other.typeName == typeName &&
+        other.displayName == displayName &&
+        other.iconName == iconName &&
+        listEquals(other.fields, fields) &&
+        listEquals(other.childTypes, childTypes) &&
+        listEquals(other.relatedTypes, relatedTypes) &&
+        listEquals(other.parentTypes, parentTypes);
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      typeName,
+      displayName,
+      iconName,
+      Object.hashAll(fields),
+      Object.hashAll(childTypes),
+      Object.hashAll(relatedTypes),
+      Object.hashAll(parentTypes),
+    );
+  }
 }
 
+/// Realises: [Feat-10/FieldDescriptor]
+///
 /// Describes one field/attribute of a [TypeDescriptor].
 ///
 /// Each field tells the UI how to render an editor control (text field,
@@ -79,6 +133,7 @@ class TypeDescriptor {
 /// Fields are discovered at runtime — no compile-time schema is required.
 /// An empty [FieldDescriptor] is invalid; at minimum [key], [label], and
 /// [type] must be provided.
+@immutable
 class FieldDescriptor {
   static final _compiledPatterns = <String, RegExp>{};
 
@@ -88,6 +143,7 @@ class FieldDescriptor {
     if (pattern == null || pattern!.isEmpty) return null;
     return _compiledPatterns.putIfAbsent(pattern!, () => RegExp(pattern!));
   }
+
   /// Unique key within the type, e.g. "maxVoltage".
   ///
   /// Used as the map key when reading/writing property data.
@@ -170,7 +226,7 @@ class FieldDescriptor {
   /// Unknown formatter names are silently ignored.
   final List<String>? inputFormatters;
 
-  /// Member documentation.
+  /// Creates a new [FieldDescriptor] instance.
   const FieldDescriptor({
     required this.key,
     required this.label,
@@ -186,14 +242,88 @@ class FieldDescriptor {
     this.defaultValue,
     this.inputFormatters,
   });
+
+  /// Creates a copy of this [FieldDescriptor] with the given fields replaced.
+  FieldDescriptor copyWith({
+    String? key,
+    String? label,
+    String? type,
+    String? sectionLabel,
+    int? sectionOrder,
+    bool? required,
+    num? minValue,
+    num? maxValue,
+    String? pattern,
+    List<String>? enumOptions,
+    List<String>? enumDisplayNames,
+    dynamic defaultValue,
+    List<String>? inputFormatters,
+  }) {
+    return FieldDescriptor(
+      key: key ?? this.key,
+      label: label ?? this.label,
+      type: type ?? this.type,
+      sectionLabel: sectionLabel ?? this.sectionLabel,
+      sectionOrder: sectionOrder ?? this.sectionOrder,
+      required: required ?? this.required,
+      minValue: minValue ?? this.minValue,
+      maxValue: maxValue ?? this.maxValue,
+      pattern: pattern ?? this.pattern,
+      enumOptions: enumOptions ?? this.enumOptions,
+      enumDisplayNames: enumDisplayNames ?? this.enumDisplayNames,
+      defaultValue: defaultValue ?? this.defaultValue,
+      inputFormatters: inputFormatters ?? this.inputFormatters,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is FieldDescriptor &&
+        other.key == key &&
+        other.label == label &&
+        other.type == type &&
+        other.sectionLabel == sectionLabel &&
+        other.sectionOrder == sectionOrder &&
+        other.required == required &&
+        other.minValue == minValue &&
+        other.maxValue == maxValue &&
+        other.pattern == pattern &&
+        listEquals(other.enumOptions, enumOptions) &&
+        listEquals(other.enumDisplayNames, enumDisplayNames) &&
+        other.defaultValue == defaultValue &&
+        listEquals(other.inputFormatters, inputFormatters);
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      key,
+      label,
+      type,
+      sectionLabel,
+      sectionOrder,
+      required,
+      minValue,
+      maxValue,
+      pattern,
+      enumOptions != null ? Object.hashAll(enumOptions!) : null,
+      enumDisplayNames != null ? Object.hashAll(enumDisplayNames!) : null,
+      defaultValue,
+      inputFormatters != null ? Object.hashAll(inputFormatters!) : null,
+    );
+  }
 }
 
+/// Realises: [Feat-10/TypeRelationDescriptor]
+///
 /// Describes a directed relationship between two [TypeDescriptor]s.
 ///
 /// Used by the tree view, tab bar, and navigation breadcrumbs to
 /// determine which types are connected and how to label the connection.
 /// Relationships are directional: parent→child defines hierarchy,
 /// while related→current defines peer associations.
+@immutable
 class TypeRelationDescriptor {
   /// Semantic name of the relation, e.g. "contains", "belongs_to".
   ///
@@ -214,10 +344,35 @@ class TypeRelationDescriptor {
   /// related-items panel. Falls back to [childTypeName] if empty.
   final String childLabel;
 
-  /// Member documentation.
+  /// Creates a new [TypeRelationDescriptor] instance.
   const TypeRelationDescriptor({
     required this.relationName,
     required this.childTypeName,
     required this.childLabel,
   });
+
+  /// Creates a copy of this [TypeRelationDescriptor] with the given fields replaced.
+  TypeRelationDescriptor copyWith({
+    String? relationName,
+    String? childTypeName,
+    String? childLabel,
+  }) {
+    return TypeRelationDescriptor(
+      relationName: relationName ?? this.relationName,
+      childTypeName: childTypeName ?? this.childTypeName,
+      childLabel: childLabel ?? this.childLabel,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TypeRelationDescriptor &&
+        other.relationName == relationName &&
+        other.childTypeName == childTypeName &&
+        other.childLabel == childLabel;
+  }
+
+  @override
+  int get hashCode => Object.hash(relationName, childTypeName, childLabel);
 }

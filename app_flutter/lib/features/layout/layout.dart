@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
 import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/layout/layout_config_service.dart';
@@ -57,7 +58,7 @@ class _LayoutState extends State<Layout> {
 
   // Data Source
   DataSource? _dataSource;
-  StreamSubscription<Map<String, dynamic>>? _propertiesSubscription;
+  StreamSubscription<Result<Map<String, dynamic>>>? _propertiesSubscription;
   Map<String, dynamic> _nodeData = const {};
 
   // Tree ViewModel
@@ -70,7 +71,8 @@ class _LayoutState extends State<Layout> {
 
   bool _layoutInitialized = false;
 
-  /// Subscribes to property changes for the given [nodeId].
+  /// Subscribes to live property updates for [nodeId] via
+  /// [DataSource.watchProperties].
   ///
   /// Cancels any previous subscription before creating a new one. Updates
   /// [_nodeData] on each data event and triggers a rebuild. Errors are logged
@@ -79,10 +81,12 @@ class _LayoutState extends State<Layout> {
     _propertiesSubscription?.cancel();
     _nodeData = const {};
     _propertiesSubscription = _dataSource!.watchProperties(nodeId).listen(
-      (data) {
+      (res) {
         if (mounted) {
           setState(() {
-            _nodeData = data;
+            _nodeData = res.isSuccess
+                ? (res as Success<Map<String, dynamic>>).value
+                : const {};
           });
         }
       },
@@ -221,7 +225,8 @@ class _LayoutState extends State<Layout> {
   Future<void> _preloadTopologyData() async {
     try {
       final dataSource = context.read<DataSource>();
-      var data = await dataSource.fetchTopologyData();
+      final res = await dataSource.fetchTopologyData();
+      var data = res.isSuccess ? (res as Success<TopologyData>).value : const TopologyData(coordinateMapping: {}, nodes: [], links: []);
       if (data.nodes.isEmpty) {
         data = await loadTopologyData();
       }

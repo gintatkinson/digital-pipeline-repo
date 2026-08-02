@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
 /// Loads a [TypeDescriptor] from the data source and exposes its fields to the
@@ -41,10 +42,10 @@ class PropertiesViewModel extends ChangeNotifier {
   /// Replaces any previously loaded type unconditionally.
   Future<void> loadType(String typeName) async {
     final requestId = ++_requestId;
-    final result = await _dataSource.typeFor(typeName);
+    final res = await _dataSource.typeFor(typeName);
     if (_disposed) return;
     if (_requestId != requestId) return;
-    _currentType = result;
+    _currentType = res.isSuccess ? (res as Success<TypeDescriptor?>).value : null;
     notifyListeners();
   }
 

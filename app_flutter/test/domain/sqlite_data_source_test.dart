@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/data/database_initializer.dart';
 import 'package:app_flutter/data/data_sources/sqlite_data_source.dart';
+import 'package:app_flutter/domain/result.dart';
+import 'package:app_flutter/domain/type_descriptor.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -11,11 +13,9 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
-  test('saveProperties preserves parent_node_id for child node on conflict/update', () async {
-    // 1. Initialize an in-memory FFI database with schema created
+  test('shouldPreserveParentNodeIdWhenSavePropertiesIsCalled', () async {
     final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: false);
 
-    // 2. Insert parent and child nodes representing parent-child relation
     await db.insert('properties', {
       'node_id': 'parent_node',
       'parent_node_id': null,
@@ -28,7 +28,6 @@ void main() {
       'data_json': '{}',
     });
 
-    // Verify parent-child relation is correct initially
     final initialRows = await db.query(
       'properties',
       where: 'node_id = ?',
@@ -36,11 +35,10 @@ void main() {
     );
     expect(initialRows.first['parent_node_id'], equals('parent_node'));
 
-    // 3. Initialize SqliteDataSource and invoke saveProperties for child node
     final dataSource = SqliteDataSource(db);
-    await dataSource.saveProperties('child_node', {'field_1': 'new_value'});
+    final res = await dataSource.saveProperties('child_node', {'field_1': 'new_value'});
+    expect(res.isSuccess, isTrue);
 
-    // 4. Assert that parent_node_id remains unchanged (i.e. 'parent_node' and not null)
     final afterRows = await db.query(
       'properties',
       where: 'node_id = ?',
@@ -51,7 +49,7 @@ void main() {
     await db.close();
   });
 
-  test('database initialization creates idx_instances_parent_type and idx_instances_type_name indexes', () async {
+  test('shouldCreateIndexNamesDuringDatabaseInitialization', () async {
     final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: false);
 
     final results = await db.rawQuery(
@@ -65,7 +63,7 @@ void main() {
     await db.close();
   });
 
-  test('typeFor resolves instance node_id to underlying type descriptor', () async {
+  test('shouldResolveInstanceNodeIdToUnderlyingTypeDescriptor', () async {
     final db = await DatabaseInitializer.create(dbPath: inMemoryDatabasePath, seed: false);
 
     await db.insert('type_definitions', {
@@ -82,8 +80,10 @@ void main() {
     });
 
     final dataSource = SqliteDataSource(db);
-    final descriptor = await dataSource.typeFor('Master_1');
+    final res = await dataSource.typeFor('Master_1');
+    expect(res.isSuccess, isTrue);
 
+    final descriptor = (res as Success<TypeDescriptor?>).value;
     expect(descriptor, isNotNull);
     expect(descriptor!.typeName, equals('ManagedElement'));
     expect(descriptor.displayName, equals('Managed Element'));

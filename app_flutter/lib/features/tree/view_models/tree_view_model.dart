@@ -1,26 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/data_source.dart';
+import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 
 /// View model driving the sidebar tree: data loading, navigation, focus,
 /// and keyboard-driven expansion/selection.
-///
-/// Owns the tree data ([_treeData]), the currently-selected view
-/// ([_currentView]), per-node expand/collapse state ([_expanded]), and a
-/// [FocusNode] for keyboard event handling. Calls [notifyListeners] after
-/// every mutation to trigger UI rebuilds via [Provider].
-///
-/// State changes: [loadTree] resets the entire tree; [selectView] /
-/// [updateCurrentView] change the current view and expand ancestors;
-/// [toggleExpand] flips a single node's collapsed state; arrow handlers
-/// traverse the visible (depth-first) node list. On dispose, the focus node
-/// is released.
-///
-/// Edge cases: empty tree data, missing node IDs in arrow navigation (index
-/// -1 is handled), root nodes with no parents to expand, and views whose
-/// parent chain is already visible (no-op expand).
 class TreeViewModel extends ChangeNotifier {
   /// Member documentation.
   TreeViewModel(this._dataSource, {
@@ -55,15 +41,10 @@ class TreeViewModel extends ChangeNotifier {
 
   /// Loads the type hierarchy from the data source and initialises tree data,
   /// current view, expanded nodes, and node keys.
-  ///
-  /// Called once during startup. Sets [_currentView] to the first root node if
-  /// no initial view was provided. Ensures the path to the current view is
-  /// expanded. Fires [notifyListeners] when complete.
-  ///
-  /// Safe to call multiple times; resets all state before rebuilding.
   Future<void> loadTree() async {
-    final roots = await _dataSource.fetchRootNodes();
+    final rootRes = await _dataSource.fetchRootNodes();
     if (_disposed) return;
+    final roots = rootRes.isSuccess ? (rootRes as Success<List<TreeNode>>).value : <TreeNode>[];
     _treeData = roots.isNotEmpty ? roots : List<TreeNode>.from(defaultTreeData);
     _sortNodesRecursively(_treeData);
 
@@ -88,10 +69,6 @@ class TreeViewModel extends ChangeNotifier {
 
   /// Selects [viewId] as the current view, expands its ancestors, scrolls it
   /// into view, and notifies listeners.
-  ///
-  /// Called when the user taps a tree node or navigates via arrow keys. No-op
-  /// if [viewId] is already the current view. Triggers [onViewSelected]
-  /// callback after state is updated.
   void selectView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -120,11 +97,6 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   /// Updates the current view (without firing [selectView]'s external callback).
-  ///
-  /// Used by [Layout._updateCurrentViewFromLayout] when the active view is
-  /// driven externally (e.g. via widget properties). Expands ancestors and
-  /// scrolls to the node, then fires [notifyListeners]. No-op if [viewId]
-  /// matches the current view.
   void updateCurrentView(String viewId) {
     if (_currentView == viewId) return;
     _currentView = viewId;
@@ -162,9 +134,10 @@ class TreeViewModel extends ChangeNotifier {
       notifyListeners();
 
       try {
-        final children = await _dataSource.fetchChildrenForNode(node.id);
+        final childRes = await _dataSource.fetchChildrenForNode(node.id);
         if (_disposed) return;
         if (!_loadingNodes.containsKey(node.id)) return;
+        final children = childRes.isSuccess ? (childRes as Success<List<TreeNode>>).value : <TreeNode>[];
         _sortNodesRecursively(children);
         _replaceNodeInTree(node.id, children);
         _buildNodeKeys(children);
