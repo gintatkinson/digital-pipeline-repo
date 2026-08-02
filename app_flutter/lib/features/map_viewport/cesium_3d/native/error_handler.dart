@@ -1,4 +1,5 @@
 
+/// Realises: [Feat-10/CesiumNativeError]
 /// Member documentation.
 class CesiumInitializationException implements Exception {
   /// Member documentation.
@@ -9,6 +10,7 @@ class CesiumInitializationException implements Exception {
   String toString() => 'CesiumInitializationException: $message';
 }
 
+/// Realises: [Feat-10/CesiumNativeError]
 /// Member documentation.
 class CesiumCameraException implements Exception {
   /// Member documentation.
@@ -19,6 +21,7 @@ class CesiumCameraException implements Exception {
   String toString() => 'CesiumCameraException: $message';
 }
 
+/// Realises: [Feat-10/CesiumNativeError]
 /// Member documentation.
 class CesiumTileException implements Exception {
   /// Member documentation.
@@ -29,6 +32,7 @@ class CesiumTileException implements Exception {
   String toString() => 'CesiumTileException: $message';
 }
 
+/// Realises: [Feat-10/CesiumNativeError]
 /// Member documentation.
 class CesiumMemoryException implements Exception {
   /// Member documentation.
@@ -39,6 +43,7 @@ class CesiumMemoryException implements Exception {
   String toString() => 'CesiumMemoryException: $message';
 }
 
+/// Realises: [Feat-10/CesiumNativeError]
 /// Member documentation.
 class CesiumPickException implements Exception {
   /// Member documentation.
@@ -49,6 +54,7 @@ class CesiumPickException implements Exception {
   String toString() => 'CesiumPickException: $message';
 }
 
+/// Realises: [Feat-10/CesiumNativeError]
 /// Member documentation.
 class CesiumFatalException implements Exception {
   /// Member documentation.

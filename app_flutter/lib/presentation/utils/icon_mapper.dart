@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Realises: [Feat-10/IconMapper]
 /// Resolves Material icon name strings to [IconData] at runtime.
 ///
 /// Allows the data source to specify icons by name (e.g. "dns", "bar_chart")

@@ -9,6 +9,7 @@ sealed class DomainError {
   const DomainError();
 }
 
+/// Realises: [Feat-10/DomainError]
 /// Error raised when a mandatory schema field is missing.
 @immutable
 final class SchemaFieldRequiredError extends DomainError {
@@ -25,6 +26,7 @@ final class SchemaFieldRequiredError extends DomainError {
   final String schemaName;
 }
 
+/// Realises: [Feat-10/DomainError]
 /// Error raised when a schema field value has an unexpected type.
 @immutable
 final class SchemaFieldTypeError extends DomainError {
@@ -45,6 +47,7 @@ final class SchemaFieldTypeError extends DomainError {
   final String actualType;
 }
 
+/// Realises: [Feat-10/DomainError]
 /// Error raised when a schema field value falls outside allowed numeric ranges.
 @immutable
 final class SchemaFieldRangeError extends DomainError {
@@ -69,6 +72,7 @@ final class SchemaFieldRangeError extends DomainError {
   final num? max;
 }
 
+/// Realises: [Feat-10/DomainError]
 /// Error raised when a schema field value fails string regex pattern validation.
 @immutable
 final class SchemaFieldPatternError extends DomainError {
@@ -89,6 +93,7 @@ final class SchemaFieldPatternError extends DomainError {
   final String pattern;
 }
 
+/// Realises: [Feat-10/DomainError]
 /// Error raised when a schema field value is not among allowed enum values.
 @immutable
 final class SchemaFieldEnumError extends DomainError {
@@ -109,6 +114,7 @@ final class SchemaFieldEnumError extends DomainError {
   final List<String> allowedValues;
 }
 
+/// Realises: [Feat-10/DomainError]
 /// Error raised when serialization or deserialization fails.
 @immutable
 final class SerializationError extends DomainError {

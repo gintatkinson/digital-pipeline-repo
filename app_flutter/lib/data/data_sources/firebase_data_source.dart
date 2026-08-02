@@ -8,6 +8,7 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/topology/topology_map.dart' show TopologyData, TopologyNode, TopologyNodePosition, TopologyLink;
 
+/// Realises: [Feat-10/DataSource]
 /// [DataSource] implementation backed by Cloud Firestore.
 class FirebaseDataSource implements DataSource {
   /// Creates a [FirebaseDataSource] connected to the given [Firestore] instance.

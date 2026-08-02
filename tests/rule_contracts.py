@@ -824,6 +824,30 @@ PLATFORM_PROFILE_CONTRACTS: List[RuleContract] = [
         enforcement_anchor="public-member-docstring-missing",
         note="Enforces mandatory docstrings on public members in target source files.",
     ),
+    RuleContract(
+        id="uml-traceability-tag-missing",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="UML Traceability Tags Mandatory",
+        enforced_in=f"{PARITY_SRC}/validators/profile_compliance_validator.py",
+        enforcement_anchor="uml-traceability-tag-missing",
+        note="Enforces UML traceability tags (/// Realises: [...]) on public declarations.",
+    ),
+    RuleContract(
+        id="domain-immutable-annotation-missing",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Domain Immutable Annotations Mandatory",
+        enforced_in=f"{PARITY_SRC}/validators/profile_compliance_validator.py",
+        enforcement_anchor="domain-immutable-annotation-missing",
+        note="Enforces @immutable annotations on all public domain model classes.",
+    ),
+    RuleContract(
+        id="domain-result-signature-missing",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Domain Result Signatures Mandatory",
+        enforced_in=f"{PARITY_SRC}/validators/profile_compliance_validator.py",
+        enforcement_anchor="domain-result-signature-missing",
+        note="Enforces Result<T> return type signatures for fallible domain operations.",
+    ),
 ]
 
 PLATFORM_PROFILE_FAMILY = ContractFamily(
@@ -834,6 +858,7 @@ PLATFORM_PROFILE_FAMILY = ContractFamily(
         f"{PARITY_SRC}/validators/profile_scoping_validator.py",
         f"{PARITY_SRC}/validators/schema_mapping_validator.py",
         f"{PARITY_SRC}/validators/docstring_validator.py",
+        f"{PARITY_SRC}/validators/profile_compliance_validator.py",
     ],
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
     # Unlike every family registered before it, this one HAS a single normative home, so

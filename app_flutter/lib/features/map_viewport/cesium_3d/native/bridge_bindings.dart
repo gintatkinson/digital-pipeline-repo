@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 // ignore: unused_element
 const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 final class BridgeCamera extends Struct {
   /// Member documentation.
@@ -34,6 +35,7 @@ final class BridgeCamera extends Struct {
   external double roll;
 }
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 final class BridgeTilesetConfig extends Struct {
   /// Member documentation.
@@ -48,6 +50,7 @@ final class BridgeTilesetConfig extends Struct {
   external int maxCachedBytes;
 }
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeHandle = Int32;
 
@@ -62,39 +65,47 @@ typedef BridgeHandle = Int32;
 // violation can occur at runtime. When real callbacks are implemented,
 // NativeCallable.listener (Dart SDK >= 3.4) should be used instead of
 // Pointer.fromFunction to guarantee correct thread affinity.
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeErrorCallbackNative = Void Function(
   Int32 errorCode, Pointer<Utf8> message, Pointer<Void> userData,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeErrorCallback = void Function(
   int errorCode, Pointer<Utf8> message, Pointer<Void> userData,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeTileReadyCallbackNative = Void Function(
   Pointer<Utf8> tileId, Pointer<Uint8> data, Int32 size, Pointer<Void> userData,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeTileReadyCallback = void Function(
   Pointer<Utf8> tileId, Pointer<Uint8> data, int size, Pointer<Void> userData,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeCameraChangedCallbackNative = Void Function(
   Double dim_0, Double lng, Double dim_2, Double pitch, Double heading, Pointer<Void> userData,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeCameraChangedCallback = void Function(
   double dim_0, double lng, double dim_2, double pitch, double heading, Pointer<Void> userData,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeInitializeNative = BridgeHandle Function(
   Pointer<BridgeTilesetConfig> config,
   Pointer<NativeFunction<BridgeErrorCallbackNative>> onError,
   Pointer<Void> userData,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeInitializeDart = int Function(
   Pointer<BridgeTilesetConfig> config,
@@ -102,41 +113,53 @@ typedef BridgeInitializeDart = int Function(
   Pointer<Void> userData,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeShutdownNative = Void Function(BridgeHandle handle);
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeShutdownDart = void Function(int handle);
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeTerminateNative = Int32 Function();
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeTerminateDart = int Function();
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeIsReadyNative = Int32 Function(BridgeHandle handle);
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeIsReadyDart = int Function(int handle);
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeGetLastErrorNative = Int32 Function(BridgeHandle handle, Pointer<Utf8> out, Int32 size);
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeGetLastErrorDart = int Function(int handle, Pointer<Utf8> out, int size);
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeUpdateCameraNative = Int32 Function(
   BridgeHandle handle, Pointer<BridgeCamera> camera,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeUpdateCameraDart = int Function(
   int handle, Pointer<BridgeCamera> camera,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeRegisterCameraCallbackNative = Int32 Function(
   BridgeHandle handle,
   Pointer<NativeFunction<BridgeCameraChangedCallbackNative>> callback,
   Pointer<Void> userData,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeRegisterCameraCallbackDart = int Function(
   int handle,
@@ -144,24 +167,29 @@ typedef BridgeRegisterCameraCallbackDart = int Function(
   Pointer<Void> userData,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeGetVisibleTileCountNative = Int32 Function(
   BridgeHandle handle, Pointer<Int32> outCount,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeGetVisibleTileCountDart = int Function(
   int handle, Pointer<Int32> outCount,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeGetVisibleTileIdNative = Int32 Function(
   BridgeHandle handle, Int32 index, Pointer<Pointer<Utf8>> outTileId,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeGetVisibleTileIdDart = int Function(
   int handle, int index, Pointer<Pointer<Utf8>> outTileId,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeRequestTileDataNative = Int32 Function(
   BridgeHandle handle,
@@ -169,6 +197,7 @@ typedef BridgeRequestTileDataNative = Int32 Function(
   Pointer<NativeFunction<BridgeTileReadyCallbackNative>> callback,
   Pointer<Void> userData,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeRequestTileDataDart = int Function(
   int handle,
@@ -177,33 +206,40 @@ typedef BridgeRequestTileDataDart = int Function(
   Pointer<Void> userData,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeCartographicToEcefNative = Int32 Function(
   Double latDeg, Double lngDeg, Double altM,
   Pointer<Double> outX, Pointer<Double> outY, Pointer<Double> outZ,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeCartographicToEcefDart = int Function(
   double latDeg, double lngDeg, double altM,
   Pointer<Double> outX, Pointer<Double> outY, Pointer<Double> outZ,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeEcefToCartographicNative = Int32 Function(
   Double x, Double y, Double z,
   Pointer<Double> outLatDeg, Pointer<Double> outLngDeg, Pointer<Double> outAltM,
 );
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeEcefToCartographicDart = int Function(
   double x, double y, double z,
   Pointer<Double> outLatDeg, Pointer<Double> outLngDeg, Pointer<Double> outAltM,
 );
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeFreeStringNative = Void Function(Pointer<Utf8> str);
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 typedef BridgeFreeStringDart = void Function(Pointer<Utf8> str);
 
+/// Realises: [Feat-10/CesiumBridgeBindings]
 /// Member documentation.
 class CesiumNativeBindings {
   final DynamicLibrary _lib;

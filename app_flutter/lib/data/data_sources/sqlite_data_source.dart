@@ -9,6 +9,7 @@ import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/topology/topology_map.dart' show TopologyData, TopologyNode, TopologyLink, TopologyNodePosition;
 
+/// Realises: [Feat-10/DataSource]
 /// [DataSource] implementation backed by the local SQLite database.
 class SqliteDataSource implements DataSource {
   /// Member documentation.

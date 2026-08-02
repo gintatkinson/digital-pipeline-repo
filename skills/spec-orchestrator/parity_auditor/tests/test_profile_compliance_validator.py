@@ -51,3 +51,47 @@ def test_profile_compliance_validator_detects_missing_traceability_tags():
         assert not any("_PrivateClass" in str(err) for err in errors)
     finally:
         shutil.rmtree(tmpdir)
+
+
+def test_profile_compliance_validator_detects_missing_immutable_and_result_signatures():
+    tmpdir = tempfile.mkdtemp()
+    try:
+        pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+        os.makedirs(pipeline_dir, exist_ok=True)
+        rules = {
+            "meta": {"upstream_repository": "gintatkinson/digital-pipeline-repo"},
+            "target_directories": {
+                "flutter": "app_flutter"
+            },
+            "flutter_rules": {
+                "file_extensions": [".dart"],
+                "exclusions": []
+            }
+        }
+        with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w", encoding="utf-8") as f:
+            json.dump(rules, f)
+
+        domain_dir = os.path.join(tmpdir, "app_flutter", "lib", "domain")
+        os.makedirs(domain_dir, exist_ok=True)
+
+        # Domain class without @immutable
+        with open(os.path.join(domain_dir, "mutable_model.dart"), "w", encoding="utf-8") as f:
+            f.write("/// Realises: [Feat-10/MutableModel]\n/// Member doc\nclass MutableModel {}\n")
+
+        # Domain class with @immutable
+        with open(os.path.join(domain_dir, "immutable_model.dart"), "w", encoding="utf-8") as f:
+            f.write("import 'package:flutter/foundation.dart';\n/// Realises: [Feat-10/ImmutableModel]\n/// Member doc\n@immutable\nclass ImmutableModel {}\n")
+
+        # Domain operation without Result signature
+        with open(os.path.join(domain_dir, "raw_repo.dart"), "w", encoding="utf-8") as f:
+            f.write("import 'package:flutter/foundation.dart';\n/// Realises: [Feat-10/RawRepo]\n/// Member doc\n@immutable\nabstract class RawRepo {\n  /// Member doc\n  Future<String> fetchData();\n}\n")
+
+        repo = WorkspaceRepository(tmpdir)
+        validator = ProfileComplianceValidator()
+        errors = validator.validate(repo)
+
+        assert any("domain-immutable-annotation-missing" in getattr(err, "rule_id", str(err)) for err in errors)
+        assert any("domain-result-signature-missing" in getattr(err, "rule_id", str(err)) for err in errors)
+    finally:
+        shutil.rmtree(tmpdir)
+

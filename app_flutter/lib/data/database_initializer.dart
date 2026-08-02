@@ -28,12 +28,14 @@ Future<void> main() async {
   print('Database gzipped to properties_db.db.gz successfully.');
 }
 
+/// Realises: [Feat-10/DatabaseInitializer]
 /// Member documentation.
 abstract class SeedStrategy {
   /// Member documentation.
   Future<void> seed(Database db);
 }
 
+/// Realises: [Feat-10/DatabaseInitializer]
 /// Creates and optionally seeds a local SQLite database for development
 /// and testing.
 ///

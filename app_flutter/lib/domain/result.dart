@@ -23,6 +23,7 @@ sealed class Result<T> {
   bool get isFailure => this is Failure<T>;
 }
 
+/// Realises: [Feat-10/Result]
 /// Represents a successful result carrying a payload value of type [T].
 @immutable
 final class Success<T> extends Result<T> {
@@ -33,6 +34,7 @@ final class Success<T> extends Result<T> {
   final T value;
 }
 
+/// Realises: [Feat-10/Result]
 /// Represents a failed result carrying a [DomainError].
 @immutable
 final class Failure<T> extends Result<T> {
