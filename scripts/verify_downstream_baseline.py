@@ -123,17 +123,17 @@ def main():
 
     repo_root = dest
 
-    is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
+    is_flutter = os.path.exists(os.path.join(repo_root, "pubspec.yaml"))
     # If checking from root and app_flutter exists, run inside app_flutter
-    if not is_flutter and os.path.isdir(os.path.join(dest, "app_flutter")):
-        dest_flutter = os.path.join(dest, "app_flutter")
+    if not is_flutter and os.path.isdir(os.path.join(repo_root, "app_flutter")):
+        dest_flutter = os.path.join(repo_root, "app_flutter")
         if os.path.exists(os.path.join(dest_flutter, "pubspec.yaml")):
             dest = dest_flutter
             is_flutter = True
 
-    is_react = os.path.exists(os.path.join(dest, "package.json"))
-    if not is_react and os.path.isdir(os.path.join(dest, "web_react")):
-        dest_react = os.path.join(dest, "web_react")
+    is_react = os.path.exists(os.path.join(repo_root, "package.json"))
+    if not is_react and os.path.isdir(os.path.join(repo_root, "web_react")):
+        dest_react = os.path.join(repo_root, "web_react")
         if os.path.exists(os.path.join(dest_react, "package.json")):
             dest = dest_react
             is_react = True
