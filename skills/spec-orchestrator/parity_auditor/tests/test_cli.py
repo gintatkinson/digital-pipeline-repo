@@ -217,9 +217,60 @@ class TestGetOpenFeatureIssues:
         monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
 
         def mock_run(*args, **kwargs):
-            raise subprocess.TimeoutExpired(cmd="gh", timeout=30)
+            raise subprocess.TimeoutExpired(cmd="gh", timeout=3)
         
         monkeypatch.setattr("subprocess.run", mock_run)
 
         issues = get_open_feature_issues()
         assert issues is None
+
+    def test_get_open_feature_issues_fast_fail_offline(self, monkeypatch):
+        from parity_auditor.cli import get_open_feature_issues
+        monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
+        monkeypatch.setenv("OFFLINE", "1")
+        
+        called = False
+        def mock_run(*args, **kwargs):
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+        issues = get_open_feature_issues()
+        assert issues is None
+        assert not called, "subprocess.run should not be called when OFFLINE is set"
+
+    def test_get_open_feature_issues_fast_fail_no_gh(self, monkeypatch):
+        from parity_auditor.cli import get_open_feature_issues
+        monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
+        monkeypatch.setattr("shutil.which", lambda cmd: None)
+
+        called = False
+        def mock_run(*args, **kwargs):
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+        issues = get_open_feature_issues()
+        assert issues is None
+        assert not called, "subprocess.run should not be called when gh is not in PATH"
+
+    def test_get_open_feature_issues_custom_timeout(self, monkeypatch):
+        import json
+        from parity_auditor.cli import get_open_feature_issues
+        monkeypatch.setattr("parity_auditor.cli.assert_no_mock_cli", lambda x: None)
+        monkeypatch.setenv("PARITY_AUDITOR_GH_TIMEOUT", "5.5")
+
+        timeout_passed = None
+        class MockResult:
+            returncode = 0
+            stdout = "[]"
+            stderr = ""
+
+        def mock_run(*args, **kwargs):
+            nonlocal timeout_passed
+            timeout_passed = kwargs.get("timeout")
+            return MockResult()
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+        get_open_feature_issues()
+        assert timeout_passed == 5.5

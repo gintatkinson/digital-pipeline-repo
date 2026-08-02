@@ -94,17 +94,26 @@ def get_open_feature_issues(workspace_dir: str = None):
 
     Returns:
         List of issue dicts with 'number' and 'title' keys, or None when the
-        ``gh`` CLI is unavailable, returns a non-zero exit code, or times out.
+        ``gh`` CLI is unavailable, offline, returns a non-zero exit code, or times out.
     """
     assert_no_mock_cli(workspace_dir)
+
+    if os.environ.get("OFFLINE") or not shutil.which("gh"):
+        return None
+
     import subprocess
     import json
+    try:
+        timeout = float(os.environ.get("PARITY_AUDITOR_GH_TIMEOUT", "3.0"))
+    except (ValueError, TypeError):
+        timeout = 3.0
+
     try:
         result = subprocess.run(
             ["gh", "issue", "list", "--state", "open", "--label", "feature", "--json", "number,title"],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=timeout
         )
         if result.returncode == 0:
             issues = json.loads(result.stdout)
@@ -117,7 +126,7 @@ def get_open_feature_issues(workspace_dir: str = None):
             print(f"ERROR: gh CLI exited with code {result.returncode}: {result.stderr.strip()}", file=sys.stderr)
             return None
     except subprocess.TimeoutExpired:
-        print("ERROR: gh CLI timed out after 30 seconds.", file=sys.stderr)
+        print(f"ERROR: gh CLI timed out after {timeout} seconds.", file=sys.stderr)
         return None
     except Exception as e:
         print(f"ERROR: Failed to run gh CLI to fetch open feature issues: {e}", file=sys.stderr)
@@ -350,8 +359,13 @@ def _main_impl():
 
     open_issues = get_open_feature_issues(workspace_dir)
     if open_issues is None:
-        print("[!] WARNING: Could not fetch open feature issues from GitHub. Cross-reference verification skipped.", file=sys.stderr)
-        open_issues = []
+        if not args.allow_missing_specs:
+            has_failed = True
+            print("[!] ERROR: Could not fetch open feature issues from GitHub while --no-allow-missing-specs is enabled.", file=sys.stderr)
+            open_issues = []
+        else:
+            print("[!] WARNING: Could not fetch open feature issues from GitHub. Cross-reference verification skipped.", file=sys.stderr)
+            open_issues = []
 
     if ignored_set:
         open_issues = [issue for issue in open_issues if issue.get("number") not in ignored_set]
