@@ -93,32 +93,35 @@ def test_every_executed_part_has_a_change_record():
 # failing suite was committed, merged and pushed to main.
 # --------------------------------------------------------------------------- #
 
-_PIPED_PYTEST = re.compile(r"pytest[^\n|]*\|(?!\|)")
+_PIPED_PYTEST = re.compile(r"\bpytest\b[^\n|]*\|[ \t]*[a-zA-Z0-9_./]")
 
-_SCAN_ROOTS = ("scripts", "skills", "rules", ".agents", ".pipeline", ".github")
-_SCAN_SUFFIXES = (".sh", ".md", ".yml", ".yaml")
-_EXCLUDED_DIRS = {".git", "__pycache__", "node_modules", ".venv", "diagnostics",
-                  "known_symptoms"}
+_SCAN_SUFFIXES = (".sh", ".md", ".yml", ".yaml", ".py")
+_EXCLUDED_DIRS = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "diagnostics",
+    "known_symptoms",
+    "build",
+    "dist",
+}
 # This file names the forbidden construct in order to forbid it.
 _SELF = os.path.abspath(__file__)
 
 
 def _committed_texts():
     found = []
-    for base in _SCAN_ROOTS:
-        root = os.path.join(REPO_ROOT, base)
-        if not os.path.isdir(root):
-            continue
-        for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
-            for name in filenames:
-                if not name.endswith(_SCAN_SUFFIXES):
-                    continue
-                path = os.path.join(dirpath, name)
-                if os.path.abspath(path) == _SELF:
-                    continue
-                with open(path, "r", encoding="utf-8", errors="replace") as fh:
-                    found.append((os.path.relpath(path, REPO_ROOT), fh.read()))
+    for dirpath, dirnames, filenames in os.walk(REPO_ROOT):
+        dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
+        for name in filenames:
+            if not name.endswith(_SCAN_SUFFIXES):
+                continue
+            path = os.path.join(dirpath, name)
+            if os.path.abspath(path) == _SELF:
+                continue
+            with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                found.append((os.path.relpath(path, REPO_ROOT), fh.read()))
     return found
 
 
@@ -130,7 +133,7 @@ def test_no_committed_instruction_pipes_pytest():
     offenders = []
     for rel, text in texts:
         for lineno, line in enumerate(text.splitlines(), 1):
-            if _PIPED_PYTEST.search(line) and "exit" not in line.lower():
+            if _PIPED_PYTEST.search(line):
                 offenders.append(f"{rel}:{lineno}: {line.strip()[:90]}")
     assert not offenders, (
         "a committed instruction pipes pytest. A pipe returns the LAST command's exit "
