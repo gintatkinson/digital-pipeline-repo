@@ -83,6 +83,7 @@ Execution follows a **per-task subagent dispatch loop**. The coordinator reads t
 #### 3.1 Pre-Execution
 1. **No Handover Trust:** Never assume previous phases or turns implemented a portion of the code correctly based on summaries. Explicitly open and check the source code files in all relevant directories.
 2. **Extract All Tasks:** Read the approved plan. Extract every micro-task with its full text, target files, driving test, and verification step. Create a tracking list (e.g., `task.md` or TodoWrite).
+3. **TDD Cycle Mandate:** Mandate writing failing unit tests for both Happy Path AND all alternate/exception flows declared in specs before entering the GREEN refactoring phase.
 
 #### 3.2 Per-Task Dispatch Loop
 
@@ -92,8 +93,9 @@ For each micro-task in sequence:
 
 The coordinator agent is strictly locked from using modifying tools (`write_to_file`, `replace_file_content`, `multi_replace_file_content`) directly, and must delegate all write operations to a micro-task implementer subagent.
 
-The implementer receives ONLY:
+The implementer receives ONLY (Prompt Payload Template):
 - The micro-task text (exact scope, target files, expected changes)
+- Mandatory Subagent Task Checkboxes: Extract and format all UML Class Diagram operation signatures, attributes, and Use Case alternate flows into mandatory subagent task checkboxes in the prompt payload template.
 - Relevant file contents (read and provided by the coordinator)
 - Project conventions (TDD mandate, typing rules, docstring mandate, drill-down navigation rule, etc.)
 - The driving test specification
@@ -111,8 +113,8 @@ Configure the dispatch method dynamically based on the current agent orchestrato
 - **Manual/Semi-Autonomous Context Reset**: If operating in environments without native subagent isolation, manually reset context by explicitly reading target files from disk and prefixing instructions to ignore prior task history.
 
 **B. Implementer Executes TDD Cycle**
-- **RED:** Write the failing test first. Run it. Confirm it fails with the expected error.
-- **GREEN:** Write the minimal code to make the test pass. Run it. Confirm it passes.
+- **RED:** Write failing unit tests for both Happy Path AND all alternate/exception flows declared in specs before entering the GREEN refactoring phase. Run them and confirm they fail with the expected error.
+- **GREEN:** Write the minimal code to make all tests pass. Run them. Confirm they pass.
 - **REFACTOR:** Clean up the code while keeping tests green. Run tests again.
 - **COMMIT:** Commit the passing micro-task with a descriptive message.
 - **SELF-REVIEW:** Implementer reviews own changes before handing back.
@@ -179,12 +181,13 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 ### Step 4: Verification & Testing
 1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties.
 2. **Full Compilation Build:** Run local tests and run a full compilation build of the entire application (e.g. `flutter build` or `npm run build` as specified by the platform profile) to ensure it compiles without errors and is completely ready to run.
-3. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.
-4. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands, scripts, or interface interactions to execute, what inputs to feed, and what specific output (e.g., payload, log entry, UI state change, database record) to inspect to verify correctness.
-5. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):**
+3. **Parity Auditor Gate:** Mandate running `python3 -m parity_auditor` as a blocking gate before completing any implementation task.
+4. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.
+5. Provide **precise, step-by-step human manual testing instructions** in the verification section. The instructions must guide the user on exactly what commands, scripts, or interface interactions to execute, what inputs to feed, and what specific output (e.g., payload, log entry, UI state change, database record) to inspect to verify correctness.
+6. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):**
    - **Multi-Agent Mode:** Dispatch a separate **Validator Subagent** to read the draft walkthrough and cross-reference every referenced structural identifier and link target. The Validator subagent must independently locate these elements in the codebase to confirm they exist and match the logical specifications. Fail the validation step if there is any mismatch.
    - **Single-Agent Fallback:** The agent must step out of the implementation context and systematically audit its own draft walkthrough. Perform exact search lookups to verify that every single structural identifier and link target referenced in the walkthrough exists verbatim in the codebase. Document the results of this check explicitly before requesting user approval.
-6. Apply any feedback iteratively on the feature branch.
+7. Apply any feedback iteratively on the feature branch.
 
 ### Step 5: Release & Closure (CRITICAL)
 1. Merge the feature branch into the configured default branch resolved from configuration rules using the configured merge command template.
