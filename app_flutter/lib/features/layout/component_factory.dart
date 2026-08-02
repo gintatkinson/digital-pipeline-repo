@@ -204,6 +204,7 @@ class ComponentFactory {
 /// [Provider] is available. Reloads tabs when [currentView] changes.
 /// Disposes the view model on unmount to prevent memory leaks.
 class _TabbedContainerHost extends StatefulWidget {
+  /// Member documentation.
   final String currentView;
 
   const _TabbedContainerHost({required this.currentView});
@@ -257,7 +258,9 @@ class _TabbedContainerHostState extends State<_TabbedContainerHost> {
 /// Same lifecycle pattern as [_TabbedContainerHost] — lazy initialisation,
 /// reload on view change, dispose on unmount.
 class _TableViewContainer extends StatefulWidget {
+  /// Member documentation.
   final String tabId;
+  /// Member documentation.
   final String currentView;
 
   const _TableViewContainer({

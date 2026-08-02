@@ -1,4 +1,6 @@
-/// Member documentation.
+/// Thrown when coordinate validation fails.
+///
+/// Realises: [Feat-10/CoordinateValidationException]
 class CoordinateValidationException implements Exception {
   /// Member documentation.
   final String message;
@@ -10,13 +12,17 @@ class CoordinateValidationException implements Exception {
   String toString() => 'CoordinateValidationException: $message';
 }
 
-/// Member documentation.
+/// Reference ellipsoid dimensions and constants.
+///
+/// Realises: [Feat-10/Ellipsoid]
 class Ellipsoid {
   /// Member documentation.
   static const double wgs84EquatorialRadius = 6378137.0;
 }
 
-/// Member documentation.
+/// Altitude mode for positioning objects relative to terrain.
+///
+/// Realises: [Feat-10/AltitudeMode]
 enum AltitudeMode {
   /// Member documentation.
   absolute,
@@ -26,7 +32,9 @@ enum AltitudeMode {
   relativeToGround,
 }
 
-/// Member documentation.
+/// Represents virtual 3D camera state including position (dim_0, dim_1, dim_2) and orientation (heading, pitch, roll).
+///
+/// Realises: [Feat-10/VirtualCamera]
 class VirtualCamera {
   /// Member documentation.
   final double dim_0;

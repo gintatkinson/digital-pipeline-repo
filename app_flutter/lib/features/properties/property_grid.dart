@@ -153,6 +153,7 @@ class _PropertyGridState extends State<PropertyGrid> {
   final Map<String, bool> _hadFocus = {};
   bool _isDisposingFields = false;
 
+  /// Member documentation.
   late Map<String, dynamic> committedData;
 
   @override

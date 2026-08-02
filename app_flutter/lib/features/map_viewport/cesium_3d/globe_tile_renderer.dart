@@ -12,6 +12,8 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart'
 ///
 /// [zoom] is the zoom level (0–12), [x] is the column, and [y] is the row
 /// (0 at the top / north).
+///
+/// Realises: [Feat-10/TileCoord]
 class TileCoord {
   /// The zoom level for this tile coordinate.
   final int zoom;
@@ -36,6 +38,8 @@ class TileCoord {
 /// hemisphere are drawn. The active imagery [ImageryProvider] can be
 /// changed at any time, which clears the local image cache and triggers
 /// fresh fetches.
+///
+/// Realises: [Feat-10/GlobeTileRenderer]
 class GlobeTileRenderer {
   final TileFetcher _fetcher;
   ImageryProvider _activeProvider;

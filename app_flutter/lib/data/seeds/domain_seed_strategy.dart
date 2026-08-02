@@ -9,8 +9,11 @@ import 'package:app_flutter/data/database_initializer.dart';
 /// This includes base type definitions, attributes, space nodes, real NTT exchanges,
 /// cable landing stations, and their interconnectivity links.
 class _NodePos {
+  /// Member documentation.
   final String id;
+  /// Member documentation.
   final double lat;
+  /// Member documentation.
   final double lon;
 
   const _NodePos(this.id, this.lat, this.lon);
@@ -19,25 +22,27 @@ class _NodePos {
 /// Realises: [Feat-000/DomainSeedStrategy]
 /// Concrete implementation of [SeedStrategy] that seeds the database with domain-specific mock data.
 class DomainSeedStrategy implements SeedStrategy {
+  late Batch _currentBatch;
+  late Database _currentDb;
   int _pendingOps = 0;
 
   Future<void> _insertAndFlush(
-    Batch batch,
     String table,
     Map<String, Object?> values, {
     ConflictAlgorithm? conflictAlgorithm,
   }) async {
-    batch.insert(table, values, conflictAlgorithm: conflictAlgorithm);
+    _currentBatch.insert(table, values, conflictAlgorithm: conflictAlgorithm);
     _pendingOps++;
     if (_pendingOps >= 1000) {
-      await batch.commit(noResult: true);
+      await _currentBatch.commit(noResult: true);
+      _currentBatch = _currentDb.batch();
       _pendingOps = 0;
     }
   }
 
-  Future<void> _flushBatch(Batch batch) async {
+  Future<void> _flushBatch() async {
     if (_pendingOps > 0) {
-      await batch.commit(noResult: true);
+      await _currentBatch.commit(noResult: true);
       _pendingOps = 0;
     }
   }
@@ -47,9 +52,9 @@ class DomainSeedStrategy implements SeedStrategy {
   /// Assumes the database tables have been successfully created by [DatabaseInitializer].
   @override
   Future<void> seed(Database db) async {
+    _currentDb = db;
+    _currentBatch = db.batch();
     _pendingOps = 0;
-    final batch = db.batch();
-
     final spaceDetails = ['Components', 'Telemetry', 'Logs', 'Links'];
     final nttDetails = ['Components', 'Alarms', 'Links'];
     final landingDetails = ['Components', 'Links'];
@@ -64,14 +69,14 @@ class DomainSeedStrategy implements SeedStrategy {
 
     // 1. Seed base system type definitions and their 50 generic attributes
     for (final d in displayNames.keys) {
-      await _insertAndFlush(batch, 'type_definitions', {
+      await _insertAndFlush('type_definitions', {
         'type_name': d,
         'display_name': displayNames[d] ?? d,
         'icon_name': 'widgets',
       }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
       for (int i = 1; i <= 50; i++) {
-        await _insertAndFlush(batch, 'type_attributes', {
+        await _insertAndFlush('type_attributes', {
           'type_name': d,
           'attr_key': 'field_$i',
           'label': 'Field $i',
@@ -90,7 +95,7 @@ class DomainSeedStrategy implements SeedStrategy {
       spaceNodes.add(id);
       final lat = 25.0 + (i / 100.0) * 20.0;
       final lon = 125.0 + (i % 20) * 1.0;
-      await _addNodeToBatch(batch, id, null, spaceDetails, lat: lat, lon: lon, height: 500000.0);
+      await _addNodeToBatch(id, null, spaceDetails, lat: lat, lon: lon, height: 500000.0);
     }
 
     // 3. Load and parse real NTT exchanges data from assets
@@ -111,7 +116,7 @@ class DomainSeedStrategy implements SeedStrategy {
       final lon = _extractLon(item);
       final height = _extractHeight(item);
       nttNodes.add(_NodePos(id, lat, lon));
-      await _addNodeToBatch(batch, id, null, nttDetails, lat: lat, lon: lon, height: height);
+      await _addNodeToBatch(id, null, nttDetails, lat: lat, lon: lon, height: height);
     }
 
     // 4. Load and parse cable landing stations data from assets
@@ -132,7 +137,7 @@ class DomainSeedStrategy implements SeedStrategy {
       final lon = _extractLon(item);
       final height = _extractHeight(item);
       landingNodes.add(_NodePos(id, lat, lon));
-      await _addNodeToBatch(batch, id, null, landingDetails, lat: lat, lon: lon, height: height);
+      await _addNodeToBatch(id, null, landingDetails, lat: lat, lon: lon, height: height);
     }
 
     // 5. Interconnect stations, exchanges, and orbits with interface links
@@ -145,7 +150,7 @@ class DomainSeedStrategy implements SeedStrategy {
       if (!addedLinks.contains(key1) && !addedLinks.contains(key2)) {
         addedLinks.add(key1);
         addedLinks.add(key2);
-        await _insertAndFlush(batch, 'instances', {
+        await _insertAndFlush('instances', {
           'id': 'link_${linkIdCounter++}',
           'parent_node_id': from,
           'type_name': 'interface',
@@ -231,12 +236,11 @@ class DomainSeedStrategy implements SeedStrategy {
       if (id4 != null) await addLink(current.id, id4);
     }
 
-    await _flushBatch(batch);
+    await _flushBatch();
   }
 
   /// Helper helper to insert a complete node configuration (type_definition, relation, properties, and instances).
   Future<void> _addNodeToBatch(
-    Batch batch,
     String node,
     String? parent,
     List<String> details, {
@@ -244,14 +248,14 @@ class DomainSeedStrategy implements SeedStrategy {
     required double lon,
     required double height,
   }) async {
-    await _insertAndFlush(batch, 'type_definitions', {
+    await _insertAndFlush('type_definitions', {
       'type_name': node,
       'display_name': node.replaceAll('_', ' '),
       'icon_name': 'insert_drive_file',
     }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     for (final d in details) {
-      await _insertAndFlush(batch, 'type_relations', {
+      await _insertAndFlush('type_relations', {
         'parent_type_name': node,
         'relation_name': 'contains',
         'child_type_name': d,
@@ -260,7 +264,7 @@ class DomainSeedStrategy implements SeedStrategy {
     }
 
     for (int i = 1; i <= 50; i++) {
-      await _insertAndFlush(batch, 'type_attributes', {
+      await _insertAndFlush('type_attributes', {
         'type_name': node,
         'attr_key': 'field_$i',
         'label': 'Field $i',
@@ -281,7 +285,7 @@ class DomainSeedStrategy implements SeedStrategy {
         }
       }
     };
-    await _insertAndFlush(batch, 'properties', {
+    await _insertAndFlush('properties', {
       'node_id': node,
       'parent_node_id': parent,
       'data_json': jsonEncode(propertiesMap),
@@ -293,7 +297,7 @@ class DomainSeedStrategy implements SeedStrategy {
         final instanceMap = {
           for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${node}_${d}_${k}_field_$j'
         };
-        await _insertAndFlush(batch, 'instances', {
+        await _insertAndFlush('instances', {
           'id': instId,
           'parent_node_id': node,
           'type_name': d,

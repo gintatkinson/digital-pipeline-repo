@@ -63,6 +63,13 @@ class RepositoryResolver {
   // duplicate connections (BUG #215).
   static bool _isResolving = false;
 
+  /// Resets and disposes any cached resolved instance. Intended for test teardown.
+  static Future<void> resetForTesting() async {
+    await _lastResolved?.dispose();
+    _lastResolved = null;
+    _isResolving = false;
+  }
+
   /// Resolves and initialises the appropriate backend.
   ///
   /// Determines the backend type from (in priority order):

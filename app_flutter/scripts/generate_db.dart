@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// Realises: [Feat-000/DatabaseInitializer]
+/// Entrypoint script for generating SQLite seed database asset.
 Future<void> main(List<String> args) async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;

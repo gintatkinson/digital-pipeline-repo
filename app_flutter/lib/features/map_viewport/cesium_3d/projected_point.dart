@@ -4,6 +4,8 @@ import 'dart:ui';
 /// culling. [offset] is the 2D canvas position; [z] is the signed distance
 /// from the screen plane — positive values are in front of the camera
 /// (visible hemisphere).
+///
+/// Realises: [Feat-10/ProjectedPoint]
 class ProjectedPoint {
   /// The 2D canvas-space pixel offset of the projected point.
   final Offset offset;

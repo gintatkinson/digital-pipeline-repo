@@ -24,6 +24,8 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart'
 /// available size is less than [splitMinFirstPaneSize], the first pane
 /// takes its minimum and the trailing pane fills the remainder (which
 /// may be smaller than [splitMinFirstPaneSize]).
+///
+/// Realises: [Feat-10/TopographicalView]
 class TopographicalView extends StatefulWidget {
   /// Member documentation.
   static final GlobalKey<_TopographicalViewState> globalKey = GlobalKey<_TopographicalViewState>();

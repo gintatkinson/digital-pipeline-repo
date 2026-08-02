@@ -6,23 +6,30 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// CLI entrypoint for database regeneration and compression.
 Future<void> main() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
+  /// Member documentation.
   final dbPath = 'assets/properties_db.db';
+  /// Member documentation.
   final file = File(dbPath);
   if (await file.exists()) {
     await file.delete();
   }
+  /// Member documentation.
   final db = await DatabaseInitializer.create(dbPath: dbPath, seed: true);
   await db.close();
   print('Generic database properties_db.db regenerated successfully.');
 
+  /// Member documentation.
   final gzFile = File('assets/properties_db.db.gz');
   if (await gzFile.exists()) {
     await gzFile.delete();
   }
+  /// Member documentation.
   final bytes = await file.readAsBytes();
+  /// Member documentation.
   final gzipped = gzip.encode(bytes);
   await gzFile.writeAsBytes(gzipped);
   print('Database gzipped to properties_db.db.gz successfully.');
@@ -70,15 +77,13 @@ class DatabaseInitializer {
         );
       }
     }
-    DatabaseFactory? previousFactory;
     if (!kIsWeb && (isTest || isDesktop)) {
       sqfliteFfiInit();
       try {
-        previousFactory = databaseFactory;
+        databaseFactory;
       } catch (_) {
-        // Ignored if databaseFactory is not yet initialized
+        databaseFactory = databaseFactoryFfi;
       }
-      databaseFactory = databaseFactoryFfi;
     }
 
     final String path;
@@ -179,9 +184,6 @@ class DatabaseInitializer {
 
       return db;
     } catch (e) {
-      if (!kIsWeb && (isTest || isDesktop)) {
-        databaseFactory = previousFactory;
-      }
       await db.close();
       rethrow;
     }

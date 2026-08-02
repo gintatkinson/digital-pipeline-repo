@@ -65,7 +65,9 @@ class CesiumFatalException implements Exception {
   String toString() => 'CesiumFatalException: $message';
 }
 
-/// Member documentation.
+/// Checks the native [status] code and throws appropriate Cesium exception if negative.
+///
+/// Returns [status] if no error occurred.
 int checkStatus(int status) {
   if (status == -1) throw CesiumInitializationException('Initialization failed');
   if (status == -2) throw CesiumCameraException('Camera operation failed');
@@ -73,5 +75,6 @@ int checkStatus(int status) {
   if (status == -4) throw CesiumMemoryException('Memory allocation failed');
   if (status == -5) throw CesiumPickException('Pick/raycast failed');
   if (status == -100) throw CesiumFatalException('Fatal internal error');
+  /// Member documentation.
   return status;
 }

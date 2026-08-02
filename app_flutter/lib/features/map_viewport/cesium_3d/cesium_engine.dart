@@ -9,7 +9,9 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart'
 // ignore: unused_element
 const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';
 
-/// Member documentation.
+/// Low-level C++ FFI engine wrapper for Cesium 3D tile generation, camera updates, and native resource management.
+///
+/// Realises: [Feat-10/CesiumEngine]
 class CesiumEngine {
   final CesiumNativeBindings _bindings;
   final int _handle;

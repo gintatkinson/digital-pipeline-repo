@@ -7,6 +7,8 @@ import 'package:app_flutter/core/app_config.dart';
 ///
 /// Each value has a corresponding template URL constructed by
 /// [TileFetcher.urlFor].
+///
+/// Realises: [Feat-10/ImageryProvider]
 enum ImageryProvider {
   /// OpenStreetMap standard tiles (raster PNG).
   openStreetMap,
@@ -26,6 +28,8 @@ enum ImageryProvider {
 /// Eviction follows least-recently-used semantics: whenever a full cache
 /// receives a new insertion the entry that has not been accessed for the
 /// longest time is removed first.
+///
+/// Realises: [Feat-10/TileCache]
 class TileCache {
   final int _maxSize;
   final LinkedHashMap<String, Uint8List> _map = LinkedHashMap<String, Uint8List>();
@@ -79,6 +83,8 @@ class TileCache {
 /// Callers can permanently disable the fetcher at runtime with [disable];
 /// once disabled every subsequent [fetchTile] returns `null` immediately
 /// without touching the network.
+///
+/// Realises: [Feat-10/TileFetcher]
 class TileFetcher {
   static final Map<ImageryProvider, String> _basemapTemplates = {};
 

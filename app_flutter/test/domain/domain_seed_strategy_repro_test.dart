@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/data/seeds/domain_seed_strategy.dart';
 
+/// Realises: [Feat-000/DomainSeedStrategy]
+/// Mock batch tracker that records batch size metrics.
 class TrackingBatch implements Batch {
   final Batch _delegate;
   int currentOperations = 0;
@@ -120,16 +122,28 @@ class TrackingBatch implements Batch {
   }
 }
 
+/// Realises: [Feat-000/DomainSeedStrategy]
+/// Mock database tracker that records batches and commit metrics.
 class TrackingDatabase implements Database {
   final Database _realDb;
-  TrackingBatch? lastBatch;
+  final List<TrackingBatch> createdBatches = [];
 
   TrackingDatabase(this._realDb);
 
+  int get totalCommitCount => createdBatches.fold(0, (sum, b) => sum + b.commitCount);
+  int get totalOperationsSubmitted => createdBatches.fold(0, (sum, b) => sum + b.totalOperationsSubmitted);
+  int get peakBatchSize => createdBatches.fold(0, (max, b) => b.peakBatchSize > max ? b.peakBatchSize : max);
+
+  @override
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action, {bool? exclusive}) {
+    return _realDb.transaction(action, exclusive: exclusive);
+  }
+
   @override
   Batch batch() {
-    lastBatch = TrackingBatch(_realDb.batch());
-    return lastBatch!;
+    final b = TrackingBatch(_realDb.batch());
+    createdBatches.add(b);
+    return b;
   }
 
   @override
@@ -186,18 +200,17 @@ void main() {
       await strategy.seed(trackingDb);
       stopwatch.stop();
 
-      final trackingBatch = trackingDb.lastBatch!;
       print('=== REPRODUCTION SYMPTOM REPORT (#351) ===');
       print('Total seed execution time: ${stopwatch.elapsedMilliseconds} ms');
-      print('Total batch commit calls: ${trackingBatch.commitCount}');
-      print('Total operations submitted: ${trackingBatch.totalOperationsSubmitted}');
-      print('Peak batch operation accumulation: ${trackingBatch.peakBatchSize}');
+      print('Total batch commit calls: ${trackingDb.totalCommitCount}');
+      print('Total operations submitted: ${trackingDb.totalOperationsSubmitted}');
+      print('Peak batch operation accumulation: ${trackingDb.peakBatchSize}');
 
       // Assertions verifying issue #351 fix:
       // 1. Batch chunking executed multiple commits
       // 2. Peak batch operation accumulation <= 1,000 operations
-      expect(trackingBatch.commitCount, greaterThan(1), reason: 'Statements committed in chunks');
-      expect(trackingBatch.peakBatchSize, lessThanOrEqualTo(1000), reason: 'Batch queue size kept <= 1,000 operations');
+      expect(trackingDb.totalCommitCount, greaterThan(1), reason: 'Statements committed in chunks');
+      expect(trackingDb.peakBatchSize, lessThanOrEqualTo(1000), reason: 'Batch queue size kept <= 1,000 operations');
 
       await realDb.close();
     });

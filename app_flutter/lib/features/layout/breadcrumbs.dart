@@ -170,6 +170,7 @@ class _NavigationBreadcrumbsState extends State<NavigationBreadcrumbs> {
 /// assumes the tree is non-empty at that level.
 String getFirstLeafId(TreeNode n) {
   if (n.children == null || n.children!.isEmpty) return n.id;
+  /// Member documentation.
   return getFirstLeafId(n.children!.first);
 }
 
@@ -196,8 +197,10 @@ List<BreadcrumbItem> getBreadcrumbsItems(
   List<TreeNode> treeData, {
   ValueChanged<String>? onSelectView,
 }) {
+  /// Member documentation.
   final homeTreeData = treeData;
 
+  /// Member documentation.
   final List<BreadcrumbItem> base = [
     BreadcrumbItem(
       id: 'home',
@@ -221,11 +224,13 @@ List<BreadcrumbItem> getBreadcrumbsItems(
     return null;
   }
 
+  /// Member documentation.
   final path = findPath(treeData, view, []);
   if (path == null || path.isEmpty) {
     return [...base, BreadcrumbItem(id: view, label: view)];
   }
 
+  /// Member documentation.
   final List<BreadcrumbItem> items = [...base];
   for (int i = 0; i < path.length; i++) {
     final node = path[i];
@@ -242,5 +247,6 @@ List<BreadcrumbItem> getBreadcrumbsItems(
       );
     }
   }
+  /// Member documentation.
   return items;
 }

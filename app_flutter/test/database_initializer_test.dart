@@ -7,7 +7,15 @@ import '../lib/data/database_initializer.dart' as di;
 
 void main() {
   test('Run database initializer', () async {
-    await di.main();
+    final tmpDir = await Directory.systemTemp.createTemp('di_main_test_');
+    try {
+      final dbPath = '${tmpDir.path}/properties_db.db';
+      final db = await di.DatabaseInitializer.create(dbPath: dbPath, seed: true);
+      await db.close();
+      expect(await File(dbPath).exists(), isTrue);
+    } finally {
+      await tmpDir.delete(recursive: true);
+    }
   });
 
   test('FFI viability probe succeeds on non-sandboxed desktop', () async {

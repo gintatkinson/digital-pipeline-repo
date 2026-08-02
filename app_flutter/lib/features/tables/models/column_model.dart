@@ -1,6 +1,8 @@
 import 'package:app_flutter/domain/type_descriptor.dart';
 
-/// Member documentation.
+/// Represents a column definition in table views.
+///
+/// Realises: [Feat-10/ColumnModel]
 class ColumnModel {
   /// Member documentation.
   final String key;

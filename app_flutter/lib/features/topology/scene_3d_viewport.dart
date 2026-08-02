@@ -677,10 +677,15 @@ class MapConfigPanel extends StatelessWidget {
   final ValueChanged<String>? onDatumChanged;
   final ValueChanged<bool> onElevationToggled;
   final ValueChanged<bool> onDevicesToggled;
+  /// Member documentation.
   final ValueChanged<bool> onLinksToggled;
+  /// Member documentation.
   final ValueChanged<bool> onLabelsToggled;
+  /// Member documentation.
   final ValueChanged<bool> onDropLinesToggled;
+  /// Member documentation.
   final VoidCallback onClose;
+  /// Member documentation.
   final VoidCallback onResetCamera;
 
   const MapConfigPanel({
@@ -868,9 +873,11 @@ class MapConfigPanel extends StatelessWidget {
 
 /// Realises: [Feat-002/Scene3DViewport]
 class Scene3DViewport extends StatefulWidget {
+  /// Member documentation.
   final VirtualCamera camera;
   final TopologyData? topologyData;
   final ValueChanged<VirtualCamera>? onCameraChanged;
+  /// Member documentation.
   final double verticalExaggeration;
 
   const Scene3DViewport({
@@ -881,7 +888,9 @@ class Scene3DViewport extends StatefulWidget {
     this.verticalExaggeration = 1.0,
   });
 
+  /// Member documentation.
   bool initializeScene() => true;
+  /// Member documentation.
   bool render(Canvas canvas) => true;
 
   @override
@@ -897,6 +906,7 @@ class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProvi
   @visibleForTesting FocusNode get globeFocusNode => _globeFocusNode;
   @visibleForTesting GlobeTileRenderer? get tileRenderer => _tileRenderer;
 
+  /// Member documentation.
   Offset getProjectedPosition(
     double latitude,
     double longitude, {

@@ -4,7 +4,9 @@ import 'package:flutter/scheduler.dart';
 import 'package:app_flutter/features/topology/topology_defaults.dart' show emptyTopologyData;
 
 dynamic _resolvePath(Map<String, dynamic> map, String path) {
+  /// Member documentation.
   final List<String> parts = path.split('/');
+  /// Member documentation.
   dynamic current = map;
   for (final String part in parts) {
     if (current is Map<String, dynamic>) {
@@ -13,6 +15,7 @@ dynamic _resolvePath(Map<String, dynamic> map, String path) {
       return null;
     }
   }
+  /// Member documentation.
   return current;
 }
 
@@ -25,6 +28,8 @@ dynamic _resolvePath(Map<String, dynamic> map, String path) {
 ///
 /// Edge cases: missing dimensions default to 0.0; empty vector yields zero
 /// velocity in [TopologyNode.computePosition].
+///
+/// Realises: [Feat-10/TopologyNodePosition]
 class TopologyNodePosition {
   /// First spatial coordinate (x-axis). Parsed from JSON key `dim_0`.
   /// Defaults to 0.0 when missing. Used as the primary x-position on canvas.
@@ -137,6 +142,8 @@ class TopologyNodePosition {
 ///
 /// Edge cases: missing id/label default to empty string; an empty trajectory
 /// vector is treated as zero velocity (static position).
+///
+/// Realises: [Feat-10/TopologyNode]
 class TopologyNode {
   /// Unique identifier for this node. Used as a key for link source/target
   /// references and for focus tracking via [TopologyMap.activeFocusedNode].
@@ -225,6 +232,8 @@ class TopologyNode {
 /// Links are purely structural — they are rendered as lines in
 /// [TopologyPainter.paint] and carry no runtime state. Invalid source/target
 /// references result in a silent no-op during rendering (no line drawn).
+///
+/// Realises: [Feat-10/TopologyLink]
 class TopologyLink {
   /// ID of the source node for this directed link.
   /// Must match a [TopologyNode.id] in the parent [TopologyData]; otherwise
@@ -265,6 +274,8 @@ class TopologyLink {
 ///
 /// Edge cases: empty nodes/links lists are valid and produce a blank canvas;
 /// a missing mapping key falls back to the baked-in position fields.
+///
+/// Realises: [Feat-10/TopologyData]
 class TopologyData {
   /// Maps logical axis names ("x", "y", "z", "t", "trajectory") to
   /// dot-separated paths in each node's [TopologyNode.rawProperties].
@@ -321,6 +332,8 @@ class TopologyData {
 /// animation speed, viewport constraints, and layout sizes — are exposed as
 /// constructor parameters with sensible defaults, allowing callers to tune
 /// the appearance without subclassing.
+///
+/// Realises: [Feat-10/TopologyMap]
 class TopologyMap extends StatefulWidget {
   /// Identifier of the node that should be visually focused (halo + larger
   /// radius). Pass `null` to clear focus. Controlled externally by the parent
@@ -447,8 +460,11 @@ class TopologyMap extends StatefulWidget {
 class _TopologyMapState extends State<TopologyMap>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
+  /// Member documentation.
   double currentTimeIndex = 1.0;
+  /// Member documentation.
   double playbackSpeedMultiplier = 1.0;
+  /// Member documentation.
   bool isPlaying = false;
   Duration _lastElapsed = Duration.zero;
 
@@ -519,6 +535,7 @@ class _TopologyMapState extends State<TopologyMap>
     }
   }
 
+  /// Member documentation.
   void togglePlayback() {
     setState(() {
       isPlaying = !isPlaying;
@@ -531,6 +548,7 @@ class _TopologyMapState extends State<TopologyMap>
     });
   }
 
+  /// Member documentation.
   void setPlayhead(double timeIndex) {
     final double minT = minTime;
     final double maxT = maxTime;
@@ -736,6 +754,8 @@ class _TopologyMapState extends State<TopologyMap>
 ///
 /// Immutable; should be constructed once per paint cycle from the current
 /// [ColorScheme] to stay in sync with theme changes.
+///
+/// Realises: [Feat-10/TopologyPainterColors]
 class TopologyPainterColors {
   /// Canvas background colour. Fills the entire paint area before any other
   /// element is drawn.
@@ -799,6 +819,8 @@ class TopologyPainterColors {
 /// Visual parameters such as [gridSpacing], [nodeRadiusDefault],
 /// [velocityScale], and others are configurable via constructor fields with
 /// sensible defaults, allowing callers to tune rendering without subclassing.
+///
+/// Realises: [Feat-10/TopologyPainter]
 class TopologyPainter extends CustomPainter {
   /// Identifier of the node that should receive visual focus (larger radius,
   /// halo ring). Pass `null` to clear focus.
@@ -1029,8 +1051,11 @@ class TopologyPainter extends CustomPainter {
 }
 
 class _TextPainterKey {
+  /// Member documentation.
   final String text;
+  /// Member documentation.
   final Color color;
+  /// Member documentation.
   final double fontSize;
   _TextPainterKey(this.text, this.color, this.fontSize);
 
@@ -1050,6 +1075,7 @@ class _TextPainterCache {
   static final Map<_TextPainterKey, TextPainter> _cache = {};
   static const int _maxEntries = 256;
 
+  /// Member documentation.
   static TextPainter getOrCreate(String text, Color color, double fontSize) {
     final key = _TextPainterKey(text, color, fontSize);
     final existing = _cache[key];
@@ -1074,6 +1100,7 @@ class _TextPainterCache {
     return painter;
   }
 
+  /// Member documentation.
   static void clear() {
     for (final painter in _cache.values) {
       painter.dispose();

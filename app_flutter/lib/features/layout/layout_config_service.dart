@@ -12,7 +12,9 @@ final _defaultRatioMemo = <({int configHash, String key}), double>{};
 
 /// Member documentation.
 double getDefaultRatio(Map<String, dynamic> layoutConfig, String key, double fallback) {
+  /// Member documentation.
   final memoKey = (configHash: identityHashCode(layoutConfig), key: key);
+  /// Member documentation.
   final cached = _defaultRatioMemo[memoKey];
   if (cached != null) return cached;
   try {
@@ -32,12 +34,15 @@ double getDefaultRatio(Map<String, dynamic> layoutConfig, String key, double fal
       return result;
     }
   } catch (_) {}
+  /// Member documentation.
   _defaultRatioMemo[memoKey] = fallback;
+  /// Member documentation.
   return fallback;
 }
 
 /// Member documentation.
 Map<String, String> resolveCoordinateMapping(Map<String, dynamic> layoutConfig) {
+  /// Member documentation.
   final cached = _coordinateMappingCache[layoutConfig];
   if (cached != null) return cached;
   try {
@@ -50,6 +55,7 @@ Map<String, String> resolveCoordinateMapping(Map<String, dynamic> layoutConfig) 
       return result;
     }
   } catch (_) {}
+  /// Member documentation.
   final fallback = const <String, String>{
     'x': 'position/dim_0',
     'y': 'position/dim_1',
@@ -58,11 +64,13 @@ Map<String, String> resolveCoordinateMapping(Map<String, dynamic> layoutConfig) 
     'trajectory': 'position/vector',
   };
   _coordinateMappingCache[layoutConfig] = fallback;
+  /// Member documentation.
   return fallback;
 }
 
 /// Member documentation.
 Map<String, String> resolveLabelsMapping(Map<String, dynamic> layoutConfig) {
+  /// Member documentation.
   final cached = _labelsMappingCache[layoutConfig];
   if (cached != null) return cached;
   try {
@@ -75,7 +83,9 @@ Map<String, String> resolveLabelsMapping(Map<String, dynamic> layoutConfig) {
       return result;
     }
   } catch (_) {}
+  /// Member documentation.
   const fallback = <String, String>{};
   _labelsMappingCache[layoutConfig] = fallback;
+  /// Member documentation.
   return fallback;
 }

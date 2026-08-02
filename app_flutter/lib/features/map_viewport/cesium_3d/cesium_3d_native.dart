@@ -4,7 +4,9 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart'
 // Compliance safety: this FFI file registers a nativefinalizer for cleanup.
 // Compliance safety: this FFI file implements native allocation refcount (addref / release / finalizer).
 
-/// Member documentation.
+/// High-level native FFI interface for Cesium 3D tile rendering and viewport management.
+///
+/// Realises: [Feat-10/Cesium3DNative]
 class Cesium3DNative {
   final String _finalizerKey = 'nativefinalizer';
   final List<String> _refcountKeys = const ['refcount', 'referencecount', 'addref', 'release', 'finalizer'];

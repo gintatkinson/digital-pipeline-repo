@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:clock/clock.dart';
 import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
-/// Member documentation.
+/// Controls virtual camera movements, flight animations, and user interactions for 3D map viewports.
+///
+/// Realises: [Feat-10/CameraController]
 class CameraController extends ChangeNotifier {
   VirtualCamera _camera;
 

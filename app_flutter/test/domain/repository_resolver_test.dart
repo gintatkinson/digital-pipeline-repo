@@ -15,6 +15,7 @@ void main() {
   late Directory tempDir;
   late String dbPath;
   List<int>? mockAssetBytes;
+  final List<DataSource> activeDataSources = [];
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -22,6 +23,7 @@ void main() {
   });
 
   setUp(() async {
+    await RepositoryResolver.resetForTesting();
     tempDir = await Directory.systemTemp.createTemp();
     dbPath = p.join(tempDir.path, 'properties_db.db');
     mockAssetBytes = null;
@@ -51,11 +53,23 @@ void main() {
   });
 
   tearDown(() async {
+    for (final ds in activeDataSources) {
+      try {
+        await ds.dispose();
+      } catch (_) {}
+    }
+    activeDataSources.clear();
+    await RepositoryResolver.resetForTesting();
+
     try {
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }
     } catch (_) {}
+  });
+
+  tearDownAll(() async {
+    await RepositoryResolver.resetForTesting();
   });
 
   test('Database containing all 5 required tables is NOT considered outdated', () async {
@@ -75,6 +89,7 @@ void main() {
       dataSourceType: 'sqlite',
       sqliteInMemory: false,
     );
+    activeDataSources.add(dataSource);
 
     // 3. Open the database again and verify that the test_marker table still exists
     final checkDb = await databaseFactory.openDatabase(dbPath);
@@ -105,6 +120,7 @@ void main() {
       dataSourceType: 'sqlite',
       sqliteInMemory: false,
     );
+    activeDataSources.add(dataSource);
 
     // 3. Open the database again and verify that the test_marker table is gone
     final checkDb = await databaseFactory.openDatabase(dbPath);
@@ -120,6 +136,7 @@ void main() {
       dataSourceType: 'sqlite',
       sqliteInMemory: true,
     );
+    activeDataSources.add(dataSource);
 
     final resolver = RepositoryResolver(dataSource);
 

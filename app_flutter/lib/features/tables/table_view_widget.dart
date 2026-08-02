@@ -23,6 +23,8 @@ import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 /// State changes: this widget is read-only; it watches [TablesViewModel] via
 /// `context.watch` and rebuilds on every notifyListeners call from the view
 /// model.
+///
+/// Realises: [Feat-10/TableViewWidget]
 class TableViewWidget extends StatefulWidget {
   /// Member documentation.
   const TableViewWidget({
@@ -268,14 +270,23 @@ class _TableViewWidgetState extends State<TableViewWidget> {
 }
 
 class _HeaderRow extends StatelessWidget {
+  /// Member documentation.
   final List<ColumnModel> headers;
+  /// Member documentation.
   final double colWidth;
+  /// Member documentation.
   final double headingRowHeight;
+  /// Member documentation.
   final double horizontalMargin;
+  /// Member documentation.
   final double columnSpacing;
+  /// Member documentation.
   final String testId;
+  /// Member documentation.
   final int? sortColumnIndex;
+  /// Member documentation.
   final bool sortAscending;
+  /// Member documentation.
   final void Function(int columnIndex) onSort;
 
   const _HeaderRow({
@@ -326,17 +337,29 @@ class _HeaderRow extends StatelessWidget {
 }
 
 class _HeaderCell extends StatelessWidget {
+  /// Member documentation.
   final String label;
+  /// Member documentation.
   final double? columnWidth;
+  /// Member documentation.
   final double colWidth;
+  /// Member documentation.
   final double horizontalMargin;
+  /// Member documentation.
   final double columnSpacing;
+  /// Member documentation.
   final bool isFirst;
+  /// Member documentation.
   final bool isLast;
+  /// Member documentation.
   final bool sortable;
+  /// Member documentation.
   final bool isActiveSort;
+  /// Member documentation.
   final bool sortAscending;
+  /// Member documentation.
   final VoidCallback? onTap;
+  /// Member documentation.
   final bool isNumeric;
 
   const _HeaderCell({
@@ -382,15 +405,25 @@ class _HeaderCell extends StatelessWidget {
 }
 
 class _DataRow extends StatelessWidget {
+  /// Member documentation.
   final List<String> cells;
+  /// Member documentation.
   final List<ColumnModel> columnModels;
+  /// Member documentation.
   final Map<String, int> headerIndices;
+  /// Member documentation.
   final double colWidth;
+  /// Member documentation.
   final double dataRowMinHeight;
+  /// Member documentation.
   final double dataRowMaxHeight;
+  /// Member documentation.
   final double horizontalMargin;
+  /// Member documentation.
   final double columnSpacing;
+  /// Member documentation.
   final int index;
+  /// Member documentation.
   final TextStyle? numericTextStyle;
 
   static final Color _stripeColor = Colors.black.withOpacity(0.03);
@@ -437,13 +470,21 @@ class _DataRow extends StatelessWidget {
 }
 
 class _DataCell extends StatelessWidget {
+  /// Member documentation.
   final String value;
+  /// Member documentation.
   final ColumnModel columnModel;
+  /// Member documentation.
   final double colWidth;
+  /// Member documentation.
   final double horizontalMargin;
+  /// Member documentation.
   final double columnSpacing;
+  /// Member documentation.
   final bool isFirst;
+  /// Member documentation.
   final bool isLast;
+  /// Member documentation.
   final TextStyle? numericTextStyle;
 
   const _DataCell({

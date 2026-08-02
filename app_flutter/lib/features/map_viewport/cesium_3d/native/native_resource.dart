@@ -3,7 +3,9 @@ import 'package:ffi/ffi.dart';
 
 final _finalizer = NativeFinalizer(calloc.nativeFree);
 
-/// Member documentation.
+/// Wrapper around native memory allocation managing lifecycle and finalizers.
+///
+/// Realises: [Feat-10/NativeResource]
 final class NativeResource implements Finalizable {
   Pointer<Void> _pointer;
   /// Member documentation.

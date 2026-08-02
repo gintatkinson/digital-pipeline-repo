@@ -2,7 +2,9 @@ import 'dart:typed_data';
 
 import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
-/// Member documentation.
+/// Utility for transforming ECEF 3D spatial coordinates to local coordinate systems.
+///
+/// Realises: [Feat-10/CoordinateTransformer]
 class CoordinateTransformer {
   /// Transforms ECEF coordinates to local coordinates.
   ///

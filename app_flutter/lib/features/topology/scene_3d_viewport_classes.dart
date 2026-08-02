@@ -61,7 +61,9 @@ extension VirtualCameraNormalization on VirtualCamera {
 
 /// Realises: [Feat-002/ElevationProvider]
 class ElevationProvider {
+  /// Member documentation.
   final bool isElevationActive;
+  /// Member documentation.
   final double verticalExaggeration;
 
   const ElevationProvider({
@@ -69,6 +71,7 @@ class ElevationProvider {
     this.verticalExaggeration = 1.0,
   });
 
+  /// Member documentation.
   double getElevation(double latDeg, double lngDeg) {
     if (!isElevationActive) return 0.0;
     
@@ -96,10 +99,15 @@ class ElevationProvider {
 
 /// Realises: [Feat-002/CoordinateTransformer]
 class CoordinateTransformer {
+  /// Member documentation.
   final VirtualCamera absoluteCamera;
+  /// Member documentation.
   final Size viewportSize;
+  /// Member documentation.
   final Offset screenCenter;
+  /// Member documentation.
   final double rotationAngle;
+  /// Member documentation.
   final double tilt;
 
   // Cached math properties for the camera to save CPU cycles
@@ -331,41 +339,67 @@ class CoordinateTransformer {
   }
 }
 
+/// Realises: [Feat-10/ElevationCacheKey]
 typedef ElevationCacheKey = (String id, double latDeg, double lngDeg, String astronomicalBody, bool elevationActive);
 
 /// Realises: [Feat-002/SceneViewState]
 class SceneViewState extends ChangeNotifier {
+  /// Member documentation.
   final Map<String, Network3DScene> nodeModels = {};
+  /// Member documentation.
   final Map<String, ProjectedPoint> projectedNodes = {};
+  /// Member documentation.
   final List<Offset> groundGlowPoints = [];
+  /// Member documentation.
   final List<Offset> groundPoints = [];
+  /// Member documentation.
   final List<Offset> linkGlowPoints = [];
+  /// Member documentation.
   final List<Offset> linkPoints = [];
+  /// Member documentation.
   final List<Offset> packetPoints = [];
+  /// Member documentation.
   final List<Rect> drawnLabelRects = [];
+  /// Member documentation.
   final Map<ElevationCacheKey, double> nodeElevationCache = {};
+  /// Member documentation.
   final Map<String, ElevationCacheKey> cacheKeyCache = {};
+  /// Member documentation.
   final Map<String, double> debugCapturedHeights = {};
 
   Path? horizonPath;
   ProjectedPoint? earthCenterProj;
+  /// Member documentation.
   double projectedRadius = 0.0;
+  /// Member documentation.
   Offset projectedCenter = Offset.zero;
 
+  /// Member documentation.
   late VirtualCamera camera;
   GlobeTileRenderer? tileRenderer;
+  /// Member documentation.
   bool isFlying = false;
 
+  /// Member documentation.
   late String activeStyle;
+  /// Member documentation.
   late String astronomicalBody;
+  /// Member documentation.
   late bool elevationActive;
+  /// Member documentation.
   late bool showDevices;
+  /// Member documentation.
   late bool showLinks;
+  /// Member documentation.
   late bool showLabels;
+  /// Member documentation.
   late bool showDropLines;
+  /// Member documentation.
   late double verticalExaggeration;
   TopologyData? topologyData;
+  /// Member documentation.
   late ElevationProvider elevationProvider;
+  /// Member documentation.
   late CoordinateTransformer transformer;
 
   SceneViewState() {
@@ -428,13 +462,16 @@ class SceneViewState extends ChangeNotifier {
     return state;
   }
 
+  /// Member documentation.
   final Map<String, Offset> finalLabelPositions = {};
+  /// Member documentation.
   final Map<TextPainterKey, TextPainter> textPainterCache = {};
 
   VirtualCamera? _lastRecalculatedCamera;
   TopologyData? _lastRecalculatedTopology;
   bool _lastRecalculatedIsFlying = false;
 
+  /// Member documentation.
   void recalculate(
     VirtualCamera camera, 
     Size size, 
@@ -657,19 +694,24 @@ class SceneViewState extends ChangeNotifier {
 
 /// Realises: [Feat-002/TextPainterKey]
 class TextPainterKey {
+  /// Member documentation.
   final String text;
+  /// Member documentation.
   final Color color;
   TextPainterKey(this.text, this.color);
   @override bool operator ==(Object other) => identical(this, other) || other is TextPainterKey && text == other.text && color == other.color;
   @override int get hashCode => Object.hash(text, color);
 }
 
+/// Realises: [Feat-10/ModelRenderState]
 enum ModelRenderState { unloaded, loading, loaded, error }
 
 /// Realises: [Feat-002/Network3DScene]
 class Network3DScene {
   Uint8List? gltfData;
+  /// Member documentation.
   bool isTranslucent = false;
+  /// Member documentation.
   ModelRenderState state = ModelRenderState.unloaded;
 
   /// Loads the glTF model data from the given path.
