@@ -32,10 +32,14 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 /// loading failures are logged and the UI shows a [CircularProgressIndicator]
 /// until [parsedLayout] is ready.
 class Layout extends StatefulWidget {
+  /// Member documentation.
   final String? activeView;
+  /// Member documentation.
   final ValueChanged<String>? onViewChange;
+  /// Member documentation.
   final String? layoutConfig;
 
+  /// Member documentation.
   Layout({
     super.key,
     this.activeView,

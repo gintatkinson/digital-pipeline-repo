@@ -55,6 +55,7 @@ class TopologyNodePosition {
   /// [resolveCoordinate] / [resolveVector].
   final Map<String, dynamic> rawProperties;
 
+  /// Member documentation.
   const TopologyNodePosition({
     required this.dim0,
     required this.dim1,
@@ -64,6 +65,7 @@ class TopologyNodePosition {
     this.rawProperties = const <String, dynamic>{},
   });
 
+  /// Member documentation.
   factory TopologyNodePosition.fromJson(Map<String, dynamic> json) {
     return TopologyNodePosition(
       dim0: (json['dim_0'] as num?)?.toDouble() ?? 0.0,
@@ -85,6 +87,7 @@ class TopologyNodePosition {
     return path.startsWith('position/') ? path.substring(9) : path;
   }
 
+  /// Member documentation.
   double resolveCoordinate(String key, Map<String, String>? coordinateMapping) {
     final String? resolvedPath = _resolvePathWithMapping(key, coordinateMapping);
     if (resolvedPath != null) {
@@ -107,6 +110,7 @@ class TopologyNodePosition {
     }
   }
 
+  /// Member documentation.
   List<double> resolveVector(String key, Map<String, String>? coordinateMapping) {
     final String? resolvedPath = _resolvePathWithMapping(key, coordinateMapping);
     if (resolvedPath != null) {
@@ -155,6 +159,7 @@ class TopologyNode {
   /// [resolveCoordinate] / [resolveVector].
   final Map<String, dynamic> rawProperties;
 
+  /// Member documentation.
   const TopologyNode({
     required this.id,
     required this.label,
@@ -163,6 +168,7 @@ class TopologyNode {
     this.rawProperties = const <String, dynamic>{},
   });
 
+  /// Member documentation.
   factory TopologyNode.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic> posJson = json['position'] is Map<String, dynamic>
         ? json['position'] as Map<String, dynamic>
@@ -176,6 +182,7 @@ class TopologyNode {
     );
   }
 
+  /// Member documentation.
   double resolveCoordinate(String key, Map<String, String>? coordinateMapping) {
     final String? path = coordinateMapping?[key];
     if (path != null && rawProperties.isNotEmpty) {
@@ -187,6 +194,7 @@ class TopologyNode {
     return position.resolveCoordinate(key, coordinateMapping);
   }
 
+  /// Member documentation.
   List<double> resolveVector(String key, Map<String, String>? coordinateMapping) {
     final String? path = coordinateMapping?[key];
     if (path != null && rawProperties.isNotEmpty) {
@@ -198,6 +206,7 @@ class TopologyNode {
     return position.resolveVector(key, coordinateMapping);
   }
 
+  /// Member documentation.
   Offset computePosition(TopologyData data, double timeIndex) {
     final double nodeT = resolveCoordinate('t', data.coordinateMapping);
     final double dt = timeIndex - nodeT;
@@ -231,12 +240,14 @@ class TopologyLink {
   /// Used solely as a data attribute; not rendered on canvas.
   final String type;
 
+  /// Member documentation.
   const TopologyLink({
     required this.source,
     required this.target,
     required this.type,
   });
 
+  /// Member documentation.
   factory TopologyLink.fromJson(Map<String, dynamic> json) {
     return TopologyLink(
       source: json['source'] as String? ?? '',
@@ -269,12 +280,14 @@ class TopologyData {
   /// their [TopologyNode.id]; invalid references produce a silent no-op.
   final List<TopologyLink> links;
 
+  /// Member documentation.
   const TopologyData({
     required this.coordinateMapping,
     required this.nodes,
     required this.links,
   });
 
+  /// Member documentation.
   factory TopologyData.fromJson(Map<String, dynamic> json) {
     return TopologyData(
       coordinateMapping: Map<String, String>.from(
@@ -404,6 +417,7 @@ class TopologyMap extends StatefulWidget {
   /// playback panel. Default: 32.0.
   final double timeDisplayWidth;
 
+  /// Member documentation.
   const TopologyMap({
     super.key,
     this.activeFocusedNode,
@@ -759,6 +773,7 @@ class TopologyPainterColors {
   /// Colour for node labels rendered below each node circle.
   final Color labelColor;
 
+  /// Member documentation.
   const TopologyPainterColors({
     required this.bgColor,
     required this.gridColor,
@@ -837,6 +852,7 @@ class TopologyPainter extends CustomPainter {
   /// circle. Default: 12.0.
   final double labelFontSize;
 
+  /// Member documentation.
   TopologyPainter({
     required this.activeFocusedNode,
     required this.activeData,

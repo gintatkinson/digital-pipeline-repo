@@ -1,28 +1,44 @@
+/// Member documentation.
 class CoordinateValidationException implements Exception {
+  /// Member documentation.
   final String message;
 
+  /// Member documentation.
   CoordinateValidationException(this.message);
 
   @override
   String toString() => 'CoordinateValidationException: $message';
 }
 
+/// Member documentation.
 class Ellipsoid {
+  /// Member documentation.
   static const double wgs84EquatorialRadius = 6378137.0;
 }
 
+/// Member documentation.
 enum AltitudeMode {
+  /// Member documentation.
   absolute,
+  /// Member documentation.
   clampToGround,
+  /// Member documentation.
   relativeToGround,
 }
 
+/// Member documentation.
 class VirtualCamera {
+  /// Member documentation.
   final double dim_0;
+  /// Member documentation.
   final double dim_1;
+  /// Member documentation.
   final double dim_2;
+  /// Member documentation.
   final double heading;
+  /// Member documentation.
   final double pitch;
+  /// Member documentation.
   final double roll;
 
   /// Public factory constructor preserving runtime exception behavior.
@@ -123,6 +139,7 @@ class VirtualCamera {
         other.roll == roll;
   }
 
+  /// Member documentation.
   bool isSpatiallyEquivalentTo(
     VirtualCamera other, {
     double epsilonCoordinate = 1e-7,

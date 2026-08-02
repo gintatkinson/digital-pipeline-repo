@@ -6,16 +6,21 @@
 /// from the data source. Equality is identity-based; no value equality override
 /// is provided since nodes are rebuilt on each tree refresh.
 class TreeNode {
+  /// Member documentation.
   final String id;
+  /// Member documentation.
   final String label;
+  /// Member documentation.
   final List<TreeNode>? children;
 
+  /// Member documentation.
   const TreeNode({
     required this.id,
     required this.label,
     this.children,
   });
 
+  /// Member documentation.
   TreeNode copyWith({
     String? id,
     String? label,

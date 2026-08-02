@@ -1,6 +1,7 @@
 var _coordinateMappingCache = Expando<Map<String, String>>();
 var _labelsMappingCache = Expando<Map<String, String>>();
 
+/// Member documentation.
 void clearLayoutConfigCaches() {
   _coordinateMappingCache = Expando<Map<String, String>>();
   _labelsMappingCache = Expando<Map<String, String>>();
@@ -9,6 +10,7 @@ void clearLayoutConfigCaches() {
 
 final _defaultRatioMemo = <({int configHash, String key}), double>{};
 
+/// Member documentation.
 double getDefaultRatio(Map<String, dynamic> layoutConfig, String key, double fallback) {
   final memoKey = (configHash: identityHashCode(layoutConfig), key: key);
   final cached = _defaultRatioMemo[memoKey];
@@ -34,6 +36,7 @@ double getDefaultRatio(Map<String, dynamic> layoutConfig, String key, double fal
   return fallback;
 }
 
+/// Member documentation.
 Map<String, String> resolveCoordinateMapping(Map<String, dynamic> layoutConfig) {
   final cached = _coordinateMappingCache[layoutConfig];
   if (cached != null) return cached;
@@ -58,6 +61,7 @@ Map<String, String> resolveCoordinateMapping(Map<String, dynamic> layoutConfig) 
   return fallback;
 }
 
+/// Member documentation.
 Map<String, String> resolveLabelsMapping(Map<String, dynamic> layoutConfig) {
   final cached = _labelsMappingCache[layoutConfig];
   if (cached != null) return cached;

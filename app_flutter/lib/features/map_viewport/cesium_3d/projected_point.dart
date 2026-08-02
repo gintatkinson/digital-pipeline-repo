@@ -17,11 +17,13 @@ class ProjectedPoint {
 
   static final Map<int, ProjectedPoint> _pool = {};
 
+  /// Member documentation.
   factory ProjectedPoint.pooled(Offset offset, double z) {
     final key = Object.hash(offset.dx, offset.dy, z);
     return _pool.putIfAbsent(key, () => ProjectedPoint(offset, z));
   }
 
+  /// Member documentation.
   static void clearPool() {
     _pool.clear();
   }

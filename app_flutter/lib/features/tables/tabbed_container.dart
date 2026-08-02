@@ -26,6 +26,7 @@ import 'package:app_flutter/features/tables/table_view_widget.dart';
 /// is forwarded to [TablesViewModel.selectTab] which triggers async data
 /// loading.
 class TabbedContainer extends StatefulWidget {
+  /// Member documentation.
   const TabbedContainer({super.key});
 
   @override
@@ -172,9 +173,13 @@ class _TabbedContainerState extends State<TabbedContainer>
   }
 }
 
+/// Member documentation.
 class LazyTab extends StatefulWidget {
+  /// Member documentation.
   const LazyTab({super.key, required this.child, required this.isSelected});
+  /// Member documentation.
   final Widget child;
+  /// Member documentation.
   final bool isSelected;
   @override
   State<LazyTab> createState() => _LazyTabState();

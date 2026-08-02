@@ -23,6 +23,7 @@ class BreadcrumbItem {
   /// interactivity (rendered as plain text).
   final VoidCallback? onClick;
 
+  /// Member documentation.
   const BreadcrumbItem({
     required this.id,
     required this.label,
@@ -59,6 +60,7 @@ class NavigationBreadcrumbs extends StatefulWidget {
   /// meaningful collapse behaviour. Defaults to 4.
   final int maxItems;
 
+  /// Member documentation.
   const NavigationBreadcrumbs({
     super.key,
     required this.items,

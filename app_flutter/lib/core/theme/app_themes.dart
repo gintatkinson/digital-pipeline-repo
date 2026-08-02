@@ -156,6 +156,7 @@ class AppThemes {
     } catch (_) {}
   }
 
+  /// Member documentation.
   static Future<void> load() async {
     try {
       final jsonStr = await rootBundle.loadString('assets/design-tokens.json');
@@ -165,10 +166,12 @@ class AppThemes {
     }
   }
 
+  /// Member documentation.
   static void loadFromJson(String json) {
     _tokens = jsonDecode(json) as Map<String, dynamic>;
   }
 
+  /// Member documentation.
   static dynamic resolveValue(dynamic value) {
     if (value is! String) return value;
     final match = RegExp(r'^\{(.+)\}$').firstMatch(value);
@@ -204,6 +207,7 @@ class AppThemes {
     return current;
   }
 
+  /// Member documentation.
   static double parseDimension(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();
@@ -214,6 +218,7 @@ class AppThemes {
     return double.tryParse(s) ?? 0.0;
   }
 
+  /// Member documentation.
   static double getDimension(String path, [double defaultValue = 0.0]) {
     _ensureLoaded();
     final val = _resolvePath(path);
@@ -221,16 +226,19 @@ class AppThemes {
     return parseDimension(val);
   }
 
+  /// Member documentation.
   static String? getString(String path) {
     _ensureLoaded();
     final val = _resolvePath(path);
     return val?.toString();
   }
 
+  /// Member documentation.
   static String? getFontFamily() {
     return getString('alias.typography.font-family') ?? getString('global.typography.font-family');
   }
 
+  /// Member documentation.
   static VisualDensity getVisualDensity() {
     final scale = getString('alias.typography.scale') ?? getString('global.typography.scale');
     if (scale == 'high-density' || scale == 'compact') {

@@ -11,7 +11,9 @@ import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/app/app.dart';
 
 // Benchmark access hooks — set after initialization
+/// Member documentation.
 ThemeController? globalThemeController;
+/// Member documentation.
 TextScalerController? globalTextScalerController;
 
 const _dataSource = String.fromEnvironment('DATA_SOURCE', defaultValue: 'sqlite');

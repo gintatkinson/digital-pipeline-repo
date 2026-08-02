@@ -11,10 +11,14 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 /// Exists to pair a display label with the column schema ([columns]) needed to
 /// render a tab's table. Created by [TablesViewModel] during discovery.
 class TabDescriptor {
+  /// Member documentation.
   final String id;
+  /// Member documentation.
   final String label;
+  /// Member documentation.
   final TypeDescriptor type;
 
+  /// Member documentation.
   const TabDescriptor({
     required this.id,
     required this.label,
@@ -68,6 +72,7 @@ class TablesViewModel extends ChangeNotifier {
   Set<String>? _prevHiddenKeys;
   List<ColumnModel>? _cachedVisibleModels;
 
+  /// Member documentation.
   TablesViewModel(this._dataSource, this._activeView) {
     _setupPropertiesSubscription(_activeView);
   }
@@ -88,8 +93,10 @@ class TablesViewModel extends ChangeNotifier {
   /// Column headers for the currently selected tab.
   List<ColumnModel> get headers => _headers;
 
+  /// Member documentation.
   Set<String>? get hiddenColumnKeys => _hiddenColumnKeys;
 
+  /// Member documentation.
   List<ColumnModel> get visibleColumnModels {
     if (identical(_prevVisibleHeaders, _headers) &&
         identical(_prevHiddenKeys, _hiddenColumnKeys) &&
@@ -110,6 +117,7 @@ class TablesViewModel extends ChangeNotifier {
   /// Column models for the currently selected tab.
   List<ColumnModel> get columnModels => _columnModels;
 
+  /// Member documentation.
   void setHiddenColumnKeys(Set<String>? keys) {
     _hiddenColumnKeys = keys;
     notifyListeners();

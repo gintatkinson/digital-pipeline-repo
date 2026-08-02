@@ -24,6 +24,7 @@ last_updated: "2026-06-29"
 - Architecture pattern: MVVM (Model-View-ViewModel). Views are stateless widgets that consume ViewModels via dependency injection. ViewModels hold business logic and state. Models are data classes with serialization support.
 - State management: Use `ChangeNotifier` + `ListenableBuilder` or `ValueListenableBuilder`. Avoid global state libraries unless justified by cross-cutting concerns.
 - Dependency injection: Use constructor injection. Repository and DataSource instances are resolved at bootstrap via `RepositoryResolver`.
+- Documentation: Full docstrings (DartDoc `///`) are mandatory for all public classes, interfaces, methods, functions, and properties, enforced via `public_member_api_docs` as a mandatory blocking linter rule.
 
 ## Testing Mandates
 - Unit tests: Required for all ViewModels, domain models, and data source adapters. Command: `flutter test`. Framework: `flutter_test`.
@@ -72,6 +73,9 @@ meaningless on another platform — see `rules/platform-independence.md`
   codebase but absent from every file under `flutter_rules.ui_directories` is reachable
   in the data layer and invisible to the operator. Where the workspace declares UI
   directories at all, realisation without a UI binding is reported.
+- **Public Member Docstrings Mandatory**: every public class, interface, method, function,
+  and public property MUST include full docstrings (DartDoc ///, JSDoc /** */, Python """).
+  Enforced as a mandatory blocking linter rule via `public_member_api_docs`.
 
 ## Security & Ops
 - API key management: API keys and secrets MUST NOT be committed to the repository. Use platform-specific secure storage (e.g., macOS Keychain, Android Keystore) or environment variables resolved at build time via `--dart-define`.

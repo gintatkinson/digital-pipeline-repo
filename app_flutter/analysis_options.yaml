@@ -14,3 +14,8 @@ analyzer:
     deprecated_member_use: ignore
     unnecessary_null_comparison: ignore
     inference_failure_on_instance_creation: ignore
+
+linter:
+  rules:
+    - public_member_api_docs
+

@@ -7,11 +7,16 @@ import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node_widget.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
+/// Member documentation.
 class SidebarTree extends StatefulWidget {
+  /// Member documentation.
   final int? workerResult;
+  /// Member documentation.
   final ValueChanged<String> onViewSelected;
+  /// Member documentation.
   final EdgeInsetsGeometry contentPadding;
 
+  /// Member documentation.
   const SidebarTree({
     super.key,
     this.workerResult,

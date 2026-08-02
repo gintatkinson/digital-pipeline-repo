@@ -95,8 +95,9 @@ The coordinator agent is strictly locked from using modifying tools (`write_to_f
 The implementer receives ONLY:
 - The micro-task text (exact scope, target files, expected changes)
 - Relevant file contents (read and provided by the coordinator)
-- Project conventions (TDD mandate, typing rules, drill-down navigation rule, etc.)
+- Project conventions (TDD mandate, typing rules, docstring mandate, drill-down navigation rule, etc.)
 - The driving test specification
+- Mandatory Docstring Requirement: Prompt instruction requiring that every generated class, interface, method, function, and public property MUST include full docstrings (DartDoc `///`, JSDoc `/** */`, Python `"""`).
 
 The implementer MUST NOT receive the full session history or prior task context.
 

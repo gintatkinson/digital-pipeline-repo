@@ -25,12 +25,18 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart'
 /// takes its minimum and the trailing pane fills the remainder (which
 /// may be smaller than [splitMinFirstPaneSize]).
 class TopographicalView extends StatefulWidget {
+  /// Member documentation.
   static final GlobalKey<_TopographicalViewState> globalKey = GlobalKey<_TopographicalViewState>();
 
+  /// Member documentation.
   final String currentView;
+  /// Member documentation.
   final ValueChanged<String> onViewSelected;
+  /// Member documentation.
   final Widget? child;
+  /// Member documentation.
   final TopologyData topologyData;
+  /// Member documentation.
   final List<TreeNode> treeData;
   /// The axis along which the split panes are laid out.
   ///
@@ -71,6 +77,7 @@ class TopographicalView extends StatefulWidget {
   /// Defaults to `Key('topo_splitter')`.
   final Key splitterKey;
 
+  /// Member documentation.
   const TopographicalView({
     super.key,
     required this.currentView,

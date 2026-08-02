@@ -39,8 +39,10 @@ class TileCoord {
 class GlobeTileRenderer {
   final TileFetcher _fetcher;
   ImageryProvider _activeProvider;
+  /// Member documentation.
   final ui.VoidCallback? onTileLoaded;
 
+  /// Member documentation.
   @visibleForTesting
   void Function(List<ui.Offset> positions, List<int> indices)? onDrawVerticesForTesting;
 
@@ -68,6 +70,7 @@ class GlobeTileRenderer {
   /// Whether the underlying [TileFetcher] is enabled.
   bool get isEnabled => _fetcher.isEnabled();
 
+  /// Member documentation.
   @visibleForTesting
   int get loadedImagesCount => _loadedImages.length;
 
@@ -78,6 +81,7 @@ class GlobeTileRenderer {
     return _hasHigherZoomOverlay(tile);
   }
 
+  /// Member documentation.
   @visibleForTesting
   void injectTileForTesting(TileCoord coord, ui.Image image) {
     _loadedImages[coord.key] = image;
@@ -494,22 +498,26 @@ class GlobeTileRenderer {
     return m;
   }
 
+  /// Member documentation.
   @visibleForTesting
   List<TileCoord> visibleTilesForTesting(VirtualCamera camera, ui.Size viewportSize) {
     return _visibleTiles(camera, viewportSize);
   }
 
+  /// Member documentation.
   @visibleForTesting
   TileCoord latLngToTileForTesting(double dim_0, double lng, int zoom) {
     return _latLngToTile(dim_0, lng, zoom);
   }
 
+  /// Member documentation.
   @visibleForTesting
   static int subdivisionsForTesting(int zoom) {
     final double tileWidthDeg = 360.0 / math.pow(2, zoom);
     return (tileWidthDeg / 3.0).ceil().clamp(8, 32);
   }
 
+  /// Member documentation.
   @visibleForTesting
   static List<int> calculateIndicesForTesting(List<double> zs) {
     const int subdivisions = 4;

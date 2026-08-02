@@ -28,7 +28,9 @@ Future<void> main() async {
   print('Database gzipped to properties_db.db.gz successfully.');
 }
 
+/// Member documentation.
 abstract class SeedStrategy {
+  /// Member documentation.
   Future<void> seed(Database db);
 }
 

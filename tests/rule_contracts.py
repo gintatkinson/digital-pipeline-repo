@@ -808,6 +808,14 @@ PLATFORM_PROFILE_CONTRACTS: List[RuleContract] = [
             "project with no UI layer is not asked to bind anything."
         ),
     ),
+    RuleContract(
+        id="public-member-docstring-missing",
+        documented_in=".pipeline/profiles/flutter.md",
+        doc_anchor="Public Member Docstrings Mandatory",
+        enforced_in=f"{PARITY_SRC}/validators/docstring_validator.py",
+        enforcement_anchor="public-member-docstring-missing",
+        note="Enforces mandatory docstrings on public members in target source files.",
+    ),
 ]
 
 PLATFORM_PROFILE_FAMILY = ContractFamily(
@@ -817,6 +825,7 @@ PLATFORM_PROFILE_FAMILY = ContractFamily(
     enforcement_files=[
         f"{PARITY_SRC}/validators/profile_scoping_validator.py",
         f"{PARITY_SRC}/validators/schema_mapping_validator.py",
+        f"{PARITY_SRC}/validators/docstring_validator.py",
     ],
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
     # Unlike every family registered before it, this one HAS a single normative home, so

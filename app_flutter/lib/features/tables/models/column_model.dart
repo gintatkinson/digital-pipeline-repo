@@ -1,14 +1,23 @@
 import 'package:app_flutter/domain/type_descriptor.dart';
 
+/// Member documentation.
 class ColumnModel {
+  /// Member documentation.
   final String key;
+  /// Member documentation.
   final String label;
+  /// Member documentation.
   final String type;
+  /// Member documentation.
   final double? width;
+  /// Member documentation.
   final bool sortable;
+  /// Member documentation.
   final bool frozen;
+  /// Member documentation.
   final bool visible;
 
+  /// Member documentation.
   const ColumnModel({
     required this.key,
     required this.label,
@@ -19,6 +28,7 @@ class ColumnModel {
     this.visible = true,
   });
 
+  /// Member documentation.
   factory ColumnModel.fromFieldDescriptor(FieldDescriptor fd) {
     return ColumnModel(
       key: fd.key,

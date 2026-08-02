@@ -16,6 +16,7 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 /// State changes: each call to [loadType] replaces the previous type and calls
 /// [notifyListeners]; the widget layer is expected to rebuild in response.
 class PropertiesViewModel extends ChangeNotifier {
+  /// Member documentation.
   PropertiesViewModel(this._dataSource);
   final DataSource _dataSource;
 

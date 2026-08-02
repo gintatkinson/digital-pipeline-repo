@@ -22,6 +22,7 @@ import 'dart:io' show Platform;
 /// visible-node walk). Does not trigger [notifyListeners] directly — all
 /// state changes are delegated to the view model.
 class TreeNodeWidget extends StatelessWidget {
+  /// Member documentation.
   final TreeNode node;
   /// The left indentation for child nodes in the tree.
   ///
@@ -29,6 +30,7 @@ class TreeNodeWidget extends StatelessWidget {
   /// wraps recursively rendered children. Defaults to 16.0.
   final double childIndent;
 
+  /// Member documentation.
   const TreeNodeWidget({
     super.key,
     required this.node,

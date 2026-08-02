@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:clock/clock.dart';
 import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 
+/// Member documentation.
 class CameraController extends ChangeNotifier {
   VirtualCamera _camera;
 
@@ -12,15 +13,22 @@ class CameraController extends ChangeNotifier {
   DateTime? _animationStart;
   Duration _flightDuration = const Duration(milliseconds: 500);
 
+  /// Member documentation.
   @visibleForTesting
   Duration get flightDurationForTesting => _flightDuration;
 
+  /// Member documentation.
   static const double dragSensitivity = 0.15;
+  /// Member documentation.
   static const double scrollSensitivity = 0.5;
+  /// Member documentation.
   static const double keyboardStep = 5.0;
+  /// Member documentation.
   static const double minAltitude = 100.0;
+  /// Member documentation.
   static const double maxAltitude = 40000000.0;
 
+  /// Member documentation.
   double Function(double dim_0, double lng)? elevationProvider;
 
   double _getTerrainHeight(double dim_0, double lng) {
@@ -34,6 +42,7 @@ class CameraController extends ChangeNotifier {
     return targetAlt < minAlt ? minAlt : targetAlt;
   }
 
+  /// Member documentation.
   CameraController(VirtualCamera camera) : _camera = camera.dim_2 < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.clamped(
     dim_0: camera.dim_0,
     dim_1: camera.dim_1,
@@ -43,10 +52,13 @@ class CameraController extends ChangeNotifier {
     roll: camera.roll,
   ) : camera;
 
+  /// Member documentation.
   VirtualCamera get current => _camera;
 
+  /// Member documentation.
   bool get isFlying => _targetCamera != null;
 
+  /// Member documentation.
   void updateCamera(VirtualCamera camera) {
     final absoluteCamera = camera.dim_2 < Ellipsoid.wgs84EquatorialRadius ? VirtualCamera.clamped(
       dim_0: camera.dim_0,
@@ -94,6 +106,7 @@ class CameraController extends ChangeNotifier {
     return 2 * math.asin(math.sqrt(val.clamp(0.0, 1.0)));
   }
 
+  /// Member documentation.
   void flyTo(VirtualCamera target) {
     final double angularDistance = _computeAngularDistance(_camera, target);
     final double ms = 500.0 + (angularDistance / math.pi) * 1300.0;
@@ -103,6 +116,7 @@ class CameraController extends ChangeNotifier {
     _animationStart = null;
   }
 
+  /// Member documentation.
   bool tick() {
     if (_startCamera == null || _targetCamera == null) return true;
     _animationStart ??= clock.now();
@@ -167,6 +181,7 @@ class CameraController extends ChangeNotifier {
     return wrapped;
   }
 
+  /// Member documentation.
   void pan(Offset delta, [double shortestSide = 800.0]) {
     if (shortestSide <= 0.0 || shortestSide.isNaN) {
       shortestSide = 800.0;
@@ -191,6 +206,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void tilt(Offset delta) {
     _camera = VirtualCamera.clamped(
       dim_0: _camera.dim_0, dim_1: _camera.dim_1,
@@ -202,6 +218,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void rotateHeading(Offset delta) {
     _camera = VirtualCamera.clamped(
       dim_0: _camera.dim_0, dim_1: _camera.dim_1,
@@ -212,6 +229,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void zoom(double scrollDelta) {
     final double terrainH = _getTerrainHeight(_camera.dim_0, _camera.dim_1);
     final double currentHeightAGL = _camera.dim_2 - (Ellipsoid.wgs84EquatorialRadius + terrainH);
@@ -229,6 +247,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void zoomInteractive(double scrollDelta) {
     final double clampedDelta = scrollDelta.clamp(-100.0, 100.0);
     final double factor = math.exp(clampedDelta * 0.001);
@@ -248,6 +267,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void keyboardRotate(double degrees) {
     _camera = VirtualCamera.clamped(
       dim_0: _camera.dim_0, dim_1: _wrapLng(_camera.dim_1 + degrees),
@@ -257,6 +277,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void keyboardRotateHeading(double degrees) {
     _camera = VirtualCamera.clamped(
       dim_0: _camera.dim_0, dim_1: _camera.dim_1,
@@ -267,6 +288,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Member documentation.
   void keyboardTilt(double degrees) {
     _camera = VirtualCamera.clamped(
       dim_0: _camera.dim_0, dim_1: _camera.dim_1,
@@ -303,15 +325,19 @@ class CameraController extends ChangeNotifier {
     return val;
   }
 
+  /// Member documentation.
   @visibleForTesting
   static double wrapLngStaticForTesting(double lng) => _wrapLngStatic(lng);
 
+  /// Member documentation.
   @visibleForTesting
   static double wrapHeadingStaticForTesting(double heading) => _wrapHeadingStatic(heading);
 
+  /// Member documentation.
   @visibleForTesting
   double wrapLngForTesting(double lng) => _wrapLng(lng);
 
+  /// Member documentation.
   @visibleForTesting
   static double wrapPitchStaticForTesting(double pitch) => _wrapPitchStatic(pitch);
 }

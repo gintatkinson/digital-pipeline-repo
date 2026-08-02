@@ -32,6 +32,7 @@ from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .validators.source_reference_validator import SourceReferenceValidator
+from .validators.docstring_validator import DocstringValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_comments_and_strings
 
@@ -878,9 +879,20 @@ def _main_impl():
         has_failed = True
     else:
         print("Success: Logical UI checks passed.")
+
+    print("\n=== Public Member Docstring Validation ===")
+    docstring_validator = DocstringValidator()
+    docstring_errors = _scope_findings(docstring_validator.validate(repo), getattr(args, 'only', None))
+    if docstring_errors:
+        print("[!] Public Member Docstring Violations Identified:")
+        for err in docstring_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Public member docstrings verified.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (missing_spec_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (missing_spec_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None

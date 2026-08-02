@@ -60,6 +60,7 @@ class TypeDescriptor {
   /// An empty list means this type is a root node with no parent.
   final List<TypeRelationDescriptor> parentTypes;
 
+  /// Member documentation.
   const TypeDescriptor({
     required this.typeName,
     required this.displayName,
@@ -169,6 +170,7 @@ class FieldDescriptor {
   /// Unknown formatter names are silently ignored.
   final List<String>? inputFormatters;
 
+  /// Member documentation.
   const FieldDescriptor({
     required this.key,
     required this.label,
@@ -212,6 +214,7 @@ class TypeRelationDescriptor {
   /// related-items panel. Falls back to [childTypeName] if empty.
   final String childLabel;
 
+  /// Member documentation.
   const TypeRelationDescriptor({
     required this.relationName,
     required this.childTypeName,

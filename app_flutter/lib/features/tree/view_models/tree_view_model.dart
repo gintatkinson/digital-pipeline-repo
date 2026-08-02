@@ -22,12 +22,14 @@ import 'package:app_flutter/features/tree/tree_defaults.dart';
 /// -1 is handled), root nodes with no parents to expand, and views whose
 /// parent chain is already visible (no-op expand).
 class TreeViewModel extends ChangeNotifier {
+  /// Member documentation.
   TreeViewModel(this._dataSource, {
     String initialView = '',
     this.onViewSelected,
   }) : _currentView = initialView;
 
   final DataSource _dataSource;
+  /// Member documentation.
   final ValueChanged<String>? onViewSelected;
   List<TreeNode> _treeData = [];
   String _currentView;
@@ -38,11 +40,17 @@ class TreeViewModel extends ChangeNotifier {
   bool _disposed = false;
   String? _flightTarget;
 
+  /// Member documentation.
   List<TreeNode> get treeData => _treeData;
+  /// Member documentation.
   String get currentView => _currentView;
+  /// Member documentation.
   Map<String, bool> get expanded => _expanded;
+  /// Member documentation.
   Map<String, bool> get loadingNodes => _loadingNodes;
+  /// Member documentation.
   FocusNode get focusNode => _treeFocusNode;
+  /// Member documentation.
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
 
   /// Loads the type hierarchy from the data source and initialises tree data,
@@ -97,13 +105,16 @@ class TreeViewModel extends ChangeNotifier {
     onViewSelected?.call(viewId);
   }
 
+  /// Member documentation.
   String? get flightTarget => _flightTarget;
 
+  /// Member documentation.
   void triggerFlight(String nodeId) {
     _flightTarget = nodeId;
     notifyListeners();
   }
 
+  /// Member documentation.
   void clearFlightTarget() {
     _flightTarget = null;
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:math' as math;
 
+/// Member documentation.
 class BackgroundWorker {
   Timer? _timer;
   int _counter = 0;
@@ -9,9 +10,12 @@ class BackgroundWorker {
   final StreamController<int> _controller = StreamController<int>.broadcast();
   bool _isDisposed = false;
 
+  /// Member documentation.
   Stream<int> get results => _controller.stream;
+  /// Member documentation.
   int? get lastResult => _lastResult;
 
+  /// Member documentation.
   void start() {
     stop();
     _isDisposed = false;
@@ -55,11 +59,13 @@ class BackgroundWorker {
     }
   }
 
+  /// Member documentation.
   void stop() {
     _timer?.cancel();
     _timer = null;
   }
 
+  /// Member documentation.
   void dispose() {
     _isDisposed = true;
     stop();

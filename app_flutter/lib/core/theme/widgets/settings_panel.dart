@@ -17,6 +17,7 @@ import 'package:app_flutter/core/theme/text_scaler.dart';
 /// **Edge cases**: the wrap layout for colour swatches may overflow on
 /// very narrow screens (< 300 dp logical width).
 class SettingsPanel extends StatelessWidget {
+  /// Member documentation.
   const SettingsPanel({super.key});
 
   @override

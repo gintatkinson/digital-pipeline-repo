@@ -24,6 +24,7 @@ import 'package:app_flutter/features/tables/view_models/tables_view_model.dart';
 /// `context.watch` and rebuilds on every notifyListeners call from the view
 /// model.
 class TableViewWidget extends StatefulWidget {
+  /// Member documentation.
   const TableViewWidget({
     super.key,
     this.headingRowHeight = 32.0,
@@ -33,10 +34,15 @@ class TableViewWidget extends StatefulWidget {
     this.columnSpacing = 24.0,
   });
 
+  /// Member documentation.
   final double headingRowHeight;
+  /// Member documentation.
   final double dataRowMinHeight;
+  /// Member documentation.
   final double dataRowMaxHeight;
+  /// Member documentation.
   final double horizontalMargin;
+  /// Member documentation.
   final double columnSpacing;
 
   @override

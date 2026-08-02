@@ -24,10 +24,15 @@ import 'package:app_flutter/core/theme/app_themes.dart';
 /// divider's width equals [dividerSize] and the grip handle is centered inside
 /// it; the axes are swapped for [Axis.vertical].
 class SplitWorkspace extends StatefulWidget {
+  /// Member documentation.
   final Widget leading;
+  /// Member documentation.
   final Widget trailing;
+  /// Member documentation.
   final Axis direction;
+  /// Member documentation.
   final double minFirstPaneSize;
+  /// Member documentation.
   final double initialRatio;
   /// Thickness of the draggable divider strip in logical pixels.
   ///
@@ -52,11 +57,15 @@ class SplitWorkspace extends StatefulWidget {
   /// this value is used as the grip's height; for [Axis.vertical] it becomes
   /// the grip's width (the orientation is swapped). Defaults to 40.0.
   final double? gripHeight;
+  /// Member documentation.
   final Key? splitterKey;
+  /// Member documentation.
   final ValueChanged<double>? onDrag;
 
+  /// Member documentation.
   final bool paintLeadingOnTop;
 
+  /// Member documentation.
   const SplitWorkspace({
     super.key,
     required this.leading,

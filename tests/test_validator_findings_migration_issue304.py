@@ -61,6 +61,7 @@ MIGRATED = (
     "logical_ui_validator.py",
     "codebase.py",
     "uml.py",
+    "docstring_validator.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states

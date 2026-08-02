@@ -39,6 +39,7 @@ from .validators.source_reference_validator import SourceReferenceValidator
 from .validators.spec_validator import SpecValidator
 from .validators.uml import UmlValidator
 from .validators.test_completeness_validator import TestCompletenessValidator
+from .validators.docstring_validator import DocstringValidator
 
 # Validators migrated to structured findings. Un-migrated validators are deliberately
 # excluded rather than included and silently ungroupable — see `coverage_note`.
@@ -62,6 +63,7 @@ AGGREGATING_VALIDATORS = (
     LogicalUiValidator,
     CodebaseValidator,
     UmlValidator,
+    DocstringValidator,
 )
 # SyncValidator is migrated to structured findings but deliberately absent: it shells
 # out to the issue tracker, and `pipeline-tooling.md` § Validation Gates forbids network

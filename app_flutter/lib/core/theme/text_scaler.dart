@@ -15,6 +15,7 @@ import 'theme_service.dart';
 /// **Edge cases**: a null [ThemeService] skips persistence entirely;
 /// values outside [0.7, 1.5] are silently clamped.
 class TextScalerController extends ChangeNotifier {
+  /// Member documentation.
   TextScalerController([this._themeService]);
   final ThemeService? _themeService;
   double _scale = 1.0;

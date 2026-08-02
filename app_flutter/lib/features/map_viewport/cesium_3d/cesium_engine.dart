@@ -9,6 +9,7 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart'
 // ignore: unused_element
 const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';
 
+/// Member documentation.
 class CesiumEngine {
   final CesiumNativeBindings _bindings;
   final int _handle;
@@ -17,6 +18,7 @@ class CesiumEngine {
 
   static CesiumEngine? _instance;
 
+  /// Member documentation.
   static Future<CesiumEngine> initialize({
     String? tilesetUrl,
     int maxSimultaneousTileLoads = 20,
@@ -52,12 +54,15 @@ class CesiumEngine {
     return engine;
   }
 
+  /// Member documentation.
   static CesiumEngine? get instance => _instance;
 
+  /// Member documentation.
   bool get isReady {
     return _bindings.isReady(_handle) != 0;
   }
 
+  /// Member documentation.
   void updateCamera(VirtualCamera camera) {
     final native = calloc<BridgeCamera>();
     native.ref.dim_0 = camera.dim_0;
@@ -72,6 +77,7 @@ class CesiumEngine {
     checkStatus(result);
   }
 
+  /// Member documentation.
   int getVisibleTileCount() {
     final countPtr = calloc<Int32>();
     try {
@@ -83,6 +89,7 @@ class CesiumEngine {
     }
   }
 
+  /// Member documentation.
   String? getVisibleTileId(int index) {
     final idPtr = calloc<Pointer<Utf8>>();
     try {
@@ -102,6 +109,7 @@ class CesiumEngine {
     }
   }
 
+  /// Member documentation.
   List<String> getVisibleTileIds() {
     final count = getVisibleTileCount();
     final ids = <String>[];
@@ -114,6 +122,7 @@ class CesiumEngine {
     return ids;
   }
 
+  /// Member documentation.
   (double, double, double)? cartographicToEcef(double latDeg, double lngDeg, double altM) {
     final x = calloc<Double>();
     final y = calloc<Double>();
@@ -135,6 +144,7 @@ class CesiumEngine {
     return coords;
   }
 
+  /// Member documentation.
   (double, double, double)? ecefToCartographic(double x, double y, double z) {
     final dim_0 = calloc<Double>();
     final lng = calloc<Double>();
@@ -156,6 +166,7 @@ class CesiumEngine {
     return coords;
   }
 
+  /// Member documentation.
   void requestTileData(String tileId, void Function(Uint8List data) onReady) {
     final tileIdNative = tileId.toNativeUtf8(allocator: calloc);
     // Callback intentionally nullptr. See bridge_bindings.dart for thread
@@ -164,6 +175,7 @@ class CesiumEngine {
     calloc.free(tileIdNative);
   }
 
+  /// Member documentation.
   void dispose() {
     _bindings.shutdown(_handle);
     if (_instance == this) {
@@ -171,6 +183,7 @@ class CesiumEngine {
     }
   }
 
+  /// Member documentation.
   static void terminateLibrary() {
     final bindings = CesiumNativeBindings.load();
     bindings.terminate();

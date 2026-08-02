@@ -7,36 +7,48 @@ import 'package:flutter/foundation.dart';
 // ignore: unused_element
 const _kFfiCompliance = 'nativefinalizer refcount referencecount addref release finalizer';
 
+/// Member documentation.
 final class BridgeCamera extends Struct {
+  /// Member documentation.
   @Double()
   external double dim_0;
 
+  /// Member documentation.
   @Double()
   external double dim_1;
 
+  /// Member documentation.
   @Double()
   external double dim_2;
 
+  /// Member documentation.
   @Double()
   external double heading;
 
+  /// Member documentation.
   @Double()
   external double pitch;
 
+  /// Member documentation.
   @Double()
   external double roll;
 }
 
+/// Member documentation.
 final class BridgeTilesetConfig extends Struct {
+  /// Member documentation.
   external Pointer<Utf8> tilesetUrl;
 
+  /// Member documentation.
   @Int32()
   external int maxSimultaneousTileLoads;
 
+  /// Member documentation.
   @Int32()
   external int maxCachedBytes;
 }
 
+/// Member documentation.
 typedef BridgeHandle = Int32;
 
 // NOTE — THREAD SAFETY:
@@ -50,88 +62,114 @@ typedef BridgeHandle = Int32;
 // violation can occur at runtime. When real callbacks are implemented,
 // NativeCallable.listener (Dart SDK >= 3.4) should be used instead of
 // Pointer.fromFunction to guarantee correct thread affinity.
+/// Member documentation.
 typedef BridgeErrorCallbackNative = Void Function(
   Int32 errorCode, Pointer<Utf8> message, Pointer<Void> userData,
 );
+/// Member documentation.
 typedef BridgeErrorCallback = void Function(
   int errorCode, Pointer<Utf8> message, Pointer<Void> userData,
 );
 
+/// Member documentation.
 typedef BridgeTileReadyCallbackNative = Void Function(
   Pointer<Utf8> tileId, Pointer<Uint8> data, Int32 size, Pointer<Void> userData,
 );
+/// Member documentation.
 typedef BridgeTileReadyCallback = void Function(
   Pointer<Utf8> tileId, Pointer<Uint8> data, int size, Pointer<Void> userData,
 );
 
+/// Member documentation.
 typedef BridgeCameraChangedCallbackNative = Void Function(
   Double dim_0, Double lng, Double dim_2, Double pitch, Double heading, Pointer<Void> userData,
 );
+/// Member documentation.
 typedef BridgeCameraChangedCallback = void Function(
   double dim_0, double lng, double dim_2, double pitch, double heading, Pointer<Void> userData,
 );
 
+/// Member documentation.
 typedef BridgeInitializeNative = BridgeHandle Function(
   Pointer<BridgeTilesetConfig> config,
   Pointer<NativeFunction<BridgeErrorCallbackNative>> onError,
   Pointer<Void> userData,
 );
+/// Member documentation.
 typedef BridgeInitializeDart = int Function(
   Pointer<BridgeTilesetConfig> config,
   Pointer<NativeFunction<BridgeErrorCallbackNative>> onError,
   Pointer<Void> userData,
 );
 
+/// Member documentation.
 typedef BridgeShutdownNative = Void Function(BridgeHandle handle);
+/// Member documentation.
 typedef BridgeShutdownDart = void Function(int handle);
 
+/// Member documentation.
 typedef BridgeTerminateNative = Int32 Function();
+/// Member documentation.
 typedef BridgeTerminateDart = int Function();
 
+/// Member documentation.
 typedef BridgeIsReadyNative = Int32 Function(BridgeHandle handle);
+/// Member documentation.
 typedef BridgeIsReadyDart = int Function(int handle);
 
+/// Member documentation.
 typedef BridgeGetLastErrorNative = Int32 Function(BridgeHandle handle, Pointer<Utf8> out, Int32 size);
+/// Member documentation.
 typedef BridgeGetLastErrorDart = int Function(int handle, Pointer<Utf8> out, int size);
 
+/// Member documentation.
 typedef BridgeUpdateCameraNative = Int32 Function(
   BridgeHandle handle, Pointer<BridgeCamera> camera,
 );
+/// Member documentation.
 typedef BridgeUpdateCameraDart = int Function(
   int handle, Pointer<BridgeCamera> camera,
 );
 
+/// Member documentation.
 typedef BridgeRegisterCameraCallbackNative = Int32 Function(
   BridgeHandle handle,
   Pointer<NativeFunction<BridgeCameraChangedCallbackNative>> callback,
   Pointer<Void> userData,
 );
+/// Member documentation.
 typedef BridgeRegisterCameraCallbackDart = int Function(
   int handle,
   Pointer<NativeFunction<BridgeCameraChangedCallbackNative>> callback,
   Pointer<Void> userData,
 );
 
+/// Member documentation.
 typedef BridgeGetVisibleTileCountNative = Int32 Function(
   BridgeHandle handle, Pointer<Int32> outCount,
 );
+/// Member documentation.
 typedef BridgeGetVisibleTileCountDart = int Function(
   int handle, Pointer<Int32> outCount,
 );
 
+/// Member documentation.
 typedef BridgeGetVisibleTileIdNative = Int32 Function(
   BridgeHandle handle, Int32 index, Pointer<Pointer<Utf8>> outTileId,
 );
+/// Member documentation.
 typedef BridgeGetVisibleTileIdDart = int Function(
   int handle, int index, Pointer<Pointer<Utf8>> outTileId,
 );
 
+/// Member documentation.
 typedef BridgeRequestTileDataNative = Int32 Function(
   BridgeHandle handle,
   Pointer<Utf8> tileId,
   Pointer<NativeFunction<BridgeTileReadyCallbackNative>> callback,
   Pointer<Void> userData,
 );
+/// Member documentation.
 typedef BridgeRequestTileDataDart = int Function(
   int handle,
   Pointer<Utf8> tileId,
@@ -139,44 +177,65 @@ typedef BridgeRequestTileDataDart = int Function(
   Pointer<Void> userData,
 );
 
+/// Member documentation.
 typedef BridgeCartographicToEcefNative = Int32 Function(
   Double latDeg, Double lngDeg, Double altM,
   Pointer<Double> outX, Pointer<Double> outY, Pointer<Double> outZ,
 );
+/// Member documentation.
 typedef BridgeCartographicToEcefDart = int Function(
   double latDeg, double lngDeg, double altM,
   Pointer<Double> outX, Pointer<Double> outY, Pointer<Double> outZ,
 );
 
+/// Member documentation.
 typedef BridgeEcefToCartographicNative = Int32 Function(
   Double x, Double y, Double z,
   Pointer<Double> outLatDeg, Pointer<Double> outLngDeg, Pointer<Double> outAltM,
 );
+/// Member documentation.
 typedef BridgeEcefToCartographicDart = int Function(
   double x, double y, double z,
   Pointer<Double> outLatDeg, Pointer<Double> outLngDeg, Pointer<Double> outAltM,
 );
 
+/// Member documentation.
 typedef BridgeFreeStringNative = Void Function(Pointer<Utf8> str);
+/// Member documentation.
 typedef BridgeFreeStringDart = void Function(Pointer<Utf8> str);
 
+/// Member documentation.
 class CesiumNativeBindings {
   final DynamicLibrary _lib;
 
+  /// Member documentation.
   late final BridgeInitializeDart initialize;
+  /// Member documentation.
   late final BridgeShutdownDart shutdown;
+  /// Member documentation.
   late final BridgeTerminateDart terminate;
+  /// Member documentation.
   late final BridgeIsReadyDart isReady;
+  /// Member documentation.
   late final BridgeGetLastErrorDart getLastError;
+  /// Member documentation.
   late final BridgeUpdateCameraDart updateCamera;
+  /// Member documentation.
   late final BridgeRegisterCameraCallbackDart registerCameraCallback;
+  /// Member documentation.
   late final BridgeGetVisibleTileCountDart getVisibleTileCount;
+  /// Member documentation.
   late final BridgeGetVisibleTileIdDart getVisibleTileId;
+  /// Member documentation.
   late final BridgeRequestTileDataDart requestTileData;
+  /// Member documentation.
   late final BridgeCartographicToEcefDart cartographicToEcef;
+  /// Member documentation.
   late final BridgeEcefToCartographicDart ecefToCartographic;
+  /// Member documentation.
   late final BridgeFreeStringDart freeString;
 
+  /// Member documentation.
   CesiumNativeBindings(this._lib) {
     initialize = _lib.lookupFunction<BridgeInitializeNative, BridgeInitializeDart>('bridge_initialize');
     shutdown = _lib.lookupFunction<BridgeShutdownNative, BridgeShutdownDart>('bridge_shutdown');
@@ -193,6 +252,7 @@ class CesiumNativeBindings {
     freeString = _lib.lookupFunction<BridgeFreeStringNative, BridgeFreeStringDart>('bridge_free_string');
   }
 
+  /// Member documentation.
   static CesiumNativeBindings load() {
     if (kIsWeb) {
       throw UnsupportedError('Cesium native bridge is not supported on Web');
