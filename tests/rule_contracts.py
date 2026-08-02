@@ -307,6 +307,14 @@ DOC_REFERENCE_CONTRACTS: List[RuleContract] = [
             "backlog specifications under docs/."
         ),
     ),
+    RuleContract(
+        id="doc-ref-existence-claims-must-observe-symlinks",
+        documented_in="rules/document-references.md",
+        doc_anchor="Existence Claims Must Use Commands That Observe Symlinks",
+        enforced_in="tests/test_process_discipline_gates.py",
+        enforcement_anchor="`rules/document-references.md` must explicitly warn against `find -type f`.",
+        note="Issue #345. `find -type f` ignores symlinks and symlink targets, producing false absence claims.",
+    ),
 ]
 
 DOC_REFERENCE_FAMILY = ContractFamily(

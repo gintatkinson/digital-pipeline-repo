@@ -151,8 +151,5 @@ def test_the_symlink_probe_hazard_is_documented():
     assert os.path.isfile(doc), "rules/document-references.md missing"
     with open(doc, "r", encoding="utf-8") as fh:
         text = fh.read()
-    assert "find -type f" in text or "symlink" in text.lower(), (
-        "nothing warns that a path-absence claim must come from a command able to see "
-        "symlinks. `find -type f` lists neither symlinks nor their targets, and that "
-        "produced a false 'this path does not exist' twice in one session (#305, #294)."
-    )
+    assert "find -type f" in text, "`rules/document-references.md` must explicitly warn against `find -type f`."
+    assert "symlink" in text.lower(), "`rules/document-references.md` must explicitly cite `symlink`."

@@ -46,6 +46,7 @@ document must refer to something that exists.
   #322). Enforcement is structural and offline: reachability is deliberately NOT checked,
   because `.pipeline/upstream/pipeline-tooling.md` § *Validation Gates* forbids network
   egress in a blocking gate and forbids sending specification content to a third party.
+- **Existence Claims Must Use Commands That Observe Symlinks**: A claim of path existence or absence MUST be derived from a command capable of observing symlinks and symlink targets (such as `test -e`, `ls`, or `find` without `-type f`). `find -type f` lists neither symlinks nor their targets, producing false absence claims (as occurred in #305 and #294).
 
 ## Scope
 
