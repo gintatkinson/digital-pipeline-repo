@@ -168,15 +168,8 @@ class DatabaseInitializer {
         )
       ''');
 
-      if (seed) {
-        final countResult =
-            await db.rawQuery('SELECT COUNT(*) as count FROM type_definitions');
-        final count = countResult.first['count'] as int? ?? 0;
-        if (count == 0) {
-          if (seedStrategy != null) {
-            await seedStrategy.seed(db);
-          }
-        }
+      if (seed && seedStrategy != null) {
+        await seedStrategy.seed(db);
       }
 
       return db;

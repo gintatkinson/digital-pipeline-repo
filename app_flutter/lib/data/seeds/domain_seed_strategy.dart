@@ -125,7 +125,7 @@ class DomainSeedStrategy implements SeedStrategy {
           'parent_node_id': from,
           'type_name': 'interface',
           'data_json': jsonEncode({'description': 'link to node $to'}),
-        });
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     }
 
@@ -198,7 +198,7 @@ class DomainSeedStrategy implements SeedStrategy {
       'type_name': node,
       'display_name': node.replaceAll('_', ' '),
       'icon_name': 'insert_drive_file',
-    });
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     for (final d in details) {
       batch.insert('type_relations', {
@@ -206,7 +206,7 @@ class DomainSeedStrategy implements SeedStrategy {
         'relation_name': 'contains',
         'child_type_name': d,
         'child_label': d == 'Components' ? 'Components' : d.replaceAll('_', ' ').split(' ').map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join(' '),
-      });
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     for (int i = 1; i <= 50; i++) {
@@ -218,7 +218,7 @@ class DomainSeedStrategy implements SeedStrategy {
         'section_label': 'General',
         'section_order': 0,
         'is_required': 0,
-      });
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     final propertiesMap = {
@@ -235,7 +235,7 @@ class DomainSeedStrategy implements SeedStrategy {
       'node_id': node,
       'parent_node_id': parent,
       'data_json': jsonEncode(propertiesMap),
-    });
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     for (final d in details) {
       for (int k = 1; k <= 5; k++) {
@@ -248,7 +248,7 @@ class DomainSeedStrategy implements SeedStrategy {
           'parent_node_id': node,
           'type_name': d,
           'data_json': jsonEncode(instanceMap),
-        });
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     }
   }
