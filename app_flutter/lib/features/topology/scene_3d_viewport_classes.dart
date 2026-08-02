@@ -36,6 +36,26 @@ extension VirtualCameraNormalization on VirtualCamera {
       roll: roll,
     );
   }
+
+  /// Extrapolates camera position forward in time based on velocity vector and delta seconds.
+  VirtualCamera extrapolatePosition(
+    double deltaSeconds, {
+    double velocityLat = 0.0,
+    double velocityLng = 0.0,
+    double velocityAlt = 0.0,
+  }) {
+    final double newLat = (dim_0 + velocityLat * deltaSeconds).clamp(-90.0, 90.0);
+    final double newLng = (dim_1 + velocityLng * deltaSeconds).clamp(-180.0, 180.0);
+    final double newAlt = math.max(-100.0, dim_2 + velocityAlt * deltaSeconds);
+    return VirtualCamera.raw(
+      dim_0: newLat,
+      dim_1: newLng,
+      dim_2: newAlt,
+      heading: heading,
+      pitch: pitch,
+      roll: roll,
+    );
+  }
 }
 
 class ElevationProvider {
@@ -343,6 +363,66 @@ class SceneViewState extends ChangeNotifier {
   TopologyData? topologyData;
   late ElevationProvider elevationProvider;
   late CoordinateTransformer transformer;
+
+  SceneViewState() {
+    camera = VirtualCamera.zero;
+    activeStyle = 'Satellite Map';
+    astronomicalBody = 'Earth';
+    elevationActive = true;
+    showDevices = true;
+    showLinks = true;
+    showLabels = true;
+    showDropLines = true;
+    verticalExaggeration = 1.0;
+  }
+
+  /// Serializes layout state to JSON.
+  Map<String, dynamic> toJson() {
+    return {
+      'activeStyle': activeStyle,
+      'astronomicalBody': astronomicalBody,
+      'elevationActive': elevationActive,
+      'showDevices': showDevices,
+      'showLinks': showLinks,
+      'showLabels': showLabels,
+      'showDropLines': showDropLines,
+      'verticalExaggeration': verticalExaggeration,
+      'camera': {
+        'dim_0': camera.dim_0,
+        'dim_1': camera.dim_1,
+        'dim_2': camera.dim_2,
+        'heading': camera.heading,
+        'pitch': camera.pitch,
+        'roll': camera.roll,
+      },
+    };
+  }
+
+  /// Deserializes layout state from JSON.
+  factory SceneViewState.fromJson(Map<String, dynamic> json) {
+    final state = SceneViewState();
+    state.activeStyle = json['activeStyle'] as String? ?? 'Satellite Map';
+    state.astronomicalBody = json['astronomicalBody'] as String? ?? 'Earth';
+    state.elevationActive = json['elevationActive'] as bool? ?? true;
+    state.showDevices = json['showDevices'] as bool? ?? true;
+    state.showLinks = json['showLinks'] as bool? ?? true;
+    state.showLabels = json['showLabels'] as bool? ?? true;
+    state.showDropLines = json['showDropLines'] as bool? ?? true;
+    state.verticalExaggeration = (json['verticalExaggeration'] as num?)?.toDouble() ?? 1.0;
+
+    if (json['camera'] is Map<String, dynamic>) {
+      final camMap = json['camera'] as Map<String, dynamic>;
+      state.camera = VirtualCamera.raw(
+        dim_0: (camMap['dim_0'] as num?)?.toDouble() ?? 0.0,
+        dim_1: (camMap['dim_1'] as num?)?.toDouble() ?? 0.0,
+        dim_2: (camMap['dim_2'] as num?)?.toDouble() ?? 500000.0,
+        heading: (camMap['heading'] as num?)?.toDouble() ?? 0.0,
+        pitch: (camMap['pitch'] as num?)?.toDouble() ?? -90.0,
+        roll: (camMap['roll'] as num?)?.toDouble() ?? 0.0,
+      );
+    }
+    return state;
+  }
 
   final Map<String, Offset> finalLabelPositions = {};
   final Map<TextPainterKey, TextPainter> textPainterCache = {};

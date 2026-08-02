@@ -581,6 +581,14 @@ class Scene3DViewportPainter extends CustomPainter {
     );
   }
 
+  /// Calculates the tile Level-of-Detail (LOD) index for a given altitude in meters.
+  int calculateTileLOD(double altitudeMeters) {
+    double alt = altitudeMeters;
+    if (alt <= 0) alt = 100.0;
+    final lod = (math.log(120000000.0 / alt) / math.ln2).round();
+    return lod.clamp(0, 18);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas.clipRect(Offset.zero & size);
@@ -596,8 +604,9 @@ class Scene3DViewportPainter extends CustomPainter {
 class CameraStatsPanel extends StatelessWidget {
   final CameraController cameraController;
   final VoidCallback onClose;
+  final int frameDropCount;
   
-  const CameraStatsPanel({super.key, required this.cameraController, required this.onClose});
+  const CameraStatsPanel({super.key, required this.cameraController, required this.onClose, this.frameDropCount = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -633,6 +642,7 @@ class CameraStatsPanel extends StatelessWidget {
                   Text('Longitude: ${cam.dim_1.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                   Text('Altitude: ${(cam.dim_2 - Ellipsoid.wgs84EquatorialRadius).toStringAsFixed(2)} meters', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                   Text('Pitch/Yaw/Roll: ${cam.pitch} / ${cam.heading} / ${cam.roll}', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
+                  Text('Frame Drops: $frameDropCount', style: const TextStyle(color: Color(0xFFE0E0E0), fontFamily: 'monospace', fontSize: 11)),
                 ],
               ),
             );
@@ -646,6 +656,7 @@ class CameraStatsPanel extends StatelessWidget {
 class MapConfigPanel extends StatelessWidget {
   final String activeStyle;
   final String astronomicalBody;
+  final String activeDatum;
   final bool elevationActive;
   final bool showDevices;
   final bool showLinks;
@@ -653,6 +664,7 @@ class MapConfigPanel extends StatelessWidget {
   final bool showDropLines;
   final ValueChanged<String> onStyleChanged;
   final ValueChanged<String> onBodyChanged;
+  final ValueChanged<String>? onDatumChanged;
   final ValueChanged<bool> onElevationToggled;
   final ValueChanged<bool> onDevicesToggled;
   final ValueChanged<bool> onLinksToggled;
@@ -665,6 +677,7 @@ class MapConfigPanel extends StatelessWidget {
     super.key,
     required this.activeStyle,
     required this.astronomicalBody,
+    this.activeDatum = 'WGS84',
     required this.elevationActive,
     required this.showDevices,
     required this.showLinks,
@@ -672,6 +685,7 @@ class MapConfigPanel extends StatelessWidget {
     required this.showDropLines,
     required this.onStyleChanged,
     required this.onBodyChanged,
+    this.onDatumChanged,
     required this.onElevationToggled,
     required this.onDevicesToggled,
     required this.onLinksToggled,
@@ -717,6 +731,36 @@ class MapConfigPanel extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: Text(body.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: isActive ? const Color(0xFF00E5FF) : const Color(0xFFB0BEC5), fontSize: 9, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatumButton(String datum) {
+    final bool isActive = activeDatum.toUpperCase() == datum.toUpperCase();
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onDatumChanged?.call(datum),
+        child: Container(
+          margin: const EdgeInsets.all(4),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0x2200E5FF) : const Color(0x0AFFFFFF),
+            border: Border.all(color: isActive ? const Color(0xFF00E5FF) : const Color(0x33FFFFFF), width: 1.0),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            datum.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isActive ? const Color(0xFF00E5FF) : const Color(0xFFB0BEC5),
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+            ),
+          ),
         ),
       ),
     );
@@ -770,6 +814,9 @@ class MapConfigPanel extends StatelessWidget {
                       const Text('ASTRONOMICAL BODY', style: TextStyle(color: Color(0xFFB0BEC5), fontWeight: FontWeight.bold, fontSize: 10)),
                       Row(children: [_buildBodyButton('Earth'), _buildBodyButton('Mars')]),
                       Row(children: [_buildBodyButton('Proxima Centauri')]),
+                      const SizedBox(height: 16),
+                      const Text('COORDINATE DATUM', style: TextStyle(color: Color(0xFFB0BEC5), fontWeight: FontWeight.bold, fontSize: 10)),
+                      Row(children: [_buildDatumButton('WGS84'), _buildDatumButton('NAD83'), _buildDatumButton('WebMercator')]),
                       const SizedBox(height: 16),
                       const Text('BASE LAYER STYLE', style: TextStyle(color: Color(0xFFB0BEC5), fontWeight: FontWeight.bold, fontSize: 10)),
                       Row(children: [_buildStyleButton('Dark Map'), _buildStyleButton('Street Map')]),

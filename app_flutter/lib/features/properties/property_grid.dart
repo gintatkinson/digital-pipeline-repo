@@ -103,6 +103,25 @@ class PropertyGrid extends StatefulWidget {
   ///   - [cardBorderRadius] — corner rounding for section cards.
   ///   - [inputBorderRadius] — corner rounding for text field and dropdown
   ///     input borders.
+  /// Optional dynamic schema validation callback.
+  ///
+  /// Receives the property key and value. Returns an error message string
+  /// if validation fails, or null if valid.
+  final String? Function(String key, dynamic value)? validateSchemaProperty;
+
+  /// Creates a [PropertyGrid] with the given field descriptors, initial values,
+  /// and visual configuration.
+  ///
+  /// All visual parameters have sensible defaults so that a basic grid works
+  /// out of the box. Override them to match a specific design system:
+  ///
+  ///   - [wideLayoutBreakpoint] — when the available width exceeds this value,
+  ///     the first two sections render side-by-side; below it they stack.
+  ///   - [sectionPadding] — whitespace inside each section's card container.
+  ///   - [gapSize] — vertical spacing between fields and sections.
+  ///   - [cardBorderRadius] — corner rounding for section cards.
+  ///   - [inputBorderRadius] — corner rounding for text field and dropdown
+  ///     input borders.
   const PropertyGrid({
     super.key,
     this.fields = const [],
@@ -114,6 +133,7 @@ class PropertyGrid extends StatefulWidget {
     this.gapSize = 8.0,
     this.cardBorderRadius = const BorderRadius.all(Radius.circular(12.0)),
     this.inputBorderRadius = const BorderRadius.all(Radius.circular(6.0)),
+    this.validateSchemaProperty,
   });
 
   @override
@@ -301,6 +321,13 @@ class _PropertyGridState extends State<PropertyGrid> {
       }
       if (field.maxValue != null && parsedValue > field.maxValue!) {
         return (false, parsedValue, 'Value cannot be greater than ${field.maxValue}');
+      }
+    }
+
+    if (widget.validateSchemaProperty != null) {
+      final schemaError = widget.validateSchemaProperty!(key, parsedValue ?? valueString);
+      if (schemaError != null && schemaError.isNotEmpty) {
+        return (false, parsedValue, schemaError);
       }
     }
 
