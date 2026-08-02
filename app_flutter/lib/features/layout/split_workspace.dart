@@ -4,25 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/app_themes.dart';
 
+/// Realises: [Feat-10/SplitWorkspace]
+///
 /// A resizable split pane that lays out [leading] and [trailing] widgets
 /// along [direction] with a draggable divider.
-///
-/// The initial split ratio is set from [initialRatio] once the available size
-/// is known. The first pane is clamped between [minFirstPaneSize] and
-/// (`totalSize - minFirstPaneSize`). The divider shows a resize cursor and
-/// fires [onDrag] with the current first-pane size during drag.
-///
-/// Edge cases: when constraints are zero (e.g. not yet laid out), the splitter
-/// is not rendered. When total size is insufficient for both minimums, the
-/// first pane takes its minimum and the trailing pane fills the remainder
-/// (may be smaller than [minFirstPaneSize]).
-///
-/// The visual appearance of the divider can be tuned via [dividerSize],
-/// [gripWidth], and [gripHeight]. [dividerSize] determines the thickness of
-/// the splitter strip, while [gripWidth] and [gripHeight] control the inner
-/// drag handle dimensions. When [direction] is [Axis.horizontal], the
-/// divider's width equals [dividerSize] and the grip handle is centered inside
-/// it; the axes are swapped for [Axis.vertical].
+@immutable
 class SplitWorkspace extends StatefulWidget {
   /// Member documentation.
   final Widget leading;

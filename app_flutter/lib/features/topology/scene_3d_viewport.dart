@@ -608,6 +608,7 @@ class Scene3DViewportPainter extends CustomPainter {
 }
 
 /// Realises: [Feat-002/CameraStatsPanel]
+@immutable
 class CameraStatsPanel extends StatelessWidget {
   final CameraController cameraController;
   final VoidCallback onClose;
@@ -661,6 +662,7 @@ class CameraStatsPanel extends StatelessWidget {
 }
 
 /// Realises: [Feat-002/MapConfigPanel]
+@immutable
 class MapConfigPanel extends StatelessWidget {
   final String activeStyle;
   final String astronomicalBody;

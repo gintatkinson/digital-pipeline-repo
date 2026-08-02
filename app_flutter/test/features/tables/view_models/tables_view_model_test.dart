@@ -616,5 +616,30 @@ void main() {
       expect(viewModel.loading, isFalse);
       expect(notified, isTrue);
     });
+
+    test('shouldSupportImmutableTablesStateCopyWithAndEquality', () {
+      const state1 = TablesState();
+      const state2 = TablesState();
+
+      expect(state1, equals(state2));
+      expect(state1.hashCode, equals(state2.hashCode));
+
+      final updatedState = state1.copyWith(activeView: 'node1', loading: false);
+      expect(updatedState.activeView, equals('node1'));
+      expect(updatedState.loading, isFalse);
+      expect(updatedState, isNot(equals(state1)));
+    });
+
+    test('shouldInjectSegregatedRepositoriesInTablesViewModel', () async {
+      final ds = _MockDataSource();
+      final vm = TablesViewModel.repositories(
+        typeRepository: ds,
+        instanceRepository: ds,
+        propertyRepository: ds,
+        activeView: 'root',
+      );
+
+      expect(vm.state.activeView, equals('root'));
+    });
   });
 }

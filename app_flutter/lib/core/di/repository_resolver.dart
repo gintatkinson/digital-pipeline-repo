@@ -15,18 +15,39 @@ import 'package:flutter/foundation.dart';
 import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
 
 
-/// Resolves the data-access backend at app startup.
+/// Realises: [Feat-10/RepositoryResolver]
+///
+/// Resolves the data-access backend at app startup and exposes segregated
+/// repository interfaces ([TypeRepository], [PropertyRepository], [TreeRepository],
+/// [TopologyRepository], [InstanceRepository]).
 ///
 /// Reads a JSON configuration file (or falls back to defaults) to decide
 /// whether to initialise a local SQLite database or connect to Cloud
-/// Firestore. Returns a [DataSource] that
-/// the app uses for all read/write operations and schema discovery.
-///
-/// Call this once at startup, before any data-dependent widget builds.
-/// The resolved datasource is then injected via dependency injection or passed
-/// through the widget tree. Calling [resolve] multiple times creates
-/// separate connections — doing so is not recommended.
+/// Firestore. Returns a [DataSource] that the app uses for all read/write
+/// operations and schema discovery.
+@immutable
 class RepositoryResolver {
+  /// Creates a [RepositoryResolver] wrapping a resolved [DataSource].
+  const RepositoryResolver(this.dataSource);
+
+  /// The underlying resolved [DataSource].
+  final DataSource dataSource;
+
+  /// Gets the [TypeRepository] interface.
+  TypeRepository get typeRepository => dataSource;
+
+  /// Gets the [PropertyRepository] interface.
+  PropertyRepository get propertyRepository => dataSource;
+
+  /// Gets the [TreeRepository] interface.
+  TreeRepository get treeRepository => dataSource;
+
+  /// Gets the [TopologyRepository] interface.
+  TopologyRepository get topologyRepository => dataSource;
+
+  /// Gets the [InstanceRepository] interface.
+  InstanceRepository get instanceRepository => dataSource;
+
   static const _defaultConfig = 'assets/persistence-config.json';
   static const _defaultDbAsset = 'assets/properties_db.db.gz';
 

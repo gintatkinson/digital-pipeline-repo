@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/result.dart';
@@ -5,76 +6,176 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/features/tree/tree_defaults.dart';
 
+/// Realises: [Feat-10/TreeState]
+///
+/// Immutable state holder for sidebar tree view model.
+@immutable
+class TreeState {
+  /// Member documentation.
+  const TreeState({
+    this.treeData = const [],
+    this.currentView = '',
+    this.expanded = const {},
+    this.loadingNodes = const {},
+    this.flightTarget,
+  });
+
+  /// Current tree nodes.
+  final List<TreeNode> treeData;
+
+  /// Currently selected view ID.
+  final String currentView;
+
+  /// Map of node expansion state.
+  final Map<String, bool> expanded;
+
+  /// Map of node loading state.
+  final Map<String, bool> loadingNodes;
+
+  /// Camera flight target node ID.
+  final String? flightTarget;
+
+  /// Creates a copy of this state with updated values.
+  TreeState copyWith({
+    List<TreeNode>? treeData,
+    String? currentView,
+    Map<String, bool>? expanded,
+    Map<String, bool>? loadingNodes,
+    String? flightTarget,
+    bool clearFlightTarget = false,
+  }) {
+    return TreeState(
+      treeData: treeData ?? this.treeData,
+      currentView: currentView ?? this.currentView,
+      expanded: expanded ?? this.expanded,
+      loadingNodes: loadingNodes ?? this.loadingNodes,
+      flightTarget: clearFlightTarget ? null : (flightTarget ?? this.flightTarget),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TreeState &&
+          runtimeType == other.runtimeType &&
+          listEquals(treeData, other.treeData) &&
+          currentView == other.currentView &&
+          mapEquals(expanded, other.expanded) &&
+          mapEquals(loadingNodes, other.loadingNodes) &&
+          flightTarget == other.flightTarget;
+
+  @override
+  int get hashCode => Object.hash(
+        Object.hashAll(treeData),
+        currentView,
+        Object.hashAll(expanded.keys),
+        Object.hashAll(expanded.values),
+        flightTarget,
+      );
+}
+
+/// Realises: [Feat-10/TreeViewModel]
+///
 /// View model driving the sidebar tree: data loading, navigation, focus,
 /// and keyboard-driven expansion/selection.
 class TreeViewModel extends ChangeNotifier {
   /// Member documentation.
-  TreeViewModel(this._dataSource, {
+  TreeViewModel(this._treeRepository, {
     String initialView = '',
     this.onViewSelected,
-  }) : _currentView = initialView;
+  }) : _state = TreeState(currentView: initialView);
 
-  final DataSource _dataSource;
+  final TreeRepository _treeRepository;
+
   /// Member documentation.
   final ValueChanged<String>? onViewSelected;
-  List<TreeNode> _treeData = [];
-  String _currentView;
-  final Map<String, bool> _expanded = {};
-  final Map<String, bool> _loadingNodes = {};
+
+  TreeState _state;
   final FocusNode _treeFocusNode = FocusNode();
   final Map<String, GlobalKey> _nodeKeys = {};
   bool _disposed = false;
-  String? _flightTarget;
+
+  /// Current immutable state.
+  TreeState get state => _state;
 
   /// Member documentation.
-  List<TreeNode> get treeData => _treeData;
+  List<TreeNode> get treeData => _state.treeData;
+
   /// Member documentation.
-  String get currentView => _currentView;
+  String get currentView => _state.currentView;
+
   /// Member documentation.
-  Map<String, bool> get expanded => _expanded;
+  Map<String, bool> get expanded => _state.expanded;
+
   /// Member documentation.
-  Map<String, bool> get loadingNodes => _loadingNodes;
+  Map<String, bool> get loadingNodes => _state.loadingNodes;
+
   /// Member documentation.
   FocusNode get focusNode => _treeFocusNode;
+
   /// Member documentation.
   GlobalKey? nodeKey(String id) => _nodeKeys[id];
+
+  /// Member documentation.
+  String? get flightTarget => _state.flightTarget;
 
   /// Loads the type hierarchy from the data source and initialises tree data,
   /// current view, expanded nodes, and node keys.
   Future<void> loadTree() async {
-    final rootRes = await _dataSource.fetchRootNodes();
+    final rootRes = await _treeRepository.fetchRootNodes();
     if (_disposed) return;
-    final roots = rootRes.isSuccess ? (rootRes as Success<List<TreeNode>>).value : <TreeNode>[];
-    _treeData = roots.isNotEmpty ? roots : List<TreeNode>.from(defaultTreeData);
-    _sortNodesRecursively(_treeData);
 
-    _expanded.clear();
-    _loadingNodes.clear();
-    _nodeKeys.clear();
-
-    if (_currentView.isEmpty && _treeData.isNotEmpty) {
-      _currentView = _treeData.first.id;
+    final List<TreeNode> roots;
+    switch (rootRes) {
+      case Success<List<TreeNode>>(:final value):
+        roots = value;
+      case Failure<List<TreeNode>>():
+        roots = <TreeNode>[];
     }
 
-    _expandParents(_currentView);
+    final loadedTreeData = roots.isNotEmpty ? List<TreeNode>.from(roots) : List<TreeNode>.from(defaultTreeData);
+    _sortNodesRecursively(loadedTreeData);
 
-    final currentNode = _findNodeById(_treeData, _currentView);
+    _nodeKeys.clear();
+
+    String view = _state.currentView;
+    if (view.isEmpty && loadedTreeData.isNotEmpty) {
+      view = loadedTreeData.first.id;
+    }
+
+    final newExpanded = <String, bool>{};
+    _expandParentsPath(loadedTreeData, view, newExpanded);
+
+    _state = _state.copyWith(
+      treeData: loadedTreeData,
+      currentView: view,
+      expanded: newExpanded,
+      loadingNodes: const {},
+    );
+
+    final currentNode = _findNodeById(loadedTreeData, view);
     if (currentNode != null && currentNode.children != null) {
       await expandNode(currentNode);
     }
 
-    _buildNodeKeys(_treeData);
+    _buildNodeKeys(_state.treeData);
     notifyListeners();
   }
 
   /// Selects [viewId] as the current view, expands its ancestors, scrolls it
   /// into view, and notifies listeners.
   void selectView(String viewId) {
-    if (_currentView == viewId) return;
-    _currentView = viewId;
-    _expandParents(viewId);
-    final node = _findNodeById(_treeData, viewId);
-    if (node != null && node.children != null && _expanded[viewId] != true) {
+    if (_state.currentView == viewId) return;
+    final newExpanded = Map<String, bool>.from(_state.expanded);
+    _expandParentsPath(_state.treeData, viewId, newExpanded);
+
+    _state = _state.copyWith(
+      currentView: viewId,
+      expanded: newExpanded,
+    );
+
+    final node = _findNodeById(_state.treeData, viewId);
+    if (node != null && node.children != null && _state.expanded[viewId] != true) {
       expandNode(node);
     }
     _scrollToNode(viewId);
@@ -83,26 +184,29 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   /// Member documentation.
-  String? get flightTarget => _flightTarget;
-
-  /// Member documentation.
   void triggerFlight(String nodeId) {
-    _flightTarget = nodeId;
+    _state = _state.copyWith(flightTarget: nodeId);
     notifyListeners();
   }
 
   /// Member documentation.
   void clearFlightTarget() {
-    _flightTarget = null;
+    _state = _state.copyWith(clearFlightTarget: true);
   }
 
   /// Updates the current view (without firing [selectView]'s external callback).
   void updateCurrentView(String viewId) {
-    if (_currentView == viewId) return;
-    _currentView = viewId;
-    _expandParents(viewId);
-    final node = _findNodeById(_treeData, viewId);
-    if (node != null && node.children != null && _expanded[viewId] != true) {
+    if (_state.currentView == viewId) return;
+    final newExpanded = Map<String, bool>.from(_state.expanded);
+    _expandParentsPath(_state.treeData, viewId, newExpanded);
+
+    _state = _state.copyWith(
+      currentView: viewId,
+      expanded: newExpanded,
+    );
+
+    final node = _findNodeById(_state.treeData, viewId);
+    if (node != null && node.children != null && _state.expanded[viewId] != true) {
       expandNode(node);
     }
     _scrollToNode(viewId);
@@ -111,45 +215,66 @@ class TreeViewModel extends ChangeNotifier {
 
   /// Toggles expansion state of the node with [id] and lazily loads children.
   void toggleExpand(String id) {
-    final node = _findNodeById(_treeData, id);
+    final node = _findNodeById(_state.treeData, id);
     if (node != null) {
       expandNode(node);
     } else {
-      _expanded[id] = !(_expanded[id] ?? false);
+      final newExpanded = Map<String, bool>.from(_state.expanded);
+      newExpanded[id] = !(newExpanded[id] ?? false);
+      _state = _state.copyWith(expanded: newExpanded);
       notifyListeners();
     }
   }
 
   /// Recursively expands a node, loading its children if necessary.
   Future<void> expandNode(TreeNode node) async {
-    if (_expanded[node.id] == true) {
-      _expanded[node.id] = false;
+    if (_state.expanded[node.id] == true) {
+      final newExpanded = Map<String, bool>.from(_state.expanded);
+      newExpanded[node.id] = false;
+      _state = _state.copyWith(expanded: newExpanded);
       notifyListeners();
       return;
     }
 
     if (node.children != null && node.children!.isEmpty) {
-      if (_loadingNodes[node.id] == true) return;
-      _loadingNodes[node.id] = true;
+      if (_state.loadingNodes[node.id] == true) return;
+
+      final newLoading = Map<String, bool>.from(_state.loadingNodes);
+      newLoading[node.id] = true;
+      _state = _state.copyWith(loadingNodes: newLoading);
       notifyListeners();
 
       try {
-        final childRes = await _dataSource.fetchChildrenForNode(node.id);
+        final childRes = await _treeRepository.fetchChildrenForNode(node.id);
         if (_disposed) return;
-        if (!_loadingNodes.containsKey(node.id)) return;
-        final children = childRes.isSuccess ? (childRes as Success<List<TreeNode>>).value : <TreeNode>[];
+        if (!_state.loadingNodes.containsKey(node.id)) return;
+
+        final List<TreeNode> children;
+        switch (childRes) {
+          case Success<List<TreeNode>>(:final value):
+            children = value;
+          case Failure<List<TreeNode>>():
+            children = <TreeNode>[];
+        }
+
         _sortNodesRecursively(children);
-        _replaceNodeInTree(node.id, children);
+        final newTreeData = List<TreeNode>.from(_state.treeData);
+        _replaceNodeInList(newTreeData, node.id, children);
         _buildNodeKeys(children);
+
+        final updatedLoading = Map<String, bool>.from(_state.loadingNodes)..remove(node.id);
+        _state = _state.copyWith(treeData: newTreeData, loadingNodes: updatedLoading);
       } catch (e) {
         debugPrint('Error loading children: $e');
-      } finally {
-        _loadingNodes.remove(node.id);
+        final updatedLoading = Map<String, bool>.from(_state.loadingNodes)..remove(node.id);
+        _state = _state.copyWith(loadingNodes: updatedLoading);
       }
     }
 
     if (_disposed) return;
-    _expanded[node.id] = true;
+    final newExpanded = Map<String, bool>.from(_state.expanded);
+    newExpanded[node.id] = true;
+    _state = _state.copyWith(expanded: newExpanded);
     notifyListeners();
   }
 
@@ -165,12 +290,9 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   /// Moves selection to the next visible node (depth-first order).
-  ///
-  /// Called on ArrowDown key event. No-op if the current node is the last
-  /// visible node.
   void handleArrowDown() {
     final visible = _getVisibleNodes();
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
+    final currentIndex = visible.indexWhere((n) => n.id == _state.currentView);
     final nextIndex = currentIndex + 1;
     if (nextIndex < visible.length) {
       selectView(visible[nextIndex].id);
@@ -178,12 +300,9 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   /// Moves selection to the previous visible node (depth-first order).
-  ///
-  /// Called on ArrowUp key event. No-op if the current node is the first
-  /// visible node.
   void handleArrowUp() {
     final visible = _getVisibleNodes();
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
+    final currentIndex = visible.indexWhere((n) => n.id == _state.currentView);
     final prevIndex = currentIndex - 1;
     if (prevIndex >= 0) {
       selectView(visible[prevIndex].id);
@@ -191,17 +310,13 @@ class TreeViewModel extends ChangeNotifier {
   }
 
   /// Expands the current node or, if already expanded, selects its first child.
-  ///
-  /// Called on ArrowRight key event. If the current node has no children this
-  /// is a no-op. Expands the node if collapsed; moves selection to the first
-  /// child if already expanded.
   void handleArrowRight() {
     final visible = _getVisibleNodes();
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
+    final currentIndex = visible.indexWhere((n) => n.id == _state.currentView);
     if (currentIndex == -1) return;
     final currentNode = visible[currentIndex];
     if (currentNode.children != null) {
-      if (_expanded[currentNode.id] != true) {
+      if (_state.expanded[currentNode.id] != true) {
         expandNode(currentNode);
       } else if (currentNode.children!.isNotEmpty) {
         final firstChild = currentNode.children![0];
@@ -212,18 +327,16 @@ class TreeViewModel extends ChangeNotifier {
 
   /// Collapses the current node or, if already collapsed or a leaf, selects
   /// its parent.
-  ///
-  /// Called on ArrowLeft key event. If the current node has children and is
-  /// expanded, collapses it. Otherwise navigates upward to the nearest parent
-  /// in the tree. No-op if the current node is a root-level node (no parent).
   void handleArrowLeft() {
     final visible = _getVisibleNodes();
-    final currentIndex = visible.indexWhere((n) => n.id == _currentView);
+    final currentIndex = visible.indexWhere((n) => n.id == _state.currentView);
     if (currentIndex == -1) return;
     final currentNode = visible[currentIndex];
     if (currentNode.children != null &&
-        _expanded[currentNode.id] == true) {
-      _expanded[currentNode.id] = false;
+        _state.expanded[currentNode.id] == true) {
+      final newExpanded = Map<String, bool>.from(_state.expanded);
+      newExpanded[currentNode.id] = false;
+      _state = _state.copyWith(expanded: newExpanded);
       notifyListeners();
     } else {
       TreeNode? findParent(List<TreeNode> nodes, String targetId, TreeNode? parent) {
@@ -237,7 +350,7 @@ class TreeViewModel extends ChangeNotifier {
         return null;
       }
 
-      final parent = findParent(_treeData, currentNode.id, null);
+      final parent = findParent(_state.treeData, currentNode.id, null);
       if (parent != null) {
         selectView(parent.id);
       }
@@ -257,11 +370,6 @@ class TreeViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Recursively creates [GlobalKey] entries for every node in [nodes].
-  ///
-  /// Used by [_scrollToNode] to obtain [BuildContext] for scroll-into-view.
-  /// Keys are rebuilt on every [loadTree] call, so references are not
-  /// preserved across full data reloads.
   void _buildNodeKeys(List<TreeNode> nodes) {
     for (final node in nodes) {
       _nodeKeys[node.id] = GlobalKey();
@@ -271,65 +379,38 @@ class TreeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Expands all ancestor nodes of [targetView] in the tree.
-  ///
-  /// Called when a view is selected (via tap or keyboard) to ensure the
-  /// path to the selected node is visible. If [targetView] is a root node
-  /// or already visible, this is a no-op. Fires [notifyListeners] only if a
-  /// change was actually made.
-  void _expandParents(String targetView) {
-    bool changed = false;
-    bool findAndExpandParents(List<TreeNode> nodes, String targetId, List<String> path) {
-      for (final node in nodes) {
-        if (node.id == targetId) {
-          for (final id in path) {
-            if (_expanded[id] != true) {
-              _expanded[id] = true;
-              changed = true;
-            }
+  void _expandParentsPath(List<TreeNode> nodes, String targetId, Map<String, bool> expandedMap) {
+    bool findAndExpand(List<TreeNode> currentNodes, String id, List<String> path) {
+      for (final node in currentNodes) {
+        if (node.id == id) {
+          for (final ancestorId in path) {
+            expandedMap[ancestorId] = true;
           }
           return true;
         }
         if (node.children != null) {
-          if (findAndExpandParents(node.children!, targetId, [...path, node.id])) {
+          if (findAndExpand(node.children!, id, [...path, node.id])) {
             return true;
           }
         }
       }
       return false;
     }
-
-    findAndExpandParents(_treeData, targetView, []);
-    if (changed) {
-      notifyListeners();
-    }
+    findAndExpand(nodes, targetId, []);
   }
 
-  /// Returns the flat, depth-first ordered list of nodes that are currently
-  /// visible (expanded parents' children are included; collapsed parents'
-  /// descendants are excluded).
-  ///
-  /// Used by arrow-key navigation handlers to determine the next/previous
-  /// selectable node. Returns an empty list when the tree is empty.
   List<TreeNode> _getVisibleNodes() {
     final List<TreeNode> result = [];
     void traverse(TreeNode node) {
       result.add(node);
-      if (node.children != null && _expanded[node.id] == true) {
+      if (node.children != null && _state.expanded[node.id] == true) {
         node.children!.forEach(traverse);
       }
     }
-    _treeData.forEach(traverse);
+    _state.treeData.forEach(traverse);
     return result;
   }
 
-  /// Scrolls the node with [viewId] into the visible viewport using its
-  /// [GlobalKey].
-  ///
-  /// Schedules a post-frame callback to ensure layout is complete before
-  /// scrolling. Animated with a 200 ms ease-in-out curve. If the node's
-  /// key has no current context (e.g. node is not in the tree or not visible),
-  /// the scroll is silently skipped.
   void _scrollToNode(String viewId) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final context = _nodeKeys[viewId]?.currentContext;
@@ -350,10 +431,6 @@ class TreeViewModel extends ChangeNotifier {
         _sortNodesRecursively(node.children!);
       }
     }
-  }
-
-  void _replaceNodeInTree(String nodeId, List<TreeNode> newChildren) {
-    _replaceNodeInList(_treeData, nodeId, newChildren);
   }
 
   bool _replaceNodeInList(List<TreeNode> nodes, String targetId, List<TreeNode> newChildren) {

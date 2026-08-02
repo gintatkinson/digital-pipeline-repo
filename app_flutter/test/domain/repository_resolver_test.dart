@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/core/di/repository_resolver.dart';
 import 'package:app_flutter/data/database_initializer.dart';
+import 'package:app_flutter/domain/data_source.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -112,5 +113,20 @@ void main() {
     );
     expect(rows, isEmpty, reason: 'test_marker table should have been deleted because the database was recreated');
     await checkDb.close();
+  });
+
+  test('shouldExposeSegregatedRepositoryInterfaces when resolved', () async {
+    final dataSource = await RepositoryResolver.resolve(
+      dataSourceType: 'sqlite',
+      sqliteInMemory: true,
+    );
+
+    final resolver = RepositoryResolver(dataSource);
+
+    expect(resolver.typeRepository, isA<TypeRepository>());
+    expect(resolver.propertyRepository, isA<PropertyRepository>());
+    expect(resolver.treeRepository, isA<TreeRepository>());
+    expect(resolver.topologyRepository, isA<TopologyRepository>());
+    expect(resolver.instanceRepository, isA<InstanceRepository>());
   });
 }

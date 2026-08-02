@@ -11,18 +11,11 @@ import 'package:app_flutter/features/tables/tabbed_container.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
+/// Realises: [Feat-10/ComponentFactory]
+///
 /// Interprets a parsed logical-layout JSON tree and builds the corresponding
-/// Flutter widget hierarchy: sidebar, split workspace, topology map,
-/// tabbed containers, table views, and property grids.
-///
-/// Each layout node with a known `type` string (e.g. `"SidebarLayout"`,
-/// `"HierarchyTreeSelector"`, `"SplitWorkspace"`, `"TopographicalView"`,
-/// `"TabbedContainer"`, `"TableView"`) dispatches to a dedicated builder
-/// method. Unknown types produce [SizedBox.shrink].
-///
-/// Dependencies (current view, topology data, tab labels, etc.) are provided
-/// as callbacks rather than hard-coded so the same factory can be reused
-/// across different layout configurations.
+/// Flutter widget hierarchy.
+@immutable
 class ComponentFactory {
   /// The identifier of the currently selected view, used to select tabs,
   /// reload topology data, and highlight the active node in the sidebar.

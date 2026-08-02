@@ -3,14 +3,10 @@ import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node.dart';
 import 'package:app_flutter/core/theme/app_themes.dart';
 
+/// Realises: [Feat-10/BreadcrumbItem]
+///
 /// A single segment in the breadcrumbs navigation bar.
-///
-/// Exists to represent a node in the tree path. Use this in the
-/// [NavigationBreadcrumbs.items] list to build the navigation trail.
-///
-/// Edge cases: [onClick] is optional — a `null` callback renders the item as
-/// plain text (typically the last item); a non-null callback renders it as an
-/// [ActionChip].
+@immutable
 class BreadcrumbItem {
   /// Unique identifier for this breadcrumb segment, matched against tree node
   /// ids.
@@ -31,26 +27,10 @@ class BreadcrumbItem {
   });
 }
 
+/// Realises: [Feat-10/NavigationBreadcrumbs]
+///
 /// Renders a responsive path trace of the current location/view.
-///
-/// Automatically collapses middle segments into a clickable ellipsis when the
-/// path length exceeds [maxItems].
-///
-/// Exists to let users quickly navigate up the tree hierarchy without
-/// returning to the root. Use this in any detail/browse view where the current
-/// position in the tree should be visible.
-///
-/// Edge cases:
-///   - An empty [items] list renders [SizedBox.shrink] (nothing visible).
-///   - If [items] has exactly [maxItems] items, no truncation occurs.
-///   - If [items] has fewer than [maxItems] items, all items are shown.
-///   - [maxItems] of 0 or 1 disables the collapse feature (no middle segment
-///     to collapse). The ellipsis state is stored locally via [_isExpanded].
-///
-/// State changes: when the user taps the ellipsis, [_isExpanded] toggles to
-/// `true` and all items are revealed. This state is NOT reset automatically
-/// when [items] changes — callers should provide a new [key] to force a fresh
-/// widget if needed.
+@immutable
 class NavigationBreadcrumbs extends StatefulWidget {
   /// Ordered list of breadcrumb segments from root to current view. When
   /// empty, nothing is rendered.

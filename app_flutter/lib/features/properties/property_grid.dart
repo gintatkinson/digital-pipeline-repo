@@ -5,6 +5,8 @@ import 'package:app_flutter/domain/type_descriptor.dart';
 import 'package:provider/provider.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 
+/// Realises: [Feat-10/UpperCaseTextFormatter]
+///
 /// Converts all input characters to uppercase in a text field.
 ///
 /// Exists to enforce a consistent uppercase display format for fields whose
@@ -14,6 +16,7 @@ import 'package:app_flutter/core/theme/theme_controller.dart';
 ///
 /// Edge cases: operates on every keystroke via [TextEditingValue]; an empty
 /// string remains empty. Non-letter characters are unaffected.
+@immutable
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -25,6 +28,7 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 /// Realises: [UC-06/PropertyGrid]
+///
 /// Editable property grid that displays [FieldDescriptor] fields grouped by
 /// section and emits validated data on blur.
 ///
@@ -32,25 +36,7 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 /// whose structure is not known at compile time (e.g., nodes from an external
 /// data source). Use this widget whenever you need inline editing of structured
 /// properties with validation, enum dropdowns, and blur-based commit.
-///
-/// Configuration options:
-///   - [wideLayoutBreakpoint] controls the responsive breakpoint at which the
-///     grid switches from single-column to two-column layout.
-///   - [sectionPadding], [gapSize], [cardBorderRadius], and
-///     [inputBorderRadius] let you tune the visual appearance of section cards
-///     and input fields without rebuilding the widget tree.
-///
-/// Edge cases:
-///   - An empty [fields] list renders a no-op grid with nothing to edit.
-///   - [initialValues] may omit keys present in [fields]; those fields start
-///     with an empty string.
-///   - Validation errors for each field are displayed inline below the input;
-///     they are cleared when the field passes validation on blur.
-///
-/// State changes: committed data is accumulated in `committedData` and emitted
-/// via [onSave] on each successful blur. This widget does NOT start any
-/// long-lived streams or timers. All controllers and focus nodes are disposed
-/// in [dispose].
+@immutable
 class PropertyGrid extends StatefulWidget {
   /// The list of field descriptors to display. When empty the grid renders
   /// nothing editable.
@@ -59,13 +45,13 @@ class PropertyGrid extends StatefulWidget {
   /// Initial values keyed by [FieldDescriptor.key]. Keys present in
   /// [initialValues] but absent from [fields] are silently ignored. Missing
   /// keys render as empty strings.
-  final Map<String, dynamic> initialValues;
+  final Map<String, Object?> initialValues;
 
   /// Called with the current committed data after a field passes validation on
   /// blur. Not called if validation fails. The callback receives a fresh
-  /// `Map<String, dynamic>` of the entire committed state, not just the edited
+  /// `Map<String, Object?>` of the entire committed state, not just the edited
   /// field. Can be null to opt out of save notifications.
-  final void Function(Map<String, dynamic>)? onSave;
+  final void Function(Map<String, Object?>)? onSave;
 
   /// The currently active view name used to highlight the matching section.
   /// When set to `'root'`, the first section (alphabetically) is highlighted.
@@ -108,7 +94,7 @@ class PropertyGrid extends StatefulWidget {
   ///
   /// Receives the property key and value. Returns an error message string
   /// if validation fails, or null if valid.
-  final String? Function(String key, dynamic value)? validateSchemaProperty;
+  final String? Function(String key, Object? value)? validateSchemaProperty;
 
   /// Callback executed when an edit transaction is committed.
   ///

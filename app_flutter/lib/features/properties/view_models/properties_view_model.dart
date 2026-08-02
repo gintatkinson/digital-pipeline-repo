@@ -1,51 +1,86 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:app_flutter/domain/data_source.dart';
 import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
+/// Realises: [Feat-10/PropertiesState]
+///
+/// Immutable state holder for property panel data.
+@immutable
+class PropertiesState {
+  /// Creates a [PropertiesState].
+  const PropertiesState({
+    this.currentType,
+  });
+
+  /// The currently loaded [TypeDescriptor], or null.
+  final TypeDescriptor? currentType;
+
+  /// Creates a copy of this state with updated fields.
+  PropertiesState copyWith({
+    TypeDescriptor? currentType,
+    bool clearCurrentType = false,
+  }) {
+    return PropertiesState(
+      currentType: clearCurrentType ? null : (currentType ?? this.currentType),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PropertiesState &&
+          runtimeType == other.runtimeType &&
+          currentType == other.currentType;
+
+  @override
+  int get hashCode => currentType.hashCode;
+}
+
+/// Realises: [Feat-10/PropertiesViewModel]
+///
 /// Loads a [TypeDescriptor] from the data source and exposes its fields to the
 /// property grid widget.
 ///
 /// Exists to decouple the property grid from the data-fetching logic. Use this
 /// view model whenever the property panel needs to display a node's fields.
-///
-/// Edge cases: if [typeName] is unknown to the data source, `loadType` sets
-/// [_currentType] to `null`; [fields] then returns an empty list and [hasType]
-/// returns `false`. No error is surfaced to the caller — the grid reacts by
-/// showing nothing.
-///
-/// State changes: each call to [loadType] replaces the previous type and calls
-/// [notifyListeners]; the widget layer is expected to rebuild in response.
 class PropertiesViewModel extends ChangeNotifier {
-  /// Member documentation.
-  PropertiesViewModel(this._dataSource);
-  final DataSource _dataSource;
+  /// Creates a [PropertiesViewModel] with injected [TypeRepository].
+  PropertiesViewModel(this._typeRepository);
 
-  TypeDescriptor? _currentType;
+  final TypeRepository _typeRepository;
+  PropertiesState _state = const PropertiesState();
   bool _disposed = false;
   int _requestId = 0;
 
+  /// Current immutable state.
+  PropertiesState get state => _state;
+
   /// The fields of the currently loaded type. Returns an empty list when no
   /// type has been loaded or `loadType` returned `null`.
-  List<FieldDescriptor> get fields => _currentType?.fields ?? [];
+  List<FieldDescriptor> get fields => _state.currentType?.fields ?? [];
 
   /// Whether a type has been loaded (i.e., [loadType] completed with a
   /// non-null [TypeDescriptor]).
-  bool get hasType => _currentType != null;
+  bool get hasType => _state.currentType != null;
 
   /// Fetches the [TypeDescriptor] for [typeName] from the data source and
   /// notifies listeners.
   ///
-  /// If the data source returns `null` (unknown type), [_currentType] is set
-  /// to `null`, [fields] becomes empty, and [hasType] becomes false. Does not
-  /// throw — callers should check [hasType] if they need to distinguish.
-  /// Replaces any previously loaded type unconditionally.
+  /// If the data source returns `null` (unknown type), [_state] is updated with
+  /// null type, [fields] becomes empty, and [hasType] becomes false.
   Future<void> loadType(String typeName) async {
     final requestId = ++_requestId;
-    final res = await _dataSource.typeFor(typeName);
+    final res = await _typeRepository.typeFor(typeName);
     if (_disposed) return;
     if (_requestId != requestId) return;
-    _currentType = res.isSuccess ? (res as Success<TypeDescriptor?>).value : null;
+
+    switch (res) {
+      case Success<TypeDescriptor?>(:final value):
+        _state = _state.copyWith(currentType: value, clearCurrentType: value == null);
+      case Failure<TypeDescriptor?>():
+        _state = _state.copyWith(clearCurrentType: true);
+    }
     notifyListeners();
   }
 

@@ -7,7 +7,10 @@ import 'package:app_flutter/core/string_resources.dart';
 import 'package:app_flutter/features/tree/tree_node_widget.dart';
 import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
-/// Member documentation.
+/// Realises: [Feat-10/SidebarTree]
+///
+/// Sidebar tree widget displaying hierarchy nodes driven by [TreeViewModel].
+@immutable
 class SidebarTree extends StatefulWidget {
   /// Member documentation.
   final int? workerResult;
