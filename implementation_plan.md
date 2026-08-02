@@ -1361,3 +1361,53 @@ the error: treating one symptom as the defect.
 Part I plan text is commingled into a #301 commit, pushed. Recommendation: leave it.
 Rewriting shared history costs more than the untidiness, and the record of it is in
 Part M. Raised so the decision is explicit rather than forgotten.
+
+---
+
+## Part R — Adversarial audit of the 13 open root causes  **[APPROVED — "run the adversarial auditor on each one to book these issues at high fidelity"]**
+
+Product Owner instruction. Each root cause below is audited by a fresh subagent running
+`skills/adversarial-code-auditor/SKILL.md`, which produces the mandated 7-section body,
+self-verifies against all 11 Step D checks including the executable Mermaid gate, and
+files to the tracker.
+
+**Authorisation to file.** `gh issue create` is explicitly authorised for this Part, for
+the files listed below. The first dispatched auditor correctly halted at Step E because
+no plan entry covered it — `AGENTS.md:7` requires the plan, and a `PROCEED` from the
+coordinator is not user consent. This entry supplies what was missing.
+
+**Severity is the auditor's to assign**, per Section 1.4, not mine. Label mapping is
+mandatory: Critical/Important → `bug`, Suggestion/Nitpick → `enhancement` (#287).
+
+| # | FILE_PATH | PILLAR |
+|---|---|---|
+| 1 | `docs/features/feat-10-logical-ui-layout.md` | Semantic Traceability |
+| 2 | `docs/decisions/adversarial_audit_synthesis.md` | Semantic Traceability |
+| 3 | `docs/features/feat-13-zero-codegen-grid.md` | Semantic Traceability |
+| 4 | `docs/features/feat-04-numeric-metrics.md` | Semantic Traceability |
+| 5 | `docs/use-cases/uc-02-local-firebase-emulator.md` | Semantic Traceability |
+| 6 | `docs/features/feat-002-alternate-systems.md` | Semantic Traceability |
+| 7 | `.pipeline/diagnostics/` | Resource Lifecycle |
+| 8 | `app_flutter/integration_test/viewport_perf_test.dart` | Test Integrity |
+| 9 | `.gitignore` | Resource Lifecycle |
+| 10 | `skills/spec-orchestrator/parity_auditor/pyproject.toml` | Semantic Traceability |
+| 11 | `implementation_plan.md` | Semantic Traceability |
+| 12 | `tests/test_process_discipline_gates.py` | Test Integrity |
+| 13 | `skills/spec-orchestrator/parity_auditor/tests/test_mermaid_syntax_validator_issue288.py` | Test Integrity |
+
+### Correction to my own record, from auditor 10
+
+I stated four times that the `requires-python` change "breaks downstream installs."
+Verified: `pip install -e` does fail on 3.9.6, but nothing downstream instructs an
+install — only CI does, on a 3.12/3.13 matrix. It is operator-triggered, not a live
+break, and the auditor scored it Important rather than Critical. The sharper defect is
+that `README.md:132` copies `skills/` carrying the floor while `:135` deletes
+`.pipeline/upstream`, the only document naming the 3.12 interpreter: downstream inherits
+the constraint and loses the remedy.
+
+### Bundling, corrected
+
+Issues #334, #335 and #336 bundle 124 defects into 3 tracker entries. That granularity
+was chosen an hour after the Product Owner criticised over-filing, and it undercounts.
+Part R files per root cause. The three bundles are to be closed with pointers once their
+constituents are filed.
