@@ -548,10 +548,18 @@ class UmlValidator(IValidator):
                             try:
                                 with open(feat_path, "r", encoding="utf-8") as f:
                                     feat_content = f.read()
-                                constraints_match = re.search(r"###\s+(?:\d+\.\s+)?Validation\s+&\s+Constraints(.*?)(?=###|##|\Z)", feat_content, re.DOTALL | re.IGNORECASE)
+                                constraints_match = re.search(
+                                    r"#{1,4}\s+(?:\d+(?:\.\d+)*\.?\s+)?Validation\s+(?:&|and)\s+Constraints\b(.*?)(?=\n#{1,4}\s+|\Z)",
+                                    feat_content,
+                                    re.DOTALL | re.IGNORECASE
+                                )
                                 if constraints_match:
                                     constraints_block = constraints_match.group(1)
-                                    constraints = re.findall(r"^\s*[-*+]\s+\S+", constraints_block, re.MULTILINE)
+                                    constraints = re.findall(
+                                        r"^\s*(?:[-*+]|\d+[\.\)]|[a-zA-Z][\.\)])\s+\S+",
+                                        constraints_block,
+                                        re.MULTILINE
+                                    )
                                     total_constraints += len(constraints)
                             except Exception as e:
                                 print(f"Warning: Failed to parse feature constraints for {feat_path}: {e}")
