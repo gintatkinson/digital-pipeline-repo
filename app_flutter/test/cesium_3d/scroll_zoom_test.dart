@@ -28,7 +28,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify initial dim_2 HUD
-    expect(find.textContaining('Dim_2: 10000.00 meters'), findsOneWidget);
+    expect(find.textContaining('Altitude: 10000.00 meters'), findsOneWidget);
 
     // Simulate scroll zoom in (negative dy)
     final viewportFinder = find.byType(Scene3DViewport);
@@ -46,6 +46,6 @@ void main() {
     expect(controller.current.dim_2, lessThan(6378137.0 + 10000.0));
 
     // Verify HUD text is updated and does not display the old dim_2 value
-    expect(find.textContaining('Dim_2: 10000.00 meters'), findsNothing);
+    expect(find.textContaining('Altitude: 10000.00 meters'), findsNothing);
   });
 }

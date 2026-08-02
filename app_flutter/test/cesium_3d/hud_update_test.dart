@@ -60,8 +60,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify initial values on HUD
-    expect(find.textContaining('Dim_0: 35.000000'), findsOneWidget);
-    expect(find.textContaining('Dim_1: 135.000000'), findsOneWidget);
+    expect(find.textContaining('Latitude: 35.000000'), findsOneWidget);
+    expect(find.textContaining('Longitude: 135.000000'), findsOneWidget);
 
     // Pan camera to a new position
     final state = tester.state(find.byType(Scene3DViewport)) as dynamic;
@@ -75,8 +75,8 @@ void main() {
     expect(newLng, isNot(135.0));
 
     // Verify HUD text updated to new coordinates
-    expect(find.textContaining('Dim_0: 35.000000'), findsNothing);
-    expect(find.textContaining('Dim_1: 135.000000'), findsNothing);
+    expect(find.textContaining('Latitude: 35.000000'), findsNothing);
+    expect(find.textContaining('Longitude: 135.000000'), findsNothing);
 
     // Trigger parent rebuild (GUI interaction simulation)
     await tester.tap(find.byKey(const Key('rebuild_button')));
@@ -88,7 +88,7 @@ void main() {
 
     expect(controllerAfter.current.dim_0, equals(newLat));
     expect(controllerAfter.current.dim_1, equals(newLng));
-    expect(find.textContaining('Dim_0: 35.000000'), findsNothing);
-    expect(find.textContaining('Dim_1: 135.000000'), findsNothing);
+    expect(find.textContaining('Latitude: 35.000000'), findsNothing);
+    expect(find.textContaining('Longitude: 135.000000'), findsNothing);
   });
 }

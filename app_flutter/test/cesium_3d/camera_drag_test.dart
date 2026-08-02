@@ -27,8 +27,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify initial HUD coordinates
-    expect(find.textContaining('Dim_0: 35.000000'), findsOneWidget);
-    expect(find.textContaining('Dim_1: 135.000000'), findsOneWidget);
+    expect(find.textContaining('Latitude: 35.000000'), findsOneWidget);
+    expect(find.textContaining('Longitude: 135.000000'), findsOneWidget);
 
     // Perform drag gesture on the globe viewport
     final viewportFinder = find.byType(Scene3DViewport);
@@ -43,7 +43,7 @@ void main() {
     expect(controller.current.dim_0, isNot(35.0));
 
     // Verify HUD text is updated and does not display the old values
-    expect(find.textContaining('Dim_0: 35.000000'), findsNothing);
-    expect(find.textContaining('Dim_1: 135.000000'), findsNothing);
+    expect(find.textContaining('Latitude: 35.000000'), findsNothing);
+    expect(find.textContaining('Longitude: 135.000000'), findsNothing);
   });
 }
