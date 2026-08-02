@@ -49,7 +49,8 @@ RULES = {
 # The test body names one token from each assertion class required by
 # rules/tdd-mandate.md section Required assertion classes, so the completeness gate is
 # satisfied for the reason it exists rather than by suppression.
-MINIMAL_DART_SOURCE = """/// AppRoot class definition.
+MINIMAL_DART_SOURCE = """/// Realises: [Feat-000/AppRoot]
+/// AppRoot class definition.
 class AppRoot {
   /// AppRoot constructor.
   const AppRoot();

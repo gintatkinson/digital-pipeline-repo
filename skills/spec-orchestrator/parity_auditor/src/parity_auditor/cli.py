@@ -33,6 +33,7 @@ from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .validators.source_reference_validator import SourceReferenceValidator
 from .validators.docstring_validator import DocstringValidator
+from .validators.profile_compliance_validator import ProfileComplianceValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_comments_and_strings
 
@@ -904,9 +905,20 @@ def _main_impl():
         has_failed = True
     else:
         print("Success: Public member docstrings verified.")
+
+    print("\n=== Profile Compliance Validation ===")
+    profile_compliance_validator = ProfileComplianceValidator()
+    profile_compliance_errors = _scope_findings(profile_compliance_validator.validate(repo), getattr(args, 'only', None))
+    if profile_compliance_errors:
+        print("[!] Profile Compliance Violations Identified:")
+        for err in profile_compliance_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Profile compliance checks passed.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (missing_spec_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (missing_spec_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None

@@ -99,7 +99,8 @@ The implementer receives ONLY (Prompt Payload Template):
 - Relevant file contents (read and provided by the coordinator)
 - Project conventions (TDD mandate, typing rules, docstring mandate, drill-down navigation rule, etc.)
 - The driving test specification
-- Mandatory Docstring Requirement: Prompt instruction requiring that every generated class, interface, method, function, and public property MUST include full docstrings (DartDoc `///`, JSDoc `/** */`, Python `"""`).
+- Mandatory Implementation Profile Read: Explicit prompt instruction requiring the subagent to read `.pipeline/profiles/flutter.md` (or target platform profile under `.pipeline/profiles/`) by explicit path as its very first step.
+- Mandatory Docstring & Traceability Requirement: Prompt instruction requiring that every generated class, interface, method, function, and public property MUST include full docstrings (DartDoc `///`, JSDoc `/** */`, Python `"""`), and attach UML traceability tags (`/// Realises: [SpecName/ClassName]`) to every public class header.
 
 The implementer MUST NOT receive the full session history or prior task context.
 

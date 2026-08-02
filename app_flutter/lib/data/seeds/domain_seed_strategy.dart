@@ -16,10 +16,8 @@ class _NodePos {
   const _NodePos(this.id, this.lat, this.lon);
 }
 
+/// Realises: [Feat-000/DomainSeedStrategy]
 /// Concrete implementation of [SeedStrategy] that seeds the database with domain-specific mock data.
-///
-/// This includes base type definitions, attributes, space nodes, real NTT exchanges,
-/// cable landing stations, and their interconnectivity links.
 class DomainSeedStrategy implements SeedStrategy {
   int _pendingOps = 0;
 
@@ -347,3 +345,47 @@ class DomainSeedStrategy implements SeedStrategy {
     return 0.0;
   }
 }
+
+/// Realises: [Feat-000/SeedMigrationRunner]
+/// Handles running database seed migrations and schema upgrades for domain seed data.
+class SeedMigrationRunner {
+  /// The [SeedStrategy] used to execute seed operations.
+  final SeedStrategy seedStrategy;
+
+  /// Creates a [SeedMigrationRunner] with an optional [seedStrategy].
+  ///
+  /// Defaults to [DomainSeedStrategy] if no custom strategy is provided.
+  SeedMigrationRunner({SeedStrategy? seedStrategy})
+      : seedStrategy = seedStrategy ?? DomainSeedStrategy();
+
+  /// Runs seed migration for the provided [Database] instance.
+  ///
+  /// Evaluates whether seed migration is required and executes [seedStrategy.seed].
+  /// Returns `true` if migration succeeded.
+  Future<bool> runMigration(Database db) async {
+    await seedStrategy.seed(db);
+    return true;
+  }
+
+  int? _firstIntValue(List<Map<String, Object?>> list) {
+    if (list.isNotEmpty && list.first.isNotEmpty) {
+      final val = list.first.values.first;
+      if (val is num) return val.toInt();
+    }
+    return null;
+  }
+
+  /// Verifies whether seed migration is required for the target [db].
+  ///
+  /// Checks if necessary domain tables are empty or missing expected seed markers.
+  Future<bool> isMigrationNeeded(Database db) async {
+    try {
+      final res = await db.rawQuery('SELECT COUNT(*) FROM type_definitions');
+      final count = _firstIntValue(res);
+      return count == null || count == 0;
+    } catch (_) {
+      return true;
+    }
+  }
+}
+

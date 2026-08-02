@@ -20,6 +20,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 
+/// Realises: [Feat-002/VirtualCameraNormalization]
 extension VirtualCameraNormalization on VirtualCamera {
   /// Ensures the camera altitude is normalized to absolute ECEF coordinates 
   /// (relative to the Earth's center rather than the surface).
@@ -58,6 +59,7 @@ extension VirtualCameraNormalization on VirtualCamera {
   }
 }
 
+/// Realises: [Feat-002/ElevationProvider]
 class ElevationProvider {
   final bool isElevationActive;
   final double verticalExaggeration;
@@ -92,6 +94,7 @@ class ElevationProvider {
   }
 }
 
+/// Realises: [Feat-002/CoordinateTransformer]
 class CoordinateTransformer {
   final VirtualCamera absoluteCamera;
   final Size viewportSize;
@@ -330,6 +333,7 @@ class CoordinateTransformer {
 
 typedef ElevationCacheKey = (String id, double latDeg, double lngDeg, String astronomicalBody, bool elevationActive);
 
+/// Realises: [Feat-002/SceneViewState]
 class SceneViewState extends ChangeNotifier {
   final Map<String, Network3DScene> nodeModels = {};
   final Map<String, ProjectedPoint> projectedNodes = {};
@@ -651,6 +655,7 @@ class SceneViewState extends ChangeNotifier {
   }
 }
 
+/// Realises: [Feat-002/TextPainterKey]
 class TextPainterKey {
   final String text;
   final Color color;
@@ -661,6 +666,7 @@ class TextPainterKey {
 
 enum ModelRenderState { unloaded, loading, loaded, error }
 
+/// Realises: [Feat-002/Network3DScene]
 class Network3DScene {
   Uint8List? gltfData;
   bool isTranslucent = false;

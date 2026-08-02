@@ -21,10 +21,12 @@ import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 
+/// Realises: [Feat-002/SceneLayer]
 abstract class SceneLayer {
   void paint(Canvas canvas, Size size, SceneViewState state);
 }
 
+/// Realises: [Feat-002/BackgroundLayer]
 class BackgroundLayer extends SceneLayer {
   static final List<(double, double, double, double)> _stars = () {
     final rand = math.Random(42);
@@ -79,6 +81,7 @@ class BackgroundLayer extends SceneLayer {
   }
 }
 
+/// Realises: [Feat-002/GlobeLayer]
 class GlobeLayer extends SceneLayer {
   final Paint _gridPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 0.8;
   final Paint _bandFillPaint = Paint()..style = PaintingStyle.fill;
@@ -265,6 +268,7 @@ class GlobeLayer extends SceneLayer {
   }
 }
 
+/// Realises: [Feat-002/TopologyLayer]
 class TopologyLayer extends SceneLayer {
   final Paint _linkPaint = Paint()..color = const Color(0xFFFF6D00)..style = PaintingStyle.stroke..strokeWidth = 1.5;
   final Paint _linkGlowPaint = Paint()..color = const Color(0x33FF6D00)..style = PaintingStyle.stroke..strokeWidth = 4.0;
@@ -350,6 +354,7 @@ class TopologyLayer extends SceneLayer {
   }
 }
 
+/// Realises: [Feat-002/HUDLayer]
 class HUDLayer extends SceneLayer {
   final Paint _reticleDotPaint = Paint()..color = const Color(0xFF00E5FF)..style = PaintingStyle.fill;
   final Paint _reticlePaint = Paint()..color = const Color(0xCC00E5FF)..style = PaintingStyle.stroke..strokeWidth = 1.0;
@@ -398,6 +403,7 @@ class HUDLayer extends SceneLayer {
   }
 }
 
+/// Realises: [Feat-002/Scene3DViewportPainter]
 class Scene3DViewportPainter extends CustomPainter {
   (double, double, double) getEcefCoordinatesForTesting(double lat, double lng, double height) {
     final double px = height * math.cos(lat) * math.cos(lng);
@@ -601,6 +607,7 @@ class Scene3DViewportPainter extends CustomPainter {
   bool shouldRepaint(covariant Scene3DViewportPainter oldDelegate) => true; 
 }
 
+/// Realises: [Feat-002/CameraStatsPanel]
 class CameraStatsPanel extends StatelessWidget {
   final CameraController cameraController;
   final VoidCallback onClose;
@@ -653,6 +660,7 @@ class CameraStatsPanel extends StatelessWidget {
   }
 }
 
+/// Realises: [Feat-002/MapConfigPanel]
 class MapConfigPanel extends StatelessWidget {
   final String activeStyle;
   final String astronomicalBody;
@@ -856,6 +864,7 @@ class MapConfigPanel extends StatelessWidget {
   }
 }
 
+/// Realises: [Feat-002/Scene3DViewport]
 class Scene3DViewport extends StatefulWidget {
   final VirtualCamera camera;
   final TopologyData? topologyData;
@@ -877,6 +886,7 @@ class Scene3DViewport extends StatefulWidget {
   State<Scene3DViewport> createState() => Scene3DViewportState();
 }
 
+/// Realises: [Feat-002/Scene3DViewportState]
 class Scene3DViewportState extends State<Scene3DViewport> with SingleTickerProviderStateMixin {
   late CameraController _cameraController;
   TreeViewModel? _treeViewModel;

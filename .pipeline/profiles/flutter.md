@@ -76,6 +76,7 @@ meaningless on another platform — see `rules/platform-independence.md`
 - **Public Member Docstrings Mandatory**: every public class, interface, method, function,
   and public property MUST include full docstrings (DartDoc ///, JSDoc /** */, Python """).
   Enforced as a mandatory blocking linter rule via `public_member_api_docs`.
+- **UML Traceability Tags Mandatory**: Every public Dart class MUST include a DartDoc comment citing its underlying specification or UML class (e.g., /// Realises: [Feat-002/VirtualCameraNormalization]).
 
 ## Security & Ops
 - API key management: API keys and secrets MUST NOT be committed to the repository. Use platform-specific secure storage (e.g., macOS Keychain, Android Keystore) or environment variables resolved at build time via `--dart-define`.
