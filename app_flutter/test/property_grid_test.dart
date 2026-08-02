@@ -307,4 +307,34 @@ void main() {
     expect(savedData, isNotNull);
     expect(savedData!['type'], 'c');
   });
+
+  testWidgets('Triggers commitTransaction and rollbackTransaction callbacks',
+      (WidgetTester tester) async {
+    bool committed = false;
+    bool rolledBack = false;
+
+    await tester.pumpWidget(
+      buildTestableWidget(
+        PropertyGrid(
+          fields: const [
+            FieldDescriptor(key: 'f1', label: 'Field 1', type: 'string'),
+          ],
+          initialValues: const {'f1': 'initial'},
+          commitTransaction: () => committed = true,
+          rollbackTransaction: () => rolledBack = true,
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('commit_transaction_button')), findsOneWidget);
+    expect(find.byKey(const Key('rollback_transaction_button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('commit_transaction_button')));
+    await tester.pump();
+    expect(committed, isTrue);
+
+    await tester.tap(find.byKey(const Key('rollback_transaction_button')));
+    await tester.pump();
+    expect(rolledBack, isTrue);
+  });
 }

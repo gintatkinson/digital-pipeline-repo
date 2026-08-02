@@ -24,6 +24,7 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
+/// Realises: [UC-06/PropertyGrid]
 /// Editable property grid that displays [FieldDescriptor] fields grouped by
 /// section and emits validated data on blur.
 ///
@@ -109,6 +110,16 @@ class PropertyGrid extends StatefulWidget {
   /// if validation fails, or null if valid.
   final String? Function(String key, dynamic value)? validateSchemaProperty;
 
+  /// Callback executed when an edit transaction is committed.
+  ///
+  /// Fires when the user explicitly commits changes via the grid or save action.
+  final VoidCallback? commitTransaction;
+
+  /// Callback executed when an edit transaction is rolled back.
+  ///
+  /// Fires when the user explicitly cancels or rolls back pending grid edits.
+  final VoidCallback? rollbackTransaction;
+
   /// Creates a [PropertyGrid] with the given field descriptors, initial values,
   /// and visual configuration.
   ///
@@ -134,6 +145,8 @@ class PropertyGrid extends StatefulWidget {
     this.cardBorderRadius = const BorderRadius.all(Radius.circular(12.0)),
     this.inputBorderRadius = const BorderRadius.all(Radius.circular(6.0)),
     this.validateSchemaProperty,
+    this.commitTransaction,
+    this.rollbackTransaction,
   });
 
   @override
@@ -451,12 +464,43 @@ class _PropertyGridState extends State<PropertyGrid> {
             },
           ),
           SizedBox(height: widget.gapSize),
-          ElevatedButton(
-            key: const Key('save_properties_button'),
-            onPressed: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
-            child: const Text('Save'),
+          Row(
+            children: [
+              ElevatedButton(
+                key: const Key('save_properties_button'),
+                onPressed: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  widget.commitTransaction?.call();
+                },
+                child: const Text('Save'),
+              ),
+              if (widget.commitTransaction != null) ...[
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  key: const Key('commit_transaction_button'),
+                  onPressed: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    widget.commitTransaction?.call();
+                  },
+                  child: const Text('Commit'),
+                ),
+              ],
+              if (widget.rollbackTransaction != null) ...[
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  key: const Key('rollback_transaction_button'),
+                  onPressed: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    setState(() {
+                      committedData = Map<String, dynamic>.from(widget.initialValues);
+                      _errors = const {};
+                    });
+                    widget.rollbackTransaction?.call();
+                  },
+                  child: const Text('Rollback'),
+                ),
+              ],
+            ],
           ),
           SizedBox(height: widget.gapSize),
           _buildCommittedStatePanel(isDark, panelOpacity),
