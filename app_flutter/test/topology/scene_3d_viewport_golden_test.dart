@@ -587,7 +587,7 @@ void main() {
       final Offset projected = state.getProjectedPosition(
         35.3606,
         138.7274,
-        dim_2: 100.0,
+        altitude: 100.0,
         nodeType: 'ground',
       );
 

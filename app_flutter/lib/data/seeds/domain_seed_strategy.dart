@@ -74,12 +74,15 @@ class DomainSeedStrategy implements SeedStrategy {
     for (int i = 0; i < nttJson.length; i++) {
       final item = nttJson[i];
       final id = 'ntt_exchange_$i';
+      final lat = _extractLat(item);
+      final lon = _extractLon(item);
+      final height = _extractHeight(item);
       nttNodes.add({
         'id': id,
-        'lat': (item['position']['dim_0'] as num).toDouble(),
-        'lon': (item['position']['dim_1'] as num).toDouble(),
+        'lat': lat,
+        'lon': lon,
       });
-      _addNodeToBatch(batch, id, null, nttDetails, lat: (item['position']['dim_0'] as num).toDouble(), lon: (item['position']['dim_1'] as num).toDouble(), height: (item['position']['dim_2'] as num).toDouble());
+      _addNodeToBatch(batch, id, null, nttDetails, lat: lat, lon: lon, height: height);
     }
 
     // 4. Load and parse cable landing stations data from assets
@@ -96,12 +99,15 @@ class DomainSeedStrategy implements SeedStrategy {
     for (int i = 0; i < landingJson.length; i++) {
       final item = landingJson[i];
       final id = 'cable_landing_$i';
+      final lat = _extractLat(item);
+      final lon = _extractLon(item);
+      final height = _extractHeight(item);
       landingNodes.add({
         'id': id,
-        'lat': (item['position']['dim_0'] as num).toDouble(),
-        'lon': (item['position']['dim_1'] as num).toDouble(),
+        'lat': lat,
+        'lon': lon,
       });
-      _addNodeToBatch(batch, id, null, landingDetails, lat: (item['position']['dim_0'] as num).toDouble(), lon: (item['position']['dim_1'] as num).toDouble(), height: (item['position']['dim_2'] as num).toDouble());
+      _addNodeToBatch(batch, id, null, landingDetails, lat: lat, lon: lon, height: height);
     }
 
     // 5. Interconnect stations, exchanges, and orbits with interface links
@@ -245,5 +251,47 @@ class DomainSeedStrategy implements SeedStrategy {
         });
       }
     }
+  }
+
+  /// Safely extracts latitude from either top-level or nested position map.
+  double _extractLat(dynamic item) {
+    if (item is Map) {
+      if (item['position'] is Map) {
+        final pos = item['position'] as Map;
+        final val = pos['dim_0'] ?? pos['latitude'] ?? pos['lat'];
+        if (val is num) return val.toDouble();
+      }
+      final val = item['latitude'] ?? item['lat'];
+      if (val is num) return val.toDouble();
+    }
+    return 0.0;
+  }
+
+  /// Safely extracts longitude from either top-level or nested position map.
+  double _extractLon(dynamic item) {
+    if (item is Map) {
+      if (item['position'] is Map) {
+        final pos = item['position'] as Map;
+        final val = pos['dim_1'] ?? pos['longitude'] ?? pos['lon'];
+        if (val is num) return val.toDouble();
+      }
+      final val = item['longitude'] ?? item['lon'];
+      if (val is num) return val.toDouble();
+    }
+    return 0.0;
+  }
+
+  /// Safely extracts height from either top-level or nested position map, defaulting to 0.0.
+  double _extractHeight(dynamic item) {
+    if (item is Map) {
+      if (item['position'] is Map) {
+        final pos = item['position'] as Map;
+        final val = pos['dim_2'] ?? pos['height'];
+        if (val is num) return val.toDouble();
+      }
+      final val = item['height'];
+      if (val is num) return val.toDouble();
+    }
+    return 0.0;
   }
 }

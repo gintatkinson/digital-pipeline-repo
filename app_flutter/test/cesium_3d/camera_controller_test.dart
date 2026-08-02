@@ -154,16 +154,16 @@ void main() {
       expect(c.current.pitch, equals(5.0));
     });
 
-    test('zoom clamps to minDim_2', () {
+    test('zoom clamps to minAltitude', () {
       final c = CameraController(_makeCam(alt: 200));
       c.zoom(-10000);
-      expect(c.current.dim_2, equals(6378137.0 + CameraController.minDim_2));
+      expect(c.current.dim_2, equals(6378137.0 + CameraController.minAltitude));
     });
 
-    test('zoom clamps to maxDim_2', () {
+    test('zoom clamps to maxAltitude', () {
       final c = CameraController(_makeCam());
       c.zoom(1000000000);
-      expect(c.current.dim_2, equals(6378137.0 + CameraController.maxDim_2));
+      expect(c.current.dim_2, equals(6378137.0 + CameraController.maxAltitude));
     });
 
     group('Scroll zoom behavior', () {
@@ -204,16 +204,16 @@ void main() {
         expect(c.current.dim_2, closeTo(6378137.0 + 500000 - 5.0, 0.01));
       });
 
-      test('scroll up from minDim_2 stays at minDim_2', () {
-        final c = CameraController(_makeCam(alt: CameraController.minDim_2));
+      test('scroll up from minAltitude stays at minAltitude', () {
+        final c = CameraController(_makeCam(alt: CameraController.minAltitude));
         c.zoom(-1);
-        expect(c.current.dim_2, equals(6378137.0 + CameraController.minDim_2));
+        expect(c.current.dim_2, equals(6378137.0 + CameraController.minAltitude));
       });
 
-      test('scroll down from maxDim_2 stays at maxDim_2', () {
-        final c = CameraController(_makeCam(alt: 6378137.0 + CameraController.maxDim_2));
+      test('scroll down from maxAltitude stays at maxAltitude', () {
+        final c = CameraController(_makeCam(alt: 6378137.0 + CameraController.maxAltitude));
         c.zoom(1);
-        expect(c.current.dim_2, equals(6378137.0 + CameraController.maxDim_2));
+        expect(c.current.dim_2, equals(6378137.0 + CameraController.maxAltitude));
       });
     });
 
