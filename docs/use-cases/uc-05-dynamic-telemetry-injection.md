@@ -74,13 +74,20 @@ stateDiagram-v2
 Ensures zero-code-gen dynamically loaded UI dashboards can safely map, display, and update telemetry metrics off-thread from the moment the application initializes.
 
 ## 8. Realization Matrix
+
+| Scenario / Flow | Code Symbol | Target Source File |
+| :--- | :--- | :--- |
+| Main Success Scenario | `TopologyMap.injectTelemetryPayload` | `app_flutter/lib/features/topology/topology_map.dart` |
+| Exception 5a (Malformed JSON Payload) | `TopologyMap.handleTelemetryParseError` | `app_flutter/lib/features/topology/topology_map.dart` |
+| Exception 5b (Unmapped Node ID) | `TopologyMap.logUnmappedNodeWarning` | `app_flutter/lib/features/topology/topology_map.dart` |
+
 ### Required Features
-- [x] #54 - YANG-to-JSON Build-Time Schema Compiler ([feat-12-yang-compiler](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-12-yang-compiler.md)) (Verifies compilation of the runtime layouts)
-- [x] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies rendering of the form widgets dynamically)
-- [x] #57 - Off-Thread Telemetry Processing and Worker Isolation ([feat-15-off-thread-telemetry](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-15-off-thread-telemetry.md)) (Verifies unpacking and buffering of gNMI streams)
+- [x] #54 - YANG-to-JSON Build-Time Schema Compiler ([feat-12-yang-compiler](docs/features/feat-12-yang-compiler.md)) (Verifies compilation of the runtime layouts)
+- [x] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](docs/features/feat-13-zero-codegen-grid.md)) (Verifies rendering of the form widgets dynamically)
+- [x] #57 - Off-Thread Telemetry Processing and Worker Isolation ([feat-15-off-thread-telemetry](docs/features/feat-15-off-thread-telemetry.md)) (Verifies unpacking and buffering of gNMI streams)
 
 ### Required User Stories
-- [x] #5 - Telemetry injection ([us-05-injection](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-05-injection.md)) (Verifies telemetry injection capability)
+- [x] #5 - Telemetry injection ([us-05-injection](docs/user-stories/us-05-injection.md)) (Verifies telemetry injection capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`

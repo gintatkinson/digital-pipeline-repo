@@ -691,20 +691,6 @@ labelled bug, and NOT labelled `status:fixed-resolved`". The label exists alread
 merged to main. Awaiting Product Owner validation."*). Shipping J3 without this
 converts a documentation defect into a live non-terminating loop.
 
-### J0 — file the three defects and re-populate the divergence register
-
-`KNOWN_DOC_DIVERGENCES` is `{}` at `tests/rule_contracts.py:215`; both prior entries
-moved to `RESOLVED_DIVERGENCES` when AMEND-0001/0002 landed. The register therefore
-asserts zero known divergences while three exist. `project-constitution` Step 9:
-*"A divergence left undocumented becomes indistinguishable from a bug."*
-
-| File | Exact change |
-|---|---|
-| *(tracker)* | Three issues via `gh issue create`, label `bug`, label `pipeline-tooling`. Titles: (1) "`AGENTS.md:33` directs subagents to a path that does not exist"; (2) "Two skills instruct agents to close issues the constitution forbids closing"; (3) "`pipeline-tooling.md:131` cites a `feature-driven-implementation` step that does not exist". Body of (2) MUST include the non-termination trap above. |
-| `tests/rule_contracts.py` | Add one `KNOWN_DOC_DIVERGENCES` entry for defect 2, naming the issue number from above and stating that `pipeline-tooling.md:130` claims an override the skill text never received. Defects 1 and 3 are factually wrong references, not divergences — they are not registered here. |
-
-No test. This package is registration only; the gate that would catch it is J4.
-
 ### Correction — J1's premise was wrong  **[REVISED, NEEDS RE-APPROVAL]**
 
 J1 was approved on the claim that `.agents/skills/debug-protocol/SKILL.md` does not

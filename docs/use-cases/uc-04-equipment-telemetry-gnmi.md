@@ -69,9 +69,16 @@ stateDiagram-v2
 Deployments utilize gNMI Protobuf streams over HTTP/2 transport to capture high-frequency equipment state updates and trigger real-time UI canvas repaints.
 
 ## 8. Realization Matrix
+
+| Scenario / Flow | Code Symbol | Target Source File |
+| :--- | :--- | :--- |
+| Main Success Scenario | `BackgroundWorker.processTelemetry` | `app_flutter/lib/core/background_worker.dart` |
+| Exception 5a (mTLS Handshake Failure) | `BackgroundWorker.handleStreamDisconnect` | `app_flutter/lib/core/background_worker.dart` |
+| Exception 5b (Schema Validation Error) | `BackgroundWorker.logInvalidPayload` | `app_flutter/lib/core/background_worker.dart` |
+
 ### Required Features
-- [x] #44 - Feature 44: Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies class topologies and validation gates for adapters)
-- [ ] Persistence Architecture Blueprint ([blueprint](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md)) (Verifies gNMI/Protobuf repository adapter structure)
+- [x] #44 - Feature 44: Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](docs/features/feat-44-downstream-baseline.md)) (Verifies class topologies and validation gates for adapters)
+- [ ] Persistence Architecture Blueprint ([blueprint](docs/designs/persistence-architecture-blueprint.md)) (Verifies gNMI/Protobuf repository adapter structure)
 
 ### Required User Stories
-- [x] #4 - Telemetry streaming ([us-04-streaming](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-04-streaming.md)) (Verifies telemetry streaming capability)
+- [x] #4 - Telemetry streaming ([us-04-streaming](docs/user-stories/us-04-streaming.md)) (Verifies telemetry streaming capability)

@@ -22,19 +22,19 @@ We implemented and polished the Flutter version of the `TopologyMap` widget:
 
 | UML Element | Realization Tag | File Path | Properties & Realized Behavior |
 | :--- | :--- | :--- | :--- |
-| `NavigationBreadcrumbs` | `@realizes UML::NavigationBreadcrumbs` | [breadcrumbs.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/breadcrumbs.tsx) | `items`, `maxItems`, collapses middle segments to clickable `...` |
-| `ContextualPanel` | `@realizes UML::ContextualPanel` | [contextual-panel.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/contextual-panel.tsx) | `isOpen`, `onClose`, `title`, closes on global Escape key |
-| `TopologyMap` | `@realizes UML::TopologyMap` | [topology-map.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/topology-map.tsx) | `activeFocusedNode`, `onNodeSelect`, `updateCoordinateMapping` |
-| | `@realizes UML::TopologyMap` | [topology_map.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/components/topology_map.dart) | Flutter widget with customized theme dark scrollbars and Stack-positioned scrollbars |
-| `PlaybackController` | `@realizes UML::PlaybackController` | [topology-map.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/topology-map.tsx) | `currentTimeIndex`, `playbackRateOfChangeMultiplier`, `isPlaying`, `setPlayhead`, `togglePlayback` |
-| | `@realizes UML::PlaybackController` | [topology_map.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/components/topology_map.dart) | Ticker-driven dynamic time index projection, slider, rateOfChange dropdown |
-| `CanvasRenderer` | `@realizes UML::CanvasRenderer` | [topology-map.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/topology-map.tsx) | `renderContextType: '2d'`, `drawViewport` rendering projected nodes |
-| | `@realizes UML::CanvasRenderer` | [topology_map.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/components/topology_map.dart) | `TopologyPainter` CustomPainter drawing grid, links, packets, nodes, and labels |
-| `Layout` | `@realizes UML::Layout` | [layout.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/layout.tsx) | Dynamic UI adapter parsing `logical-layout.json` recursively |
-| `HierarchyTreeSelector` | `@realizes UML::HierarchyTreeSelector` | [layout.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/layout.tsx) | Keyboard tree navigation (Arrow keys), active node selections |
-| `ResizableSplitter` | `@realizes UML::ResizableSplitter` | [layout.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/layout.tsx) | Vertical resizable drag splitter (`splitterDim_2`, pointer events) |
-| `TabbedContainer` | `@realizes UML::TabbedContainer` | [layout.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/layout.tsx) | Bottom container managing tabs and child table switcher |
-| `TableView` | `@realizes UML::TableView` | [layout.tsx](file:///Users/perkunas/digital-pipeline-repo/web_react/src/components/layout.tsx) | High-density tables (`items-table`, `status-table`, `activity-table`) |
+| `NavigationBreadcrumbs` | `@realizes UML::NavigationBreadcrumbs` | [breadcrumbs.tsx](web_react/src/components/breadcrumbs.tsx) | `items`, `maxItems`, collapses middle segments to clickable `...` |
+| `ContextualPanel` | `@realizes UML::ContextualPanel` | [contextual-panel.tsx](web_react/src/components/contextual-panel.tsx) | `isOpen`, `onClose`, `title`, closes on global Escape key |
+| `TopologyMap` | `@realizes UML::TopologyMap` | [topology-map.tsx](web_react/src/components/topology-map.tsx) | `activeFocusedNode`, `onNodeSelect`, `updateCoordinateMapping` |
+| | `@realizes UML::TopologyMap` | [topology_map.dart](app_flutter/lib/components/topology_map.dart) | Flutter widget with customized theme dark scrollbars and Stack-positioned scrollbars |
+| `PlaybackController` | `@realizes UML::PlaybackController` | [topology-map.tsx](web_react/src/components/topology-map.tsx) | `currentTimeIndex`, `playbackRateOfChangeMultiplier`, `isPlaying`, `setPlayhead`, `togglePlayback` |
+| | `@realizes UML::PlaybackController` | [topology_map.dart](app_flutter/lib/components/topology_map.dart) | Ticker-driven dynamic time index projection, slider, rateOfChange dropdown |
+| `CanvasRenderer` | `@realizes UML::CanvasRenderer` | [topology-map.tsx](web_react/src/components/topology-map.tsx) | `renderContextType: '2d'`, `drawViewport` rendering projected nodes |
+| | `@realizes UML::CanvasRenderer` | [topology_map.dart](app_flutter/lib/components/topology_map.dart) | `TopologyPainter` CustomPainter drawing grid, links, packets, nodes, and labels |
+| `Layout` | `@realizes UML::Layout` | [layout.tsx](web_react/src/components/layout.tsx) | Dynamic UI adapter parsing `logical-layout.json` recursively |
+| `HierarchyTreeSelector` | `@realizes UML::HierarchyTreeSelector` | [layout.tsx](web_react/src/components/layout.tsx) | Keyboard tree navigation (Arrow keys), active node selections |
+| `ResizableSplitter` | `@realizes UML::ResizableSplitter` | [layout.tsx](web_react/src/components/layout.tsx) | Vertical resizable drag splitter (`splitterDim_2`, pointer events) |
+| `TabbedContainer` | `@realizes UML::TabbedContainer` | [layout.tsx](web_react/src/components/layout.tsx) | Bottom container managing tabs and child table switcher |
+| `TableView` | `@realizes UML::TableView` | [layout.tsx](web_react/src/components/layout.tsx) | High-density tables (`items-table`, `status-table`, `activity-table`) |
 
 ---
 

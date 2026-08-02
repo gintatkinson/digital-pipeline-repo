@@ -120,7 +120,25 @@ These rules live in the rules directory (e.g. `rules/`) and are packaged into th
 
 ## Installation
 
-The pipeline requires Python 3, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter (install via `pip install -r requirements.txt`). Choose the method that fits your team's workflow.
+### Prerequisites & Python 3.12 Setup
+
+The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter.
+
+#### Installing Python 3.12
+- **macOS (Homebrew)**:
+  ```bash
+  brew install python@3.12
+  python3.12 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  ```
+- **Ubuntu / Debian**:
+  ```bash
+  sudo apt-get update && sudo apt-get install -y python3.12 python3.12-venv
+  python3.12 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  ```
 
 ### Direct Copy Installation
 

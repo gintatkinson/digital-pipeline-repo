@@ -10,7 +10,7 @@ issue_id: 55
 # Feature: Zero Code-Gen Dynamic PropertyGrid Adapter
 
 ## Parent Epic
-- [ ] #[EpicID] - [Epic Title](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [ ] #310 - [Epic Title](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-XX-name.md) (semantic linkage justification)
 
 ## Description
 Details the generic property grid presentation shell reading JSON schemas at runtime and dynamically instantiating input widgets.

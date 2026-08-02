@@ -92,10 +92,17 @@ stateDiagram-v2
 > - Pre-seeds baseline records at boot time via a lightweight `SeedingManager` REST payload, ensuring developers can test forms, splitters, and validations without requiring live Google Cloud access keys.
 
 ## 8. Realization Matrix
+
+| Scenario / Flow | Code Symbol | Target Source File |
+| :--- | :--- | :--- |
+| Main Success Scenario | `FirebaseDataSource.initializeEmulator` | `app_flutter/lib/data/data_sources/firebase_data_source.dart` |
+| Exception 5a (Connection Timeout) | `FirebaseDataSource.handleConnectionFailure` | `app_flutter/lib/data/data_sources/firebase_data_source.dart` |
+| Exception 5b (Validation Error) | `FirebaseDataSource.validateSeedPayload` | `app_flutter/lib/data/data_sources/firebase_data_source.dart` |
+
 ### Required User Stories
-- [x] #2 - Local Emulator Seeding Story ([us-02-emulator-seeding](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-02-emulator-seeding.md)) (Verifies local emulator seeding capability)
+- [x] #2 - Local Emulator Seeding Story ([us-02-emulator-seeding](docs/user-stories/us-02-emulator-seeding.md)) (Verifies local emulator seeding capability)
 ### Required Features
-- [x] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/features/feat-44-downstream-baseline.md) (implements the bootstrapping logic, SeedingManager database purge/restoration, and connection checks for the local emulator environment)
+- [x] #44 - [Feature 44: Downstream Baseline Seeding and Compliance Framework](docs/features/feat-44-downstream-baseline.md) (implements bootstrapping logic)
 
 ## Source References
 Structural Schema: None defined.

@@ -77,12 +77,19 @@ stateDiagram-v2
 Ensures focus-loss auto-saving maps cleanly to gNMI SetRequests via absolute YANG XPaths, and handles downstream errors from device-side constraint validation.
 
 ## 8. Realization Matrix
+
+| Scenario / Flow | Code Symbol | Target Source File |
+| :--- | :--- | :--- |
+| Main Success Scenario | `DomainValidation.validateXPathState` | `app_flutter/lib/domain/validation.dart` |
+| Exception 5a (XPath Validation Failure) | `DomainValidation.rejectInvalidXPath` | `app_flutter/lib/domain/validation.dart` |
+| Exception 5b (State Lock Error) | `DomainValidation.handleStateLockConflict` | `app_flutter/lib/domain/validation.dart` |
+
 ### Required Features
-- [x] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies local SQLite persistence adapters)
-- [ ] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-13-zero-codegen-grid.md)) (Verifies implementation of focus-loss listeners and local auto-saving)
+- [x] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](docs/features/feat-44-downstream-baseline.md)) (Verifies local SQLite persistence adapters)
+- [ ] #55 - Zero Code-Gen Dynamic PropertyGrid Adapter ([feat-13-zero-codegen-grid](docs/features/feat-13-zero-codegen-grid.md)) (Verifies implementation of focus-loss listeners and local auto-saving)
 
 ### Required User Stories
-- [x] #6 - Device state modifications ([us-06-device-state](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-06-device-state.md)) (Verifies device state modification capability)
+- [x] #6 - Device state modifications ([us-06-device-state](docs/user-stories/us-06-device-state.md)) (Verifies device state modification capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`

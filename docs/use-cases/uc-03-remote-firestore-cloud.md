@@ -94,11 +94,18 @@ Configuration B: Production Mode (Cloud Firestore)
 ```
 
 ## 8. Realization Matrix
+
+| Scenario / Flow | Code Symbol | Target Source File |
+| :--- | :--- | :--- |
+| Main Success Scenario | `FirebaseDataSource.syncCloudProperties` | `app_flutter/lib/domain/data_sources/firebase_data_source.dart` |
+| Exception 5a (Network Timeout) | `FirebaseDataSource.retryCloudSync` | `app_flutter/lib/domain/data_sources/firebase_data_source.dart` |
+| Exception 5b (IAM Authorization Failure) | `FirebaseDataSource.handleAuthError` | `app_flutter/lib/domain/data_sources/firebase_data_source.dart` |
+
 ### Required User Stories
-- [x] #3 - Collaborative Console Updates ([us-03-collaborative-sync](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
+- [x] #3 - Collaborative Console Updates ([us-03-collaborative-sync](docs/user-stories/us-03-collaborative-sync.md)) (Verifies that operator actions are real-time broadcasted to other connected clients)
 ### Required Features
-- [x] #44 - Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies concrete FirestoreRepositoryAdapter and compliance verification checks)
+- [x] #44 - Downstream Baseline Seeding and Compliance Framework ([feat-44-downstream-baseline](docs/features/feat-44-downstream-baseline.md)) (Verifies concrete FirestoreRepositoryAdapter and compliance verification checks)
 
 ## Source References
-Structural Schema: [persistence-architecture-blueprint.md:L75-80](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/designs/persistence-architecture-blueprint.md#L75-L80)
-Normative Specification: [constitution.md:L88-94](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/.pipeline/constitution.md#L88-L94) (Section 1.9 Zero-Mocking Live Persistence Mandate)
+Structural Schema: `docs/designs/persistence-architecture-blueprint.md`
+Normative Specification: `.pipeline/constitution.md`

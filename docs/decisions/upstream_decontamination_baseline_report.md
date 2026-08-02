@@ -488,7 +488,7 @@ tests/test_uml_validator.py::test_extend_arrow_base_with_ext_in_name_no_false_po
 
 ### Baseline Script Verification (`verify_downstream_baseline.py --no-domain`)
 ```text
-Success: App bundled to /Users/perkunas/jail/digital-pipeline-repo/app_flutter_release.zip
+Success: App bundled to app_flutter_release.zip
 Success: Build and test suite execution passed. Conformance gate verified.
 Tagging restoration point...
 Cleaning up workspace...

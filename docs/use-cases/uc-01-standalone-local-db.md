@@ -69,11 +69,18 @@ stateDiagram-v2
 App is launched in standalone offline mode. Persistence is handled locally via SQLite FFI or JSON files directly written to the local disk workspace in the user's App Data directory.
 
 ## 8. Realization Matrix
+
+| Scenario / Flow | Code Symbol | Target Source File |
+| :--- | :--- | :--- |
+| Main Success Scenario | `SqliteDataSource.saveProperties` | `app_flutter/lib/domain/data_sources/sqlite_data_source.dart` |
+| Exception 5a (Write Permission Error) | `SqliteDataSource.handleStorageError` | `app_flutter/lib/domain/data_sources/sqlite_data_source.dart` |
+| Exception 5b (Invalid Node ID) | `SqliteDataSource.upsertNode` | `app_flutter/lib/domain/data_sources/sqlite_data_source.dart` |
+
 ### Required Features
-- [x] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/feat-44-downstream-baseline.md)) (Verifies property grid offline persistence baseline)
+- [x] #44 - Downstream Baseline Feature ([feat-44-downstream-baseline](docs/features/feat-44-downstream-baseline.md)) (Verifies property grid offline persistence baseline)
 
 ### Required User Stories
-- [x] #1 - Standalone database bootstrap ([us-01-standalone-bootstrap](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/user-stories/us-01-standalone-bootstrap.md)) (Verifies standalone bootstrap capability)
+- [x] #1 - Standalone database bootstrap ([us-01-standalone-bootstrap](docs/user-stories/us-01-standalone-bootstrap.md)) (Verifies standalone bootstrap capability)
 
 ## Source References
 Structural Schema: `docs/designs/persistence-architecture-blueprint.md`

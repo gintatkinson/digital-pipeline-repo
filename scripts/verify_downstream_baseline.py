@@ -112,10 +112,13 @@ def load_mandated_classes(destination):
 def main():
     parser = argparse.ArgumentParser(description="Verify a downstream project's baseline conformance.")
     parser.add_argument("--no-domain", action="store_true", help="Skip checking the domain model")
+    parser.add_argument("--target", help="Target project directory", default=None)
+    parser.add_argument("--output", help="Output JSON report file path", default=None)
     parser.add_argument("destination", nargs="?", default=".", help="Path to the downstream project directory (defaults to current directory)")
     args = parser.parse_args()
 
-    dest = os.path.abspath(args.destination)
+    target_dest = args.target if args.target else args.destination
+    dest = os.path.abspath(target_dest)
 
     if not os.path.isdir(dest):
         print(f"ERROR: Destination path '{dest}' is not a directory.", file=sys.stderr)
@@ -155,6 +158,20 @@ def main():
     try:
         _run_verification(args, dest, repo_root, is_flutter, is_react)
         print("Success: Build and test suite execution passed. Conformance gate verified.")
+        if args.output:
+            out_dir = os.path.dirname(os.path.abspath(args.output))
+            if out_dir:
+                os.makedirs(out_dir, exist_ok=True)
+            report_data = {
+                "status": "success",
+                "target": target_dest,
+                "platform": "flutter" if is_flutter else "react",
+                "destination": dest,
+                "domain_verified": not args.no_domain,
+            }
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report_data, f, indent=2)
+            print(f"Wrote downstream baseline report to {args.output}")
         if not tag_restoration_point():
             print("ERROR: Conformance gate verified but restoration point tag could not be placed.", file=sys.stderr)
             sys.exit(1)
@@ -206,25 +223,20 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
             "pubspec.yaml",
             "analysis_options.yaml",
             "lib/main.dart",
-            "lib/domain/repository_resolver.dart",
             "lib/domain/validation.dart"
         ]
-        if args.no_domain:
-            baseline_files.remove("lib/domain/repository_resolver.dart")
-            baseline_files.remove("lib/domain/validation.dart")
-        else:
-            domain_dir = os.path.join(dest, "lib", "domain")
-            if not os.path.isdir(domain_dir):
-                print("NOTE: lib/domain/ directory not found — applying no-domain baseline check automatically.")
-                args.no_domain = True
-                baseline_files.remove("lib/domain/repository_resolver.dart")
-                baseline_files.remove("lib/domain/validation.dart")
-
         missing_files = []
         for f in baseline_files:
             path = os.path.join(dest, f)
             if not os.path.exists(path):
                 missing_files.append(f)
+
+        repo_resolver_paths = [
+            os.path.join(dest, "lib", "domain", "repository_resolver.dart"),
+            os.path.join(dest, "lib", "core", "di", "repository_resolver.dart"),
+        ]
+        if not any(os.path.exists(p) for p in repo_resolver_paths) and not args.no_domain:
+            missing_files.append("lib/domain/repository_resolver.dart (or lib/core/di/repository_resolver.dart)")
 
         if missing_files:
             print(f"ERROR: Flutter baseline file(s) missing: {', '.join(missing_files)}", file=sys.stderr)
@@ -272,7 +284,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 subprocess.run(["flutter", "test"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
                 
                 print("Running 'flutter build macos --release'...")
-                subprocess.run(["flutter", "build", "macos", "--release", "--no-codesign"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 3)
+                subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 3)
                 
                 print("Zipping the macOS application bundle...")
                 # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app

@@ -10,7 +10,7 @@ import tempfile
 import time
 
 def main():
-    repo_root = "/Users/perkunas/jail/digital-pipeline-repo"
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     benchmark_path = os.path.join(repo_root, "benchmark_results.jsonl")
     app_flutter_dir = os.path.join(repo_root, "app_flutter")
     

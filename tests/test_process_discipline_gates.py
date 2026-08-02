@@ -1,3 +1,4 @@
+# Tracking: #346, #343, #339
 """Gates against the process failures recorded during this session.
 
 Each test below corresponds to a specific thing that went wrong, and would have caught
@@ -14,6 +15,7 @@ import re
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PLAN = os.path.join(REPO_ROOT, "implementation_plan.md")
+_SHA_REGEX = re.compile(r"\b[0-9a-f]{7,40}\b", re.IGNORECASE)
 
 
 def _plan():
@@ -73,7 +75,7 @@ def test_every_executed_part_has_a_change_record():
     for letter, _title in parts:
         body = plan.split(f"## Part {letter} — ", 1)[-1]
         body = body.split("\n## Part ", 1)[0]
-        if re.search(r"\b[0-9a-f]{7}\b", body) and "AWAITING APPROVAL" not in body:
+        if _SHA_REGEX.search(body) and "AWAITING APPROVAL" not in body:
             executed.add(letter)
 
     missing = sorted(executed - records - {"A", "B", "C", "D", "E", "F", "G", "H", "I",
@@ -105,22 +107,34 @@ _EXCLUDED_DIRS = {
     "build",
     "dist",
 }
+_SCAN_ROOTS = [
+    REPO_ROOT,
+    os.path.join(REPO_ROOT, "implementation_plan.md"),
+    os.path.join(REPO_ROOT, ".pipeline", "records"),
+]
 # This file names the forbidden construct in order to forbid it.
 _SELF = os.path.abspath(__file__)
 
 
 def _committed_texts():
     found = []
-    for dirpath, dirnames, filenames in os.walk(REPO_ROOT):
-        dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
-        for name in filenames:
-            if not name.endswith(_SCAN_SUFFIXES):
-                continue
-            path = os.path.join(dirpath, name)
-            if os.path.abspath(path) == _SELF:
-                continue
-            with open(path, "r", encoding="utf-8", errors="replace") as fh:
-                found.append((os.path.relpath(path, REPO_ROOT), fh.read()))
+    scanned_paths = set()
+    for root_item in _SCAN_ROOTS:
+        if os.path.isfile(root_item):
+            if os.path.abspath(root_item) != _SELF and root_item.endswith(_SCAN_SUFFIXES):
+                scanned_paths.add(os.path.abspath(root_item))
+        elif os.path.isdir(root_item):
+            for dirpath, dirnames, filenames in os.walk(root_item):
+                dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
+                for name in filenames:
+                    if not name.endswith(_SCAN_SUFFIXES):
+                        continue
+                    path = os.path.abspath(os.path.join(dirpath, name))
+                    if path != _SELF:
+                        scanned_paths.add(path)
+    for path in sorted(scanned_paths):
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            found.append((os.path.relpath(path, REPO_ROOT), fh.read()))
     return found
 
 
@@ -155,3 +169,89 @@ def test_the_symlink_probe_hazard_is_documented():
         text = fh.read()
     assert "find -type f" in text, "`rules/document-references.md` must explicitly warn against `find -type f`."
     assert "symlink" in text.lower(), "`rules/document-references.md` must explicitly cite `symlink`."
+
+
+# --------------------------------------------------------------------------- #
+# 5. Every realized feature tag in Dart code must have a governance record (#346).
+# --------------------------------------------------------------------------- #
+
+def test_every_realized_feature_has_governance_record():
+    """Enforces that for every /// Realises: [Feat-X] tag in Dart files under app_flutter/lib/,
+    a corresponding .pipeline/records/feat-x.md file exists on disk with required sections."""
+    lib_dir = os.path.join(REPO_ROOT, "app_flutter", "lib")
+    records_dir = os.path.join(REPO_ROOT, ".pipeline", "records")
+    assert os.path.isdir(lib_dir), f"{lib_dir} missing"
+    assert os.path.isdir(records_dir), f"{records_dir} missing"
+
+    tag_pattern = re.compile(r"///\s*Realises:\s*\[\s*(Feat-\d+|UC-\d+)", re.IGNORECASE)
+    realized_features = set()
+
+    for root, _, files in os.walk(lib_dir):
+        for file in files:
+            if file.endswith(".dart"):
+                path = os.path.join(root, file)
+                with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                    for match in tag_pattern.finditer(fh.read()):
+                        feature_id = match.group(1).lower()
+                        realized_features.add(feature_id)
+
+    assert len(realized_features) >= 1, "No realized feature tags found in app_flutter/lib/"
+
+    missing_records = []
+    incomplete_records = []
+    required_sections = ["## Task Breakdown", "## TDD Execution Log", "## Review Sign-off"]
+
+    for feat in sorted(realized_features):
+        record_path = os.path.join(records_dir, f"{feat}.md")
+        if not os.path.isfile(record_path):
+            missing_records.append(f"{feat}.md")
+        else:
+            with open(record_path, "r", encoding="utf-8") as fh:
+                content = fh.read()
+            missing_secs = [sec for sec in required_sections if sec not in content]
+            if missing_secs:
+                incomplete_records.append(f"{feat}.md missing: {', '.join(missing_secs)}")
+
+    assert not missing_records, f"Realized features missing governance records: {missing_records}"
+    assert not incomplete_records, f"Governance records incomplete: {incomplete_records}"
+
+
+# --------------------------------------------------------------------------- #
+# 6. Regression tests for source reference false-positives and blocked_specs bounds (#336).
+# --------------------------------------------------------------------------- #
+
+def test_source_reference_no_false_positives_issue336():
+    """Asserts that source reference scanning ignores doc comments / string literals
+    and does not produce false-positive tags."""
+    tag_pattern = re.compile(r"///\s*Realises:\s*\[\s*(Feat-\d+|UC-\d+)", re.IGNORECASE)
+
+    comment_line = "// This comment mentions Realises: [Feat-99] but is not a triple-slash doc tag"
+    assert not tag_pattern.search(comment_line)
+
+
+def test_blocked_specs_bounds_issue336():
+    """Asserts blocked_specs extraction handles linter output bounds correctly."""
+    import sys
+    sys.path.insert(0, os.path.join(REPO_ROOT, "skills", "spec-orchestrator", "scripts"))
+    from reconcile_backlog import blocked_specs_from_linter_output
+
+    rules = {
+        "backlog_directories": {
+            "epics": "docs/epics",
+            "features": "docs/features",
+            "user_stories": "docs/user-stories",
+            "use_cases": "docs/use-cases",
+        }
+    }
+
+    # Clean output -> empty set
+    clean_result = blocked_specs_from_linter_output("Success: all checks passed.", REPO_ROOT, rules)
+    assert clean_result == set()
+
+    # Bounded extraction with invalid files returns non-none set
+    sample_output = "[ERROR] docs/features/feat-13-zero-codegen-grid.md: Missing Parent Epic link"
+    sample_result = blocked_specs_from_linter_output(sample_output, REPO_ROOT, rules)
+    assert isinstance(sample_result, set)
+    assert "feat-13-zero-codegen-grid.md" in sample_result
+
+
