@@ -82,7 +82,10 @@ _ONE_LINE_EMPTY_CLASS = re.compile(
     r"^\s*class\s+(?:`[^`]+`|[A-Za-z0-9_.\-]+)\s*\{\s*\}\s*$", re.I
 )
 
-_DIAGRAM_KINDS = ("sequencediagram", "classdiagram", "statediagram", "graph", "flowchart")
+_DIAGRAM_KINDS = (
+    "sequencediagram", "classdiagram", "statediagram", "statediagram-v2", 
+    "graph", "flowchart", "erdiagram", "gantt", "pie", "gitgraph", "c4context"
+)
 
 # No directories are excluded from the default scan.
 #
@@ -194,7 +197,7 @@ def _blocks(text: str) -> Tuple[List[Tuple[int, List[str], str]], List[int]]:
             kind = ""
             for line in body:
                 stripped = line.strip().lower()
-                if stripped:
+                if stripped and not stripped.startswith("%%"):
                     kind = next((k for k in _DIAGRAM_KINDS if stripped.startswith(k)), "")
                     break
             if closed:
@@ -227,6 +230,27 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
         , location=f"{source}"))
 
     for start, body, kind in blocks:
+        first_line_content = ""
+        header_lineno = 0
+        for offset, line in enumerate(body):
+            lineno = start + offset + 1
+            line_strip = line.strip()
+            if not line_strip or line_strip.startswith("%%"):
+                continue
+            first_line_content = line_strip.lower()
+            header_lineno = lineno
+            break
+        
+        if first_line_content:
+            is_valid = any(first_line_content.startswith(h) for h in _DIAGRAM_KINDS)
+            if not is_valid:
+                errors.append(Finding(
+                    "mermaid-missing-diagram-header",
+                    f"{source}:{header_lineno}: missing or invalid Mermaid diagram header "
+                    f"({first_line_content!r}). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
+                    location=f"{source}"
+                ))
+
         for offset, line in enumerate(body):
             lineno = start + offset + 1
             line_strip = line.strip()

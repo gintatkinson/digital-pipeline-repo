@@ -288,6 +288,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
    > [!WARNING]
    > **Mermaid Block Closing Constraints & Code Fence Integrity:**
+    > - **Mandatory Mermaid Diagram Header Rule**: The very first non-comment line inside EVERY ```mermaid code fence MUST declare a valid diagram type header (e.g. classDiagram, graph TD, flowchart TD, sequenceDiagram, stateDiagram-v2). Omitting the header and beginning directly with relationships or member lines is strictly forbidden.
     > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
     > - Ensure there are no stray backticks or unmatched code fences in the document.
     > - **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full** — including the prohibition on curly braces in class member lines, colons in class members and note strings, stereotypes on relationship lines, and semicolons in `Note` and message text. Do not maintain a local subset here; subsets drift (issue #289).
