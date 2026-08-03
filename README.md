@@ -269,30 +269,41 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 > **Feature Implementation Prompt:**
 >
-> "Adopt the feature driven implementation skill. I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
+> "Adopt the feature-driven-implementation skill by executing view_file on 
+> `skills/feature-driven-implementation/SKILL.md` as step 1.
 >
-> Execute the full delivery workflow with TDD execution discipline:
+> I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
 >
-> 0. Pre-Execution Seeding & Rules Verification:
->    - Ensure the downstream workspace is correctly initialized using the Direct Copy Installation method.
->    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`), specifically Section 4.5 (Downstream Conformance Gates) and Section 5 (Forbidden Practices - do NOT delete or bypass the layout splitters, timeline scrubber, or focus-loss property grid).
->    - Adhere to the Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in final DI).
+> 1. Pre-Execution Seeding & Rules Verification:
+>    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`):
+>      * Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in DI).
+>      * Section 4.5 Downstream Conformance Gates.
+>      * Section 5 Forbidden Practices (do NOT remove layout splitters, timeline scrubber, or focus-loss property grid).
+>      * Zero-Codegen Parameter Isolation Rule (UI widgets must be driven by TypeDescriptor schemas at runtime; zero hardcoded domain attributes in platform widgets).
+>    - Map dependencies from `.pipeline/domain_specs/` and repo issue tracker.
 >
-> 1. Map dependencies from the backlog directory (e.g. `docs/epics/`, `docs/features/`).
-> 2. Draft an implementation plan covering the full vertical slice:
->    - Database/Persistence Layer (abstract repository interfaces, concrete transport adapters, zero-mocking local emulator integration)
->    - Logic & Parser Layer (decoupled clean domain models, types, validation, hooks)
->    - UI & Presentation Layer (logical components, container queries, resizable layout splitters, SVG outline icons)
->    - Test Plan (failing integration/unit tests to write BEFORE implementation)
-> 3. Decompose into micro-tasks (2-5 min each, with driving test per task).
-> 4. Present the plan for approval (The Grill).
-> 5. Execute via subagent-driven TDD loop (RED-GREEN-REFACTOR per task).
-> 6. Two-stage review after each task (spec compliance, then code quality).
-> 7. Verification Proof:
->    - Run the compliance engine: `python3 scripts/verify_downstream_baseline.py`.
->    - Provide the raw test/build output of this script as proof of conformance.
-> 8. Provide step-by-step human manual testing instructions.
-> 9. Deliver the cumulative solution walkthrough and close the issue upon human approval."
+> 2. Draft Implementation Plan enforcing the 3-Layer Definition of Done (DoD):
+>    - Layer 1 (Domain Model): Clean domain types, schemas, validation logic.
+>    - Layer 2 (ViewModel): State holder handling user actions and persistence dispatch.
+>    - Layer 3 (LUI Widget Binding + BDD Acceptance Test): Responsive UI component bound to ViewModel, accompanied by a BDD User Story Widget test asserting (User Event -> ViewModel Action -> State Change -> LUI Render).
+>    - Zero-Mocking Persistence: Concrete transport adapters / SQLite local emulator integration.
+>    - Decompose into micro-tasks (2-5 min each, with a driving RED-GREEN test per task).
+>
+> 3. Present the plan for approval.
+>
+> 4. Execution Discipline:
+>    - Dispatch fresh, context-isolated subagents targeting AT MOST 1 specification item per dispatch prompt.
+>    - Instruct every subagent to execute view_file on `skills/feature-driven-implementation/SKILL.md` as step 1.
+>    - Run TDD loops (RED-GREEN-REFACTOR) for each micro-task.
+>    - Perform two-stage review after each micro-task (spec compliance, then code quality).
+>
+> 5. Verification Proof:
+>    - Run compliance engine: `python3 scripts/verify_downstream_baseline.py`
+>    - Run test suite: `python3 -m pytest tests/` (or `flutter test` / `npm test`)
+>    - Provide raw build/test output as proof of zero-regression success.
+>    - Provide step-by-step human manual testing instructions.
+>
+> 6. Deliver the cumulative walkthrough and update issue status to status:fixed-resolved."
 
 ---
 
