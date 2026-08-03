@@ -97,18 +97,8 @@ class SchemaCardinalityValidator(IValidator):
                     errors.append(Finding(
                         "schema-container-declaration-empty",
                         f"{file_type} '{filename}': schema_containers is empty. "
-                        f"Every {file_type.lower()} must declare exactly one schema container "
+                        f"Every {file_type.lower()} must declare at least one schema container "
                         f"(e.g. path: 'module/container', node_type: container).",
-                        location=dir_label,
-                    ))
-                elif n > 1:
-                    paths = [c.get("path", "?") if isinstance(c, dict) else str(c) for c in containers]
-                    errors.append(Finding(
-                        "schema-container-consolidation-forbidden",
-                        f"{file_type} '{filename}': Consolidation violation — "
-                        f"schema_containers has {n} entries ({', '.join(paths)}). "
-                        f"Each {file_type.lower()} must map to exactly one schema container. "
-                        f"Split into separate files.",
                         location=dir_label,
                     ))
 

@@ -131,7 +131,7 @@ def test_method_return_void_skipped():
     class Container {
         +String name [1]
     }
-    Container *-- Node : contains"""
+    Container "1" *-- "1" Node : contains"""
     tmpdir = _setup_workspace(diagram)
     try:
         repo = WorkspaceRepository(tmpdir)

@@ -9,7 +9,7 @@ spec_source: "Project Constitution"
 # Feature: Automated Self-Documentation and UML Traceability Verification Gate
 
 ## Parent Epic
-- [ ] #310 - [Epic Title](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [x] #310 - [Epic 28](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-28-traceability-gate.md)
 
 
 ## UML Class Diagram
@@ -23,7 +23,7 @@ classDiagram
         +Boolean[1] verifyTraceabilityMatrix(String matrixPath)
         +Boolean[1] checkDocCompleteness(String docPath)
     }
-    TraceabilityGateSubsystem *-- TraceabilityVerifier
+    TraceabilityGateSubsystem "1" *-- "1" TraceabilityVerifier
 ```
 
 ## Interface Requirements

@@ -19,7 +19,7 @@ classDiagram
         +Boolean[1] runCoverageAudit(String path)
         +Boolean[1] validateProfileScoping(String profile)
     }
-    CoverageGateSubsystem *-- CoverageVerifier
+    CoverageGateSubsystem "1" *-- "1" CoverageVerifier
 ```
 
 ## Interface Requirements

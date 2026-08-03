@@ -370,12 +370,15 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
     return updated_content, (has_deps and all_deps_closed)
 
 def convert_frontmatter_to_table(content):
-    match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-    if not match:
+    if not content.startswith("---"):
         return content
     
-    frontmatter_text = match.group(1)
-    body_text = content[match.end():]
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return content
+        
+    frontmatter_text = parts[1]
+    body_text = parts[2].lstrip()
     
     try:
         data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
@@ -726,22 +729,29 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         
         if len(content) > trunc_limit:
             truncation_headers = tracker_rules.get("truncation_headers", ["## Acceptance Criteria", "## User Stories"])
-            trunc_index = -1
+            header_index = -1
             for header in truncation_headers:
-                trunc_index = content.find(header)
-                if trunc_index != -1:
+                header_index = content.find(header)
+                if header_index != -1:
                     break
-            if trunc_index == -1:
-                trunc_index = trunc_limit
             
             project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
             rel_path = os.path.relpath(filepath, project_root)
             
             truncation_template = tracker_rules.get("truncation_message_template", (
                 "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n"
-                "*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n"
-            ))
-            content = content[:trunc_index] + truncation_template.format(max_body_chars=max_body_chars, rel_path=rel_path)
+                "*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n\n"
+            )).format(max_body_chars=max_body_chars, rel_path=rel_path)
+            
+            if header_index != -1:
+                preserved_tail = content[header_index:]
+                avail_head_len = trunc_limit - len(preserved_tail) - len(truncation_template)
+                if avail_head_len > 0:
+                    content = content[:avail_head_len] + truncation_template + preserved_tail
+                else:
+                    content = content[:trunc_limit] + truncation_template
+            else:
+                content = content[:trunc_limit] + truncation_template
             
         with open(temp_path, "w", encoding="utf-8") as tf:
             tf.write(content)
@@ -872,12 +882,13 @@ def extract_metadata(filepath):
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
-        match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-        if match:
-            frontmatter_text = match.group(1)
-            data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
-            if isinstance(data, dict):
-                return data
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                frontmatter_text = parts[1]
+                data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
+                if isinstance(data, dict):
+                    return data
     except Exception as e:
         print(f"Error parsing metadata from {filepath}: {e}")
     return {}
@@ -1740,7 +1751,7 @@ def main():
                 if fn.endswith(".md"):
                     fp = os.path.join(features_dir, fn)
                     meta = extract_metadata(fp)
-                    epic_name = meta.get("epic")
+                    epic_name = meta.get("epic") or meta.get("parent_epic")
                     if not epic_name:
                         try:
                             with open(fp, "r", encoding="utf-8", errors="ignore") as f:
@@ -1759,7 +1770,7 @@ def main():
                 if fn.endswith(".md"):
                     fp = os.path.join(stories_dir, fn)
                     meta = extract_metadata(fp)
-                    epic_name = meta.get("epic")
+                    epic_name = meta.get("epic") or meta.get("parent_epic")
                     if not epic_name:
                         try:
                             with open(fp, "r", encoding="utf-8", errors="ignore") as f:
@@ -1776,6 +1787,16 @@ def main():
                     with open(fp, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                     feature_refs = re.findall(r'(?:docs/features/|/features/)([a-zA-Z0-9_\-]+)\.md', content)
+                    realizes = meta.get("realizes", [])
+                    if isinstance(realizes, list):
+                        for r in realizes:
+                            if isinstance(r, str):
+                                # r might be a path like docs/features/foo.md or just foo
+                                r_clean = os.path.basename(r)
+                                if r_clean.endswith(".md"):
+                                    r_clean = r_clean[:-3]
+                                feature_refs.append(r_clean)
+                                
                     for feat in feature_refs:
                         if feat in feature_to_epic:
                             epics.update(feature_to_epic[feat])
@@ -1788,7 +1809,7 @@ def main():
                 if fn.endswith(".md"):
                     fp = os.path.join(usecases_dir, fn)
                     meta = extract_metadata(fp)
-                    epic_name = meta.get("epic")
+                    epic_name = meta.get("epic") or meta.get("parent_epic")
                     if not epic_name:
                         try:
                             with open(fp, "r", encoding="utf-8", errors="ignore") as f:
@@ -1805,6 +1826,15 @@ def main():
                     with open(fp, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                     feature_refs = re.findall(r'(?:docs/features/|/features/)([a-zA-Z0-9_\-]+)\.md', content)
+                    realizes = meta.get("realizes", [])
+                    if isinstance(realizes, list):
+                        for r in realizes:
+                            if isinstance(r, str):
+                                r_clean = os.path.basename(r)
+                                if r_clean.endswith(".md"):
+                                    r_clean = r_clean[:-3]
+                                feature_refs.append(r_clean)
+                                
                     for feat in feature_refs:
                         if feat in feature_to_epic:
                             epics.update(feature_to_epic[feat])

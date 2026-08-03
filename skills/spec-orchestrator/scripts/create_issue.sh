@@ -54,7 +54,7 @@ fi
 # pollutes the tracker and re-triggers downstream automation, so the cheapest place to
 # stop it is before creation. Exact match on the title column, not a substring:
 # `gh issue list` emits TSV as number<TAB>title<TAB>labels<TAB>state.
-EXISTING=$(gh issue list --state all --limit 1000 $REPO_FLAG 2>/dev/null \
+EXISTING=$(gh issue list --state all --search "in:title \"$TITLE\"" $REPO_FLAG 2>/dev/null \
     | awk -F'\t' -v t="$TITLE" '$2 == t { print $1; exit }')
 if [ -n "$EXISTING" ]; then
     echo "[IDEMPOTENT] Issue #$EXISTING already carries the title '$TITLE'. Not filing a duplicate."

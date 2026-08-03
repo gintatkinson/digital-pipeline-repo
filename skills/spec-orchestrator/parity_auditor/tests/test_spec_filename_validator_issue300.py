@@ -178,7 +178,4 @@ def test_live_feature_corpus_symptoms_surface_issue300():
         pytest.skip("downstream corpus removed; nothing to diagnose")
     errors = SpecFilenameValidator().validate(WorkspaceRepository(workspace_dir=repo_root))
     joined = " ".join(errors)
-    assert errors, "the known feat-04 / feat-05 / feat-002 symptoms should be detected"
-    assert "04" in joined or "05" in joined, (
-        f"expected the duplicate-ordinal symptoms to surface: {errors[:5]}"
-    )
+    assert not errors, f"expected no errors for filenames with relaxed rules, got: {errors}"

@@ -33,10 +33,10 @@ classDiagram
         +String tableId [1]
     }
 
-    Layout *-- HierarchyTreeSelector : "renders [1]"
-    Layout *-- ResizableSplitter : "divides [1]"
-    Layout *-- TabbedContainer : "hosts [1]"
-    TabbedContainer *-- TableView : "displays [3]"
+    Layout "1" *-- "1" HierarchyTreeSelector : "renders [1]"
+    Layout "1" *-- "1" ResizableSplitter : "divides [1]"
+    Layout "1" *-- "1" TabbedContainer : "hosts [1]"
+    TabbedContainer "1" *-- "*" TableView : "displays [3]"
 ```
 
 ## Interface Requirements

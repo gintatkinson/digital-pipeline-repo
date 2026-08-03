@@ -4,13 +4,12 @@ type: "feature"
 interface_type: "ui"
 generation_mode: "subagent"
 spec_source: "docs/designs/persistence-architecture-blueprint.md"
-issue_id: 55
 ---
 
 # Feature: Zero Code-Gen Dynamic PropertyGrid Adapter
 
 ## Parent Epic
-- [ ] #310 - [Epic Title](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [x] #310 - [Epic 13](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-13-zero-codegen-grid.md)
 
 ## Description
 Details the generic property grid presentation shell reading JSON schemas at runtime and dynamically instantiating input widgets.

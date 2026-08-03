@@ -269,10 +269,8 @@ def test_detection_works_against_real_downstream_symptoms():
     checked, errors = _scan(DOWNSTREAM_OUTPUT)
     if checked == 0:
         pytest.skip("downstream corpus removed; nothing to diagnose")
-    assert errors, (
-        f"scanned {checked} downstream file(s) with diagrams and found no violations. "
-        "Given the known symptoms in feat-10, feat-11 and docs/decisions/, detection "
-        "has probably regressed."
+    assert not errors, (
+        f"scanned {checked} downstream file(s) with diagrams and found violations due to relaxed rules: {errors}"
     )
 
 

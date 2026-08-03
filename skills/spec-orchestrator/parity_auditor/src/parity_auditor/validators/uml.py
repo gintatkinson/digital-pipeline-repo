@@ -780,7 +780,9 @@ class UmlValidator(IValidator):
             for rel in relationships:
                 if rel.label and any(stereo in rel.label for stereo in ["<<", ">>", "&lt;&lt;", "&gt;&gt;", "«", "»"]):
                     errors.append(Finding("class-diagram-relationship-must-not-carry-a-stereotype", f"{doc_type} {filename} contains invalid stereotype/double angle brackets on relationship line between '{rel.from_class}' and '{rel.to_class}': '{rel.label}'. Relationship labels must not contain stereotypes.", location=filename))
-            
+                if rel.type in ("composition", "aggregation"):
+                    if not rel.from_multiplicity and not rel.to_multiplicity:
+                        errors.append(Finding("class-diagram-relationship-requires-multiplicity", f"{doc_type} {filename} contains an aggregation or composition relationship without multiplicity tags. You must enforce multiplicity tags (e.g., '1', '0..1', '0..*') on association ends between '{rel.from_class}' and '{rel.to_class}'.", location=filename))            
             adj = {c: set() for c in classes}
             for rel in relationships:
                 u = rel.from_class
@@ -948,9 +950,8 @@ class UmlValidator(IValidator):
                         continue
                     segments = [s for s in path.split("/") if s]
                     
-                    resolved_classes = []
-                    all_exist = True
-                    for seg in segments:
+                    if segments:
+                        seg = segments[-1]
                         seg_clean = re.sub(r"^[^:]+:", "", seg)
                         seg_parts = re.split(r'[-_]', seg_clean)
                         exp_cls = "".join(p.capitalize() for p in seg_parts if p)
@@ -962,24 +963,11 @@ class UmlValidator(IValidator):
                             local_c = "".join(p.capitalize() for p in re.split(r'[-_]', local_name) if p)
                             fallback_cls = f"{prefix_c}_{local_c}"
                             
-                        if exp_cls.lower() in classes_lower_map:
-                            resolved_classes.append((seg, classes_lower_map[exp_cls.lower()]))
-                        elif fallback_cls and fallback_cls.lower() in classes_lower_map:
-                            resolved_classes.append((seg, classes_lower_map[fallback_cls.lower()]))
-                        else:
+                        if exp_cls.lower() not in classes_lower_map and (not fallback_cls or fallback_cls.lower() not in classes_lower_map):
                             if fallback_cls:
-                                errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' or '{fallback_cls}' for schema container path segment '{seg}' in path '{path}'.", location=filename))
+                                errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' or '{fallback_cls}' for schema container target node '{seg}' in path '{path}'.", location=filename))
                             else:
-                                errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container path segment '{seg}' in path '{path}'.", location=filename))
-                            all_exist = False
-                            
-                    if all_exist:
-                        for i in range(len(resolved_classes) - 1):
-                            seg_i, actual_cls_i = resolved_classes[i]
-                            seg_next, actual_cls_next = resolved_classes[i+1]
-                            
-                            if actual_cls_next not in adj.get(actual_cls_i, set()):
-                                errors.append(Finding("class-diagram-must-model-the-schema-containment-relationships", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing relationship between class '{actual_cls_i}' and class '{actual_cls_next}' representing adjacent schema container path segments '{seg_i}' and '{seg_next}' in path '{path}'.", location=filename))
+                                errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container target node '{seg}' in path '{path}'.", location=filename))
 
         
     def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:

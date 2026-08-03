@@ -27,10 +27,11 @@ Use this as the single canonical workflow for translating structural schemas and
 1. **Parse the Schema:** Read the primary structural schema file and its imports.
 2. **Categorize the Module (Utility vs. Functional)**:
    - Identify if the module contains only type helpers (`typedef`, `identity`, `grouping` definitions without concrete `container` or `list` data nodes).
-   - If it is a **utility module** (e.g., `ietf-yang-types`), do NOT generate any Epics or Features. Catalog its types into a Shared Type Registry to be referenced as shared DataTypes/UML Primitives by other functional modules.
+   - If it is a **utility module** (e.g., `ietf-yang-types`), catalog its types into a Shared Type Registry and parse `grouping` definitions as Reusable Component Features or UML DataTypes linked via composition (`*--`). Do NOT skip specification generation.
    - If it contains concrete data nodes (`config true/false`), classify it as a **functional module** and proceed to decomposition.
 3. **Determine Bounded Context (Epic) Boundaries**:
    - Do NOT use a rigid "one schema file = one Epic" rule.
+   - **Augment Target Path Resolution Mandate**: Before partitioning, you MUST resolve all `augment` XPaths (e.g., `augment "/nw:networks/nw:network"`) to their target containers and inject the augmented nodes into the target container's tree so they are captured in the target Feature specification.
    - If a functional module is small (total leaf count <= 40 and depth <= 3), map it to exactly **1 Epic**.
    - If a functional module is massive (leaf count > 40 or depth > 3), partition the schema graph by major top-level subtrees. Create **1 Epic per partition** representing a logical Bounded Context / Subsystem.
 4. **Dispatch Epic Subagents:** For each identified Bounded Context/Subsystem Epic:
@@ -46,14 +47,15 @@ Use this as the single canonical workflow for translating structural schemas and
 For each Bounded Context, partition its subtree into cohesive functional feature groups:
 1. **Apply Structural Weight Heuristics for Feature Boundaries**:
    - For any candidate subtree node N, compute its **Structural Weight (SW)**:
-     $$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L_{immediate}(C)$$
-     where $L_{immediate}(X)$ is the count of leaf and leaf-list nodes directly under node X, excluding any nested list elements.
-   - **1:1 Container-to-Feature Mapping Mandate:** Every distinct schema `container` and `choice`/`case` MUST be extracted into its own separate Feature file. Do NOT consolidate multiple containers, choices, or cases into a single Feature file regardless of structural weight. Attributes within a single container may be grouped within that container's Feature file.
+     **Pre-Processing Mandate**: Before calculating $SW(N)$, you MUST flatten the schema by recursively inlining all `grouping` definitions wherever `uses` occurs.
+     $$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L_{immediate}(C) + \sum_{U \in Uses(N)} L_{expanded}(U)$$
+     where $L_{immediate}(X)$ is the count of leaf and leaf-list nodes directly under node X, excluding any nested list elements, and $L_{expanded}(U)$ is the count of leaf and leaf-list nodes expanded from `uses` statements.
+   - **1:1 Container-to-Feature Mapping Mandate:** Every distinct schema `container` MUST be extracted into its own separate Feature file. Do NOT consolidate multiple containers into a single Feature file regardless of structural weight. However, `choice` and `case` branches MUST be kept inside the parent container's Feature file and modeled as polymorphic abstract classes (`<|--`). Attributes within a single container may be grouped within that container's Feature file.
    - If $SW(N) > 20$ or has nested lists, partition it:
      - *Sibling lists*: Split each list into its own Feature.
      - *Nested lists*: Split nested lists with >= 5 leaves into child Features.
      - *Complex container*: Split the container by its immediate child containers.
-   - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on.
+   - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on. For top-level `rpc` and `notification` statements without a target entity, extract them into API/M2M Feature files mapped to the module's System Component.
    - **Schema Import Prerequisite Links**: When a schema module `import`s another module that is itself specified in this workspace, the importing Epic MUST carry a `Parent Epic` markdown link to the Epic that specifies the imported module, and every imported module MUST have at least one Epic or Feature specifying it. An import is a hard prerequisite — the importing specification cannot be implemented before the imported one exists — and an unlinked import leaves that ordering constraint recorded nowhere. Enforced by `dependency_validator`.
    - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field using the fully-qualified schema container path format: `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `ietf-geo-location:geo-location/reference-frame/geodetic-system` or `ietf-geo-location:geo-location/location/ellipsoid`). All intermediate parent containers and choice/case wrapper nodes MUST be preserved in the path. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
 2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass the schema nodes and properties for this specific feature group, AND the Bounded Context's Epic identity (local file prefix and/or pre-assigned tracker Issue ID if available). The subagent must have no visibility into other features.
@@ -335,7 +337,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
        field reads as a binding and resolves to nothing.
      - **Data Source Bindings Must Omit Choice And Case Nodes**: a YANG `choice` or `case`
        node is a schema-modelling construct and does not appear in the data tree, so it
-       MUST NOT appear in a data path. Bind to the node inside the case instead.
+       MUST NOT appear in a data path. Bind to the node inside the case instead (allowing data paths to bind directly to target attributes within choice branches).
      - **Augmented Nodes Must Carry Their Module Prefix**: once a path enters an augmented
        subtree, every following segment MUST carry the augmenting module's prefix (e.g.
        `nil:location`, not `location`). An un-prefixed segment resolves against the wrong
