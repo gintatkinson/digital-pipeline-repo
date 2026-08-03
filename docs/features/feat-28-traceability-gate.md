@@ -8,6 +8,10 @@ spec_source: "Project Constitution"
 
 # Feature: Automated Self-Documentation and UML Traceability Verification Gate
 
+## Parent Epic
+- [ ] #310 - [Epic Title](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-XX-name.md) (semantic linkage justification)
+
+
 ## UML Class Diagram
 ```mermaid
 classDiagram
