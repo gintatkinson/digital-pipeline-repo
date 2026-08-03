@@ -1,7 +1,8 @@
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 
-class FakeRecordingCanvas extends Fake implements Canvas {
+/// Buffered recording implementation of [Canvas] that records drawing commands.
+class BufferedRecordingCanvas extends Fake implements Canvas {
   final List<(Paragraph, Offset)> paragraphs = [];
   final List<(Offset, double)> circles = [];
   final List<List<Offset>> points = [];

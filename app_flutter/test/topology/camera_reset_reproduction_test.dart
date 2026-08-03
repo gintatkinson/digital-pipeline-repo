@@ -9,7 +9,8 @@ import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 
-class FakeThemeService implements ThemeService {
+/// Ephemeral implementation of [ThemeService] for testing.
+class EphemeralThemeService implements ThemeService {
   @override
   Future<ThemeMode> loadThemeMode() async => ThemeMode.system;
   @override
@@ -110,7 +111,7 @@ class _ParentWrapperState extends State<_ParentWrapper> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ThemeController>(
-      create: (_) => ThemeController(FakeThemeService()),
+      create: (_) => ThemeController(EphemeralThemeService()),
       child: MaterialApp(
         home: Scaffold(
           body: TopographicalView(
@@ -587,7 +588,7 @@ void main() {
 
         await tester.pumpWidget(
           ChangeNotifierProvider<ThemeController>(
-            create: (_) => ThemeController(FakeThemeService()),
+            create: (_) => ThemeController(EphemeralThemeService()),
             child: MaterialApp(
               home: Scaffold(
                 body: TopographicalView(

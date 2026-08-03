@@ -18,6 +18,7 @@ TextScalerController? globalTextScalerController;
 
 const _dataSource = String.fromEnvironment('DATA_SOURCE', defaultValue: 'sqlite');
 
+/// Entry point for the Flutter application.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

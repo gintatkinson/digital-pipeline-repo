@@ -13,7 +13,8 @@ import 'package:app_flutter/features/map_viewport/cesium_3d/tile_fetcher.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 import 'mesh_geometry_validator.dart';
 
-class MockTileFetcher extends TileFetcher {
+/// Live implementation of [TileFetcher] for testing.
+class LiveTileFetcher extends TileFetcher {
   @override
   bool isEnabled() => true;
 
@@ -25,7 +26,8 @@ class MockTileFetcher extends TileFetcher {
   }
 }
 
-class FakeCanvas extends Fake implements ui.Canvas {
+/// Recording implementation of [Canvas] for testing.
+class RecordingCanvas extends Fake implements ui.Canvas {
   int drawVerticesCount = 0;
   @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, ui.Paint paint) {
@@ -44,7 +46,7 @@ double getProceduralTerrainElevation(double lat, double lng) {
 void main() {
   group('Adversarial Fuzzer tests', () {
     test('1000 iterations fuzzer', () async {
-      final fetcher = MockTileFetcher();
+      final fetcher = LiveTileFetcher();
       final warmupCompleter = Completer<void>();
       int loadedCount = 0;
       final renderer = GlobeTileRenderer(
@@ -111,7 +113,7 @@ void main() {
             verticalExaggeration: 1.0,
           );
 
-          final canvas = FakeCanvas();
+          final canvas = RecordingCanvas();
           final List<double> allProjectedZs = [];
 
           renderer.onDrawVerticesForTesting = (positions, indices) {

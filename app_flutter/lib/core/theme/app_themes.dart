@@ -13,7 +13,8 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 /// mutable state — the class is a static namespace.
 ///
 /// **Edge cases**: passing `null` for [custom] falls back to the first
-/// entry in [customSchemes] (Greys).
+/// Manages application themes and color palettes.
+/// Realises: [Feat-10/AppThemes]
 class AppThemes {
   AppThemes._();
 

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+/// Metrics describing a triangle in a 3D mesh.
 class TriangleMetrics {
   final double area;
   final double signedArea;
@@ -19,6 +20,7 @@ class TriangleMetrics {
   });
 }
 
+/// Utility for validating mesh geometry parameters.
 class MeshGeometryValidator {
   static void validate({
     required List<Offset> positions,

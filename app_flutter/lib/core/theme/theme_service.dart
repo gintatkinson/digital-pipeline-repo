@@ -6,7 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Implementations store and retrieve values from a platform-specific
 /// store (e.g. [SharedPreferences], secure storage, or in-memory for
 /// tests). All load methods return a sensible default when no value has
-/// been persisted yet. No method throws on missing keys.
+/// Abstract service interface for theme persistence.
+/// Realises: [Feat-10/ThemeService]
 abstract class ThemeService {
   /// Loads the persisted [ThemeMode]; defaults to [ThemeMode.system] when
   /// no value has been saved yet.
@@ -47,6 +48,8 @@ abstract class ThemeService {
 /// default as the abstract interface: [ThemeMode.system], `0`, and `1.0`.
 /// Does not catch or wrap platform exceptions (e.g. if the plugin is not
 /// initialised).
+/// [SharedPreferences]-backed implementation of [ThemeService].
+/// Realises: [Feat-10/SharedPreferencesThemeService]
 class SharedPreferencesThemeService implements ThemeService {
   static const _modeKey = 'theme_mode';
   static const _schemeKey = 'theme_scheme';

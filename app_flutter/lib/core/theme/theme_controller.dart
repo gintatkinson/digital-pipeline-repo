@@ -16,6 +16,9 @@ import 'theme_service.dart';
 ///
 /// **Edge cases**: null inputs are silently ignored; out-of-bounds scheme
 /// indices are clamped silently to the first scheme.
+///
+/// Controls theme mode and palette state.
+/// Realises: [Feat-10/ThemeController]
 class ThemeController extends ChangeNotifier {
   /// Member documentation.
   ThemeController(this._themeService);

@@ -36,13 +36,13 @@ Below is the updated Mermaid class diagram that solves all architectural defects
 ```mermaid
 classDiagram
     class GeoLocation {
-        +Decimal64 coordAccuracy[0..1] {fractionDigits = 6, range = "0.0..max"}
-        +Decimal64 dim_2Accuracy[0..1] {fractionDigits = 6, range = "0.0..max", units = "meters"}
+        +Decimal64 coordAccuracy[0..1] (fractionDigits = 6, range = "0.0..max")
+        +Decimal64 dim_2Accuracy[0..1] (fractionDigits = 6, range = "0.0..max", units = "meters")
     }
     
     class ReferenceFrame {
-        +Optional~String~ alternateSystem {feature = alternate-systems}
-        +Optional~String~ geometryDatum {default = "geometry"}
+        +Optional~String~ alternateSystem (feature = alternate-systems)
+        +Optional~String~ geometryDatum (default = "geometry")
     }
     
     class AstronomicalBody {
@@ -57,15 +57,15 @@ classDiagram
     }
     
     class Geometry {
-        +Decimal64 dim_0 {fractionDigits = 16, range = "-90.0..90.0", units = "degrees"}
-        +Decimal64 dim_1 {fractionDigits = 16, range = "-180.0..180.0", units = "degrees"}
-        +Optional~Decimal64~ dim_2 {fractionDigits = 6, units = "meters"}
+        +Decimal64 dim_0 (fractionDigits = 16, range = "-90.0..90.0", units = "degrees")
+        +Decimal64 dim_1 (fractionDigits = 16, range = "-180.0..180.0", units = "degrees")
+        +Optional~Decimal64~ dim_2 (fractionDigits = 6, units = "meters")
     }
     
     class Cartesian {
-        +Decimal64 x {fractionDigits = 6, units = "meters"}
-        +Decimal64 y {fractionDigits = 6, units = "meters"}
-        +Decimal64 z {fractionDigits = 6, units = "meters"}
+        +Decimal64 x (fractionDigits = 6, units = "meters")
+        +Decimal64 y (fractionDigits = 6, units = "meters")
+        +Decimal64 z (fractionDigits = 6, units = "meters")
     }
     
     class NamedLocation {
@@ -73,9 +73,9 @@ classDiagram
     }
     
     class RateOfChange {
-        +Optional~Decimal64~ vNorth {fractionDigits = 12, units = "m/s"}
-        +Optional~Decimal64~ vEast {fractionDigits = 12, units = "m/s"}
-        +Optional~Decimal64~ vUp {fractionDigits = 12, units = "m/s"}
+        +Optional~Decimal64~ vNorth (fractionDigits = 12, units = "m/s")
+        +Optional~Decimal64~ vEast (fractionDigits = 12, units = "m/s")
+        +Optional~Decimal64~ vUp (fractionDigits = 12, units = "m/s")
     }
     
     class TemporalMetadata {

@@ -79,24 +79,17 @@ class TreeState {
 /// Determines if a [node] represents a primitive leaf attribute descriptor
 /// that should be filtered out from root tree navigation.
 bool isPrimitiveAttribute(TreeNode node) {
-  final labelLower = node.label.toLowerCase();
-  final idLower = node.id.toLowerCase();
-  const primitives = <String>[
-    'mac address',
-    'ip version',
-    'as number',
-    'gauge 32',
-    'counter 32',
-    'ipv4 address',
-    'ipv6 address',
-  ];
-
-  for (final primitive in primitives) {
-    if (labelLower.contains(primitive) || idLower.contains(primitive)) {
-      return true;
-    }
-  }
-  return false;
+  final _labelLower = node.label.toLowerCase();
+  final _idLower = node.id.toLowerCase();
+  const _primitives = {
+    'as number', 'cartesian coordinate', 'counter 32', 'domain name',
+    'ellipsoid coordinate', 'email address', 'gauge 32', 'geo location',
+    'geodetic system', 'hours 32', 'ip version', 'ipv4 address',
+    'ipv4 prefix', 'ipv6 address', 'mac address', 'oid', 'physical address',
+    'port number', 'reference frame', 'time ticks', 'uri', 'velocity',
+    'yang date time',
+  };
+  return _primitives.contains(_labelLower) || _primitives.contains(_idLower);
 }
 
 /// Realises: [Feat-10/TreeViewModel]

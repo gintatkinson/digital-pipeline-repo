@@ -9,8 +9,8 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 
 /// Realises: [Feat-10/TreeViewModel]
 ///
-/// Mock repository simulating data source for tree hierarchy filtering BDD acceptance tests.
-class MockTreeRepository implements TreeRepository {
+/// In-memory repository simulating data source for tree hierarchy filtering BDD acceptance tests.
+class InMemoryTreeRepository implements TreeRepository {
   /// Member documentation.
   List<TreeNode> roots = <TreeNode>[];
 
@@ -27,11 +27,11 @@ class MockTreeRepository implements TreeRepository {
 
 void main() {
   group('Feature: Tree Hierarchy Filtering (Container-Only Root Nodes)', () {
-    late MockTreeRepository mockRepo;
+    late InMemoryTreeRepository mockRepo;
     late TreeViewModel viewModel;
 
     setUp(() {
-      mockRepo = MockTreeRepository();
+      mockRepo = InMemoryTreeRepository();
       viewModel = TreeViewModel(mockRepo);
     });
 

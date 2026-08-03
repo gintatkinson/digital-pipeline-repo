@@ -23,6 +23,7 @@ import 'dart:io' show Platform;
 
 /// Realises: [Feat-002/SceneLayer]
 abstract class SceneLayer {
+  /// Member documentation.
   void paint(Canvas canvas, Size size, SceneViewState state);
 }
 
@@ -489,10 +490,15 @@ class Scene3DViewportPainter extends CustomPainter {
     return (px, py, pz);
   }
 
+  /// Member documentation.
   final List<SceneLayer> layers;
+  /// Member documentation.
   final SceneViewState state;
+  /// Member documentation.
   final double userRotationX;
+  /// Member documentation.
   final double userTilt;
+  /// Member documentation.
   final double zoomScale;
 
   Scene3DViewportPainter({
@@ -554,10 +560,12 @@ class Scene3DViewportPainter extends CustomPainter {
     }
   }
 
+  /// Member documentation.
   static double getElevationStatic(double latDeg, double lngDeg, bool isElevationActive) {
     return ElevationProvider(isElevationActive: isElevationActive).getElevation(latDeg, lngDeg);
   }
 
+  /// Member documentation.
   double getElevation(double latDeg, double lngDeg) {
     try {
       return state.elevationProvider.getElevation(latDeg, lngDeg);
@@ -566,6 +574,7 @@ class Scene3DViewportPainter extends CustomPainter {
     }
   }
 
+  /// Member documentation.
   ProjectedPoint project(double latRad, double lngRad, double heightMeters, Offset center, double rotationAngle, double tilt, Size size, {bool clampToHorizon = true}) {
     VirtualCamera cam;
     try {
@@ -610,8 +619,11 @@ class Scene3DViewportPainter extends CustomPainter {
 /// Realises: [Feat-002/CameraStatsPanel]
 @immutable
 class CameraStatsPanel extends StatelessWidget {
+  /// Member documentation.
   final CameraController cameraController;
+  /// Member documentation.
   final VoidCallback onClose;
+  /// Member documentation.
   final int frameDropCount;
   
   const CameraStatsPanel({super.key, required this.cameraController, required this.onClose, this.frameDropCount = 0});
@@ -664,18 +676,31 @@ class CameraStatsPanel extends StatelessWidget {
 /// Realises: [Feat-002/MapConfigPanel]
 @immutable
 class MapConfigPanel extends StatelessWidget {
+  /// Member documentation.
   final String activeStyle;
+  /// Member documentation.
   final String astronomicalBody;
+  /// Member documentation.
   final String activeDatum;
+  /// Member documentation.
   final bool elevationActive;
+  /// Member documentation.
   final bool showDevices;
+  /// Member documentation.
   final bool showLinks;
+  /// Member documentation.
   final bool showLabels;
+  /// Member documentation.
   final bool showDropLines;
+  /// Member documentation.
   final ValueChanged<String> onStyleChanged;
+  /// Member documentation.
   final ValueChanged<String> onBodyChanged;
+  /// Member documentation.
   final ValueChanged<String>? onDatumChanged;
+  /// Member documentation.
   final ValueChanged<bool> onElevationToggled;
+  /// Member documentation.
   final ValueChanged<bool> onDevicesToggled;
   /// Member documentation.
   final ValueChanged<bool> onLinksToggled;

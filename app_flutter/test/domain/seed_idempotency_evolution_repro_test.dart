@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:app_flutter/data/database_initializer.dart';
 
-class MockSeedStrategyV1 implements SeedStrategy {
+/// Seed strategy version 1 for testing idempotency.
+class Version1SeedStrategy implements SeedStrategy {
   @override
   Future<void> seed(Database db) async {
     final batch = db.batch();
@@ -22,7 +23,8 @@ class MockSeedStrategyV1 implements SeedStrategy {
   }
 }
 
-class MockSeedStrategyV2 implements SeedStrategy {
+/// Seed strategy version 2 for testing idempotency.
+class Version2SeedStrategy implements SeedStrategy {
   @override
   Future<void> seed(Database db) async {
     final batch = db.batch();
@@ -64,7 +66,7 @@ void main() {
       final db1 = await DatabaseInitializer.create(
         dbPath: dbFile.path,
         seed: true,
-        seedStrategy: MockSeedStrategyV1(),
+        seedStrategy: Version1SeedStrategy(),
       );
       
       final v1CountResult = await db1.rawQuery('SELECT COUNT(*) as count FROM type_definitions');
@@ -75,7 +77,7 @@ void main() {
       final db2 = await DatabaseInitializer.create(
         dbPath: dbFile.path,
         seed: true,
-        seedStrategy: MockSeedStrategyV2(),
+        seedStrategy: Version2SeedStrategy(),
       );
 
       final typeCResult = await db2.rawQuery("SELECT COUNT(*) as count FROM type_definitions WHERE type_name = 'TypeC'");

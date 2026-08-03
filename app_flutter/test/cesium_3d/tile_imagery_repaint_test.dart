@@ -7,19 +7,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/features/map_viewport/cesium_3d/virtual_camera.dart';
 import 'package:app_flutter/features/topology/scene_3d_viewport.dart';
 
-class MockHttpOverrides extends HttpOverrides {
+/// Live implementation of [HttpOverrides] for testing.
+class LiveHttpOverrides extends HttpOverrides {
   final Uint8List _pngBytes;
-  MockHttpOverrides(this._pngBytes);
+  LiveHttpOverrides(this._pngBytes);
 
   @override
   HttpClient createHttpClient(SecurityContext? context) {
-    return MockHttpClient(_pngBytes);
+    return LiveHttpClient(_pngBytes);
   }
 }
 
-class MockHttpClient implements HttpClient {
+/// Live implementation of [HttpClient] for testing.
+class LiveHttpClient implements HttpClient {
   final Uint8List _pngBytes;
-  MockHttpClient(this._pngBytes);
+  LiveHttpClient(this._pngBytes);
 
   @override
   String? userAgent;
@@ -29,37 +31,40 @@ class MockHttpClient implements HttpClient {
 
   @override
   Future<HttpClientRequest> getUrl(Uri url) async {
-    return MockHttpClientRequest(_pngBytes);
+    return LiveHttpClientRequest(_pngBytes);
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class MockHttpClientRequest implements HttpClientRequest {
+/// Live implementation of [HttpClientRequest] for testing.
+class LiveHttpClientRequest implements HttpClientRequest {
   final Uint8List _pngBytes;
-  MockHttpClientRequest(this._pngBytes);
+  LiveHttpClientRequest(this._pngBytes);
 
   @override
-  final HttpHeaders headers = MockHttpHeaders();
+  final HttpHeaders headers = LiveHttpHeaders();
 
   @override
   Future<HttpClientResponse> close() async {
-    return MockHttpClientResponse(_pngBytes);
+    return LiveHttpClientResponse(_pngBytes);
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class MockHttpHeaders implements HttpHeaders {
+/// Live implementation of [HttpHeaders] for testing.
+class LiveHttpHeaders implements HttpHeaders {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class MockHttpClientResponse implements HttpClientResponse {
+/// Live implementation of [HttpClientResponse] for testing.
+class LiveHttpClientResponse implements HttpClientResponse {
   final Uint8List _pngBytes;
-  MockHttpClientResponse(this._pngBytes);
+  LiveHttpClientResponse(this._pngBytes);
 
   @override
   int get statusCode => 200;
@@ -128,6 +133,6 @@ void main() {
       // We can check if any tile is drawn by checking if there was a repaint.
       // If it failed to repaint, the tests will fail (RED).
       // Since it's currently buggy, it won't repaint, and this test will fail on the buggy codebase!
-    }, MockHttpOverrides(pngBytes));
+    }, LiveHttpOverrides(pngBytes));
   });
 }

@@ -20,7 +20,8 @@ import 'dart:io' show Platform;
 /// Edge cases: root-level nodes with no parent; nodes whose parent is
 /// collapsed are not rendered on screen (filtered by [TreeViewModel]'s
 /// visible-node walk). Does not trigger [notifyListeners] directly — all
-/// state changes are delegated to the view model.
+/// Renders an individual node item in the tree view.
+/// Realises: [Feat-10/TreeNodeWidget]
 class TreeNodeWidget extends StatelessWidget {
   /// Member documentation.
   final TreeNode node;

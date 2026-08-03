@@ -4,7 +4,9 @@
 /// change propagates everywhere. Alternative: [StringResources] for
 /// user-facing strings that need runtime override.
 ///
-/// No file should hardcode its own copy of the application title.
+/// No file should hardcode its own copy of the
+/// App-wide configuration parameters.
+/// Realises: [Feat-10/AppConfig]
 class AppConfig {
   AppConfig._();
 

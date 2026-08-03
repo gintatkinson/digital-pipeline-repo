@@ -16,16 +16,18 @@ const emptyTopologyData = TopologyData(
 
 TopologyData? _cachedTopologyData;
 
+/// Member documentation.
 Map<String, dynamic> _parseJsonString(String jsonStr) {
+  /// Member documentation.
   return jsonDecode(jsonStr) as Map<String, dynamic>;
 }
 
 /// Loads topology data from the external JSON asset.
 Future<TopologyData> loadTopologyData() async {
   if (_cachedTopologyData != null) return _cachedTopologyData!;
-  final jsonStr = await rootBundle.loadString('assets/topology_data.json');
-  final data = await compute(_parseJsonString, jsonStr);
-  _cachedTopologyData = TopologyData.fromJson(data);
+  final _jsonStr = await rootBundle.loadString('assets/topology_data.json');
+  final _data = await compute(_parseJsonString, _jsonStr);
+  _cachedTopologyData = TopologyData.fromJson(_data);
   return _cachedTopologyData!;
 }
 

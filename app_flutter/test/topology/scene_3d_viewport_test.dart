@@ -34,7 +34,7 @@ void main() {
         verticalExaggeration: 1.0,
       );
 
-      final canvas = FakeRecordingCanvas();
+      final canvas = BufferedRecordingCanvas();
       const Size viewportSize = Size(800, 600);
       painter.state.recalculate(
         painter.state.camera,
@@ -363,7 +363,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = FakeRecordingCanvas();
+      final canvas = BufferedRecordingCanvas();
       painter.state.recalculate(
         painter.state.camera,
         const Size(800, 600),
@@ -447,7 +447,7 @@ void main() {
         topologyData: topologyData,
       );
       
-      final canvas = FakeRecordingCanvas();
+      final canvas = BufferedRecordingCanvas();
       painter.state.recalculate(
         painter.state.camera,
         const Size(800, 600),

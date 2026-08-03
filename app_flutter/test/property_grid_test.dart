@@ -7,7 +7,8 @@ import 'package:app_flutter/features/properties/property_grid.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart';
 
-class FakeThemeService implements ThemeService {
+/// Ephemeral implementation of [ThemeService] for testing.
+class EphemeralThemeService implements ThemeService {
   @override
   Future<ThemeMode> loadThemeMode() async => ThemeMode.system;
   @override
@@ -33,7 +34,7 @@ class FakeThemeService implements ThemeService {
 void main() {
   Widget buildTestableWidget(Widget child) {
     return ChangeNotifierProvider<ThemeController>(
-      create: (_) => ThemeController(FakeThemeService()),
+      create: (_) => ThemeController(EphemeralThemeService()),
       child: MaterialApp(
         home: Scaffold(
           body: child,

@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart';
 
-class FakeThemeService implements ThemeService {
+/// Ephemeral implementation of [ThemeService] for testing.
+class EphemeralThemeService implements ThemeService {
   @override
   Future<ThemeMode> loadThemeMode() async => ThemeMode.system;
   @override
@@ -30,7 +31,7 @@ class FakeThemeService implements ThemeService {
 void main() {
   group('ThemeController Concurrency', () {
     test('concurrent asynchronous changes short-circuit gracefully after dispose', () async {
-      final themeService = FakeThemeService();
+      final themeService = EphemeralThemeService();
       final controller = ThemeController(themeService);
 
       // Concurrently trigger multiple asynchronous updates

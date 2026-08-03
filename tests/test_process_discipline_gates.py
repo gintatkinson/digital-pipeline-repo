@@ -369,4 +369,40 @@ def test_every_specification_has_full_lui_chain():
     assert not incomplete_specs, f"Feature specifications missing full 3-layer LUI chain: {incomplete_specs}"
 
 
+# --------------------------------------------------------------------------- #
+# 9. No Mock or Fake class declarations in workspace (#346).
+# --------------------------------------------------------------------------- #
+
+_MOCK_FAKE_CLASS_REGEX = re.compile(r"^\s*class\s+(Mock|Fake)[A-Za-z0-9_]*")
+
+
+def test_no_mock_classes_in_workspace():
+    """Scans all .dart files in app_flutter/ and all .py files in tests/ and asserts
+    that no class declaration starts with Mock or Fake.
+    """
+    app_flutter_dir = os.path.join(REPO_ROOT, "app_flutter")
+    tests_dir = os.path.join(REPO_ROOT, "tests")
+
+    offending_lines = []
+
+    for root_dir, extension in [(app_flutter_dir, ".dart"), (tests_dir, ".py")]:
+        if not os.path.isdir(root_dir):
+            continue
+        for root, _, files in os.walk(root_dir):
+            for file in files:
+                if file.endswith(extension):
+                    path = os.path.join(root, file)
+                    rel_path = os.path.relpath(path, REPO_ROOT)
+                    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                        for lineno, line in enumerate(fh, 1):
+                            if _MOCK_FAKE_CLASS_REGEX.search(line):
+                                offending_lines.append(f"{rel_path}:{lineno}: {line.strip()}")
+
+    assert not offending_lines, (
+        f"Found class declarations starting with Mock or Fake in workspace:\n"
+        + "\n".join(offending_lines)
+    )
+
+
+
 

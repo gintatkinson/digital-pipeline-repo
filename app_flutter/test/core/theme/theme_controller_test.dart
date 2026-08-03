@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/core/theme/theme_service.dart';
 
-class FakeThemeService implements ThemeService {
+/// Ephemeral implementation of [ThemeService] for testing.
+class EphemeralThemeService implements ThemeService {
   ThemeMode themeMode = ThemeMode.system;
   int themeScheme = 0;
   double textScale = 1.0;
@@ -54,11 +55,11 @@ class FakeThemeService implements ThemeService {
 
 void main() {
   group('ThemeController - LayoutSplitAxis', () {
-    late FakeThemeService fakeThemeService;
+    late EphemeralThemeService fakeThemeService;
     late ThemeController controller;
 
     setUp(() {
-      fakeThemeService = FakeThemeService();
+      fakeThemeService = EphemeralThemeService();
       controller = ThemeController(fakeThemeService);
     });
 
@@ -100,11 +101,11 @@ void main() {
   });
 
   group('ThemeController - PanelOpacity', () {
-    late FakeThemeService fakeThemeService;
+    late EphemeralThemeService fakeThemeService;
     late ThemeController controller;
 
     setUp(() {
-      fakeThemeService = FakeThemeService();
+      fakeThemeService = EphemeralThemeService();
       controller = ThemeController(fakeThemeService);
     });
 

@@ -8,31 +8,31 @@ Future<void> main(List<String> args) async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  final outputPath = args.isNotEmpty
+  final _outputPath = args.isNotEmpty
       ? args[0]
       : p.join(Directory.current.path, 'assets', 'properties_db.db');
 
-  final dir = Directory(p.dirname(outputPath));
-  if (!await dir.exists()) {
-    await dir.create(recursive: true);
+  final _dir = Directory(p.dirname(_outputPath));
+  if (!await _dir.exists()) {
+    await _dir.create(recursive: true);
   }
 
-  if (await File(outputPath).exists()) {
-    await databaseFactory.deleteDatabase(outputPath);
+  if (await File(_outputPath).exists()) {
+    await databaseFactory.deleteDatabase(_outputPath);
   }
 
-  print('Creating database at: $outputPath');
-  final db = await databaseFactory.openDatabase(outputPath);
+  print('Creating database at: $_outputPath');
+  final _db = await databaseFactory.openDatabase(_outputPath);
 
   try {
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS properties (
         node_id TEXT PRIMARY KEY,
         data_json TEXT NOT NULL
       )
     ''');
 
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS elements (
         id TEXT PRIMARY KEY,
         parent_node_id TEXT NOT NULL,
@@ -42,7 +42,7 @@ Future<void> main(List<String> args) async {
       )
     ''');
 
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS alarms (
         id TEXT PRIMARY KEY,
         parent_node_id TEXT NOT NULL,
@@ -52,7 +52,7 @@ Future<void> main(List<String> args) async {
       )
     ''');
 
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY,
         parent_node_id TEXT NOT NULL,
@@ -62,7 +62,7 @@ Future<void> main(List<String> args) async {
       )
     ''');
 
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS type_definitions (
         type_name TEXT PRIMARY KEY,
         display_name TEXT NOT NULL,
@@ -70,7 +70,7 @@ Future<void> main(List<String> args) async {
       )
     ''');
 
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS type_attributes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type_name TEXT NOT NULL REFERENCES type_definitions(type_name),
@@ -91,7 +91,7 @@ Future<void> main(List<String> args) async {
       )
     ''');
 
-    await db.execute('''
+    await _db.execute('''
       CREATE TABLE IF NOT EXISTS type_relations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         parent_type_name TEXT NOT NULL REFERENCES type_definitions(type_name),
@@ -102,10 +102,10 @@ Future<void> main(List<String> args) async {
       )
     ''');
   } finally {
-    await db.close();
+    await _db.close();
   }
 
-  final fullPath = File(outputPath).absolute.path;
-  final size = File(outputPath).lengthSync();
-  print('Database generated: $fullPath ($size bytes)');
+  final _fullPath = File(_outputPath).absolute.path;
+  final _size = File(_outputPath).lengthSync();
+  print('Database generated: $_fullPath ($_size bytes)');
 }

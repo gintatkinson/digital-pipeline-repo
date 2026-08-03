@@ -378,7 +378,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = FakeRecordingCanvas();
+      final canvas = BufferedRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
 
       // Assert geocentric heights
@@ -661,7 +661,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = FakeRecordingCanvas();
+      final canvas = BufferedRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
 
       expect(painter.capturedHeights['meteor_group'], isNotNull);
@@ -774,7 +774,7 @@ void main() {
         topologyData: topologyData,
       );
 
-      final canvas = FakeRecordingCanvas();
+      final canvas = BufferedRecordingCanvas();
       painter.paint(canvas, const Size(800, 600));
 
       expect(painter.capturedHeights['fuji_group'], isNotNull);

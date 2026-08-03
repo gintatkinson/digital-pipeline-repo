@@ -7,7 +7,8 @@ import 'package:app_flutter/core/theme/text_scaler.dart';
 import 'package:app_flutter/core/theme/theme_controller.dart';
 import 'package:app_flutter/features/layout/layout.dart';
 
-/// Member documentation.
+/// Root widget of the application.
+/// Realises: [Feat-10/MyApp]
 class MyApp extends StatelessWidget {
   /// Member documentation.
   const MyApp({super.key});
@@ -35,7 +36,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Member documentation.
+/// Primary dashboard page widget.
+/// Realises: [Feat-10/DashboardPage]
 class DashboardPage extends StatefulWidget {
   /// Member documentation.
   const DashboardPage({super.key});

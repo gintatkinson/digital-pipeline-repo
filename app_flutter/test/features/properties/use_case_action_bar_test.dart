@@ -17,8 +17,8 @@ import 'package:app_flutter/features/properties/view_models/properties_view_mode
 
 /// Realises: [Feat-10/PropertiesPanel]
 ///
-/// Fake theme service for BDD widget tests.
-class FakeThemeService implements ThemeService {
+/// Ephemeral theme service for BDD widget tests.
+class EphemeralThemeService implements ThemeService {
   @override
   Future<ThemeMode> loadThemeMode() async => ThemeMode.system;
   @override
@@ -43,8 +43,8 @@ class FakeThemeService implements ThemeService {
 
 /// Realises: [Feat-10/PropertiesPanel]
 ///
-/// Mock type repository for Operational Use Case Action Bar BDD tests.
-class MockTypeRepository implements TypeRepository {
+/// In-memory type repository for Operational Use Case Action Bar BDD tests.
+class InMemoryTypeRepository implements TypeRepository {
   @override
   Future<Result<List<TypeDescriptor>>> discoverTypes() async {
     return const Result.success(<TypeDescriptor>[]);
@@ -63,11 +63,11 @@ class MockTypeRepository implements TypeRepository {
 
 void main() {
   group('Feature: Operational Use Case Action Bar', () {
-    late MockTypeRepository mockRepo;
+    late InMemoryTypeRepository mockRepo;
     late PropertiesViewModel viewModel;
 
     setUp(() {
-      mockRepo = MockTypeRepository();
+      mockRepo = InMemoryTypeRepository();
       viewModel = PropertiesViewModel(mockRepo);
     });
 
@@ -82,7 +82,7 @@ void main() {
       // Given: A PropertiesPanel rendered with Use Case Action Bar buttons
       await tester.pumpWidget(
         ChangeNotifierProvider<ThemeController>(
-          create: (_) => ThemeController(FakeThemeService()),
+          create: (_) => ThemeController(EphemeralThemeService()),
           child: MaterialApp(
             home: Scaffold(
               body: PropertiesPanel(

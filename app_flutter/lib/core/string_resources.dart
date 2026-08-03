@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 /// **State**: caches the entire map in a static field after loading.
 /// **Edge cases**: missing keys return the key itself or an optional
 /// [fallback]; loading invalid JSON throws.
+/// Centralised string resources used across the UI layer.
+/// Realises: [Feat-10/StringResources]
 class StringResources {
   static Map<String, String> _strings = {};
 

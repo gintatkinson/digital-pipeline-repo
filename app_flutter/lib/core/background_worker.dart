@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:math' as math;
 
-/// Member documentation.
+/// Simple worker isolate wrapper.
+/// Realises: [Feat-10/BackgroundWorker]
 class BackgroundWorker {
   Timer? _timer;
   int _counter = 0;

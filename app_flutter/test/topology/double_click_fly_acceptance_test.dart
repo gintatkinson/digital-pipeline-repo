@@ -19,8 +19,8 @@ import 'package:app_flutter/features/tree/view_models/tree_view_model.dart';
 import 'package:app_flutter/features/properties/property_grid.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
 
-/// A fake theme service required to boot the layout controllers.
-class FakeThemeService implements ThemeService {
+/// An ephemeral theme service required to boot the layout controllers.
+class EphemeralThemeService implements ThemeService {
   @override
   Future<ThemeMode> loadThemeMode() async => ThemeMode.system;
   @override
@@ -43,8 +43,8 @@ class FakeThemeService implements ThemeService {
   Future<void> savePanelOpacity(double opacity) async {}
 }
 
-/// A fully self-contained FakeDataSource to simulate custom nodes and topology data.
-class FakeDataSource implements DataSource {
+/// A fully self-contained InMemoryDataSource to simulate custom nodes and topology data.
+class InMemoryDataSource implements DataSource {
   @override
   String get name => 'fake';
 
@@ -53,7 +53,7 @@ class FakeDataSource implements DataSource {
   final Map<String, TypeDescriptor> types;
   final Map<String, Map<String, dynamic>> properties;
 
-  FakeDataSource({
+  InMemoryDataSource({
     required this.roots,
     required this.topology,
     required this.types,
@@ -214,10 +214,10 @@ void main() {
       'NodeB': {'ip': '10.0.0.2'},
     };
 
-    late FakeDataSource fakeDataSource;
+    late InMemoryDataSource fakeDataSource;
 
     setUp(() {
-      fakeDataSource = FakeDataSource(
+      fakeDataSource = InMemoryDataSource(
         roots: testRoots,
         topology: testTopology,
         types: testTypes,
@@ -264,7 +264,7 @@ void main() {
               providers: [
                 Provider<DataSource>.value(value: fakeDataSource),
                 ChangeNotifierProvider<ThemeController>.value(
-                  value: ThemeController(FakeThemeService()),
+                  value: ThemeController(EphemeralThemeService()),
                 ),
               ],
               child: MaterialApp(
@@ -362,7 +362,7 @@ void main() {
               providers: [
                 Provider<DataSource>.value(value: fakeDataSource),
                 ChangeNotifierProvider<ThemeController>.value(
-                  value: ThemeController(FakeThemeService()),
+                  value: ThemeController(EphemeralThemeService()),
                 ),
               ],
               child: MaterialApp(

@@ -14,6 +14,8 @@ import 'theme_service.dart';
 ///
 /// **Edge cases**: a null [ThemeService] skips persistence entirely;
 /// values outside [0.7, 1.5] are silently clamped.
+/// Controls text scale factor state.
+/// Realises: [Feat-10/TextScalerController]
 class TextScalerController extends ChangeNotifier {
   /// Member documentation.
   TextScalerController([this._themeService]);

@@ -5,6 +5,9 @@
 /// `null` children. The tree structure mirrors the type hierarchy discovered
 /// from the data source. Equality is identity-based; no value equality override
 /// is provided since nodes are rebuilt on each tree refresh.
+///
+/// Represents a node in the inventory tree structure.
+/// Realises: [Feat-10/TreeNode]
 class TreeNode {
   /// Member documentation.
   final String id;

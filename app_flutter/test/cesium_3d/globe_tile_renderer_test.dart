@@ -403,7 +403,7 @@ void main() {
       renderer.beginTileFetch(camera, const ui.Size(800, 600));
       await completer.future;
 
-      final canvas = FakeCanvas();
+      final canvas = RecordingCanvas();
       int callCount = 0;
 
       renderer.renderTiles(
@@ -479,7 +479,7 @@ void main() {
                 await Future.delayed(const Duration(milliseconds: 10));
               }
 
-              final canvas = FakeCanvas();
+              final canvas = RecordingCanvas();
               final List<double> zList = [];
 
               renderer.onDrawVerticesForTesting = (positions, indices) {
@@ -658,7 +658,8 @@ void main() {
   });
 }
 
-class FakeCanvas extends Fake implements ui.Canvas {
+/// Recording implementation of [Canvas] for testing.
+class RecordingCanvas extends Fake implements ui.Canvas {
   int drawVerticesCount = 0;
   @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, ui.Paint paint) {
