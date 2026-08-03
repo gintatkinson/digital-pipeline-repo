@@ -251,12 +251,30 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 
 > **Specification Generation Prompt:**
 >
-> "Adopt the specification orchestrator skill. I want to specification-engineer [Protocol Standard, e.g., standard protocol schemas].
+> "Adopt the specification-orchestrator skill by executing view_file on 
+> `skills/spec-orchestrator/SKILL.md` as step 1.
 >
-> 1. The structural schemas are located at `[path to schemas]`.
-> 2. The normative specification documents are located at `[path to specs]`.
+> I want to specification-engineer [Protocol Standard, e.g., IETF / 3GPP protocol schemas].
 >
-> Execute the full digital engineering pipeline."
+> 1. Inputs & Paths:
+>    - Structural schemas are located at: `[path to schemas]`
+>    - Normative specification documents are located at: `[path to specs]`
+>    - Backlog output directory: `.pipeline/domain_specs/` (and live GitHub issue tracker)
+>
+> 2. Governance & Boundary Lock:
+>    - Read and strictly adhere to `.pipeline/constitution.md` (Domain Rules, Specification Standards, 100% Model Coverage Gate).
+>    - Enforce strict Role Boundary Lock: Specification workers are strictly forbidden from reading implementation profiles (`.pipeline/profiles/`), implementation plans, or codebase source files. Specs must remain 100% platform-independent.
+>
+> 3. Execution Discipline:
+>    - Run tracker label bootstrap: `python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py`.
+>    - Dispatch fresh, context-isolated subagents for Phase 1 (Worker A: Structure), Phase 2 (Worker B: Behavior), and Phase 3 (Worker C: System Interaction).
+>    - Instruct every subagent to target AT MOST 1 specification item per dispatch prompt and execute view_file on its respective skill `SKILL.md` as step 1.
+>
+> 4. Verification & Backlog Reconciliation:
+>    - Run model coverage verification: `python3 skills/spec-orchestrator/coverage_checker/src/verify_model_coverage.py`
+>    - Run UML compliance linter: `python3 skills/spec-orchestrator/uml_linter/src/lint_uml_syntax.py`
+>    - Execute backlog reconciliation: `python3 skills/spec-orchestrator/scripts/reconcile_backlog.py`
+>    - Report raw verification results showing 100% model coverage and 0 linter errors."
 
 ---
 
