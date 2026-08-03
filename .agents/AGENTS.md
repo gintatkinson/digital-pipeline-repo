@@ -113,6 +113,10 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 ## Mermaid Class Diagram Syntax Rules
 - **Mermaid Class Diagram Syntax Rules**: Colons are strictly prohibited inside Mermaid class member strings (e.g., do not use `+methodName() : ReturnType` or `+methodName(arg : Type)`), as secondary colons confuse the parser and break rendering. Use standard spacing instead (e.g., `+ReturnType methodName(Type arg)`).
 
+## Mermaid State Diagram Syntax Rules
+- **Mermaid State Diagram Escaping**: Unquoted `<` and `>` characters are strictly forbidden in Mermaid labels and transition descriptions.
+- **Mandatory Quote Enclosure**: State transitions containing comparison operators, brackets, or guards MUST enclose the label in double quotes (e.g. `ActiveCounting --> ActiveCounting: "incrementCounter [value < maxBound] / updateValue"`).
+
 ## Strict Verification & Parametric Assumption Prevention Rules
 - **No Parametric Assertions**: You are strictly forbidden from asserting the state of the workspace, build status, files, or permissions based on parametric memory or assumptions. Every verification statement must be backed by running a specific tool (such as `git status`, `list_permissions`, `list_dir`) and citing the output.
 - **Parametric Explanations Banned**: If explaining why an operation failed, you must cite concrete logs, line numbers, or command errors from your active context. Guessing or explaining via general training assumptions is prohibited.
