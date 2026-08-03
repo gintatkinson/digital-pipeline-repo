@@ -1,10 +1,8 @@
 import pytest
-from parity_auditor.validators.uml import UmlValidator
+from parity_auditor.validators.mermaid_syntax_validator import check_mermaid_text
 from parity_auditor.core.findings import Finding
 
 def test_mermaid_state_diagram_escaping():
-    validator = UmlValidator()
-    
     valid_content = """
 ---
 generation_mode: subagent
@@ -55,21 +53,17 @@ stateDiagram-v2
 ```
 """
 
-    errors_valid = []
-    validator._validate_state_diagram_escaping(valid_content, "Feature", "test.md", errors_valid)
+    errors_valid = check_mermaid_text(valid_content, "test.md")
     assert not errors_valid
-
-    errors_inv1 = []
-    validator._validate_state_diagram_escaping(invalid_content_1, "Feature", "test1.md", errors_inv1)
-    assert len(errors_inv1) == 1
-    assert "unquoted '<' character" in str(errors_inv1[0])
-
-    errors_inv2 = []
-    validator._validate_state_diagram_escaping(invalid_content_2, "Feature", "test2.md", errors_inv2)
-    assert len(errors_inv2) == 1
-    assert "unquoted '>'" in str(errors_inv2[0])
-
-    errors_inv3 = []
-    validator._validate_state_diagram_escaping(invalid_content_3, "Feature", "test3.md", errors_inv3)
-    assert len(errors_inv3) == 1
-    assert "unquoted '<'" in str(errors_inv3[0])
+    
+    errors_invalid_1 = check_mermaid_text(invalid_content_1, "test.md")
+    assert len(errors_invalid_1) == 1
+    assert errors_invalid_1[0].rule_id == "mermaid-diagram-unquoted-brackets-forbidden"
+    
+    errors_invalid_2 = check_mermaid_text(invalid_content_2, "test.md")
+    assert len(errors_invalid_2) == 1
+    assert errors_invalid_2[0].rule_id == "mermaid-diagram-unquoted-brackets-forbidden"
+    
+    errors_invalid_3 = check_mermaid_text(invalid_content_3, "test.md")
+    assert len(errors_invalid_3) == 1
+    assert errors_invalid_3[0].rule_id == "mermaid-diagram-unquoted-brackets-forbidden"

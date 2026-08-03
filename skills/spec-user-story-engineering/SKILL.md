@@ -128,7 +128,7 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> InitialState
     InitialState --> ActiveState : activate [activationCodeIsValid == true] / initializeSession
-    ActiveState --> TerminatedState : expire [timeElapsed >= timeoutLimit] / cleanupResources
+    ActiveState --> TerminatedState : "expire [timeElapsed >= timeoutLimit] / cleanupResources"
     TerminatedState --> [*]
 ```
 

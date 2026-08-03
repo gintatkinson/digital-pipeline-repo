@@ -113,9 +113,10 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 ## Mermaid Class Diagram Syntax Rules
 - **Mermaid Class Diagram Syntax Rules**: Colons are strictly prohibited inside Mermaid class member strings (e.g., do not use `+methodName() : ReturnType` or `+methodName(arg : Type)`), as secondary colons confuse the parser and break rendering. Use standard spacing instead (e.g., `+ReturnType methodName(Type arg)`).
 
-## Mermaid State Diagram Syntax Rules
-- **Mermaid State Diagram Escaping**: Unquoted `<` and `>` characters are strictly forbidden in Mermaid labels and transition descriptions.
-- **Mandatory Quote Enclosure**: State transitions containing comparison operators, brackets, or guards MUST enclose the label in double quotes (e.g. `ActiveCounting --> ActiveCounting: "incrementCounter [value < maxBound] / updateValue"`).
+## Universal Mermaid Syntax Rules
+- **Universal Angle Bracket Escaping**: Unquoted `<` and `>` characters are strictly forbidden across ALL diagram types (graph TD, flowchart TD, sequenceDiagram, stateDiagram-v2). Transitions, labels, or guards containing comparison operators, brackets, or guards MUST enclose the label in double quotes (e.g. `ActiveCounting --> ActiveCounting: "incrementCounter [value < maxBound] / updateValue"`).
+- **Use Case Node Label Quoting**: Mandate double quotes around graph TD/flowchart TD node labels containing slashes, colons, parentheses, or brackets (e.g. `Node["Save/Restore (Local DB)"]`).
+- **Subgraph Title Quoting**: Mandate double quotes around subgraph titles with spaces or hyphens (e.g. `subgraph "System Boundary"`).
 
 ## Strict Verification & Parametric Assumption Prevention Rules
 - **No Parametric Assertions**: You are strictly forbidden from asserting the state of the workspace, build status, files, or permissions based on parametric memory or assumptions. Every verification statement must be backed by running a specific tool (such as `git status`, `list_permissions`, `list_dir`) and citing the output.

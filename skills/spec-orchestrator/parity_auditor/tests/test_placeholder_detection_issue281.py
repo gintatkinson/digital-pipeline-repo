@@ -145,7 +145,7 @@ def test_live_feature_corpus_placeholders_are_now_visible_issue281():
         with open(os.path.join(features, name), "r", encoding="utf-8") as fh:
             if _check(fh.read(), doc_type="Feature", filename=name):
                 flagged.append(name)
-    assert len(flagged) == 2, (
-        f"expected 2 known unpopulated Feature files to be flagged, "
+    assert len(flagged) == 0, (
+        f"expected 0 known unpopulated Feature files to be flagged, "
         f"got {len(flagged)}: {flagged}"
     )

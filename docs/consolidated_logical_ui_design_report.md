@@ -74,7 +74,7 @@ When scale-out systems reach $10,000+$ managed elements, a combinatorial explosi
 ```mermaid
 flowchart TD
     subgraph "Background Thread (Web Worker / Dart Isolate)"
-        A[gRPC/WebSocket Stream] -->|Raw Binary Packets| B[Packet Parser & JSON Decoder]
+        A["gRPC/WebSocket Stream"] -->|Raw Binary Packets| B["Packet Parser & JSON Decoder"]
         B -->|Unfiltered Events| C[Micro-Batching Buffer]
         C -->|Aggregate & Deduplicate 100ms| D[Throttled Event Batcher]
     end

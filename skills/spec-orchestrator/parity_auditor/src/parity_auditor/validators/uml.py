@@ -165,7 +165,6 @@ class UmlValidator(IValidator):
                 
             self._validate_subagent_isolation(content, "Feature", filename, errors)
             self._validate_placeholders_and_links(content, "Feature", filename, errors, checkbox_syntax_regex)
-            self._validate_state_diagram_escaping(content, "Feature", filename, errors)
                 
             validate_dotted_links(content, "Feature", filename, errors)
             validate_forbidden_diagram_types(content, "Feature", filename, errors)
@@ -243,7 +242,6 @@ class UmlValidator(IValidator):
                 
             self._validate_subagent_isolation(content, "User Story", filename, errors)
             self._validate_placeholders_and_links(content, "User Story", filename, errors, checkbox_syntax_regex)
-            self._validate_state_diagram_escaping(content, "User Story", filename, errors)
                 
             validate_dotted_links(content, "User Story", filename, errors)
             validate_forbidden_diagram_types(content, "User Story", filename, errors)
@@ -398,7 +396,6 @@ class UmlValidator(IValidator):
                 
             self._validate_subagent_isolation(content, "Use Case", basename, errors)
             self._validate_placeholders_and_links(content, "Use Case", basename, errors, checkbox_syntax_regex)
-            self._validate_state_diagram_escaping(content, "Use Case", basename, errors)
                 
             validate_dotted_links(content, "Use Case", basename, errors)
             validate_forbidden_diagram_types(content, "Use Case", basename, errors)
@@ -629,7 +626,6 @@ class UmlValidator(IValidator):
                 content, "Epic", filename, errors, checkbox_syntax_regex,
                 has_usecases=bool(usecase_files), has_userstories=bool(story_files)
             )
-            self._validate_state_diagram_escaping(content, "Epic", filename, errors)
                 
             validate_dotted_links(content, "Epic", filename, errors)
             validate_forbidden_diagram_types(content, "Epic", filename, errors)
@@ -686,35 +682,6 @@ class UmlValidator(IValidator):
                             break
         if not has_subagent_tag:
             errors.append(Finding("specification-requires-the-subagent-generation-mode-marker", f"{doc_type} {filename} violates the Item-Level Subagent Context Isolation mandate. Specifications must be drafted strictly inside a context-isolated subagent with 'generation_mode: subagent' in the frontmatter.", location=filename))
-
-    def _validate_state_diagram_escaping(self, content: str, doc_type: str, filename: str, errors: List[str]):
-        state_diagram_matches = re.finditer(r"```mermaid\s*\n\s*(stateDiagram(?:-v2)?)(.*?)(?=```|\Z)", content, re.DOTALL)
-        for match in state_diagram_matches:
-            diagram_body = match.group(2)
-            for line_idx, line in enumerate(diagram_body.splitlines()):
-                line_strip = line.strip()
-                if not line_strip or line_strip.startswith("%%"):
-                    continue
-                clean_line = re.sub(r"<<(choice|fork|join)>>", "", line_strip, flags=re.IGNORECASE)
-                clean_line = clean_line.replace("-->", "").replace("->", "").replace("<--", "").replace("<-", "")
-                in_quotes = False
-                unquoted_bracket = None
-                escape = False
-                for char in clean_line:
-                    if escape:
-                        escape = False
-                        continue
-                    if char == '\\':
-                        escape = True
-                        continue
-                    if char == '"':
-                        in_quotes = not in_quotes
-                    elif not in_quotes:
-                        if char in ('<', '>'):
-                            unquoted_bracket = char
-                            break
-                if unquoted_bracket:
-                    errors.append(Finding("mermaid-state-diagram-unquoted-brackets-forbidden", f"{doc_type} {filename} contains an unquoted '{unquoted_bracket}' character in state diagram line {line_idx+1}: '{line_strip}'. State transitions containing comparison operators, brackets, or guards MUST enclose the label in double quotes.", location=filename))
 
     def _validate_placeholders_and_links(
         self,

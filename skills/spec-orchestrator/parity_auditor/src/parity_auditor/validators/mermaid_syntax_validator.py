@@ -92,6 +92,83 @@ _DIAGRAM_KINDS = ("sequencediagram", "classdiagram", "statediagram", "graph", "f
 # exclusion concealed 13 confirmed non-rendering diagrams behind a green check.
 # Findings in disposable content are the measurement, not a problem to manage.
 
+SHAPE_PAIRS = {
+    '[': ']',
+    '[[': ']]',
+    '[(': ')]',
+    '([': '])',
+    '[/': '/]',
+    '[\\': '\\]',
+    '{{': '}}',
+    '{': '}',
+    '(': ')',
+    '((': '))',
+    '>': ']',
+}
+
+def validate_mermaid_node_label_quoting(line: str) -> List[str]:
+    unquoted = []
+    if re.match(r"^\s*(subgraph|class|note|style|linkStyle|click)\b", line, re.I):
+        return []
+    
+    for match in re.finditer(r"\b([a-zA-Z0-9_]+)\s*(\[\[|\[\(|\(\[|\[\/|\[\\|\{\{|\{|\[|\(\(|\(|>)", line):
+        opener = match.group(2)
+        closer = SHAPE_PAIRS[opener]
+        
+        start_idx = match.end()
+        end_idx = line.find(closer, start_idx)
+        if end_idx != -1:
+            label = line[start_idx:end_idx].strip()
+            if not label:
+                continue
+            if not (label.startswith('"') and label.endswith('"')):
+                if re.search(r"[/:()\[\]]", label):
+                    unquoted.append(label)
+    return unquoted
+
+def validate_mermaid_subgraph_title_quoting(line: str) -> Optional[str]:
+    match = re.match(r"^\s*subgraph\s+(.*)", line, re.I)
+    if match:
+        title = match.group(1).strip()
+        bracket_match = re.match(r"^[a-zA-Z0-9_]+\s*\[(.*?)\]\s*$", title)
+        if bracket_match:
+            title = bracket_match.group(1).strip()
+        
+        if not (title.startswith('"') and title.endswith('"')):
+            if " " in title or "-" in title:
+                return title
+    return None
+
+def validate_mermaid_angle_bracket_escaping(line: str) -> Optional[str]:
+    clean_line = line.strip()
+    clean_line = re.sub(r"<<[a-zA-Z0-9_\-]+>>", "", clean_line, flags=re.IGNORECASE)
+    
+    # Strip longest arrows first to prevent partial replacements
+    arrows = [
+        "==>>", "==>", "-->>", "-->", "->>", "->",
+        "<<==", "<==", "<<--", "<--", "<<-", "<-",
+        "-.->", "<-.-", "<-->", "<==>"
+    ]
+    for arrow in arrows:
+        clean_line = clean_line.replace(arrow, "")
+    
+    in_quotes = False
+    unquoted_bracket = None
+    escape = False
+    for char in clean_line:
+        if escape:
+            escape = False
+            continue
+        if char == '\\':
+            escape = True
+            continue
+        if char == '"':
+            in_quotes = not in_quotes
+        elif not in_quotes:
+            if char in ('<', '>'):
+                unquoted_bracket = char
+                break
+    return unquoted_bracket
 
 def _blocks(text: str) -> Tuple[List[Tuple[int, List[str], str]], List[int]]:
     """Return ``(blocks, unclosed_starts)``.
@@ -152,6 +229,36 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
     for start, body, kind in blocks:
         for offset, line in enumerate(body):
             lineno = start + offset + 1
+            line_strip = line.strip()
+
+            if not line_strip or line_strip.startswith("%%"):
+                continue
+
+            unquoted_bracket = validate_mermaid_angle_bracket_escaping(line_strip)
+            if unquoted_bracket:
+                errors.append(Finding(
+                    "mermaid-diagram-unquoted-brackets-forbidden",
+                    f"{source}:{lineno}: unquoted '{unquoted_bracket}' character in Mermaid diagram "
+                    f"line: '{line_strip}'. Transitions, labels, or guards containing comparison "
+                    f"operators or brackets MUST be enclosed in double quotes."
+                , location=f"{source}"))
+
+            if kind in ("graph", "flowchart"):
+                unquoted_title = validate_mermaid_subgraph_title_quoting(line_strip)
+                if unquoted_title:
+                    errors.append(Finding(
+                        "mermaid-subgraph-title-must-be-quoted",
+                        f"{source}:{lineno}: unquoted subgraph title containing spaces or hyphens "
+                        f"({unquoted_title!r}). Subgraph titles with spaces or hyphens MUST be enclosed in double quotes."
+                    , location=f"{source}"))
+                
+                unquoted_labels = validate_mermaid_node_label_quoting(line_strip)
+                for label in unquoted_labels:
+                    errors.append(Finding(
+                        "mermaid-node-label-must-be-quoted",
+                        f"{source}:{lineno}: unquoted special characters in node label "
+                        f"({label!r}). Node labels containing slashes, colons, parentheses, or brackets MUST be enclosed in double quotes."
+                    , location=f"{source}"))
 
             # --- semicolons in Note statements and message text ---------------
             payload: Optional[str] = None
