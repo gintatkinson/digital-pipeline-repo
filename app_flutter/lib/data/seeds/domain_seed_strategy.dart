@@ -20,8 +20,6 @@ class _NodePos {
 }
 
 /// Realises: [Feat-000/DomainSeedStrategy]
-/// Realises: [Feat-002/AlternateSystem]
-/// Realises: [Feat-03/RateOfChange]
 /// Concrete implementation of [SeedStrategy] that seeds the database with domain-specific mock data.
 class DomainSeedStrategy implements SeedStrategy {
   late Batch _currentBatch;
@@ -83,70 +81,6 @@ class DomainSeedStrategy implements SeedStrategy {
           'attr_key': 'field_$i',
           'label': 'Field $i',
           'attr_type': 'string',
-          'section_label': 'General',
-          'section_order': 0,
-          'is_required': 0,
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
-      }
-    }
-
-    // Seed spec-defined type definitions and explicit attributes for feat-002 and feat-03
-    final explicitTypeDefinitions = <String, Map<String, dynamic>>{
-      'AlternateSystem': {
-        'display_name': 'Alternate System',
-        'icon_name': 'map',
-        'attributes': [
-          {'attr_key': 'systemId', 'label': 'System ID', 'attr_type': 'string'},
-          {'attr_key': 'epsgCode', 'label': 'EPSG Code', 'attr_type': 'string'},
-          {'attr_key': 'projectionParameters', 'label': 'Projection Parameters', 'attr_type': 'string'},
-        ],
-      },
-      'ReferenceFrame': {
-        'display_name': 'Reference Frame',
-        'icon_name': 'grid_on',
-        'attributes': [
-          {'attr_key': 'systemId', 'label': 'System ID', 'attr_type': 'string'},
-          {'attr_key': 'epsgCode', 'label': 'EPSG Code', 'attr_type': 'string'},
-          {'attr_key': 'projectionParameters', 'label': 'Projection Parameters', 'attr_type': 'string'},
-          {'attr_key': 'geometryDatum', 'label': 'Geometry Datum', 'attr_type': 'string'},
-        ],
-      },
-      'TemporalContext': {
-        'display_name': 'Temporal Context',
-        'icon_name': 'schedule',
-        'attributes': [
-          {'attr_key': 'timestamp', 'label': 'Timestamp', 'attr_type': 'string'},
-          {'attr_key': 'validUntil', 'label': 'Valid Until', 'attr_type': 'string'},
-        ],
-      },
-      'RateOfChange': {
-        'display_name': 'Rate Of Change',
-        'icon_name': 'speed',
-        'attributes': [
-          {'attr_key': 'vNorth', 'label': 'Velocity North', 'attr_type': 'number'},
-          {'attr_key': 'vEast', 'label': 'Velocity East', 'attr_type': 'number'},
-          {'attr_key': 'vUp', 'label': 'Velocity Up', 'attr_type': 'number'},
-        ],
-      },
-    };
-
-    for (final entry in explicitTypeDefinitions.entries) {
-      final typeName = entry.key;
-      final typeData = entry.value;
-      await _insertAndFlush('type_definitions', {
-        'type_name': typeName,
-        'display_name': typeData['display_name'] as String,
-        'icon_name': typeData['icon_name'] as String,
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
-
-      final attributes = typeData['attributes'] as List<Map<String, String>>;
-      for (int i = 0; i < attributes.length; i++) {
-        final attr = attributes[i];
-        await _insertAndFlush('type_attributes', {
-          'type_name': typeName,
-          'attr_key': attr['attr_key']!,
-          'label': attr['label']!,
-          'attr_type': attr['attr_type']!,
           'section_label': 'General',
           'section_order': 0,
           'is_required': 0,
@@ -342,35 +276,6 @@ class DomainSeedStrategy implements SeedStrategy {
     }
 
     final propertiesMap = {
-      'systemId': 'UTM-ZONE-54N',
-      'epsgCode': 'EPSG:32654',
-      'projectionParameters': '+proj=utm +zone=54 +datum=Geometry +units=m +no_defs',
-      'geometryDatum': 'WGS84',
-      'timestamp': '2026-06-22T02:00:00.00Z',
-      'validUntil': '2026-06-22T02:05:00.00Z',
-      'vNorth': 12.345678901234,
-      'vEast': -0.987654321098,
-      'vUp': 0.000123456789,
-      'alternateSystem': {
-        'systemId': 'UTM-ZONE-54N',
-        'epsgCode': 'EPSG:32654',
-        'projectionParameters': '+proj=utm +zone=54 +datum=Geometry +units=m +no_defs',
-      },
-      'referenceFrame': {
-        'systemId': 'UTM-ZONE-54N',
-        'epsgCode': 'EPSG:32654',
-        'projectionParameters': '+proj=utm +zone=54 +datum=Geometry +units=m +no_defs',
-        'geometryDatum': 'WGS84',
-      },
-      'temporalContext': {
-        'timestamp': '2026-06-22T02:00:00.00Z',
-        'validUntil': '2026-06-22T02:05:00.00Z',
-        'rateOfChange': {
-          'vNorth': 12.345678901234,
-          'vEast': -0.987654321098,
-          'vUp': 0.000123456789,
-        },
-      },
       for (int j = 1; j <= 50; j++) 'field_$j': 'val_${node}_field_$j',
       'location': {
         'ellipsoid': {
@@ -390,15 +295,6 @@ class DomainSeedStrategy implements SeedStrategy {
       for (int k = 1; k <= 5; k++) {
         final instId = 'inst_${node}_${d}_$k';
         final instanceMap = {
-          'systemId': 'UTM-ZONE-54N',
-          'epsgCode': 'EPSG:32654',
-          'projectionParameters': '+proj=utm +zone=54 +datum=Geometry +units=m +no_defs',
-          'geometryDatum': 'WGS84',
-          'timestamp': '2026-06-22T02:00:00.00Z',
-          'validUntil': '2026-06-22T02:05:00.00Z',
-          'vNorth': 12.345678901234,
-          'vEast': -0.987654321098,
-          'vUp': 0.000123456789,
           for (int j = 1; j <= 50; j++) 'field_$j': 'val_inst_${node}_${d}_${k}_field_$j'
         };
         await _insertAndFlush('instances', {

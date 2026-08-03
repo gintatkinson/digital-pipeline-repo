@@ -292,10 +292,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       return (false, null, '${field.label} is required');
     }
 
-    if (field.type == 'double' ||
-        field.key == 'vNorth' ||
-        field.key == 'vEast' ||
-        field.key == 'vUp') {
+    if (field.type == 'double') {
       final val = double.tryParse(valueString);
       if (val == null && valueString.isNotEmpty) {
         return (false, null, 'Must be a valid double');
@@ -691,28 +688,15 @@ class _PropertyGridState extends State<PropertyGrid> {
       );
     } else {
       TextInputType keyboardType = TextInputType.text;
-      List<TextInputFormatter>? inputFormatters = _resolveInputFormatters(field);
-      int? maxLines = 1;
+      List<TextInputFormatter>? inputFormatters;
 
-      if (field.type == 'double' ||
-          field.key == 'vNorth' ||
-          field.key == 'vEast' ||
-          field.key == 'vUp') {
-        keyboardType = const TextInputType.numberWithOptions(decimal: true, signed: true);
+      if (field.type == 'double') {
+        keyboardType = const TextInputType.numberWithOptions(decimal: true);
       } else if (field.type == 'int') {
         keyboardType = TextInputType.number;
-      } else if (field.key == 'epsgCode') {
-        keyboardType = TextInputType.text;
-        inputFormatters ??= [];
-        if (!inputFormatters.any((f) => f is UpperCaseTextFormatter)) {
-          inputFormatters.add(UpperCaseTextFormatter());
-        }
-      } else if (field.key == 'projectionParameters' ||
-          field.type == 'textarea' ||
-          field.type == 'code') {
-        keyboardType = TextInputType.multiline;
-        maxLines = 4;
       }
+
+      inputFormatters = _resolveInputFormatters(field);
 
       return _buildTextField(
         label: field.label,
@@ -720,7 +704,6 @@ class _PropertyGridState extends State<PropertyGrid> {
         focusNode: _focusNodes[field.key]!,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        maxLines: maxLines,
         errorText: _errors[field.key],
         brandPrimary: brandPrimary,
         panelOpacity: panelOpacity,
@@ -736,16 +719,15 @@ class _PropertyGridState extends State<PropertyGrid> {
   /// and to [brandPrimary] when focused.
   ///
   /// The label is rendered above the field using the theme's `labelSmall` text
-  /// style. Keyboard type, input formatters, and optional [maxLines] are
-  /// forwarded to the [TextField] unchanged; pass null for [inputFormatters]
-  /// when no formatting is required.
+  /// style. Keyboard type and input formatters are forwarded to the
+  /// [TextField] unchanged; pass null for [inputFormatters] when no
+  /// formatting is required.
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
     required FocusNode focusNode,
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
-    int? maxLines = 1,
     String? errorText,
     required Color brandPrimary,
     required double panelOpacity,
@@ -764,7 +746,6 @@ class _PropertyGridState extends State<PropertyGrid> {
           focusNode: focusNode,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          maxLines: maxLines,
           style: Theme.of(context).textTheme.bodyMedium,
           decoration: InputDecoration(
             isDense: true,

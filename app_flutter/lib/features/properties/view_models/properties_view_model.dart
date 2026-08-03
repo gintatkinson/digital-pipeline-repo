@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:app_flutter/domain/data_source.dart';
-import 'package:app_flutter/domain/domain_errors.dart';
 import 'package:app_flutter/domain/result.dart';
 import 'package:app_flutter/domain/type_descriptor.dart';
 
@@ -85,62 +84,6 @@ class PropertiesViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Realises: [Feat-002/AlternateSystem]
-  ///
-  /// Looks up and validates a spatial coordinate transformation for [epsgCode].
-  ///
-  /// Returns [Result.success] formatted as `'EPSG:<code_number>'` when [epsgCode]
-  /// is valid, or [Result.failure] with a [SchemaFieldPatternError] if the format is invalid.
-  Result<String> lookupEpsgCoordinateSystem(String epsgCode) {
-    final cleanCode = epsgCode.trim();
-    if (cleanCode.isEmpty) {
-      return Result.failure(
-        SchemaFieldPatternError(
-          fieldName: 'epsgCode',
-          value: epsgCode,
-          pattern: r'^\d+$',
-        ),
-      );
-    }
-    String codeDigits = cleanCode;
-    if (codeDigits.toUpperCase().startsWith('EPSG:')) {
-      codeDigits = codeDigits.substring(5).trim();
-    }
-    final digitRegExp = RegExp(r'^\d+$');
-    if (!digitRegExp.hasMatch(codeDigits)) {
-      return Result.failure(
-        SchemaFieldPatternError(
-          fieldName: 'epsgCode',
-          value: epsgCode,
-          pattern: r'^\d+$',
-        ),
-      );
-    }
-    return Result.success('EPSG:$codeDigits');
-  }
-
-  /// Realises: [Feat-03/RateOfChange]
-  ///
-  /// Validates the temporal boundary between [timestamp] and [validUntil].
-  ///
-  /// Returns [Result.success] when `validUntil > timestamp`, or [Result.failure]
-  /// with a [SchemaFieldRangeError] when `validUntil <= timestamp`.
-  Result<void> validateTemporalBoundary({
-    required num timestamp,
-    required num validUntil,
-  }) {
-    if (validUntil > timestamp) {
-      return const Result.success(null);
-    }
-    return Result.failure(
-      SchemaFieldRangeError(
-        fieldName: 'validUntil',
-        value: validUntil,
-        min: timestamp,
-      ),
-    );
-  }
-
   @override
   void notifyListeners() {
     if (_disposed) return;
@@ -153,4 +96,3 @@ class PropertiesViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
-
