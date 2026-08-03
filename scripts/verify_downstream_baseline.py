@@ -40,6 +40,10 @@ def check_no_domain_config(destination):
 def tag_restoration_point():
     print("Tagging restoration point...")
     try:
+        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
+        if res.returncode != 0:
+            print("WARNING: Skipping restoration point tag - git HEAD is unborn (fresh repository).", file=sys.stderr)
+            return True
         subprocess.run(["git", "tag", "-f", "restoration-point"], check=True)
         return True
     except (subprocess.CalledProcessError, OSError) as e:
@@ -117,67 +121,85 @@ def main():
     parser.add_argument("destination", nargs="?", default=".", help="Path to the downstream project directory (defaults to current directory)")
     args = parser.parse_args()
 
-    target_dest = args.target if args.target else args.destination
-    dest = os.path.abspath(target_dest)
+    repo_root = os.path.abspath(args.destination)
 
-    if not os.path.isdir(dest):
-        print(f"ERROR: Destination path '{dest}' is not a directory.", file=sys.stderr)
-        sys.exit(1)
-
-    repo_root = dest
-
-    is_flutter = os.path.exists(os.path.join(repo_root, "pubspec.yaml"))
-    # If checking from root and app_flutter exists, run inside app_flutter
-    if not is_flutter and os.path.isdir(os.path.join(repo_root, "app_flutter")):
-        dest_flutter = os.path.join(repo_root, "app_flutter")
-        if os.path.exists(os.path.join(dest_flutter, "pubspec.yaml")):
-            dest = dest_flutter
-            is_flutter = True
-
-    is_react = os.path.exists(os.path.join(repo_root, "package.json"))
-    if not is_react and os.path.isdir(os.path.join(repo_root, "web_react")):
-        dest_react = os.path.join(repo_root, "web_react")
-        if os.path.exists(os.path.join(dest_react, "package.json")):
-            dest = dest_react
-            is_react = True
-
-    if not is_flutter and not is_react:
-        print(f"ERROR: Destination path '{dest}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
-        sys.exit(1)
-
-    if check_no_domain_config(repo_root) or check_no_domain_config(dest):
-        args.no_domain = True
-
-    if args.no_domain:
-        flutter_domain = os.path.join(dest if is_flutter else repo_root, "lib", "domain")
-        react_domain = os.path.join(dest if is_react else repo_root, "src", "domain")
-        if os.path.isdir(flutter_domain) or os.path.isdir(react_domain):
-            print("NOTE: Domain directory found on disk — overriding no_domain config and enabling domain verification.")
-            args.no_domain = False
-
-    try:
-        _run_verification(args, dest, repo_root, is_flutter, is_react)
-        print("Success: Build and test suite execution passed. Conformance gate verified.")
-        if args.output:
-            out_dir = os.path.dirname(os.path.abspath(args.output))
-            if out_dir:
-                os.makedirs(out_dir, exist_ok=True)
-            report_data = {
-                "status": "success",
-                "target": target_dest,
-                "platform": "flutter" if is_flutter else "react",
-                "destination": dest,
-                "domain_verified": not args.no_domain,
-            }
-            with open(args.output, "w", encoding="utf-8") as f:
-                json.dump(report_data, f, indent=2)
-            print(f"Wrote downstream baseline report to {args.output}")
-        if not tag_restoration_point():
-            print("ERROR: Conformance gate verified but restoration point tag could not be placed.", file=sys.stderr)
+    targets = []
+    if args.target:
+        target_dir = os.path.abspath(args.target)
+        if os.path.isdir(target_dir):
+            targets.append(target_dir)
+        else:
+            print(f"ERROR: Target path '{target_dir}' is not a directory.", file=sys.stderr)
             sys.exit(1)
-        sys.exit(0)
-    finally:
-        cleanup_workspace(dest)
+    else:
+        if not os.path.isdir(repo_root):
+            print(f"ERROR: Destination path '{repo_root}' is not a directory.", file=sys.stderr)
+            sys.exit(1)
+
+        is_self_flutter = os.path.exists(os.path.join(repo_root, "pubspec.yaml"))
+        is_self_react = os.path.exists(os.path.join(repo_root, "package.json"))
+        if is_self_flutter or is_self_react:
+            targets.append(repo_root)
+
+        app_flutter_dir = os.path.join(repo_root, "app_flutter")
+        if os.path.isdir(app_flutter_dir) and os.path.exists(os.path.join(app_flutter_dir, "pubspec.yaml")):
+            if app_flutter_dir not in targets:
+                targets.append(app_flutter_dir)
+
+        web_react_dir = os.path.join(repo_root, "web_react")
+        if os.path.isdir(web_react_dir) and os.path.exists(os.path.join(web_react_dir, "package.json")):
+            if web_react_dir not in targets:
+                targets.append(web_react_dir)
+
+    if not targets:
+        print(f"ERROR: Destination path '{repo_root}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
+        sys.exit(1)
+
+    reports = []
+    for dest in targets:
+        is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
+        is_react = os.path.exists(os.path.join(dest, "package.json"))
+
+        no_domain_for_target = args.no_domain
+        if check_no_domain_config(repo_root) or check_no_domain_config(dest):
+            no_domain_for_target = True
+
+        if no_domain_for_target:
+            flutter_domain = os.path.join(dest if is_flutter else repo_root, "lib", "domain")
+            react_domain = os.path.join(dest if is_react else repo_root, "src", "domain")
+            if os.path.isdir(flutter_domain) or os.path.isdir(react_domain):
+                print(f"NOTE: Domain directory found on disk for '{dest}' — overriding no_domain config and enabling domain verification.")
+                no_domain_for_target = False
+
+        target_args = argparse.Namespace(**vars(args))
+        target_args.no_domain = no_domain_for_target
+
+        try:
+            _run_verification(target_args, dest, repo_root, is_flutter, is_react)
+            print(f"Success: Build and test suite execution passed for '{dest}'. Conformance gate verified.")
+            reports.append({
+                "status": "success",
+                "target": dest,
+                "platform": "flutter" if is_flutter else ("react" if is_react else "unknown"),
+                "destination": dest,
+                "domain_verified": not no_domain_for_target,
+            })
+        finally:
+            cleanup_workspace(dest)
+
+    if args.output and reports:
+        out_dir = os.path.dirname(os.path.abspath(args.output))
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+        report_data = reports[0] if len(reports) == 1 else {"status": "success", "reports": reports}
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=2)
+        print(f"Wrote downstream baseline report to {args.output}")
+
+    if not tag_restoration_point():
+        print("ERROR: Conformance gate verified but restoration point tag could not be placed.", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
 
 def _validate_domain_types(dest, repo_root, ext, domain_subpath):
     mandated = load_mandated_classes(dest)
