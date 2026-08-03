@@ -56,11 +56,11 @@ graph TD
 stateDiagram-v2
     [*] --> Idle
     Idle --> EditingProperties : Operator edits fields
-    EditingProperties --> FocusLost : Focus-loss (blur event)
+    EditingProperties --> FocusLost : "Focus-loss (blur event)"
     FocusLost --> Serializing : Invoke saveProperties
     Serializing --> WritingToDisk : PropertyGridData.toJson()
     WritingToDisk --> PropertiesSaved : Write & Flush Success
-    WritingToDisk --> RolledBack : File Write Permission Error (5a)
+    WritingToDisk --> RolledBack : "File Write Permission Error (5a)"
     PropertiesSaved --> Idle : Return success / update UI
     RolledBack --> Idle : Restore memory buffer / display alert
 ```

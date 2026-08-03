@@ -182,7 +182,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     ```mermaid
     stateDiagram-v2
         [*] --> InitialState
-        InitialState --> [*] : operationOne(input) / Action
+        InitialState --> [*] : "operationOne(input) / Action"
     ```
 
     ## 4. Operational Considerations

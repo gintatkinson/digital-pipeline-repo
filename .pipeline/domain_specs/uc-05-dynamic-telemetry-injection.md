@@ -60,11 +60,11 @@ graph TD
 stateDiagram-v2
     [*] --> LoadingSchema
     LoadingSchema --> RenderingUI : Schema Parsed Successfully
-    LoadingSchema --> FallbackUI : Schema Missing/Corrupt (5a)
+    LoadingSchema --> FallbackUI : "Schema Missing/Corrupt (5a)"
     RenderingUI --> SpawningWorker
     SpawningWorker --> ConnectingTelemetry
     ConnectingTelemetry --> Streaming : gNMI Connection Established
-    ConnectingTelemetry --> DisconnectedOffline : Connection Fails (5b)
+    ConnectingTelemetry --> DisconnectedOffline : "Connection Fails (5b)"
     Streaming --> InjectingTelemetry : Recieve 100ms Micro-Batch
     InjectingTelemetry --> Streaming : Apply updates to UI
     DisconnectedOffline --> ConnectingTelemetry : Retry connection

@@ -122,8 +122,8 @@ graph TD
 ```mermaid
 stateDiagram-v2
     [*] --> InitialState
-    InitialState --> State1 : Event/Transition
-    State1 --> State2 : Event/Transition
+    InitialState --> State1 : "Event/Transition"
+    State1 --> State2 : "Event/Transition"
 ```
 
 ## 7. Operational Context

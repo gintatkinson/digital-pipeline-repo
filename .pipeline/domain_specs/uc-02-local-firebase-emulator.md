@@ -68,10 +68,10 @@ graph TD
 stateDiagram-v2
     [*] --> Uninitialized
     Uninitialized --> Connecting : Bootstrap Triggered
-    Connecting --> Seeding : Connected to http://127.0.0.1:8080
-    Connecting --> Failed : Connection Timeout (Exception 5a)
+    Connecting --> Seeding : "Connected to http://127.0.0.1:8080"
+    Connecting --> Failed : "Connection Timeout (Exception 5a)"
     Seeding --> Running : Seed Success
-    Seeding --> Failed : Validation Error (Exception 5b)
+    Seeding --> Failed : "Validation Error (Exception 5b)"
     Running --> Updating : Operator Saves Properties
     Updating --> Running : Save Success
     Failed --> [*]

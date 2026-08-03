@@ -115,7 +115,7 @@ sequenceDiagram
             Note over domainRegistry: Store value
             domainRegistry-->userActor: status : Status
         else [isValid == false]
-            domainRegistry-->userActor: status : Status
+            domainRegistry-->userActor: "status : Status"
         end
     else [payloadIsValid == false]
         domainRegistry-->userActor: status : Status
@@ -127,7 +127,7 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> InitialState
-    InitialState --> ActiveState : activate [activationCodeIsValid == true] / initializeSession
+    InitialState --> ActiveState : "activate [activationCodeIsValid == true] / initializeSession"
     ActiveState --> TerminatedState : "expire [timeElapsed >= timeoutLimit] / cleanupResources"
     TerminatedState --> [*]
 ```

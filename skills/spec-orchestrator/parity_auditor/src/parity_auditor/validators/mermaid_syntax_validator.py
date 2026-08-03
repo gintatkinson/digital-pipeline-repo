@@ -56,13 +56,13 @@ _FENCE_ANY = re.compile(r"^\s*" + FENCE)
 # `Note over A,B: text` / `Note left of A: text`
 _NOTE = re.compile(r"^\s*note\b[^:]*:(?P<text>.*)$", re.I)
 # `A->>B: text`, `A-->B: text`, `A-)B: text` and similar
-_MESSAGE = re.compile(r"^\s*\S+\s*-{1,2}[->x)]{1,2}>?\s*\S+\s*:(?P<text>.*)$")
+_MESSAGE = re.compile(r"^\s*(?:(?:\"[^\"]*\")|\S+)\s*-{1,2}[->x)]{1,2}>?\s*(?:(?:\"[^\"]*\")|\S+)\s*:(?P<text>.*)$")
 # classDiagram note forms: `note "..."` / `note for X "..."`
 _CLASS_NOTE = re.compile(r'^\s*note\b.*?"(?P<text>[^"]*)"', re.I)
 _RELATIONSHIP = re.compile(r"(\*--|o--|<\|--|--\|>|-->|<--|\.\.>|--)")
 # `ClassA *-- ClassB : label`  -- captures whatever follows the colon.
 _RELATIONSHIP_LABEL = re.compile(
-    r"^\s*\S+\s*(?:\*--|o--|<\|--|--\|>|-->|<--|\.\.>|--)\s*\S+\s*:\s*(?P<label>.*)$"
+    r"^\s*(?:(?:\"[^\"]*\")|\S+)\s*(?:\*--|o--|<\|--|--\|>|-->|<--|\.\.>|--)\s*(?:(?:\"[^\"]*\")|\S+)\s*:\s*(?P<label>.*)$"
 )
 _STEREOTYPE = re.compile(r"(<<|>>|&lt;&lt;|&gt;&gt;|\u00ab|\u00bb)")
 # A member line inside `class X { ... }`.
@@ -72,14 +72,14 @@ _STEREOTYPE = re.compile(r"(<<|>>|&lt;&lt;|&gt;&gt;|\u00ab|\u00bb)")
 # indentation after the diff marker (e.g. "-       }"). Several docs embed diffs
 # containing mermaid blocks, and reading a diff marker as a UML visibility marker
 # produced false positives on first implementation.
-_MEMBER = re.compile(r"^\s*[+\-#~] ?(?P<rest>\S.*)$")
+_MEMBER = re.compile(r"^\s*(?:[+\-#~]\s*)?(?P<rest>\S.*)$")
 # Structural brace lines are not members and must never be flagged for braces.
 _BRACE_ONLY = re.compile(r"^[{}\s]*$")
 # `class X {}` -- an empty body opened and closed on one line. The leading `\s*`
 # deliberately excludes unified-diff lines, whose `+`/`-` marker is not whitespace,
 # for the same reason as _MEMBER above.
 _ONE_LINE_EMPTY_CLASS = re.compile(
-    r"^\s*class\s+(?:`[^`]+`|[A-Za-z0-9_.\-]+)\s*\{\s*\}\s*$", re.I
+    r"^\s*class\s+(?:`[^`]+`|[A-Za-z0-9_.\-]+)\s*\{\s*\}(?:\s*(?:%%.*)?)$", re.I
 )
 
 _DIAGRAM_KINDS = (
@@ -250,6 +250,13 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
                     f"({first_line_content!r}). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
                     location=f"{source}"
                 ))
+        else:
+            errors.append(Finding(
+                "mermaid-missing-diagram-header",
+                f"{source}:{start}: missing or invalid Mermaid diagram header "
+                f"(''). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
+                location=f"{source}"
+            ))
 
         for offset, line in enumerate(body):
             lineno = start + offset + 1
@@ -258,14 +265,23 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
             if not line_strip or line_strip.startswith("%%"):
                 continue
 
-            unquoted_bracket = validate_mermaid_angle_bracket_escaping(line_strip)
-            if unquoted_bracket:
+            if line_strip.count('"') % 2 != 0:
                 errors.append(Finding(
-                    "mermaid-diagram-unquoted-brackets-forbidden",
-                    f"{source}:{lineno}: unquoted '{unquoted_bracket}' character in Mermaid diagram "
-                    f"line: '{line_strip}'. Transitions, labels, or guards containing comparison "
-                    f"operators or brackets MUST be enclosed in double quotes."
-                , location=f"{source}"))
+                    "mermaid-unclosed-quotes",
+                    f"{source}:{lineno}: unclosed double quotes in line "
+                    f"({line_strip!r}). Mermaid diagrams must have matching double quotes.",
+                    location=f"{source}"
+                ))
+
+            if kind in ("graph", "flowchart", "sequencediagram", "statediagram", "statediagram-v2"):
+                unquoted_bracket = validate_mermaid_angle_bracket_escaping(line_strip)
+                if unquoted_bracket:
+                    errors.append(Finding(
+                        "mermaid-diagram-unquoted-brackets-forbidden",
+                        f"{source}:{lineno}: unquoted '{unquoted_bracket}' character in Mermaid diagram "
+                        f"line: '{line_strip}'. Transitions, labels, or guards containing comparison "
+                        f"operators or brackets MUST be enclosed in double quotes."
+                    , location=f"{source}"))
 
             if kind in ("graph", "flowchart"):
                 unquoted_title = validate_mermaid_subgraph_title_quoting(line_strip)

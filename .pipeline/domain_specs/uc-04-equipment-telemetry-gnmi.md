@@ -58,10 +58,10 @@ stateDiagram-v2
     [*] --> Disconnected
     Disconnected --> Connecting : Initiate streaming connection
     Connecting --> Streaming : mTLS Handshake Success
-    Connecting --> Disconnected : mTLS Handshake Failure (Disable UI panel)
+    Connecting --> Disconnected : "mTLS Handshake Failure (Disable UI panel)"
     Streaming --> Validating : Receive Telemetry Payload
     Validating --> UpdatingUI : Schema Validated
-    Validating --> Streaming : Schema Invalid (Increment error counter, log warning)
+    Validating --> Streaming : "Schema Invalid (Increment error counter, log warning)"
     UpdatingUI --> Streaming : Repaint UI and return to stream
 ```
 

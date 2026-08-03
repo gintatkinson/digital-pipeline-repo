@@ -66,21 +66,21 @@ graph TD
 ```mermaid
 stateDiagram-v2
     [*] --> Initializing
-    Initializing --> ListeningToRemote : Connect / Stream Established
+    Initializing --> ListeningToRemote : "Connect / Stream Established"
     ListeningToRemote --> PendingUpdate : Edit Node Properties
     PendingUpdate --> Transmitting : Save Node Properties
     
-    Transmitting --> Synchronized : Write Successful / Broadcast Change
+    Transmitting --> Synchronized : "Write Successful / Broadcast Change"
     Synchronized --> ListeningToRemote : Idle
     
-    Transmitting --> OfflineCacheFallback : Network Drop [Connection Lost]
-    OfflineCacheFallback --> ListeningToRemote : Warn Operator / Queue Write Locally
+    Transmitting --> OfflineCacheFallback : "Network Drop [Connection Lost]"
+    OfflineCacheFallback --> ListeningToRemote : "Warn Operator / Queue Write Locally"
     
-    Transmitting --> WriteRejected : Security Rule Violation [API Rejection]
-    WriteRejected --> ListeningToRemote : Abort Write / Rollback UI & Notify Operator
+    Transmitting --> WriteRejected : "Security Rule Violation [API Rejection]"
+    WriteRejected --> ListeningToRemote : "Abort Write / Rollback UI & Notify Operator"
 
-    Transmitting --> SchemaConstraintError : Schema Validation Fail [Coordinates Out-Of-Bounds]
-    SchemaConstraintError --> ListeningToRemote : Display Error / Revert UI State
+    Transmitting --> SchemaConstraintError : "Schema Validation Fail [Coordinates Out-Of-Bounds]"
+    SchemaConstraintError --> ListeningToRemote : "Display Error / Revert UI State"
 ```
 
 ## 7. Operational Context

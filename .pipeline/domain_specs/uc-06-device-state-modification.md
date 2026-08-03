@@ -63,9 +63,9 @@ stateDiagram-v2
     Idle --> FieldModified : Operator edits input
     FieldModified --> FocusLost : Blur event triggers
     FocusLost --> LocalSaving : Client validation passes
-    FocusLost --> LocalValidationError : Client validation fails (5a)
+    FocusLost --> LocalValidationError : "Client validation fails (5a)"
     LocalValidationError --> Idle : Display local error, block save
-    LocalSaving --> Transmitting : Write local DB success
+    LocalSaving --> Transmitting : "Write local DB success"
     Transmitting --> RemoteProcessing : Send gNMI SetRequest
     RemoteProcessing --> StateSynchronized : gNMI SetResponse Success
     RemoteProcessing --> RemoteValidationError : gNMI Constraint Error (5b)
