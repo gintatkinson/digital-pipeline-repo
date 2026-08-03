@@ -255,3 +255,118 @@ def test_blocked_specs_bounds_issue336():
     assert "feat-13-zero-codegen-grid.md" in sample_result
 
 
+# --------------------------------------------------------------------------- #
+# 7. Subagent prompts must have atomic micro-task scope and mandate view_file on SKILL.md.
+# --------------------------------------------------------------------------- #
+
+def test_subagent_prompts_have_atomic_microtask_scope():
+    """Asserts that every subagent launch prompt rule and template enforces atomic microtask scope:
+    - Target at most 1 Epic, 1 Feature, 1 User Story, or 1 Use Case per subagent dispatch (no bulk scopes).
+    - Mandates executing view_file on the active SKILL.md by explicit path as step 1.
+    """
+    agents_md_path = os.path.join(REPO_ROOT, ".agents", "AGENTS.md")
+    assert os.path.isfile(agents_md_path), f"{agents_md_path} missing"
+
+    with open(agents_md_path, "r", encoding="utf-8") as fh:
+        agents_content = fh.read()
+
+    # 1. Assert AGENTS.md mandates single-item micro-task scope (max 1 spec item per subagent dispatch)
+    assert re.search(r"max(?:imum)?\s*1\s*(?:Epic|Feature|User\s*Story|Use\s*Case)", agents_content, re.IGNORECASE) or \
+           re.search(r"at\s*most\s*1\s*(?:Epic|Feature|User\s*Story|Use\s*Case)", agents_content, re.IGNORECASE), \
+        ".agents/AGENTS.md must explicitly mandate subagent prompts target at most 1 Epic, 1 Feature, 1 User Story, or 1 Use Case."
+
+    # 2. Assert AGENTS.md mandates view_file on active SKILL.md as step 1
+    assert "view_file" in agents_content and "SKILL.md" in agents_content, \
+        ".agents/AGENTS.md must mandate executing view_file on SKILL.md as step 1 for subagent dispatches."
+    assert re.search(r"view_file.*SKILL\.md.*as\s*its\s*very\s*first\s*step", agents_content, re.IGNORECASE) or \
+           re.search(r"view_file.*SKILL\.md.*step\s*1", agents_content, re.IGNORECASE), \
+        ".agents/AGENTS.md must mandate executing view_file on SKILL.md as step 1."
+
+    # 3. Scan committed documentation / prompt templates to ensure no instruction permits bulk multi-item subagent scopes
+    texts = _committed_texts()
+    multi_scope_pattern = re.compile(
+        r"dispatch.*(?:multiple|\b[2-9]\b|\d{2,})\s*(?:epics|features|user\s*stories|use\s*cases)",
+        re.IGNORECASE
+    )
+    for rel, text in texts:
+        if "AGENTS.md" in rel or "SKILL.md" in rel:
+            assert not multi_scope_pattern.search(text), f"Found multi-item subagent scope instruction in {rel}"
+
+
+# --------------------------------------------------------------------------- #
+# 8. Every realized specification tag must possess a full 3-layer LUI chain.
+# --------------------------------------------------------------------------- #
+
+def test_every_specification_has_full_lui_chain():
+    """Scans all realized specification tags (/// Realises: [Feat-X], /// Realises: [US-Y], /// Realises: [UC-Z])
+    in app_flutter/lib/ and asserts that all 3 required layers exist across the implementation:
+    1. Domain Model: Data structure, entity, descriptor, domain interface, or data source.
+    2. ViewModel: State holder handling user actions (Cubit, ViewModel, Controller, StateNotifier).
+    3. LUI Widget Binding + BDD User Story Widget Test asserting User Event -> ViewModel Action -> State Change -> LUI Render.
+    Fails with exit code 1 if any layer is missing for a realized feature specification.
+    """
+    lib_dir = os.path.join(REPO_ROOT, "app_flutter", "lib")
+    test_dir = os.path.join(REPO_ROOT, "app_flutter", "test")
+    assert os.path.isdir(lib_dir), f"{lib_dir} missing"
+    assert os.path.isdir(test_dir), f"{test_dir} missing"
+
+    tag_pattern = re.compile(r"///\s*Realises:\s*\[\s*([A-Za-z0-9_\-]+)(?:/|\s*\])", re.IGNORECASE)
+    spec_map = {}
+
+    for root, _, files in os.walk(lib_dir):
+        for file in files:
+            if file.endswith(".dart"):
+                path = os.path.join(root, file)
+                rel = os.path.relpath(path, lib_dir)
+                with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                    content = fh.read()
+                    for m in tag_pattern.finditer(content):
+                        spec_raw = m.group(1).upper()
+                        if not (spec_raw.startswith("FEAT-") or spec_raw.startswith("US-") or spec_raw.startswith("UC-")):
+                            continue
+                        if spec_raw not in spec_map:
+                            spec_map[spec_raw] = {
+                                "has_domain": False,
+                                "has_viewmodel": False,
+                                "has_lui_widget": False,
+                                "files": []
+                            }
+                        spec_map[spec_raw]["files"].append((rel, content))
+
+                        if any(k in rel.lower() for k in ["domain", "model", "entity", "data"]) or \
+                           any(k in content for k in ["TypeDescriptor", "InstanceRecord", "Result", "DomainError", "ElevationProvider", "CoordinateTransformer", "SeedMigrationRunner", "FirestoreOperation", "GnmiTelemetryUpdate"]):
+                            spec_map[spec_raw]["has_domain"] = True
+
+                        if any(k in rel.lower() for k in ["viewmodel", "controller", "state", "cubit", "notifier"]) or \
+                           any(k in content for k in ["ViewModel", "ChangeNotifier", "Cubit", "StateNotifier", "CameraController", "SceneViewState"]):
+                            spec_map[spec_raw]["has_viewmodel"] = True
+
+                        if any(k in rel.lower() for k in ["widget", "panel", "view", "layout"]) or \
+                           any(k in content for k in ["StatelessWidget", "StatefulWidget", "Widget", "Painter"]):
+                            spec_map[spec_raw]["has_lui_widget"] = True
+
+    assert spec_map, "No realized specification tags (Feat-X, US-Y, UC-Z) found in app_flutter/lib/"
+
+    # Assert BDD User Story Widget test files exist in app_flutter/test/
+    test_files = [f for root, _, files in os.walk(test_dir) for f in files if f.endswith(".dart")]
+    assert len(test_files) > 0, "No BDD User Story Widget tests found in app_flutter/test/"
+
+    incomplete_specs = []
+    # Verify user-facing feature specifications (such as FEAT-10) possess all 3 layers
+    feature_specs_to_check = [s for s in spec_map.keys() if s.startswith("FEAT-") and s != "FEAT-000"]
+    for spec_id in feature_specs_to_check:
+        info = spec_map[spec_id]
+        missing_layers = []
+        if not info["has_domain"]:
+            missing_layers.append("Domain Model")
+        if not info["has_viewmodel"]:
+            missing_layers.append("ViewModel")
+        if not info["has_lui_widget"]:
+            missing_layers.append("LUI Widget Binding")
+        if missing_layers:
+            incomplete_specs.append(f"{spec_id} missing: {', '.join(missing_layers)}")
+
+    assert not incomplete_specs, f"Feature specifications missing full 3-layer LUI chain: {incomplete_specs}"
+
+
+

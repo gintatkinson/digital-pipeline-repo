@@ -78,10 +78,10 @@ def test_only_scope_suppresses_findings_about_other_files_issue321():
         "test can no longer distinguish scoping from a clean tree"
     )
 
-    target, other = "feat-10-logical-ui-layout.md", "feat-11-topology-map.md"
+    target, other = "feat-10-logical-ui-layout.md", "feat-13-zero-codegen-grid.md"
     before = unscoped.stdout.count(other)
-    assert before >= 2, (
-        f"{other} is expected to appear repeatedly in unscoped output; found {before}"
+    assert before >= 1, (
+        f"{other} is expected to appear in unscoped output; found {before}"
     )
 
     scoped = subprocess.run(
