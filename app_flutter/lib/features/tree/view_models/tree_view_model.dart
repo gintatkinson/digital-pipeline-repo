@@ -76,6 +76,38 @@ class TreeState {
 
 /// Realises: [Feat-10/TreeViewModel]
 ///
+/// Determines if a [node] represents a primitive leaf attribute descriptor
+/// that should be filtered out from root tree navigation.
+bool isPrimitiveAttribute(TreeNode node) {
+  final labelLower = node.label.toLowerCase();
+  final idLower = node.id.toLowerCase();
+  const primitives = <String>[
+    'mac address',
+    'ip version',
+    'as number',
+    'gauge 32',
+    'counter 32',
+    'ipv4 address',
+    'ipv6 address',
+  ];
+
+  for (final primitive in primitives) {
+    if (labelLower.contains(primitive) || idLower.contains(primitive)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// Realises: [Feat-10/TreeViewModel]
+///
+/// Determines if a [node] is a container entity eligible for root tree navigation.
+bool isContainerEntity(TreeNode node) {
+  return !isPrimitiveAttribute(node);
+}
+
+/// Realises: [Feat-10/TreeViewModel]
+///
 /// View model driving the sidebar tree: data loading, navigation, focus,
 /// and keyboard-driven expansion/selection.
 class TreeViewModel extends ChangeNotifier {
@@ -133,7 +165,11 @@ class TreeViewModel extends ChangeNotifier {
         roots = <TreeNode>[];
     }
 
-    final loadedTreeData = roots.isNotEmpty ? List<TreeNode>.from(roots) : List<TreeNode>.from(defaultTreeData);
+    final loadedTreeData = (roots.isNotEmpty
+            ? List<TreeNode>.from(roots)
+            : List<TreeNode>.from(defaultTreeData))
+        .where(isContainerEntity)
+        .toList();
     _sortNodesRecursively(loadedTreeData);
 
     _nodeKeys.clear();

@@ -289,7 +289,7 @@ class _PropertyGridState extends State<PropertyGrid> {
     dynamic parsedValue;
 
     if (field.required && valueString.trim().isEmpty) {
-      return (false, null, '${field.label} is required');
+      return (false, null, '${_resolveFieldLabel(field)} is required');
     }
 
     if (field.type == 'double') {
@@ -653,12 +653,14 @@ class _PropertyGridState extends State<PropertyGrid> {
     final cs = Theme.of(context).colorScheme;
     final Color brandPrimary = cs.primary;
 
+    final effectiveLabel = _resolveFieldLabel(field);
+
     if (field.type == 'enum') {
       final options = field.enumOptions ?? const [];
       final currentValue = committedData[field.key] ?? (options.isNotEmpty ? options.first : '');
 
       return _buildDropdownField(
-        label: field.label,
+        label: effectiveLabel,
         focusNode: _focusNodes[field.key]!,
         value: currentValue as String,
         errorText: _errors[field.key],
@@ -699,7 +701,7 @@ class _PropertyGridState extends State<PropertyGrid> {
       inputFormatters = _resolveInputFormatters(field);
 
       return _buildTextField(
-        label: field.label,
+        label: effectiveLabel,
         controller: _controllers[field.key]!,
         focusNode: _focusNodes[field.key]!,
         keyboardType: keyboardType,
@@ -709,6 +711,37 @@ class _PropertyGridState extends State<PropertyGrid> {
         panelOpacity: panelOpacity,
       );
     }
+  }
+
+  /// Derives the effective label for a field descriptor.
+  ///
+  /// If [fd.label] is empty or starts with fallback patterns like "Field ",
+  /// derives the label dynamically from [fd.key]. Otherwise returns [fd.label].
+  String _resolveFieldLabel(FieldDescriptor fd) {
+    final labelStr = fd.label.trim();
+    if (labelStr.isEmpty || labelStr.startsWith('Field ')) {
+      return _deriveLabelFromKey(fd.key);
+    }
+    return fd.label;
+  }
+
+  /// Formats a schema key into a human-readable title/label.
+  static String _deriveLabelFromKey(String key) {
+    final trimmed = key.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    if (trimmed.contains('_')) {
+      final parts = trimmed.split('_').where((p) => p.isNotEmpty);
+      return parts
+          .map((p) => p[0].toUpperCase() + p.substring(1))
+          .join(' ');
+    }
+
+    final exp = RegExp(r'(?<=[a-z0-9])(?=[A-Z])');
+    final words = trimmed.split(exp);
+    return words
+        .map((w) => w.isNotEmpty ? (w[0].toUpperCase() + w.substring(1)) : '')
+        .join(' ');
   }
 
   /// Builds a labelled [TextField] bound to [controller] and [focusNode].

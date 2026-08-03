@@ -69,5 +69,56 @@ void main() {
       viewModel.clearFlightTarget();
       expect(viewModel.flightTarget, isNull);
     });
+
+    test('shouldIdentifyPrimitiveAttributesAndContainerEntities', () {
+      const macNode = TreeNode(id: 'mac_1', label: 'MAC Address');
+      const ipVersionNode = TreeNode(id: 'IP Version', label: 'ip_ver');
+      const asNumberNode = TreeNode(id: 'as_num', label: 'AS Number');
+      const gaugeNode = TreeNode(id: 'gauge32_node', label: 'Gauge 32');
+      const counterNode = TreeNode(id: 'counter_node', label: 'Counter 32');
+      const ipv4Node = TreeNode(id: 'ipv4_addr', label: 'IPv4 Address');
+      const ipv6Node = TreeNode(id: 'ipv6_addr', label: 'IPv6 Address');
+
+      const rackNode = TreeNode(id: 'rack_1', label: 'Rack');
+      const neNode = TreeNode(id: 'ne_1', label: 'NetworkElement');
+      const compNode = TreeNode(id: 'comp_1', label: 'Component');
+      const locNode = TreeNode(id: 'loc_1', label: 'Location');
+
+      expect(isPrimitiveAttribute(macNode), isTrue);
+      expect(isPrimitiveAttribute(ipVersionNode), isTrue);
+      expect(isPrimitiveAttribute(asNumberNode), isTrue);
+      expect(isPrimitiveAttribute(gaugeNode), isTrue);
+      expect(isPrimitiveAttribute(counterNode), isTrue);
+      expect(isPrimitiveAttribute(ipv4Node), isTrue);
+      expect(isPrimitiveAttribute(ipv6Node), isTrue);
+
+      expect(isContainerEntity(rackNode), isTrue);
+      expect(isContainerEntity(neNode), isTrue);
+      expect(isContainerEntity(compNode), isTrue);
+      expect(isContainerEntity(locNode), isTrue);
+
+      expect(isContainerEntity(macNode), isFalse);
+    });
+
+    test('shouldFilterOutPrimitiveAttributesFromRootTreeNodes', () async {
+      mockRepo.roots = const [
+        TreeNode(id: 'ne_1', label: 'NetworkElement'),
+        TreeNode(id: 'mac_1', label: 'MAC Address'),
+        TreeNode(id: 'rack_1', label: 'Rack'),
+        TreeNode(id: 'ipv4_1', label: 'IPv4 Address'),
+        TreeNode(id: 'comp_1', label: 'Component'),
+        TreeNode(id: 'loc_1', label: 'Location'),
+        TreeNode(id: 'as_1', label: 'AS Number'),
+      ];
+
+      await viewModel.loadTree();
+
+      final rootIds = viewModel.treeData.map((n) => n.id).toList();
+      expect(rootIds, containsAll(['comp_1', 'loc_1', 'ne_1', 'rack_1']));
+      expect(rootIds, isNot(contains('mac_1')));
+      expect(rootIds, isNot(contains('ipv4_1')));
+      expect(rootIds, isNot(contains('as_1')));
+      expect(viewModel.treeData.length, equals(4));
+    });
   });
 }

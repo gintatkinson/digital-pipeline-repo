@@ -1397,3 +1397,15 @@ Issues #334, #335 and #336 bundle 124 defects into 3 tracker entries. That granu
 was chosen an hour after the Product Owner criticised over-filing, and it undercounts.
 Part R files per root cause. The three bundles are to be closed with pointers once their
 constituents are filed.
+
+---
+
+## Part S — executed change record
+
+FDI Governance Records generated for `UC-10` (`Drill Hierarchy`) and `UC-15` (`Provision Network Element (NE)`) under `.pipeline/records/`.
+
+| Item | Files Created | Status |
+|---|---|---|
+| UC-10 | `.pipeline/records/uc-10.md` | Realized & Verified |
+| UC-15 | `.pipeline/records/uc-15.md` | Realized & Verified |
+

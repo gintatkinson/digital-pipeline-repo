@@ -337,4 +337,24 @@ void main() {
     await tester.pump();
     expect(rolledBack, isTrue);
   });
+
+  testWidgets('Dynamically derives field label from key when label starts with Field fallback pattern',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      buildTestableWidget(
+        PropertyGrid(
+          fields: const [
+            FieldDescriptor(
+              key: 'max_voltage',
+              label: 'Field 1',
+              type: 'string',
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.text('Max Voltage'), findsOneWidget);
+    expect(find.text('Field 1'), findsNothing);
+  });
 }

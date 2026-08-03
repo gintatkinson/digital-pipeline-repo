@@ -120,6 +120,36 @@ void main() {
         expect(column.frozen, isFalse);
         expect(column.visible, isTrue);
       });
+
+      test('dynamically derives label from key when label starts with Field fallback pattern', () {
+        final fd = FieldDescriptor(
+          key: 'max_voltage',
+          label: 'Field 1',
+          type: 'double',
+        );
+        final column = ColumnModel.fromFieldDescriptor(fd);
+        expect(column.label, 'Max Voltage');
+      });
+
+      test('dynamically derives label from key when label is empty', () {
+        final fd = FieldDescriptor(
+          key: 'device_id',
+          label: '',
+          type: 'string',
+        );
+        final column = ColumnModel.fromFieldDescriptor(fd);
+        expect(column.label, 'Device Id');
+      });
+
+      test('preserves explicit custom label when label does not match fallback pattern', () {
+        final fd = FieldDescriptor(
+          key: 'max_voltage',
+          label: 'Maximum System Voltage',
+          type: 'double',
+        );
+        final column = ColumnModel.fromFieldDescriptor(fd);
+        expect(column.label, 'Maximum System Voltage');
+      });
     });
 
     group('edge cases', () {

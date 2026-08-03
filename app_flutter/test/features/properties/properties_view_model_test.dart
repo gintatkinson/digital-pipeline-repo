@@ -93,5 +93,47 @@ void main() {
       expect(updatedState.currentType, equals(desc));
       expect(updatedState, isNot(equals(state1)));
     });
+
+    test('shouldUpdateStateOnConfigureLocationAction', () {
+      bool listenerCalled = false;
+      viewModel.addListener(() {
+        listenerCalled = true;
+      });
+
+      viewModel.configureLocation('node-123');
+
+      expect(listenerCalled, isTrue);
+      expect(viewModel.state.lastAction, equals('configureLocation'));
+      expect(viewModel.state.activeNodeId, equals('node-123'));
+      expect(viewModel.state.actionMessage, contains('Location configured'));
+    });
+
+    test('shouldUpdateStateOnDrillHierarchyAction', () {
+      bool listenerCalled = false;
+      viewModel.addListener(() {
+        listenerCalled = true;
+      });
+
+      viewModel.drillHierarchy('node-456');
+
+      expect(listenerCalled, isTrue);
+      expect(viewModel.state.lastAction, equals('drillHierarchy'));
+      expect(viewModel.state.activeNodeId, equals('node-456'));
+      expect(viewModel.state.actionMessage, contains('Hierarchy drilled'));
+    });
+
+    test('shouldUpdateStateOnProvisionNeAction', () {
+      bool listenerCalled = false;
+      viewModel.addListener(() {
+        listenerCalled = true;
+      });
+
+      viewModel.provisionNe('node-789');
+
+      expect(listenerCalled, isTrue);
+      expect(viewModel.state.lastAction, equals('provisionNe'));
+      expect(viewModel.state.activeNodeId, equals('node-789'));
+      expect(viewModel.state.actionMessage, contains('NE provisioned'));
+    });
   });
 }

@@ -11,6 +11,8 @@ import 'package:app_flutter/features/tables/tabbed_container.dart';
 import 'package:app_flutter/features/tables/table_view_widget.dart';
 import 'package:app_flutter/features/topology/topographical_view.dart';
 import 'package:app_flutter/features/topology/topology_map.dart';
+import 'package:app_flutter/features/properties/properties_panel.dart';
+import 'package:app_flutter/features/properties/view_models/properties_view_model.dart';
 /// Realises: [Feat-10/ComponentFactory]
 ///
 /// Interprets a parsed logical-layout JSON tree and builds the corresponding
@@ -181,7 +183,10 @@ class ComponentFactory {
         final panelOpacity = context.watch<ThemeController>().panelOpacity;
         return Container(
           color: Theme.of(context).cardColor.withOpacity(panelOpacity),
-          child: buildChildWidget(context),
+          child: _PropertiesPanelHost(
+            currentView: currentView,
+            buildChildWidget: buildChildWidget,
+          ),
         );
       default:
         return const SizedBox.shrink();
@@ -311,3 +316,77 @@ class _TableViewContainerState extends State<_TableViewContainer> {
     );
   }
 }
+
+/// Host widget that creates a [PropertiesViewModel] and provides it to [PropertiesPanel].
+///
+/// Realises: [Feat-10/PropertiesPanel]
+/// Realises: [UC-03]
+/// Realises: [UC-10]
+/// Realises: [UC-15]
+class _PropertiesPanelHost extends StatefulWidget {
+  /// Member documentation.
+  final String currentView;
+  /// Member documentation.
+  final Widget Function(BuildContext) buildChildWidget;
+
+  const _PropertiesPanelHost({
+    required this.currentView,
+    required this.buildChildWidget,
+  });
+
+  @override
+  State<_PropertiesPanelHost> createState() => _PropertiesPanelHostState();
+}
+
+class _PropertiesPanelHostState extends State<_PropertiesPanelHost> {
+  PropertiesViewModel? _viewModel;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      try {
+        final ds = context.read<DataSource>();
+        _viewModel = PropertiesViewModel(ds)..loadType(widget.currentView);
+      } catch (_) {
+        // DataSource not found in context (e.g. isolated component unit tests)
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_PropertiesPanelHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentView != oldWidget.currentView) {
+      _viewModel?.loadType(widget.currentView);
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewModel?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final childWidget = widget.buildChildWidget(context);
+    final panel = PropertiesPanel(
+      activeView: widget.currentView,
+      currentNodeId: widget.currentView,
+      viewModel: _viewModel,
+      child: childWidget,
+    );
+
+    if (_viewModel != null) {
+      return ChangeNotifierProvider<PropertiesViewModel>.value(
+        value: _viewModel!,
+        child: panel,
+      );
+    }
+    return panel;
+  }
+}
+
