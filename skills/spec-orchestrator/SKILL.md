@@ -119,7 +119,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
       ```bash
       ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
       ```
-4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --limit 1000 --state all --json number,title,state,labels`) to verify the new Epics and Features exist and are properly interlinked. Do not proceed to Phase 2 until the structural foundation is verified.
+4. **Validation Gate**: You MUST wait for the Phase 1 execution to fully complete. The agent must successfully create all Feature issues FIRST, capture their IDs, inject them into the Epic markdown, and then create the Epic issue. Query GitHub (`gh issue list --limit 1000 --state all --json number,title,state,labels`) to verify the new Epics and Features exist and are properly interlinked. Once this validation passes, **execute Phase 2 immediately without pausing for user approval.**
 
 ## Phase 2 `[P]`: Behavioral Extraction - User Stories (Worker B)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `Behavioral Spec Worker`) with the `spec-user-story-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
@@ -131,7 +131,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
       ```bash
       ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
       ```
-4. **Validation Gate**: Verify that the `user-story` issues have been created in GitHub and that their tasklists successfully render the intersecting `#IssueID`s generated during Phase 1.
+4. **Validation Gate**: Verify that the `user-story` issues have been created in GitHub and that their tasklists successfully render the intersecting `#IssueID`s generated during Phase 1. Once this validation passes, **execute Phase 3 immediately without pausing for user approval.**
 
 ## Phase 3: System Interaction Extraction - UML Use Cases (Worker C)
 1. **Trigger / Dispatch**: The Coordinator MUST invoke a fresh subagent (TypeName: `self`, Role: `System Interaction Spec Worker`) with the `spec-usecase-engineering` skill and the text/path of the target specification document, appending the keyword `PROCEED` to authorize execution.
@@ -143,7 +143,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
       ```bash
       ./skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
       ```
-4. **Validation Gate**: Verify that the `use-case` issues have been created in GitHub and that the Realization Matrix successfully links back to User Stories and Features.
+4. **Validation Gate**: Verify that the `use-case` issues have been created in GitHub and that the Realization Matrix successfully links back to User Stories and Features. Once this validation passes, **execute Phase 4 immediately without pausing for user approval.**
 
 > **Phase 3 is NOT parallel-capable (issue #328).** It was previously marked `[P]`
 > on the claim that *"Worker C will find the User Story issues as soon as Worker B
@@ -180,7 +180,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
      > [!IMPORTANT]
      > **Canonical Source of Truth & Phase 4 Scope**: The tracker is the canonical source of truth and must remain fully populated at all times during the specification lifecycle. Phase 4 backlog reconciliation is a secondary verification gate (syncing checkbox lists, cross-links, and marking completed items `Fixed / Resolved`), rather than a deferred publisher of primary issue bodies. Do not defer the publishing of primary issue bodies to Phase 4.
    - The coverage linter parses raw schemas, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage within those class diagrams, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules (isolated classes, standard primitives, lifeline aliases, open return arrow assignments, system boundary use cases, undirected actor links, correct extend arrow directionality, etc.).
-4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%.
+4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%. Once this validation passes, **execute Phase 5 immediately without pausing for user approval.**
 
 ## Phase 5: Final Reporting
 1. Summarize the end-to-end pipeline execution for the user.

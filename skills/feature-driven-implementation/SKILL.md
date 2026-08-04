@@ -161,7 +161,7 @@ Configure the review method dynamically based on the current agent orchestrator 
 - If deviation from plan is critical (architectural change, missing spec compliance), STOP and return to "The Grill."
 
 #### 3.6 Code Presence Verification
-Before proceeding to Step 4, perform explicit grep or file-reading checks of all modified files to guarantee that all implementation code actually exists in the files. Do not trust summaries.
+Before proceeding to Step 4, perform explicit grep or file-reading checks of all modified files to guarantee that all implementation code actually exists in the files. Do not trust summaries. Once verified, **execute Step 4 immediately without pausing for user approval.**
 
 #### 3.7 Invariants
 - Maintain strong typing, domain-driven design conventions, and strict schema compliance.
@@ -188,7 +188,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 6. **Independent Subagent Validation Check (or Single-Agent Fallback Self-Audit):**
    - **Multi-Agent Mode:** Dispatch a separate **Validator Subagent** to read the draft walkthrough and cross-reference every referenced structural identifier and link target. The Validator subagent must independently locate these elements in the codebase to confirm they exist and match the logical specifications. Fail the validation step if there is any mismatch.
    - **Single-Agent Fallback:** The agent must step out of the implementation context and systematically audit its own draft walkthrough. Perform exact search lookups to verify that every single structural identifier and link target referenced in the walkthrough exists verbatim in the codebase. Document the results of this check explicitly before requesting user approval.
-7. Apply any feedback iteratively on the feature branch.
+7. Apply any feedback iteratively on the feature branch. Once all tests and validations pass, **execute Step 5 immediately without pausing for user approval.**
 
 ### Step 5: Release & Closure (CRITICAL)
 1. Merge the feature branch into the configured default branch resolved from configuration rules using the configured merge command template.

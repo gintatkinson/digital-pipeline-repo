@@ -12,6 +12,13 @@
 - You are strictly forbidden from creating, modifying, or deleting any file in the workspace unless that specific file and its exact changes are documented in the approved implementation plan.
 - If the user asks a question about whether a file was updated, you must answer "No" and ask if they want you to update the plan, rather than proactively making the change.
 
+## Automated Continuous Execution & Passing-Validation Fast-Path
+- **Continuous Execution Gate**: Once an implementation plan receives initial user approval (`PROCEED`), all documented work packages, subagent dispatches, verification tests, and git pushes are fully authorized to run continuously to completion without intermediate approval pauses.
+- **Stop-On-Failure Rule**: The coordinator MUST execute continuously through all subagent dispatches, verification tests, and git pushes. The coordinator is required to stop and prompt the user ONLY if:
+  1. A build, test, or linter gate fails (`exit code != 0`).
+  2. A blocking error or unresolvable requirement ambiguity is encountered.
+  3. The initial implementation plan has not been approved.
+
 ## Forbidden Test Workspace Creation
 - You are strictly forbidden from creating mock test projects, mock repository directories, or test-runner scripts (such as `test_project/` or `run_tests.py`) directly inside the workspace repository.
 - All testing validation or tool execution must run against existing configured project structures or be executed completely outside the workspace (e.g., in a temporary directory designated by the system scratch path or App Data Directory).
