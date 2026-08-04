@@ -599,6 +599,13 @@ SCHEMA_TRACEABILITY_CONTRACTS: List[RuleContract] = [
             "module, so container traceability is unverifiable."
         ),
     ),
+    RuleContract(
+        id="sysml-extraction-missing",
+        documented_in="implementation_plan.md",
+        doc_anchor="Package 2: `parity_auditor` SysML v2 Model Coverage Extension",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="sysml-extraction-missing",
+    ),
 ]
 
 SCHEMA_TRACEABILITY_FAMILY = ContractFamily(

@@ -222,6 +222,7 @@ def _main_impl():
                              "item are reported. Lets a single-item gate be strict "
                              "without blocking on unrelated drafts (issues #331, #321).")
     parser.add_argument("--scope-all", action="store_true", help="Check against ALL open feature issues (entire repo, not just local specs)")
+    parser.add_argument("--sysml", action="store_true", help="Run SysML v2 model coverage parity validation")
     
     args = parser.parse_args()
     
@@ -818,7 +819,7 @@ def _main_impl():
         
     print("\n=== Schema Cardinality Validation ===")
     cardinality_validator = SchemaCardinalityValidator()
-    cardinality_errors = _scope_findings(cardinality_validator.validate(repo), getattr(args, 'only', None))
+    cardinality_errors = _scope_findings(cardinality_validator.validate(repo, is_sysml=args.sysml), getattr(args, 'only', None))
     if cardinality_errors:
         print("[!] Schema Cardinality Violations Identified:")
         for err in cardinality_errors:

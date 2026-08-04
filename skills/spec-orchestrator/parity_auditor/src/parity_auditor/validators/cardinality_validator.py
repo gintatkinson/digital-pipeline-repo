@@ -29,6 +29,7 @@ def _extract_frontmatter(content: str):
 
 class SchemaCardinalityValidator(IValidator):
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
+        is_sysml = kwargs.get("is_sysml", False)
         rules = repo.get_codebase_rules()
         backlog_dirs = rules.backlog_directories
         
@@ -43,6 +44,43 @@ class SchemaCardinalityValidator(IValidator):
             return []
 
         features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
+        
+        if is_sysml:
+            errors = []
+            sysml_nodes = set()
+            for f in schema_files:
+                if f.endswith('.sysml'):
+                    try:
+                        with open(os.path.join(schemas_dir, f), 'r') as file:
+                            content = file.read()
+                            for match in re.finditer(r'(?:part|attribute|port)\s+def\s+(\w+)', content):
+                                sysml_nodes.add(match.group(1))
+                    except Exception:
+                        pass
+            
+            feature_texts = []
+            if features_dir and os.path.exists(features_dir):
+                for fn in os.listdir(features_dir):
+                    if fn.endswith('.md'):
+                        try:
+                            with open(os.path.join(features_dir, fn), 'r') as file:
+                                feature_texts.append(file.read())
+                        except Exception:
+                            pass
+            
+            for node in sysml_nodes:
+                found = False
+                for ft in feature_texts:
+                    if node in ft:
+                        found = True
+                        break
+                if not found:
+                    errors.append(Finding(
+                        "sysml-extraction-missing",
+                        f"SysML node '{node}' is not extracted into any feature specification.",
+                        location="features"
+                    ))
+            return errors
         use_cases_dir_rel = getattr(backlog_dirs, "use_cases", None)
         use_cases_dir = (
             os.path.join(repo.workspace_dir, use_cases_dir_rel)
