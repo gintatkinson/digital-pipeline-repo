@@ -70,7 +70,10 @@ In addition to standard deployment scenarios, you MUST scan the specification an
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-register-entity.md`). Format strictly:
+Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-separated, e.g., `us-01-register-entity.md`).
+> **Unified Slugification Mandate:** When generating filenames from titles (e.g., `us-29-fiber-cable-and-strand-inventory.md`), you MUST preserve all stop-words (like 'and', 'the', 'of', etc.) consistently. Do NOT strip stop-words when converting titles to lowercase hyphen-separated slugs.
+
+Format strictly:
 
 ```markdown
 ---
