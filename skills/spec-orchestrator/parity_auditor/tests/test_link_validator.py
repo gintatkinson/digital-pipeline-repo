@@ -33,13 +33,16 @@ def test_link_validator_detects_broken_link(tmp_path):
         "Here is a broken link [Broken](broken-target.md).\n"
         "Here is a GitHub blob link [Valid Blob](https://github.com/org/repo/blob/main/docs/features/valid-target.md).\n"
         "Here is a GitHub broken blob link [Broken Blob](https://github.com/org/repo/blob/main/docs/features/broken-blob.md).\n"
+        "Here is a GitHub broken yang link [Broken Yang](https://github.com/org/repo/blob/main/standard/ietf/RFC/nonexistent.yang).\n"
     )
 
     validator = LinkValidator()
     errors = validator.validate(repo)
     
-    assert len(errors) == 2
+    assert len(errors) == 3
     assert all(e.rule_id == "markdown-broken-link-reference" for e in errors)
     messages = [str(e) for e in errors]
     assert any("broken-target.md" in msg for msg in messages)
     assert any("broken-blob.md" in msg for msg in messages)
+    assert any("nonexistent.yang" in msg for msg in messages)
+

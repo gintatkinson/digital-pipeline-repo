@@ -8,7 +8,8 @@ from ..core.findings import Finding
 from ..core.workspace import WorkspaceRepository
 
 # Match markdown links: [text](link) ending in .md or with an anchor .md#anchor
-_LINK_RE = re.compile(r'\[[^\]]+\]\(([^)]+\.md(?:#[^)]*)?)\)')
+_LINK_RE = re.compile(r'\[[^\]]+\]\(([^)]+)\)')
+_GITHUB_BLOB_RE = re.compile(r'https://github\.com/[^\s/]+/[^\s/]+/blob/[^\s/]+/[^\s\)\]\'">]+')
 
 class LinkValidator(IValidator):
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[Finding]:
@@ -38,8 +39,15 @@ class LinkValidator(IValidator):
                     content = f.read()
                 
                 # Find all links
+                links_to_check = []
                 for match in _LINK_RE.finditer(content):
-                    link_raw = match.group(1)
+                    links_to_check.append(match.group(1))
+                
+                for match in _GITHUB_BLOB_RE.finditer(content):
+                    if match.group(0) not in links_to_check:
+                        links_to_check.append(match.group(0))
+
+                for link_raw in links_to_check:
                     link_target = link_raw.split("#")[0]  # strip fragments
                     
                     is_blob = False

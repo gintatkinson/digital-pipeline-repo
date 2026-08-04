@@ -102,6 +102,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
 > [!WARNING]
 > You must strictly follow the operational sequencing below to ensure the `#IssueID` linkages are perfectly resolved.
+> **Unified Slugification Mandate:** When generating filenames from titles (e.g., `feat-01-fiber-cable-and-strand-inventory.md`), you MUST preserve all stop-words (like 'and', 'the', 'of', etc.) consistently. Do NOT strip stop-words when converting titles to lowercase hyphen-separated slugs.
+
 
 1. **YAML Frontmatter:** Prepend strict YAML metadata to every `.md` file:
    ```yaml
@@ -297,6 +299,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     > - **Subgraph Title Quoting**: Mandate double quotes around subgraph titles with spaces or hyphens (e.g. `subgraph "System Boundary"`).
 
 4. **Source References Block (CRITICAL):**
+   - **Dynamic Schema Locator**: You MUST inspect the active workspace directories (e.g. `schema/`) to build schema locators dynamically. Do NOT hardcode legacy paths like `standard/ietf/RFC/`.
    - At the bottom of every feature markdown file, you MUST append a `## Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
    ```markdown
    ## Source References

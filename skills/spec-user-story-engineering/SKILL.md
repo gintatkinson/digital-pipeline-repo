@@ -143,6 +143,9 @@ stateDiagram-v2
 - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
+> [!IMPORTANT]
+> **Dynamic Schema Locator**: You MUST inspect the active workspace directories (e.g. `schema/`) to build schema locators dynamically. Do NOT hardcode legacy paths like `standard/ietf/RFC/`.
+
 Structural Schema: [Target Schema File](link-to-schema)
 Normative Specification: [Normative Specification](link-to-specification)
 
