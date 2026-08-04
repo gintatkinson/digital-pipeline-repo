@@ -132,3 +132,7 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 - **TDD RED-GREEN Gate Enforcement**: You must execute a failing integration/unit test (RED phase), document the failure, apply the codebase merge/remediation, and run the passing test (GREEN phase) to verify completeness.
 - **Subagent Permission Pre-Verification**: Before launching any subagent to execute tasks, you must verify that all required command prefixes, environment modifiers, and file scopes are fully pre-authorized on the active permissions table to guarantee 100% unattended background execution.
 
+## Closed-Loop Payload Verification Gate & Anti-Complacency Rule
+- **Exit code 0 is NEVER sufficient proof of success.**
+- After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
+- **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.

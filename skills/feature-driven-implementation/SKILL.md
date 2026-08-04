@@ -33,6 +33,7 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 13. **Verification-Before-Completion:** Before declaring any task, micro-task, or feature complete, the agent MUST provide concrete proof of correctness (raw test output, build output, or explicit file-content verification). Assertions like "it works" or "tests pass" without pasted evidence are forbidden.
 14. **Inter-Task Code Review:** After each micro-task, diff the changes against the approved plan. Log deviations. Critical deviations block progress until resolved with the user.
 15. **Subagent Research & Write Delegation:** The coordinator is strictly required to delegate all framework/dependency research tasks (Step 1.5) to a dedicated research subagent, and all codebase/specification micro-task write operations (Step 3) to dedicated implementer subagents.
+16. **Closed-Loop Payload Verification Gate & Anti-Complacency Rule:** Exit code 0 is NEVER sufficient proof of success. After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax. Optimism bias is prohibited: agents must cite empirical output of live payload inspection before declaring completion.
 
 ---
 

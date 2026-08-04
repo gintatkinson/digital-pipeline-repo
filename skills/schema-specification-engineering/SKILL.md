@@ -22,6 +22,11 @@ Use this as the single canonical workflow for translating structural schemas and
 > **EXHAUSTIVE SEMANTIC MODELING MANDATE**
 > Do NOT blindly map every isolated schema attribute (e.g., `x`, `y`, `z`) to a separate Feature. You MUST semantically model the schema by grouping cohesive properties into a single logical Feature (e.g., "Cartesian Coordinates"). However, "zero abstraction" still applies: within that grouped Feature, you MUST exhaustively document EVERY underlying attribute/node, capturing its exact data type, mathematical constraints (value ranges, units), defaults, and verbatim specification text. No constraint detail may be lost or summarized away.
 
+## Closed-Loop Payload Verification Gate & Anti-Complacency Rule
+- **Exit code 0 is NEVER sufficient proof of success.**
+- After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
+- **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.
+
 ## Step 1: Forensic Audit & Module Decomposition
 
 1. **Parse the Schema:** Read the primary structural schema file and its imports.

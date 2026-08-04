@@ -57,6 +57,11 @@ Before beginning orchestration, verify you have:
 
 To prevent context drift, contamination, and confirmation bias, **every individual specification item (Epic, Feature, User Story, and Use Case) MUST be processed by a new, fresh subagent with an isolated context.**
 
+## Closed-Loop Payload Verification Gate & Anti-Complacency Rule
+- **Exit code 0 is NEVER sufficient proof of success.**
+- After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
+- **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.
+
 Additionally:
 - **Mandatory Subagent Dispatch for Specification Phases**: The Master Orchestrator (Coordinator) MUST dispatch Phase Worker subagents (TypeName: `self`) for Phase 1, Phase 2, and Phase 3:
   * Phase 1: `Structural Spec Worker`
