@@ -54,6 +54,39 @@ MERMAID_CONTRACTS: List[RuleContract] = [
         note="The fault that shipped a non-rendering diagram on issue #283.",
     ),
     RuleContract(
+        id="mermaid-diagram-unquoted-brackets-forbidden",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Unquoted Bracket Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="mermaid-diagram-unquoted-brackets-forbidden",
+        note=(
+            "Enforced since #288 but stated only in .agents/AGENTS.md, never in this "
+            "file's normative home for Mermaid rules — the #289 fragmentation shape."
+        ),
+    ),
+    RuleContract(
+        id="mermaid-node-label-must-be-quoted",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Node Label Quoting Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="unquoted special characters in node label",
+        note="Same provenance as the rule above.",
+    ),
+    RuleContract(
+        id="mermaid-subgraph-title-must-be-quoted",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Subgraph Title Quoting Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="unquoted subgraph title containing spaces or hyphens",
+    ),
+    RuleContract(
+        id="mermaid-quotes-must-be-balanced",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Quote Balance Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="unclosed double quotes in line",
+    ),
+    RuleContract(
         id="mermaid-no-curly-brace-in-class-member",
         documented_in="rules/platform-independence.md",
         doc_anchor="Mermaid Class Member Brace Rules",
@@ -244,6 +277,18 @@ DOC_REFERENCE_CONTRACTS: List[RuleContract] = [
         doc_anchor="Cited Paths Must Resolve",
         enforced_in="tests/test_skill_path_references.py",
         enforcement_anchor="governance documents reference paths that do not exist",
+    ),
+    RuleContract(
+        id="markdown-broken-link-reference",
+        documented_in="rules/document-references.md",
+        doc_anchor="Markdown Links Must Resolve",
+        enforced_in=f"{PARITY_SRC}/validators/link_validator.py",
+        enforcement_anchor="markdown-broken-link-reference",
+        note=(
+            "The specification-corpus counterpart of cited-paths-resolve: that rule "
+            "governs paths in governance prose, this one governs markdown links inside "
+            "backlog specifications, and a different checker enforces it."
+        ),
     ),
     RuleContract(
         id="doc-ref-cited-steps-resolve",
@@ -601,8 +646,12 @@ SCHEMA_TRACEABILITY_CONTRACTS: List[RuleContract] = [
     ),
     RuleContract(
         id="sysml-extraction-missing",
-        documented_in="implementation_plan.md",
-        doc_anchor="Package 2: `parity_auditor` SysML v2 Model Coverage Extension",
+        # Was anchored to a heading in implementation_plan.md, which is a working
+        # document that gets rewritten; the heading went away and the rule became
+        # orphan enforcement. Re-homed to rules/, which is where a normative rule
+        # belongs and which rules/constitution-first.md requires agents to read.
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="SysML Nodes Must Be Extracted Into A Feature",
         enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
         enforcement_anchor="sysml-extraction-missing",
     ),
@@ -1781,6 +1830,13 @@ UML_MODEL_CONTRACTS: List[RuleContract] = [
         enforcement_anchor="class-diagram-must-model-the-schema-container-path",
     ),
     RuleContract(
+        id="class-diagram-relationship-requires-multiplicity",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Composition And Aggregation Relationships Must Declare A Multiplicity",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="class-diagram-relationship-requires-multiplicity",
+    ),
+    RuleContract(
         id="class-diagram-must-model-the-schema-containment-relationships",
         documented_in="rules/uml-model-integrity.md",
         doc_anchor="Class Diagrams Must Model The Schema Containment Relationships",
@@ -1796,6 +1852,16 @@ UML_MODEL_FAMILY = ContractFamily(
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
     doc_file="rules/uml-model-integrity.md",
     doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+    doc_only={
+        "SysML Nodes Must Be Extracted Into A Feature": (
+            "Registered in the schema-traceability family as sysml-extraction-missing, "
+            "and enforced in cardinality_validator.py rather than uml.py. It is stated "
+            "in this document because this file is the normative home for the "
+            "model-integrity constraints, and because its previous anchor -- a heading "
+            "in implementation_plan.md -- was deleted when that working document was "
+            "rewritten, leaving the rule enforced and documented nowhere."
+        ),
+    },
 )
 
 

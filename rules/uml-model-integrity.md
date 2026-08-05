@@ -165,6 +165,12 @@ those are.
 - **Members Must Declare A Visibility Prefix**: every attribute and method must carry a UML
   visibility prefix. Visibility is what the sequence-diagram public-operation rule above
   is checked against, so an unprefixed member makes that rule unevaluable.
+- **Composition And Aggregation Relationships Must Declare A Multiplicity**: every
+  composition or aggregation relationship must carry a multiplicity tag on at least one
+  association end (`1`, `0..1`, `0..*`). This is distinct from the member rule below,
+  which governs attributes and return signatures: a whole-part relationship with no
+  cardinality states that a part belongs to a whole without saying how many, which is
+  exactly the schema fact the relationship exists to carry.
 - **Members Must Declare A Multiplicity**: every attribute, and every method return
   signature, must declare a multiplicity such as `[1]`, `[0..1]` or `[0..*]`. Optionality
   and cardinality are schema facts and are lost if they are not written down.
@@ -180,6 +186,14 @@ those are.
 - **Class Diagrams Must Model The Schema Containment Relationships**: consecutive segments
   of that path must be joined by a relationship representing containment. Present nodes
   with absent edges reproduce the schema's vocabulary without its structure.
+- **SysML Nodes Must Be Extracted Into A Feature**: every node discovered in a SysML v2
+  model must appear in at least one Feature specification. An unextracted node is a
+  modelled element with no functional requirement behind it, which is the coverage gap
+  `.pipeline/constitution.md` § *Data Model Integrity* prohibits ("Every schema
+  definition, model node, data object ... MUST map to at least one Feature"). Stated here
+  because this file is the normative home for the constraints `cardinality_validator.py`
+  and `uml.py` enforce; it was previously anchored to a heading in `implementation_plan.md`
+  that no longer exists, leaving the rule enforced and undocumented.
 
 ## Why
 

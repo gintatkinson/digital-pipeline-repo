@@ -49,6 +49,12 @@ MIGRATED = (
     # assertion true, and what forces any future emission site in it to carry a rule id.
     "spec_title_uniqueness_validator.py",
     "source_reference_validator.py",
+    # Added by #336 rather than migrated: its single emission site was written as
+    # Finding("markdown-broken-link-reference", ...) from the start, so it joins the
+    # ledger fully migrated. It was absent from both MIGRATED and NOT_YET_MIGRATED,
+    # which is the "unaccounted for" state test_validator_discovery_is_not_vacuous_issue304
+    # exists to catch -- an emitting validator no gate was checking.
+    "link_validator.py",
     "cardinality_validator.py",
     "spec_validator.py",
     "dependency_validator.py",

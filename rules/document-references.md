@@ -18,6 +18,14 @@ document must refer to something that exists.
   exist on disk. A dangling path is worse than no reference, because it sends the reader —
   or a dispatched subagent instructed to read it — somewhere empty, and the resulting
   silence looks like an absence of instructions rather than a broken link.
+- **Markdown Links Must Resolve**: Every relative markdown link in a backlog specification
+  MUST point at a file that exists. This is the specification-corpus counterpart of the
+  rule above — that one governs paths named in governance prose, this one governs
+  `[text](target)` links in Epics, Features, User Stories and Use Cases, and it is
+  enforced by a different checker (`link_validator.py`, offline, no network). A broken
+  link inside a specification is worse than a broken prose reference, because the
+  specification is published to the tracker where the link renders as live and resolves
+  to a 404 for every reader.
 - **Cited Steps Must Resolve**: Every cross-document citation of another document's numbered
   step MUST name a step that exists in the cited document. A citation to a step that is not
   there defeats verification: a reader checking whether an override or cross-reference
