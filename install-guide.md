@@ -33,6 +33,16 @@ pip install -r requirements.txt
 Copy the pipeline directories into your active project repository workspace:
 
 ```bash
+# Refuse to run inside the pipeline repository itself. The cleanup steps below are
+# written for a downstream project: here they delete the upstream-only profile this
+# repo owns and concatenate .gitignore onto itself. `test -e` is used rather than
+# `find -type f` because rules/document-references.md requires existence checks to
+# observe symlinks.
+if [ -e ./.pipeline/upstream ]; then
+  echo "REFUSING: this is the pipeline repository, not a downstream project." >&2
+  exit 1
+fi
+
 git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
 cp -RP ./.tmp-pipeline/skills ./
