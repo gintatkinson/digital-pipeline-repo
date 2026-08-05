@@ -1859,7 +1859,14 @@ KNOWN_UNREGISTERED_FAMILIES = {
         "artefact in the repository, so no test over source can observe it. Closing "
         "this would need an out-of-band control - a transcript/thought-block auditor "
         "or a runtime pre-tool-use hook that refuses a coordinator write until the "
-        "check is recorded for that turn. Neither exists here."
+        "check is recorded for that turn. Neither exists here. "
+        "A pre-tool-use hook of exactly that shape was built and then withdrawn under "
+        "implementation_plan.md Part R: it worked, but the machinery was judged "
+        "disproportionate to the problem and the simpler control was kept instead "
+        "(removal of blanket write permissions, so each write is confirmed "
+        "interactively). This entry therefore remains fully open, and deliberately so "
+        "- recording it as closed on the strength of a control that is no longer "
+        "present is the stale-disclaimer failure this mapping exists to prevent."
     ),
 }
 
@@ -1874,7 +1881,29 @@ KNOWN_UNREGISTERED_FAMILIES = {
 # submitted for human approval.
 # OPEN divergences. Empty is the goal, not a defect — but the structure must remain so
 # a future divergence has a defined home rather than being left undocumented.
-KNOWN_DOC_DIVERGENCES: dict = {}
+KNOWN_DOC_DIVERGENCES: dict = {
+    "coordinator-direct-governance-writes": (
+        "rules/role-boundary-lock.md section Coordinator Direct Writing & Research "
+        "Lock, and .agents/AGENTS.md section Strict Coordinator Tool Locking point 4, "
+        "require every repository source, governance and tooling write to be delegated "
+        "to a context-isolated subagent. In this runtime that rule is unexecutable as "
+        "written: the harness is configured not to spawn subagents unless the user "
+        "explicitly requests one, so a coordinator facing a governance repair has no "
+        "compliant route and -- per issue #312 -- does the work itself rather than "
+        "halting. That is exactly what happened in implementation_plan.md Part Q, "
+        "where the conflict was raised as an open question (Q6), never answered, and "
+        "then resolved silently by the coordinator in its own favour. "
+        "DECISION: the user was asked directly and chose coordinator-direct execution "
+        "with this divergence registered, over delegation or amendment "
+        "(implementation_plan.md Part R, decision D1). "
+        "RESOLUTION PATH: either the runtime configuration changes to permit standing "
+        "subagent dispatch, or rules/role-boundary-lock.md is amended to scope the "
+        "delegation duty to specification and implementation phases and exclude "
+        "governance and tooling repair. The second option was offered and not taken, "
+        "so the rule stands as written and this entry records that practice diverges "
+        "from it deliberately rather than accidentally."
+    ),
+}
 
 
 # RESOLVED divergences, retained as history. Each MUST name the amendment or change that
