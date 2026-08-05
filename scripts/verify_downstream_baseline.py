@@ -160,11 +160,22 @@ def main():
         is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
         is_react = os.path.exists(os.path.join(dest, "package.json"))
 
+        # An explicit --no-domain on the command line is the operator's decision and is
+        # never overridden. The config-file setting is a stored default, so it IS
+        # overridden once a domain directory exists on disk -- that is what stops a
+        # stale config silently disabling verification on a project that has since
+        # implemented its domain.
+        #
+        # Both were overridden until this was fixed, which made --no-domain inert: the
+        # shipped app_flutter and web_react templates both contain a domain directory,
+        # so the flag cancelled itself on every fresh install and the documented
+        # "verify the workspace structure prior to implementing the domain model" path
+        # ran a full `flutter build macos --release` instead.
         no_domain_for_target = args.no_domain
-        if check_no_domain_config(repo_root) or check_no_domain_config(dest):
+        if not args.no_domain and (
+            check_no_domain_config(repo_root) or check_no_domain_config(dest)
+        ):
             no_domain_for_target = True
-
-        if no_domain_for_target:
             flutter_domain = os.path.join(dest if is_flutter else repo_root, "lib", "domain")
             react_domain = os.path.join(dest if is_react else repo_root, "src", "domain")
             if os.path.isdir(flutter_domain) or os.path.isdir(react_domain):
