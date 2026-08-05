@@ -732,3 +732,37 @@ Two findings surfaced during execution that were not in the plan:
 No gate was weakened to reach green. Every fix either restored a document a gate reads,
 implemented a rule a gate already asserted, or restored an assertion that had been
 removed.
+
+## Part V — Audit the current snapshot for disabled gates
+
+Not a commit audit. The customer reviews releases and current snapshots, so the question
+is "which gates in the tree as it stands cannot fail", not "which commit disabled them".
+
+<!-- APPROVED-FILES:START -->
+skills/spec-orchestrator/parity_auditor/tests/test_bug188.py
+<!-- APPROVED-FILES:END -->
+
+Method: AST scan of every `test_*` function across `tests/` and the parity auditor suite
+for bodies that are empty, `pass`-only, or contain no `assert`; plus a scan for
+unconditional `pytest.skip`.
+
+Result — 611 test functions scanned, one genuine finding:
+
+- `test_bug188.py::test_empty_schemas_dir_no_enforcement` runs the validator, prints the
+  result, and asserts nothing. `if len(errors) > 0: print("Bug reproduced...")` passes
+  whether the bug is present or absent. Its sibling
+  `test_empty_schemas_dir_with_gitkeep_no_enforcement` performs the same setup and does
+  assert `len(errors) == 0`, so the intent is unambiguous and the assertion is simply
+  missing. Fix: assert the same condition.
+
+Cleared, not defects:
+- Four tests with no `assert` are legitimate — two use `pytest.raises`, one monkeypatches
+  `socket.connect` to raise, and two assert "does not raise" by calling the function.
+- Every `pytest.skip` is guarded by a condition; none is unconditional.
+
+#### 4-Point Compliance Check
+
+1. Command — fix it rather than report it.
+2. Yes, for the one file above.
+3. No silent assumptions; the sibling test establishes the intended assertion.
+4. Yes, repository test source. Coordinator-direct per D1, divergence registered.
