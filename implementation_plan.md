@@ -592,3 +592,57 @@ happen. It cannot ask whether that write is in an approved plan. The Strict Plan
 Gate therefore remains a prose rule enforced by the agent's own compliance, which is the
 condition that produced #295, #312 and Part Q. The mitigation now in place reduces the
 blast radius; it does not close the class. Registered above, not claimed as solved.
+
+## Part T — Fix the four governance wording defects that caused downstream agent failures
+
+Two downstream implementation agents failed. Both traced to upstream prose, not to their
+own reasoning. Fixing the prose stops it recurring for every downstream agent.
+
+<!-- APPROVED-FILES:START -->
+.agents/AGENTS.md
+skills/feature-driven-implementation/SKILL.md
+rules/tdd-mandate.md
+tests/test_implementation_dod_wording.py
+<!-- APPROVED-FILES:END -->
+
+T1. `.agents/AGENTS.md` — the 3-Layer DoD bullet says every implementation subagent's DoD
+must enforce the full chain. That contradicts the single-item scope rule in the same
+section, the 2-5 minute micro-task mandate, and the actual gate
+(`test_every_specification_has_full_lui_chain`), which aggregates per `FEAT-*` across all
+files. Restate: the chain binds per specification item; a micro-task either delivers a
+layer or names the micro-task that closes it; `N/A` is forbidden for a layer.
+
+T2. `skills/feature-driven-implementation/SKILL.md` mandate 14 — "critical deviations
+block progress" never defines critical, so agents self-classify and proceed. Enumerate
+four that halt: changing the file set, in-place modification where the task said append,
+altering an existing public contract, scope beyond the named files.
+
+T3. `rules/tdd-mandate.md` — nothing says a compile error is not a valid RED. An agent
+treated one as RED, which hid the behavioural failures that were the real evidence. State
+that a test which fails to compile has not run.
+
+T4. `skills/feature-driven-implementation/SKILL.md` § 3.1 No Handover Trust — add the
+provenance check. Unexpected pre-existing symbols must be resolved with git before
+editing; an uncommitted concurrent writer is a HALT under the § 3.7 parallel invariant.
+
+T5. `tests/test_implementation_dod_wording.py` — asserts all four survive. Without it they
+are orphan documentation, which is what `tests/rule_contracts.py` exists to prevent.
+
+Verification: full suite reports exactly the 11 pre-existing failures, no new names.
+
+#### 4-Point Compliance Check
+
+1. Command — "proceed", the constitutional authorization keyword.
+2. Yes, for the files listed above and no others.
+3. No silent assumptions; the four edits are stated in full above.
+4. Yes, this turn writes repository governance files. Coordinator-direct per decision D1,
+   divergence already registered in `KNOWN_DOC_DIVERGENCES`.
+
+## Part T — executed change record
+
+All four edits applied plus the guarding test. `tests/test_implementation_dod_wording.py`
+passes 9/9. Full suite: 11 failed, 545 passed, 16 skipped — the same 11 pre-existing
+failures, 9 new passes, no new names. Ruff clean under the project gate (F,E9).
+
+Scope note: T2 and T4 both land in `skills/feature-driven-implementation/SKILL.md`, as
+planned; they are separate edits to Core Mandate 14 and to § 3.1 respectively.

@@ -31,7 +31,12 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 11. **Subagent-Driven Development:** Each micro-task SHOULD be dispatched to a fresh subagent with isolated context. The coordinator provides only the task text, relevant file contents, and project conventions — never the full session history. This prevents context drift and confirmation bias. See Step 3 for runtime-specific dispatch instructions.
 12. **Two-Stage Review:** After each micro-task's implementation, two reviews MUST occur in order: (1) **Spec Compliance Review** — does the code match the approved plan and RFC/spec requirements? (2) **Code Quality Review** — is the code well-structured, typed, tested, and maintainable? Both must pass before proceeding to the next task.
 13. **Verification-Before-Completion:** Before declaring any task, micro-task, or feature complete, the agent MUST provide concrete proof of correctness (raw test output, build output, or explicit file-content verification). Assertions like "it works" or "tests pass" without pasted evidence are forbidden.
-14. **Inter-Task Code Review:** After each micro-task, diff the changes against the approved plan. Log deviations. Critical deviations block progress until resolved with the user.
+14. **Inter-Task Code Review:** After each micro-task, diff the changes against the approved plan. Log deviations. Critical deviations block progress until resolved with the user. A deviation is **critical** — HALT and ask, do not log-and-continue — when any of these hold:
+    - the set of files touched differs from the set named in the task;
+    - the task says append or add, and delivering it requires modifying or replacing existing code;
+    - the change alters the behaviour or signature of an existing symbol that has callers, including changing which error type a function returns;
+    - the work expands beyond the named files to make the named files compile or pass.
+    Everything else is logged and execution continues. "This is the only viable path" is not a finding — if the task as written cannot be delivered without a critical deviation, that is the report, and the plan is what changes.
 15. **Subagent Research & Write Delegation:** The coordinator is strictly required to delegate all framework/dependency research tasks (Step 1.5) to a dedicated research subagent, and all codebase/specification micro-task write operations (Step 3) to dedicated implementer subagents.
 16. **Closed-Loop Payload Verification Gate & Anti-Complacency Rule:** Exit code 0 is NEVER sufficient proof of success. After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax. Optimism bias is prohibited: agents must cite empirical output of live payload inspection before declaring completion.
 
@@ -83,6 +88,7 @@ Execution follows a **per-task subagent dispatch loop**. The coordinator reads t
 
 #### 3.1 Pre-Execution
 1. **No Handover Trust:** Never assume previous phases or turns implemented a portion of the code correctly based on summaries. Explicitly open and check the source code files in all relevant directories.
+   - **Provenance check.** If a target file already contains symbols the task assumed absent, establish where they came from **before editing them**: `git status <file>`, `git log -p -2 <file>`, `git diff <file>`. Committed code means the task was written against a stale view of the file — report that, do not silently reconcile. Uncommitted changes by another process mean a concurrent writer, which is a **HALT** under § 3.7 *Invariants* ("Never dispatch multiple implementer subagents in parallel on the same feature"); editing that file corrupts their work. Deciding which case applies is two commands and is never optional.
 2. **Extract All Tasks:** Read the approved plan. Extract every micro-task with its full text, target files, driving test, and verification step. Create a tracking list (e.g., `task.md` or TodoWrite).
 3. **TDD Cycle Mandate:** Mandate writing failing unit tests for both Happy Path AND all alternate/exception flows declared in specs before entering the GREEN refactoring phase.
 
