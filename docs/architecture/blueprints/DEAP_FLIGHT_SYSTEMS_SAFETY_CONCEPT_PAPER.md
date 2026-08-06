@@ -171,21 +171,14 @@ DEAP formalizes STPA control flaws into 4 core Unsafe Control Actions (UCAs):
 To prevent temporal and spatial cross-talk between safety-critical guidance loops and lower-criticality telemetry, the FCC operates under an **ARINC 653 module OS configuration**.
 
 ```mermaid
-gantt
-    title ARINC 653 Major Frame Execution Schedule (100 ms Cycle)
-    dateFormat  SS
-    axisFormat %S sec
-
-    section Partition 1 (DAL A)
-    Flight Control Loop (Pitch/Roll)   :active, p1, 00, 20s
-    section Partition 2 (DAL A)
-    Autopilot & Navigation Engine       :active, p2, 20, 50s
-    section Partition 3 (DAL B)
-    Sensor Fusion & ADC Filter          :active, p3, 50, 75s
-    section Partition 4 (DAL D)
-    Telemetry & Display Buffer          :crit, p4, 75, 95s
-    section Health Monitor
-    ARINC 653 HM Check Window           :done, hm, 95, 100s
+flowchart LR
+    subgraph ARINC653["ARINC 653 Major Frame Execution Schedule (100 ms Cycle)"]
+        direction LR
+        P1["Partition 1 (DAL A)<br/>Flight Control Loop (Pitch/Roll)<br/>0 - 20 ms (20 ms window)"] --> P2["Partition 2 (DAL A)<br/>Autopilot & Navigation Engine<br/>20 - 50 ms (30 ms window)"]
+        P2 --> P3["Partition 3 (DAL B)<br/>Sensor Fusion & ADC Filter<br/>50 - 75 ms (25 ms window)"]
+        P3 --> P4["Partition 4 (DAL D)<br/>Telemetry & Display Buffer<br/>75 - 95 ms (20 ms window)"]
+        P4 --> HM["Health Monitor<br/>HM Memory & Stack Check<br/>95 - 100 ms (5 ms window)"]
+    end
 ```
 
 - **Major Frame Duration:** `100 ms` cyclic loop.
