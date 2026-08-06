@@ -9,7 +9,7 @@ Welcome to the Digital Engineering Agentic Pipeline (DEAP). This repository cont
 
 By feeding these agents a Structural Schema and its associated Normative Specification Document, the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
 
-## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
+## Documentation at: https://github.com/gintatkinson/DEAP-spec-core
 
 ---
 
@@ -453,5 +453,5 @@ This pipeline can also be used **alongside** [Spec Kit](https://github.com/githu
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
-## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
+## Documentation at: https://github.com/gintatkinson/DEAP-spec-core
 
