@@ -13,7 +13,7 @@
 
 Low-altitude Unmanned Aircraft System (UAS) operations—specifically Beyond Visual Line of Sight (BVLOS) flights conducting critical infrastructure inspection of cellular towers, high-voltage power grids, and cross-country energy pipelines—operate in complex, hazardous airspace environments. Unmanned aerial vehicles must dynamically navigate non-cooperative ground obstacles, severe electromagnetic field (EMF) flux surrounding transmission lines, radio frequency (RF) front-end saturation near cellular base stations, thin utility wire hazards, and loss of Command and Control (C2) datalinks.
 
-The **Digital Engineering Agentic Pipeline (DEAP)** Low-Altitude UAS Infrastructure Safety Architecture establishes a rigorous, automated safety-engineering blueprint for autonomous UAS platforms. By integrating top-down **System-Theoretic Process Analysis (STPA)** with bottom-up **Failure Mode, Effects, and Criticality Analysis (FMECA)** into the DEAP dual-pipeline master-worker framework, this architecture guarantees that low-altitude flight safety constraints are mechanically derived from international standards (JARUS SORA v2.5, ASTM, RTCA, 3GPP), verified by static AST linters, and traceably linked down to flight controller source code (PX4, ArduPilot, ROS2) and test execution logs.
+The **Digital Engineering Agentic Pipeline (DEAP)** Low-Altitude UAS Infrastructure Safety Architecture establishes a rigorous, automated safety-engineering blueprint for autonomous UAS platforms. By integrating top-down **System-Theoretic Process Analysis (STPA)** with bottom-up **Failure Mode, Effects, and Criticality Analysis (FMECA)** into the DEAP dual-pipeline master-agent framework, this architecture guarantees that low-altitude flight safety constraints are mechanically derived from international standards (JARUS SORA v2.5, ASTM, RTCA, 3GPP), verified by static AST linters, and traceably linked down to flight controller source code (PX4, ArduPilot, ROS2) and test execution logs.
 
 Traditional UAS safety compliance relies on static manual risk assessments that create substantial risk gaps: safety control measures drift from autopilot implementations, complex environmental hazards (such as EMF magnetometer saturation or 5G handover latencies) are neglected in software validation, and Run Time Assurance (RTA) geofencing boundaries lack continuous mechanical AST verification. DEAP eliminates these systemic vulnerabilities by embedding machine-readable safety schemas, subagent execution rules, and automated verification gates into every stage of the specification and implementation lifecycle.
 
@@ -31,7 +31,7 @@ flowchart TD
     subgraph DEAP_Core ["DEAP Automated UAS Safety Core"]
         STPA_Engine["Top-Down STPA Engine (C2 Loss, EMF, Wire Strike, Geofence)"]
         FMECA_Engine["Bottom-Up FMECA Engine (RF Saturation, BMS Cell Sag, Optical Glare)"]
-        Dual_Pipe["DEAP Master-Worker Dual-Pipeline (Workers A-D)"]
+        Dual_Pipe["DEAP Master-Agent Dual-Pipeline (Agents A-D)"]
     end
 
     subgraph Verification ["Mechanical Safety & Linters Gate"]
@@ -49,7 +49,7 @@ The DEAP UAS Infrastructure Safety Architecture enforces four core architectural
 
 1. **Deterministic Regulatory Alignment:** Mechanically map operations in specific risk categories to JARUS SORA v2.5 SAIL I through SAIL VI requirements, establishing precise Ground Risk Class (GRC 1–7) and Air Risk Class (ARC-a to ARC-d) mitigation strategies.
 2. **Integrated Environmental & Cyber-Physical Risk Engine:** Synthesize top-down STPA control flaws (evaluating unsafe interaction between GCS, 5G C2 links, flight controllers, DAA sensor suites, and actuators) with bottom-up FMECA failure modes (addressing EMF flux saturation, 5G tower RF front-end overload, thin wire optical non-detection, and battery cell voltage drops).
-3. **Automated Master-Worker Governance:** Leverage context-isolated subagents (Workers A–D) to extract SORA requirements, construct Given-When-Then BDD User Stories, formalize Use Case Realization Matrices, and execute continuous gap audits.
+3. **Automated Master-Agent Governance:** Leverage context-isolated subagents (Agents A–D) to extract SORA requirements, construct Given-When-Then BDD User Stories, formalize Use Case Realization Matrices, and execute continuous gap audits.
 4. **Bi-Directional Safety Traceability:** Maintain 100% auditability across the system lifecycle through standardized `/// Safety-Realises:` tags connecting SORA GRC/ARC metrics to PX4, ArduPilot, and ROS2 code symbols and test suite outputs.
 
 ---
@@ -89,7 +89,7 @@ flowchart LR
 
 | Regulatory Standard | Domain & Scope | Mandated System Deliverable | DEAP Mechanical Automation Mechanism |
 | :--- | :--- | :--- | :--- |
-| **JARUS SORA v2.5** | Overall Operational Risk | GRC 1-7, ARC-a to d, SAIL I-VI, Operational Safety Objectives (OSOs) | Worker A ingests SORA parameters and outputs SORA Safety Epics and OSO features. |
+| **JARUS SORA v2.5** | Overall Operational Risk | GRC 1-7, ARC-a to d, SAIL I-VI, Operational Safety Objectives (OSOs) | Agent A ingests SORA parameters and outputs SORA Safety Epics and OSO features. |
 | **ASTM F3269-17** | Run Time Assurance (RTA) | Flight Envelope Protection, Containment Geofence System | RTA Geofence AST Linter verifies non-breachable boundary calculation and auto-RTL fallback code. |
 | **ASTM F3411-22a** | Remote ID & Tracking | Direct (Broadcast) & Network Remote ID, 1Hz Open-Drone-ID Payload | Remote ID Payload Verifier validates BLE 4/5 / Wi-Fi NaN message structures and transmission rates. |
 | **RTCA DO-365B** | Detect and Avoid (DAA) | MOPS for Low-Altitude DAA (LiDAR/Radar/Electro-Optical), Well-Clear Volumes | DAA Collision Avoidance Gate verifies hazard alerting logic (Warning, Caution, Traffic Avoidance). |
@@ -319,17 +319,17 @@ flowchart TD
 
 ## Section 5: DEAP Dual-Pipeline Integration Architecture
 
-DEAP embeds SORA regulatory parameters, STPA control models, and FMECA risk matrices directly into its master-worker dual pipeline.
+DEAP embeds SORA regulatory parameters, STPA control models, and FMECA risk matrices directly into its master-agent dual pipeline.
 
 ```mermaid
 flowchart TD
     subgraph Pipe1 ["Pipeline 1: SORA Safety Specification Engineering"]
-        WorkerA["Worker A: SORA Schema Engineer\n(Ingests SORA GRC/ARC, SAIL & STPA/FMECA)"]
-        WorkerB["Worker B: BDD User Story Engineer\n(Generates GWT Scenarios & Safety Tags)"]
-        WorkerC["Worker C: Use Case Engineer\n(Formal OOA/OOD & Traceability Realization)"]
-        WorkerD["Worker D: Safety Implementation Auditor\n(Gap Analysis & Backlog Synchronization)"]
+        AgentA["Agent A: SORA Schema Engineer\n(Ingests SORA GRC/ARC, SAIL & STPA/FMECA)"]
+        AgentB["Agent B: BDD User Story Engineer\n(Generates GWT Scenarios & Safety Tags)"]
+        AgentC["Agent C: Use Case Engineer\n(Formal OOA/OOD & Traceability Realization)"]
+        AgentD["Agent D: Safety Implementation Auditor\n(Gap Analysis & Backlog Synchronization)"]
 
-        WorkerA --> WorkerB --> WorkerC --> WorkerD
+        AgentA --> AgentB --> AgentC --> AgentD
     end
 
     subgraph Pipe2 ["Pipeline 2: Micro-Task Implementation Pipeline"]
@@ -342,12 +342,12 @@ flowchart TD
     Pipe1 -->|"Approved Safety Backlog"| Pipe2
 ```
 
-### 5.1 Pipeline 1 Safety Worker Roles
+### 5.1 Pipeline 1 Safety Agent Roles
 
-- **Worker A (SORA Schema Specification Engineer):** Ingests raw SORA v2.5 operational profiles and FMECA tables. Outputs `SORASafetyEpic` and `SORASafetyFeature` specs with assigned SAIL levels and GRC/ARC metrics.
-- **Worker B (BDD User Story Engineer):** Translates safety features into Given-When-Then BDD scenarios, attaching mandatory `/// Safety-Realises: [SORA-GRC-xxx/UCA-yyy]` tags.
-- **Worker C (Use Case Engineer):** Builds formal System Use Cases detailing Primary Actors, Preconditions, Main Success Workflows, and Exception Scenarios (e.g., handling 5G front-end saturation).
-- **Worker D (Specification Implementation Auditor):** Executes automated gap analysis against the codebase, verifying that every SORA requirement maps to implemented source symbols via `reconcile_backlog.py`.
+- **Agent A (SORA Schema Specification Engineer):** Ingests raw SORA v2.5 operational profiles and FMECA tables. Outputs `SORASafetyEpic` and `SORASafetyFeature` specs with assigned SAIL levels and GRC/ARC metrics.
+- **Agent B (BDD User Story Engineer):** Translates safety features into Given-When-Then BDD scenarios, attaching mandatory `/// Safety-Realises: [SORA-GRC-xxx/UCA-yyy]` tags.
+- **Agent C (Use Case Engineer):** Builds formal System Use Cases detailing Primary Actors, Preconditions, Main Success Workflows, and Exception Scenarios (e.g., handling 5G front-end saturation).
+- **Agent D (Specification Implementation Auditor):** Executes automated gap analysis against the codebase, verifying that every SORA requirement maps to implemented source symbols via `reconcile_backlog.py`.
 
 ---
 
