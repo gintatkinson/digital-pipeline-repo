@@ -1,6 +1,6 @@
 ---
 title: "3-Tier Mechanical Rule Enforcement Architecture Blueprint"
-project: "Digital Systems Engineering Pipeline"
+project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: architecture
 created: "2026-08-03"
 last_updated: "2026-08-03"
@@ -8,7 +8,7 @@ last_updated: "2026-08-03"
 
 # 3-Tier Mechanical Rule Enforcement Architecture Blueprint
 
-> **Goal**: Establish a multi-layered, automated, and non-repudiable rule enforcement framework for the Digital Systems Engineering Pipeline. This architecture shifts compliance from manual review to deterministic mechanical validation across pre-execution, build-time, and post-implementation phases.
+> **Goal**: Establish a multi-layered, automated, and non-repudiable rule enforcement framework for the Digital Engineering Agentic Pipeline (DEAP). This architecture shifts compliance from manual review to deterministic mechanical validation across pre-execution, build-time, and post-implementation phases.
 
 ---
 

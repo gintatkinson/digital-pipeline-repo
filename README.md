@@ -1,8 +1,8 @@
 <!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
 
-# Digital Systems Engineering Pipeline (Builders Project)
+# Digital Engineering Agentic Pipeline (DEAP) (Builders Project)
 
-Welcome to the Digital Systems Engineering Pipeline. This repository contains a suite of autonomous AI Agent "Skills" designed to:
+Welcome to the Digital Engineering Agentic Pipeline (DEAP). This repository contains a suite of autonomous AI Agent "Skills" designed to:
 
 1. **Specification-engineer protocol standards** into deterministic, behavior-driven Agile tracking matrices in the active issue tracker.
 2. **Implement features** from those backlogs using subagent-driven TDD execution discipline with two-stage review gates.
@@ -199,7 +199,7 @@ After copying the pipeline, configure Gemini to load the skills and rules:
    # Agent Instructions
 
    ## Pipeline Skills
-   This project uses the Digital Systems Engineering Pipeline.
+   This project uses the Digital Engineering Agentic Pipeline (DEAP).
    - Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/`)
    - Rules: read all files in the configured rules directory (e.g., `rules/`) -- these are mandatory constraints that apply to every task
    - Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
