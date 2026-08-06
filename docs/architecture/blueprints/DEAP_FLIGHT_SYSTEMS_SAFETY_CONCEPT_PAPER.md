@@ -351,45 +351,149 @@ flowchart LR
 
 ## Section 4: FMECA Bottom-Up Risk Framework
 
-While STPA addresses system-level control flaws, Failure Mode, Effects, and Criticality Analysis (FMECA) addresses bottom-up component, bus, and register failure modes.
+While System-Theoretic Process Analysis (STPA) provides top-down hazard identification focused on unsafe control interactions, Failure Mode, Effects, and Criticality Analysis (FMECA) provides the indispensable bottom-up engineering foundation. FMECA evaluates individual component failure rates, hardware interface degradations, bus register corruptions, and semiconductor soft errors to calculate quantitative criticality indices ($C_r$) and Risk Priority Numbers ($\mathrm{RPN}$). DEAP unifies top-down STPA with bottom-up FMECA into an integrated, closed-loop safety synthesis engine.
 
-### 4.1 FMECA Hardware & Bus Risk Matrix
+### 4.1 Mathematical & Failure-Rate Foundations of FMECA
+
+FMECA in safety-critical avionic systems is governed by a rigorous mathematical framework standardized across **SAE ARP4761A**, **MIL-HDBK-338B**, **MIL-STD-1629A**, **IEEE 1413**, and **NASA/SP-2016-6105**.
+
+#### 4.1.1 Component Failure Rate Formulation ($\lambda_p$)
+Per MIL-HDBK-338B and IEEE 1413, the operational predicted failure rate of an airborne electronic component $\lambda_p$ (expressed in failures per $10^6$ flight hours) is modeled as:
+
+$$\lambda_p = \lambda_b \cdot \pi_Q \cdot \pi_E \cdot \pi_T$$
+
+where:
+- $\lambda_b$: Base failure rate determined from empirical component stress models under standard reference conditions ($25^\circ\text{C}$, 50% rated electrical stress).
+- $\pi_Q$: Quality factor, reflecting component screening and manufacturing assurance levels (e.g., MIL-PRF-38535 Class V space/aerospace microcircuits vs. commercial COTS components).
+- $\pi_E$: Environmental factor, accounting for mechanical vibration, acoustic noise, thermal shock, and airborne operating environments (e.g., Airborne Inhabited Cargo $\text{AIC} = 4.0$, Airborne Uninhabited Fighter $\text{AUF} = 10.0$).
+- $\pi_T$: Thermal acceleration factor derived from the Arrhenius equation:
+  $$\pi_T = \exp\left( \frac{-E_a}{k_B} \left( \frac{1}{T_{\text{op}}} - \frac{1}{T_{\text{ref}}} \right) \right)$$
+  where $E_a$ is activation energy ($\text{eV}$), $k_B$ is Boltzmann's constant ($8.617 \times 10^{-5}\text{ eV/K}$), $T_{\text{op}}$ is operating junction temperature ($\text{K}$), and $T_{\text{ref}}$ is reference temperature ($298.15\text{ K}$).
+
+#### 4.1.2 Failure Mode Failure Rate ($\lambda_m$)
+Each physical component exhibits $K$ discrete failure modes. The specific failure rate assigned to failure mode $m \in \{1, \dots, K\}$ is given by:
+
+$$\lambda_m = \lambda_p \cdot \alpha$$
+
+where $\alpha$ is the **Failure Mode Ratio** representing the fraction of the total component failure rate attributed to mode $m$, satisfying the probability conservation constraint:
+
+$$\sum_{m=1}^{K} \alpha_m = 1.0, \quad 0 \le \alpha_m \le 1.0$$
+
+#### 4.1.3 Mode & Component Criticality Index ($C_r$)
+Per MIL-STD-1629A Task 102 and SAE ARP4761A, the Item Criticality Index $C_r$ quantifies the expected frequency of catastrophic or hazardous system losses over operating duration $t$ (in flight hours):
+
+$$C_r = \sum_{m=1}^{K} C_{m} = \sum_{m=1}^{K} \left( \lambda_m \cdot \beta \cdot t \right) = \sum_{m=1}^{K} \left( \lambda_p \cdot \alpha \cdot \beta \cdot t \right)$$
+
+where:
+- $\beta$ (Loss Beta): Conditional probability of loss, representing the probability that failure mode $m$ propagates to cause a catastrophic or hazardous end-effect ($0.0 \le \beta \le 1.0$).
+- $t$: Operating mission duration ($t = 1.0$ flight hour baseline).
+
+#### 4.1.4 Risk Priority Number (RPN) Formulation
+To prioritize mechanical mitigation engineering within DEAP build pipelines, each failure mode is evaluated using the quantitative Risk Priority Number ($\mathrm{RPN}$):
+
+$$\mathrm{RPN} = S \times O \times D$$
+
+where:
+- **Severity ($S$, 1–10):** Measures the maximum end-effect impact on aircraft safety, mapped directly to SAE ARP4761A severity categories.
+- **Occurrence ($O$, 1–10):** Logarithmic scale representing the failure rate $\lambda_p$ ($1 = \lambda_p < 10^{-9}/\text{hr}$, $10 = \lambda_p > 10^{-3}/\text{hr}$).
+- **Detection ($D$, 1–10):** Quantifies the likelihood that onboard diagnostic mechanisms (BIST, parity verification, ARINC 653 health monitor) detect the fault before system-level propagation ($1 = \text{Automated instant hardware detection}$, $10 = \text{Undetectable / Silent latent fault}$).
+
+#### 4.1.5 SAE ARP4761A Severity Classification & Probability Boundaries
+
+| Severity Category | Qualitative Definition | Quantitative Probability Boundary (per Flight Hour) | Max Allowable Criticality ($\beta \cdot \lambda_m$) | Required Software / Hardware Assurance Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **Catastrophic** | Total aircraft loss, fatal injuries to all occupants | $P < 10^{-9}$ (Extremely Improbable) | $\le 10^{-9}$ | **DO-178C DAL A / DO-254 DAL A** |
+| **Hazardous / Severe-Major** | Severe reduction in safety margins, physical distress or high pilot workload | $P < 10^{-7}$ (Extremely Remote) | $\le 10^{-7}$ | **DO-178C DAL B / DO-254 DAL B** |
+| **Major** | Significant reduction in safety margins, inconvenience or injury to occupants | $P < 10^{-5}$ (Remote) | $\le 10^{-5}$ | **DO-178C DAL C / DO-254 DAL C** |
+| **Minor** | Slight reduction in safety margins, minor pilot action | $P < 10^{-3}$ (Reasonably Probable) | $\le 10^{-3}$ | **DO-178C DAL D / DO-254 DAL D** |
+| **No Safety Effect** | Zero impact on operational safety or crew workload | $P \ge 10^{-3}$ (Frequent) | N/A | **DO-178C DAL E / DO-254 DAL E** |
+
+---
+
+### 4.2 Component, Interface, and Register Failure Mode Analysis
+
+DEAP extends FMECA into low-level hardware, avionic bus interfaces, FPGA register arithmetic, sensor physics, and power management electronics.
+
+#### 4.2.1 Avionic Data Buses (ARINC 429 & MIL-STD-1553B)
+- **ARINC 429 Parity Flips & SSM Bit Corruption:** Electromagnetic interference (EMI) or differential line noise induces single-bit parity errors in 32-bit ARINC 429 data frames. Corruption of Sign/Status Matrix (SSM, bits 30–31) bits alters valid functional status (`Normal Operation`) into `Failure Warning` or `No Computed Data`, triggering receiver FIFO word discards and temporary barometric altitude or heading input loss.
+- **MIL-STD-1553B Bus Babbling & Manchester II Jitter:** A stick-at-high transmitter gate or transceiver lockup on a Remote Terminal (RT) results in continuous bus babbling, saturating Primary Bus A. Phase jitter in Manchester II biphase-L encoding ($> 90\text{ ns}$) breaks bit sync word detection, forcing bus controller retries and telemetry delays.
+
+#### 4.2.2 FPGA & Fixed-Point Mathematics
+- **Q16.16 / Q32.32 MSB Sign-Bit Overflow:** Fixed-point arithmetic accumulators in DSP core routines (e.g., PID pitch loop integrators) lacking hardware saturation logic suffer Most Significant Bit (MSB) wrap-around. In Q16.16 signed notation, $+32767.9999$ ($0\text{x}7\text{FFF}.\text{FFFF}$) wraps around to $-32768.0000$ ($0\text{x}8000.\text{0000}$), transforming a smooth elevator pitch recovery command into an instantaneous full-scale pitch-down surface hardover.
+- **SRAM Single-Event Upset (SEU) Soft Errors:** High-altitude galactic cosmic rays or solar heavy ion collisions cause bit flips in SRAM-based FPGA configuration memory or internal Block RAM (BRAM), corrupting filter coefficients or control routing interconnects.
+
+#### 4.2.3 Avionic & UAS Sensors
+- **IMU MEMS Gyroscope Drift:** Thermal gradients or micro-machined silicon beam fatigue induce un-modeled bias drift ($\Delta \omega > 2.0^\circ/\text{s}$), causing Extended Kalman Filter (EKF) covariance buildup and attitude estimation divergence.
+- **Barometric Altimeter Freeze:** Pitot-static probe line icing or static port obstruction freezes static pressure readings during descent, presenting false constant altitude readings to autopilot guidance algorithms.
+- **LiDAR Point-Cloud Sparsity in Fog/Rain:** Mie scattering and atmospheric water droplet absorption attenuate 905nm/1550nm laser returns, causing point-cloud sparsity ($> 85\%$ drop in point density) and obstacle non-detection.
+- **Optical Camera Dazzle under Corona Discharge & Sun Glare:** Low sun elevation angles or high-voltage AC transmission line corona UV/optical discharges dazzle CCD/CMOS image sensors, saturating pixel arrays and failing feature tracking filters.
+
+#### 4.2.4 Power Management & Battery BMS
+- **LiPo / LiFePO4 Single-Cell Voltage Collapse:** High-current load surges during wind gust recovery cause single-cell internal resistance voltage drops ($V_{\text{cell}} < 3.0\text{V}$), initiating thermal runaway cascades or flight controller brownouts.
+- **I2C / SMBus Fuel-Gauge Bus Lockup:** Noise on SCL/SDA serial lines locks the fuel-gauge microcontroller in a stretch-clock condition, freezing State-of-Charge (SoC) telemetry presented to the pilot/GCS.
+- **ESC MOSFET Thermal Breakdown & CAN/DroneCAN Arbitration Loss:** H-bridge MOSFET thermal breakdown short-circuits motor phase lines. Bus contention or ESD electrical noise on CAN/DroneCAN differential lines causes arbitration loss, dropping throttle control frames.
+
+---
+
+### 4.3 Exhaustive Quantitative FMECA Matrix (12 Detailed Worksheets)
+
+The 12-row quantitative FMECA matrix below synthesizes component failure rates ($\lambda_p$), failure mode ratios ($\alpha$), loss probabilities ($\beta$), local and system effects, RPN scores, and DEAP mechanical mitigations.
+
+| Item ID | Subsystem / Component | Failure Mode | Root Cause | Failure Rate $\lambda_p$ (per $10^6$ hr) | Failure Mode Ratio $\alpha$ | Loss Beta $\beta$ | Local Effect | System Effect | S | O | D | RPN | DEAP Mechanical Mitigation Strategy |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **FMECA-01** | ARINC 429 Rx Interface | Parity Bit Flip / SSM Corruption | EMI transient coupling on differential pair | $1.25 \times 10^{-6}$ | 0.60 | 0.05 | Receiver FIFO word discard; invalid SSM state | Temporary loss of ADC barometric altitude feed | 7 | 4 | 2 | **56** | Dual-channel bus voting logic + ARINC 429 Parity Verification Linter. |
+| **FMECA-02** | MIL-STD-1553 Transceiver | Bus Babbling (RT Stuck Transmitter) | Transceiver gate short to power rail | $4.50 \times 10^{-7}$ | 0.15 | 0.20 | Bus A saturated with un-arbitrated frames | Delays in flight management telemetry and surface feedback | 6 | 3 | 3 | **54** | Hardware fail-passive isolator + bus monitor timeout gate ($t < 660\,\mu\text{s}$). |
+| **FMECA-03** | FPGA Math ALU | Q16.16 MSB Overflow ($+32767 \to -32768$) | Unbounded integrator sum in pitch loop | $2.10 \times 10^{-7}$ | 0.25 | 0.95 | Sign bit inversion in pitch accumulator | Unintended elevator control surface hardover | 10 | 2 | 2 | **40** | AdaCore SPARK formal proof + hardware saturation arithmetic AST verifier. |
+| **FMECA-04** | FPGA Configuration SRAM | SEU Radiation Bit Flip | Cosmic heavy ion collision in Block RAM | $8.90 \times 10^{-6}$ | 0.40 | 0.80 | Routing table or gain bit corruption | Sudden pitch channel control loop instability | 9 | 5 | 2 | **90** | Triple Modular Redundancy (TMR) + periodic SRAM scrubbing engine. |
+| **FMECA-05** | IMU MEMS Gyroscope | High-Rate Bias Drift ($\Delta \omega > 2.0^\circ/\text{s}$) | Thermal stress / micro-machined beam fatigue | $3.20 \times 10^{-6}$ | 0.35 | 0.70 | EKF attitude covariance buildup | Aircraft pitch/roll angle divergence & LOC-I | 10 | 4 | 2 | **80** | Multi-IMU innovation residual test + dual GPS/optical flow fallback. |
+| **FMECA-06** | Pitot-Static Barometer | Pressure Transducer Freeze | Ice crystallization in static port | $5.10 \times 10^{-6}$ | 0.30 | 0.60 | Constant altitude output despite descent | Autopilot under-reads altitude, CFIT risk | 10 | 4 | 3 | **120** | Dual heated static probe + synthetic GNSS/radar altitude cross-check. |
+| **FMECA-07** | DAA LiDAR Unit | Point-Cloud Sparsity ($> 85\%$ drop) | Mie scattering in dense fog / rain | $1.20 \times 10^{-5}$ | 0.50 | 0.75 | Obstacle distance estimation drop | Un-detected thin wire / intruder collision | 9 | 5 | 3 | **135** | Multi-spectral 1550nm pulsed LiDAR + FMCW millimeter-wave radar fusion. |
+| **FMECA-08** | Navigation Camera | Sensor Pixel Dazzle / Glare Saturation | Solar glare at low sun angles / UV corona | $8.40 \times 10^{-6}$ | 0.45 | 0.30 | High-contrast image frame saturation | Optical feature tracking loss; hover drift | 5 | 5 | 2 | **50** | Dynamic exposure control + optical/thermal IR dual-camera fusion. |
+| **FMECA-09** | LiPo Battery BMS | Single-Cell Voltage Collapse ($< 3.0\text{V}$) | High-current gust load / electrolyte decay | $2.80 \times 10^{-6}$ | 0.20 | 0.90 | Bus supply voltage sag below 14V | Flight controller brownout & loss of flight | 10 | 3 | 2 | **60** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
+| **FMECA-10** | BMS I2C Fuel Gauge | SMBus Clock Stretch Lockup | High-voltage transmission line EMI noise | $6.30 \times 10^{-6}$ | 0.30 | 0.25 | State-of-Charge (SoC) update freeze | False battery level display; premature crash | 7 | 4 | 2 | **56** | Hardware I2C bus reset timer + redundant CAN-bus BMS interface. |
+| **FMECA-11** | ESC Motor Drive | H-Bridge MOSFET Thermal Breakdown | Die thermal runaway under over-current | $1.80 \times 10^{-6}$ | 0.25 | 0.85 | Phase short circuit to ground/power | Propulsion motor lost; asymmetric thrust | 9 | 3 | 2 | **54** | Dual isolation relays with automatic hardware power cutoff lines. |
+| **FMECA-12** | DroneCAN Bus Controller | Bus Arbitration Loss / Signal Noise | Ground loop potential / ESD discharge | $4.20 \times 10^{-6}$ | 0.40 | 0.40 | Throttle command frame dropping | Actuator response lag; control degradation | 8 | 4 | 2 | **64** | Redundant dual CAN transceivers + automatic hardware bus recovery. |
+
+---
+
+### 4.4 Thought Leadership & Solution Provider Integration
+
+DEAP synthesizes industry-leading safety engineering platforms, formal verification languages, partition operating systems, and hardware-in-the-loop testing frameworks into a unified, continuous safety automation ecosystem.
 
 ```mermaid
 flowchart TD
-    subgraph Hardware_Faults ["Bottom-Up Hardware Failure Modes"]
-        F1["ARINC 429 Parity / Label Failure"]
-        F2["MIL-STD-1553 Bus Babbling"]
-        F3["FPGA Q16.16 Overflow"]
+    subgraph Solution_Providers ["Industry Thought Leadership & Tooling Stack"]
+        Medini["Ansys Medini Analyze\n(Model-Based ARP4761A & STPA Synthesis)"]
+        WindRiver["Wind River VxWorks 653 / LynxOS-178\n(ARINC 653 Time/Space Partitioning)"]
+        AdaCore["AdaCore SPARK Ada 2012\n(Formal AST Proofs: Zero Overflow/Bounds)"]
+        dSPACE["dSPACE SCALEXIO HIL\n(Automated Fault Injection Testing)"]
     end
 
-    subgraph Local_Impact ["Local Component Impact"]
-        L1["Receiver FIFO Word Discard"]
-        L2["Primary Bus Contention"]
-        L3["Fixed-Point Sign Bit Inversion"]
+    subgraph DEAP_Pipeline ["DEAP Continuous Safety Integration Core"]
+        DEAP_Orchestrator["DEAP Master Safety Orchestrator"]
+        AST_Checker["DEAP AST & Verification Linters"]
     end
 
-    subgraph System_Hazard ["System Level Critical Effect"]
-        S1["Temporary Loss of Altitude Feed"]
-        S2["Telemetry Processing Delay"]
-        S3["Elevator Control Surface Hardover"]
-    end
-
-    F1 --> L1 --> S1
-    F2 --> L2 --> S2
-    F3 --> L3 --> S3
+    Medini -->|"SysML Safety Models & FMECA Matrices"| DEAP_Orchestrator
+    WindRiver -->|"ARINC 653 XML Schedule Config"| DEAP_Orchestrator
+    AdaCore -->|"SPARK Proof Logs & AST Annotations"| AST_Checker
+    dSPACE -->|"HIL Real-Time Fault Injection Logs"| AST_Checker
 ```
 
-#### 4.1.1 FMECA Detailed Breakdown Table
+#### 4.4.1 Ansys Medini Analyze Integration (Model-Based ARP4761A & STPA)
+DEAP integrates with **Ansys Medini Analyze** via standardized SysML/XMI exchange interfaces. Medini Analyze provides the model-based safety repository for Functional Hazard Assessment (FHA), Preliminary System Safety Assessment (PSSA), System Safety Assessment (SSA), and STPA. DEAP automatically parses Medini XML export schemas to extract STPA Unsafe Control Actions and quantitative FMECA worksheets, populating Worker A and Agent A specification backlogs with zero manual transposition error.
 
-| Item ID | Component / Interface | Failure Mode | Cause | Local Effect | System Effect | S | O | D | RPN | Mitigation Strategy |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FMECA-HW-01** | ARINC 429 Receiver Bus | Parity Bit Flip / Invalid SSM State | Electromagnetic Interference (EMI) on twisted pair | Word rejected by FCC FIFO buffer | Temporary drop in barometric altitude input | 7 | 4 | 2 | **56** | Dual-channel bus redundancy + ARINC 429 Parity Verification Linter. |
-| **FMECA-HW-02** | MIL-STD-1553 Bus | Bus Babbling (RT Continuous Transmission) | Transceiver stuck-at-high transmitter gate | Primary Bus A saturated with illegal transmissions | Delayed flight management telemetry updates | 6 | 3 | 3 | **54** | Hardware fail-passive isolator + bus monitor timeout gate (`t < 660 us`). |
-| **FMECA-HW-03** | FPGA Control Math Unit | Q16.16 Fixed-Point Register Overflow | Unbounded integrator sum in pitch loop | 16-bit MSB sign bit inversion (`+32767 -> -32768`) | Unintended control surface hardover command | 10 | 2 | 2 | **40** | Saturation arithmetic AST verifier + hardware overflow flags. |
-| **FMECA-HW-04** | Elevator Motor Driver | H-Bridge MOSFET Short Circuit | Thermal stress / breakdown | Motor phase shorted to power rail | Elevator trim locks in current position | 9 | 2 | 3 | **54** | Dual isolation relays with automatic hardware disconnect lines. |
+#### 4.4.2 Wind River VxWorks 653 & LynxOS-178 Partition Isolation
+To guarantee absolute spatial and temporal partition isolation under **RTCA DO-178C DAL A**, DEAP targeting profiles integrate directly with **Wind River VxWorks 653** and **LynxOS-178** RTOS configurations. The ARINC 653 XML schedule definitions (defining major frame cycle time, partition window allocation, and memory page protection tables) are generated and verified mechanically by DEAP AST linters, guaranteeing that lower-criticality tasks (e.g., DAL D telemetry) can never preempt or corrupt DAL A flight control execution.
 
-*RPN Formula:* $\text{RPN} = \text{Severity (S)} \times \text{Occurrence (O)} \times \text{Detection (D)}$, scored from $1$ to $10$. Items with $\text{RPN} \ge 40$ or $\text{Severity} \ge 9$ require mandatory mechanical DEAP linters.
+#### 4.4.3 AdaCore SPARK Ada Formal AST Verification
+DEAP leverages **AdaCore SPARK Ada 2012** to achieve formal mathematical verification of flight software algorithms. Using GNATprove and Z3/CVC4 SMT solvers, DEAP AST linters verify formal proofs for:
+- **Zero Arithmetic Overflow:** Proving that Q16.16 and Q32.32 accumulators can never wrap around under any inputs.
+- **Zero Array Out-of-Bounds Access:** Proving static array boundary compliance.
+- **Zero Dynamic Heap Memory Allocation:** Proving total static memory allocation at compile-time.
+
+#### 4.4.4 dSPACE HIL Automated Fault Injection Testing
+Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Hardware-in-the-Loop (HIL)** test environments. DEAP test runners trigger automated real-time fault injection on physical buses and sensors—injecting ARINC 429 parity bit flips, MIL-STD-1553 bus babbling, MEMS gyro drift, and BMS cell voltage drops. DEAP verifies that the flight control computer detects the fault within specified latency boundaries ($t < 10\text{ ms}$) and asserts appropriate fail-passive or fail-operational safety mitigations.
 
 ---
 

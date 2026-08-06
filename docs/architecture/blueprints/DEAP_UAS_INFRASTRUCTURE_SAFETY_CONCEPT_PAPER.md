@@ -267,53 +267,152 @@ Feature: Low-Altitude Infrastructure Safety Constraint Enforcement
 
 ---
 
-## Section 4: FMECA Bottom-Up Hardware & Environmental Risk Matrix
+## Section 4: FMECA Bottom-Up Risk Framework
 
-While STPA analyzes top-down control interactions, Failure Mode, Effects, and Criticality Analysis (FMECA) addresses bottom-up component, sensor, and environmental hardware failure modes.
+While System-Theoretic Process Analysis (STPA) models top-down UAS safety as a dynamic control problem, Failure Mode, Effects, and Criticality Analysis (FMECA) provides the bottom-up engineering foundation required under **JARUS SORA v2.5** (SAIL I–VI), **ASTM F3269-17**, and **RTCA DO-365B**. FMECA quantifies component failure rates, sensor degradation physics under environmental flux, bus register corruptions, and power management collapses to calculate quantitative item criticality ($C_r$) and Risk Priority Numbers ($\mathrm{RPN}$). DEAP unifies top-down STPA with bottom-up FMECA into a closed-loop UAS safety synthesis engine.
 
-### 4.1 FMECA Architecture & Environmental Failure Modes
+### 4.1 Mathematical & Failure-Rate Foundations of FMECA
+
+FMECA in low-altitude autonomous UAS and infrastructure inspection systems is governed by a mathematically rigorous framework standardized across **SAE ARP4761A**, **MIL-HDBK-338B**, **MIL-STD-1629A**, **IEEE 1413**, and **NASA/SP-2016-6105**.
+
+#### 4.1.1 Component Failure Rate Formulation ($\lambda_p$)
+Per MIL-HDBK-338B and IEEE 1413, the operational predicted failure rate of an onboard electronic or sensor component $\lambda_p$ (expressed in failures per $10^6$ flight hours) is modeled as:
+
+$$\lambda_p = \lambda_b \cdot \pi_Q \cdot \pi_E \cdot \pi_T$$
+
+where:
+- $\lambda_b$: Base failure rate determined from empirical component stress models under standard reference conditions ($25^\circ\text{C}$, 50% rated electrical load).
+- $\pi_Q$: Quality factor, reflecting component screening and manufacturing assurance levels (e.g., MIL-PRF-38535 Class V space/aerospace components vs. industrial COTS sensors).
+- $\pi_E$: Environmental factor, accounting for severe low-altitude environmental stresses, acoustic rotor vibration, high-voltage electromagnetic fields (EMF), and thermal cycling (e.g., Ground Mobile / Low-Altitude Uninhabited $\text{GM/LAU} = 5.0$).
+- $\pi_T$: Thermal acceleration factor derived from the Arrhenius equation:
+  $$\pi_T = \exp\left( \frac{-E_a}{k_B} \left( \frac{1}{T_{\text{op}}} - \frac{1}{T_{\text{ref}}} \right) \right)$$
+  where $E_a$ is activation energy ($\text{eV}$), $k_B$ is Boltzmann's constant ($8.617 \times 10^{-5}\text{ eV/K}$), $T_{\text{op}}$ is operating junction temperature ($\text{K}$), and $T_{\text{ref}}$ is reference temperature ($298.15\text{ K}$).
+
+#### 4.1.2 Failure Mode Failure Rate ($\lambda_m$)
+Each physical UAS subsystem component exhibits $K$ discrete failure modes. The failure rate assigned to a specific failure mode $m \in \{1, \dots, K\}$ is given by:
+
+$$\lambda_m = \lambda_p \cdot \alpha$$
+
+where $\alpha$ is the **Failure Mode Ratio** representing the fraction of total component failure rate attributed to mode $m$, satisfying the probability conservation constraint:
+
+$$\sum_{m=1}^{K} \alpha_m = 1.0, \quad 0 \le \alpha_m \le 1.0$$
+
+#### 4.1.3 Mode & Component Criticality Index ($C_r$)
+Per MIL-STD-1629A Task 102 and SAE ARP4761A, the Item Criticality Index $C_r$ quantifies the expected frequency of catastrophic or hazardous UAS losses over operating duration $t$ (in flight hours):
+
+$$C_r = \sum_{m=1}^{K} C_{m} = \sum_{m=1}^{K} \left( \lambda_m \cdot \beta \cdot t \right) = \sum_{m=1}^{K} \left( \lambda_p \cdot \alpha \cdot \beta \cdot t \right)$$
+
+where:
+- $\beta$ (Loss Beta): Conditional probability of loss, representing the probability that failure mode $m$ propagates to cause a catastrophic ground personnel impact, mid-air collision, or hull loss ($0.0 \le \beta \le 1.0$).
+- $t$: Operating mission duration ($t = 1.0$ flight hour baseline).
+
+#### 4.1.4 Risk Priority Number (RPN) Formulation
+To prioritize mechanical mitigation engineering within DEAP build pipelines, each failure mode is evaluated using the quantitative Risk Priority Number ($\mathrm{RPN}$):
+
+$$\mathrm{RPN} = S \times O \times D$$
+
+where:
+- **Severity ($S$, 1–10):** Measures the maximum end-effect impact on UAS flight safety, mapped directly to SAE ARP4761A and SORA v2.5 severity categories.
+- **Occurrence ($O$, 1–10):** Logarithmic scale representing failure rate $\lambda_p$ ($1 = \lambda_p < 10^{-9}/\text{hr}$, $10 = \lambda_p > 10^{-3}/\text{hr}$).
+- **Detection ($D$, 1–10):** Quantifies the likelihood that onboard diagnostic mechanisms (BIST, EKF innovation residual tests, BMS monitors) detect the fault before system-level propagation ($1 = \text{Automated instant hardware detection}$, $10 = \text{Undetectable / Silent latent fault}$).
+
+#### 4.1.5 SAE ARP4761A Severity Classification & Probability Boundaries
+
+| Severity Category | Qualitative Definition | Quantitative Probability Boundary (per Flight Hour) | Max Allowable Criticality ($\beta \cdot \lambda_m$) | Target SORA SAIL & Assurance Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **Catastrophic** | Total aircraft loss, fatal ground personnel / manned aircraft collision | $P < 10^{-9}$ (Extremely Improbable) | $\le 10^{-9}$ | **SORA SAIL V–VI / DO-178C DAL A** |
+| **Hazardous / Severe-Major** | Severe reduction in safety margins, severe loss of control or flyaway | $P < 10^{-7}$ (Extremely Remote) | $\le 10^{-7}$ | **SORA SAIL III–IV / DO-178C DAL B** |
+| **Major** | Significant reduction in safety margins, forced emergency landing | $P < 10^{-5}$ (Remote) | $\le 10^{-5}$ | **SORA SAIL II–III / DO-178C DAL C** |
+| **Minor** | Slight reduction in safety margins, minor telemetry loss | $P < 10^{-3}$ (Reasonably Probable) | $\le 10^{-3}$ | **SORA SAIL I / DO-178C DAL D** |
+| **No Safety Effect** | Zero impact on operational flight safety or GCS payload display | $P \ge 10^{-3}$ (Frequent) | N/A | **SORA SAIL I / DO-178C DAL E** |
+
+---
+
+### 4.2 Component, Interface, and Register Failure Mode Analysis
+
+DEAP extends FMECA into low-altitude UAS hardware, cellular data link buses, FPGA register arithmetic, sensor environmental physics, and battery BMS systems.
+
+#### 4.2.1 Avionic & Cellular Data Buses (3GPP 5G, CAN / DroneCAN, ARINC 429)
+- **3GPP 5G C2 Datalink Degradation & Handover Latency:** RF front-end saturation when flying within 20 meters of 5G cell tower high-power arrays causes packet loss rates exceeding 75%. Handover latency spikes ($t_{\text{handover}} > 200\text{ ms}$) break real-time telemetry, triggering autonomous lost-link return-to-launch (RTL) routines.
+- **DroneCAN / CAN Bus Arbitration Loss & Signal Contention:** High-voltage transmission line electrostatic discharge (ESD) or ground loop noise on CAN differential lines induces bus arbitration loss, dropping motor speed control frames to Electronic Speed Controllers (ESCs).
+- **ARINC 429 Parity Flips & SSM Bit Corruption:** Single-bit parity errors on differential pair buses corrupt 32-bit ARINC 429 nav words, changing Sign/Status Matrix (SSM) bits to `Failure Warning` and causing receiver FIFO word discards.
+
+#### 4.2.2 FPGA & Fixed-Point Mathematics
+- **Q16.16 / Q32.32 MSB Sign-Bit Overflow:** Fixed-point arithmetic accumulators in custom FPGA motion planning IP cores lacking saturation logic suffer Most Significant Bit (MSB) wrap-around. In Q16.16 signed notation, $+32767.9999$ ($0\text{x}7\text{FFF}.\text{FFFF}$) wraps around to $-32768.0000$ ($0\text{x}8000.\text{0000}$), converting a gentle obstacle avoidance roll command into a maximum rate spiral dive.
+- **SRAM Single-Event Upset (SEU) Soft Errors:** Radiation soft errors in FPGA configuration SRAM or Block RAM corrupt EKF state transition matrices, inducing heading jumps during autonomous pipeline inspection runs.
+
+#### 4.2.3 Avionic & Low-Altitude UAS Sensors
+- **IMU MEMS Gyroscope Drift under EMF Flux:** High-voltage (500kV) transmission line electromagnetic fields ($B > 250\,\mu\text{T}$) induce un-modeled bias drift ($\Delta \omega > 2.0^\circ/\text{s}$) in MEMS gyroscopes and saturate 3-axis magnetometers, causing EKF yaw divergence ("spin-of-death").
+- **Barometric Altimeter Freeze:** Moisture ingress or pressure port freezing in low-altitude fog clouds locks barometric altitude telemetry, causing altitude under-reading during autonomous descent.
+- **LiDAR Point-Cloud Sparsity in Fog/Rain:** Atmospheric Mie scattering and beam divergence ($> 3\text{ mrad}$) attenuate 905nm/1550nm LiDAR returns from thin power utility wires ($< 5\text{mm}$ diameter), producing point-cloud sparsity ($> 85\%$ drop in point density) and wire strike hazards.
+- **Optical Camera Dazzle under Corona Discharge & Sun Glare:** High-voltage AC transmission line corona UV/optical discharges or direct low-angle solar glare dazzle optical DAA and tracking cameras, saturating CMOS image sensors and dropping tracking frames.
+
+#### 4.2.4 Power Management & Battery BMS
+- **LiPo / LiFePO4 Single-Cell Voltage Collapse:** High-current discharge spikes ($> 70\text{A}$) during gust recovery or active braking induce single-cell voltage sag ($V_{\text{cell}} < 3.0\text{V}$), initiating thermal runaway cascades or flight controller brownouts.
+- **I2C / SMBus Fuel-Gauge Bus Lockup:** High-voltage EMF noise on SCL/SDA serial lines locks the fuel-gauge microcontroller in a stretch-clock state, freezing State-of-Charge (SoC) telemetry.
+- **ESC MOSFET Thermal Breakdown & CAN Control Loss:** Thermal runaway in ESC H-bridge MOSFETs short-circuits motor phase lines, causing total thrust loss on a propulsion arm.
+
+---
+
+### 4.3 Exhaustive Quantitative FMECA Matrix (12 Detailed Worksheets)
+
+The 12-row quantitative FMECA matrix below synthesizes component failure rates ($\lambda_p$), failure mode ratios ($\alpha$), loss probabilities ($\beta$), local and system effects, RPN scores, and DEAP mechanical mitigations.
+
+| Item ID | Subsystem / Component | Failure Mode | Root Cause | Failure Rate $\lambda_p$ (per $10^6$ hr) | Failure Mode Ratio $\alpha$ | Loss Beta $\beta$ | Local Effect | System Effect | S | O | D | RPN | DEAP Mechanical Mitigation Strategy |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **FMECA-UAS-01** | 3-Axis Magnetometer | Flux Saturation ($B > 250\,\mu\text{T}$) | High-Voltage Transmission EMF flux | $3.50 \times 10^{-6}$ | 0.40 | 0.85 | EKF yaw angle corruption ($> 30^\circ$) | Uncommanded roll/yaw spin-of-death | 10 | 4 | 2 | **80** | Multi-sensor EKF rejection + dual-antenna GNSS heading fallback. |
+| **FMECA-UAS-02** | 5G C2 Transceiver | RF Front-End Saturation | Proximity ($< 20\text{m}$) to 5G Cell Tower high-power array | $6.20 \times 10^{-6}$ | 0.35 | 0.45 | Packet loss rate exceeds 75% | C2 lost-link trigger; telemetry blackout | 8 | 4 | 2 | **64** | Automatic 5G URLLC slice switching + 900MHz backhaul datalink failover. |
+| **FMECA-UAS-03** | Optical / LiDAR Sensor | Thin Utility Wire Non-Detection | Beam divergence ($> 3\text{mrad}$) / wire reflectivity | $1.10 \times 10^{-5}$ | 0.50 | 0.80 | Wire absent from point-cloud map | High-speed wire strike and hull loss | 9 | 5 | 3 | **135** | Short-wavelength (1550nm) pulsed LiDAR + optical flow wire-detection filter. |
+| **FMECA-UAS-04** | LiPo Battery BMS | Single-Cell Voltage Sag ($< 3.0\text{V}$) | Sudden high-current draw ($> 70\text{A}$) during gust recovery | $2.80 \times 10^{-6}$ | 0.20 | 0.90 | Bus supply voltage sag below 14V | Flight controller brownout & loss of flight | 10 | 3 | 2 | **60** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
+| **FMECA-UAS-05** | Navigation Camera | Sensor Pixel Dazzle / Solar Glare | Direct sun angle during pipeline sweep | $8.40 \times 10^{-6}$ | 0.45 | 0.30 | High-contrast image frame saturation | Optical feature tracking loss; hover drift | 5 | 5 | 2 | **50** | Dynamic exposure control + optical/thermal IR dual-camera fusion. |
+| **FMECA-UAS-06** | ESC CAN Bus | CAN Node Bus Off / Signal Noise | Ground loop / ESD near dry pipeline structures | $4.20 \times 10^{-6}$ | 0.30 | 0.65 | Motor #3 throttle updates lost | Asymmetric thrust loss; altitude drop | 9 | 4 | 2 | **72** | Dual redundant CAN buses + hardware CAN controller automatic bus recovery. |
+| **FMECA-UAS-07** | FPGA Motion Planner | Q16.16 MSB Overflow ($+32767 \to -32768$) | Unbounded integrator sum in velocity loop | $2.10 \times 10^{-7}$ | 0.25 | 0.95 | Sign bit inversion in velocity accumulator | Sudden hardover roll/pitch trajectory | 10 | 2 | 2 | **40** | AdaCore SPARK formal proof + hardware saturation arithmetic AST verifier. |
+| **FMECA-UAS-08** | FPGA Config SRAM | SEU Radiation Soft Error | Heavy ion bit flip in Block RAM routing | $8.90 \times 10^{-6}$ | 0.40 | 0.70 | Control matrix coefficient corruption | EKF state estimate instability & oscillation | 9 | 5 | 2 | **90** | Triple Modular Redundancy (TMR) + periodic SRAM scrubbing engine. |
+| **FMECA-UAS-09** | MEMS Gyroscope | High-Rate Bias Drift ($\Delta \omega > 2.0^\circ/\text{s}$) | Thermal shock / acoustic rotor vibration | $3.20 \times 10^{-6}$ | 0.35 | 0.70 | EKF attitude covariance buildup | Yaw/pitch drift and uncontrolled flight | 10 | 4 | 2 | **80** | Multi-IMU innovation residual test + dual GPS/optical flow fallback. |
+| **FMECA-UAS-10** | Barometric Altimeter | Pressure Port Moisture Lock | Cloud moisture / ice in static port | $5.10 \times 10^{-6}$ | 0.30 | 0.60 | Constant altitude output despite descent | Autopilot under-reads altitude, CFIT risk | 10 | 4 | 3 | **120** | Dual heated static probe + synthetic GNSS/radar altitude cross-check. |
+| **FMECA-UAS-11** | BMS I2C Fuel Gauge | SMBus Clock Stretch Lockup | High-voltage transmission line EMI noise | $6.30 \times 10^{-6}$ | 0.30 | 0.25 | State-of-Charge (SoC) update freeze | False battery level display; premature crash | 7 | 4 | 2 | **56** | Hardware I2C bus reset timer + redundant CAN-bus BMS interface. |
+| **FMECA-UAS-12** | ESC Motor Driver | H-Bridge MOSFET Thermal Breakdown | Thermal runaway under high current | $1.80 \times 10^{-6}$ | 0.25 | 0.85 | Phase short circuit to power rail | Propulsion motor lost; asymmetric thrust | 9 | 3 | 2 | **54** | Dual isolation relays with automatic hardware power cutoff lines. |
+
+---
+
+### 4.4 Thought Leadership & Solution Provider Integration
+
+DEAP synthesizes industry-leading safety engineering platforms, formal verification languages, partition operating systems, and hardware-in-the-loop testing frameworks into a unified, continuous safety automation ecosystem.
 
 ```mermaid
 flowchart TD
-    subgraph Environmental_Failures ["Bottom-Up Hardware & Environmental Failure Modes"]
-        F1["Power Line EMF Magnetometer Saturation (B > 250 uT)"]
-        F2["Cell Tower RF Front-End Saturation (C2 Receiver Jamming)"]
-        F3["Thin Utility Wire Optical Non-Detection (LiDAR Beam Divergence)"]
-        F4["BMS Battery Cell Drop under High Current Gust Load"]
+    subgraph Solution_Providers ["Industry Thought Leadership & Tooling Stack"]
+        Medini["Ansys Medini Analyze\n(Model-Based ARP4761A, STPA & SORA Synthesis)"]
+        WindRiver["Wind River VxWorks 653 / LynxOS-178\n(ARINC 653 Time/Space Partitioning)"]
+        AdaCore["AdaCore SPARK Ada 2012\n(Formal AST Proofs: Zero Overflow/Bounds)"]
+        dSPACE["dSPACE SCALEXIO HIL\n(Automated Fault Injection Testing)"]
     end
 
-    subgraph Local_Effects ["Local Component / Sensor Effects"]
-        L1["3-Axis Magnetometer Heading Corruption"]
-        L2["5G C2 Receiver Packet Loss Rate > 60%"]
-        L3["DAA Point Cloud Discard / Non-Detection"]
-        L4["System Supply Bus Voltage Sag below 14.0V"]
+    subgraph DEAP_Pipeline ["DEAP Continuous Safety Integration Core"]
+        DEAP_Orchestrator["DEAP Master Safety Orchestrator"]
+        AST_Checker["DEAP AST & Verification Linters"]
     end
 
-    subgraph System_Hazards ["System Level Critical Hazard"]
-        S1["Uncommanded Roll/Yaw Instability (Spin-of-Death)"]
-        S2["Autonomous Lost-Link RTL Trigger"]
-        S3["Unmitigated High-Speed Wire Strike"]
-        S4["In-Flight Power Shutdown & Uncontrolled Drop"]
-    end
-
-    F1 --> L1 --> S1
-    F2 --> L2 --> S2
-    F3 --> L3 --> S3
-    F4 --> L4 --> S4
+    Medini -->|"SysML Safety Models & FMECA Matrices"| DEAP_Orchestrator
+    WindRiver -->|"ARINC 653 XML Schedule Config"| DEAP_Orchestrator
+    AdaCore -->|"SPARK Proof Logs & AST Annotations"| AST_Checker
+    dSPACE -->|"HIL Real-Time Fault Injection Logs"| AST_Checker
 ```
 
-### 4.2 FMECA Detailed Breakdown Table
+#### 4.4.1 Ansys Medini Analyze Integration (Model-Based ARP4761A & STPA)
+DEAP integrates with **Ansys Medini Analyze** via standardized SysML/XMI exchange interfaces. Medini Analyze provides the model-based safety repository for Functional Hazard Assessment (FHA), Preliminary System Safety Assessment (PSSA), System Safety Assessment (SSA), STPA, and JARUS SORA v2.5 workflows. DEAP automatically parses Medini XML export schemas to extract STPA Unsafe Control Actions and quantitative FMECA worksheets, populating Worker A and Agent A specification backlogs with zero manual transposition error.
 
-| Item ID | Component / Interface | Failure Mode | Root Cause | Local Effect | System Effect | S | O | D | RPN | Mitigation Strategy |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FMECA-UAS-01** | Onboard 3-Axis Magnetometer | Flux Saturation / Heading Offset | High-Voltage Transmission Line EMF ($> 250\,\mu\text{T}$) | EKF yaw angle corruption ($> 30^{\circ}$) | Vehicle enters spiral divergence / spin-of-death | 10 | 4 | 2 | **80** | Multi-sensor EKF rejection + dual-antenna GNSS heading fallback. |
-| **FMECA-UAS-02** | 5G C2 Transceiver | RF Front-End Saturation / Desensitization | Proximity ($< 20\text{m}$) to 5G Cell Tower high-power array | Packet drop rate exceeds 75% | C2 lost-link trigger; telemetry blackout | 8 | 4 | 2 | **64** | Automatic 5G slice switching + 900MHz backhaul datalink failover. |
-| **FMECA-UAS-03** | Optical / LiDAR DAA Sensor | Thin Utility Wire Non-Detection | Beam divergence ($> 3\text{mrad}$) / low wire reflectivity | Wire absent from point-cloud map | High-speed wire strike and hull loss | 9 | 4 | 3 | **108** | Short-wavelength (1550nm) pulsed LiDAR + optical flow wire-detection filter. |
-| **FMECA-UAS-04** | LiPo Battery Management (BMS) | Single Cell Voltage Sag ($< 3.2\text{V}$) | Sudden high-current draw ($> 70\text{A}$) during gust recovery | Pack voltage drops below FC regulator minimum | Sudden flight controller reset / crash | 10 | 2 | 2 | **40** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
-| **FMECA-UAS-05** | Optical Pipeline Camera | Lens Glare / Solar Blinding | Direct sun angle during low-altitude pipeline sweep | Image saturation / tracking frame loss | Pipeline alignment lost; emergency hover trigger | 5 | 5 | 2 | **50** | Dual optical / thermal camera array + IMU dead-reckoning hold. |
-| **FMECA-UAS-06** | ESC CAN Bus | CAN Node Bus Off / Signal Contention | Electrostatic discharge (ESD) near dry pipeline structures | Motor #3 throttle updates lost | Asymmetric thrust loss; altitude drop | 9 | 2 | 2 | **36** | Dual redundant CAN buses + hardware CAN controller automatic bus recovery. |
+#### 4.4.2 Wind River VxWorks 653 & LynxOS-178 Partition Isolation
+To guarantee absolute spatial and temporal partition isolation under **RTCA DO-178C DAL A / SORA SAIL VI**, DEAP targeting profiles integrate directly with **Wind River VxWorks 653** and **LynxOS-178** RTOS configurations. The ARINC 653 XML schedule definitions (defining major frame cycle time, partition window allocation, and memory page protection tables) are generated and verified mechanically by DEAP AST linters, guaranteeing that lower-criticality tasks (e.g., payload video streaming) can never preempt or corrupt critical flight control and DAA execution.
 
-*RPN Formula:* $\text{RPN} = \text{Severity (S)} \times \text{Occurrence (O)} \times \text{Detection (D)}$, scored $1\dots10$. Items with $\text{RPN} \ge 40$ or $\text{Severity} \ge 9$ require mandatory mechanical DEAP linters.
+#### 4.4.3 AdaCore SPARK Ada Formal AST Verification
+DEAP leverages **AdaCore SPARK Ada 2012** to achieve formal mathematical verification of flight software algorithms. Using GNATprove and Z3/CVC4 SMT solvers, DEAP AST linters verify formal proofs for:
+- **Zero Arithmetic Overflow:** Proving that Q16.16 and Q32.32 accumulators in flight control and DAA routines can never wrap around under any inputs.
+- **Zero Array Out-of-Bounds Access:** Proving static array boundary compliance in sensor buffer handling.
+- **Zero Dynamic Heap Memory Allocation:** Proving total static memory allocation at compile-time across PX4/ROS2 nodes.
+
+#### 4.4.4 dSPACE HIL Automated Fault Injection Testing
+Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Hardware-in-the-Loop (HIL)** test environments. DEAP test runners trigger automated real-time fault injection on physical buses and sensors—injecting 5G packet loss, CAN bus arbitration loss, MEMS gyro drift, thin wire LiDAR point-cloud dropouts, and BMS cell voltage drops. DEAP verifies that the flight controller detects the fault within specified latency boundaries ($t < 10\text{ ms}$) and asserts appropriate fail-passive or fail-operational safety mitigations.
 
 ---
 
