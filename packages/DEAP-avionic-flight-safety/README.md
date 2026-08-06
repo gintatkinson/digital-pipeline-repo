@@ -40,12 +40,12 @@ By synthesizing top-down **System-Theoretic Process Analysis (STPA)** with botto
 ## Verification Gates & Codebase Rules
 
 ### 1. SPARK Ada & MISRA-C AST Verification Gates
-- **SPARK Ada Profile (`.pipeline/profiles/spark_ada.md`):**
+- **SPARK Ada Profile ([.pipeline/profiles/spark_ada.md](.pipeline/profiles/spark_ada.md)):**
   - Formal verification using `gnatprove` (proof levels `check_all` / `stone` / `silver` / `gold`).
   - Strict formal contract annotations: `Pre`, `Post`, `Global`, `Depends`.
   - Absolute enforcement of `pragma SPARK_Mode (On)`.
   - Zero runtime exception handling (`pragma Suppress (All_Checks)` verified strictly by formal proof).
-- **Embedded C Profile (`.pipeline/profiles/embedded_c.md`):**
+- **Embedded C Profile ([.pipeline/profiles/embedded_c.md](.pipeline/profiles/embedded_c.md)):**
   - Strict compliance with MISRA-C:2012 guidelines.
   - Compilation under C99/C11 strict modes with zero warnings allowed (`-Wall -Werror -Wextra -pedantic`).
   - Explicit integer width declarations (`uint32_t`, `int16_t`, `uint8_t`, `int64_t`).
@@ -58,6 +58,10 @@ By synthesizing top-down **System-Theoretic Process Analysis (STPA)** with botto
 ### 3. 100% MC/DC (Modified Condition/Decision Coverage) Verification Rules
 - **DAL A Verification Standard:** Every condition in a decision must be shown to independently affect the decision's outcome.
 - **Automated Structural Coverage Gate:** Automated test suites execute under instrumented coverage runners asserting 100% MC/DC for DAL A code paths prior to pull request integration.
+
+### 4. Safety Concept & Architecture Specifications
+- **Safety Concept Paper:** [docs/architecture/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md](docs/architecture/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md)
+- **SysML v2 Safety Model:** [docs/architecture/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml](docs/architecture/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
 
 ---
 
@@ -84,4 +88,4 @@ packages/DEAP-avionic-flight-safety/
 
 ## License & Governance
 
-This package is governed by the **DEAP Tier 1 Civil Aviation Safety Constitution** (`.pipeline/constitution.md`) and project-scoped subagent rules (`.agents/AGENTS.md`). All code edits and specification changes must satisfy static analysis, gnatprove / MISRA verification gates, and 100% MC/DC coverage criteria.
+This package is governed by the **DEAP Tier 1 Civil Aviation Safety Constitution** ([.pipeline/constitution.md](.pipeline/constitution.md)) and project-scoped subagent rules ([.agents/AGENTS.md](.agents/AGENTS.md)). All code edits and specification changes must satisfy static analysis, gnatprove / MISRA verification gates, and 100% MC/DC coverage criteria.

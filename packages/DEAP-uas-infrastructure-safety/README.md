@@ -44,22 +44,28 @@ By combining top-down **System-Theoretic Process Analysis (STPA)** and bottom-up
 ## Flight Software Build Rules & Middleware Architecture
 
 ### 1. ROS2 Build Rules & Middleware QoS Profiles
-- **Target Distribution:** ROS2 Humble Hawksbill / Jazzy Jalisco C++ (`rclcpp::Node`).
-- **Memory Allocation:** Zero dynamic heap allocation in execution critical loops; uses `tlsf` (Two-Level Segregated Fit) or stack allocation.
-- **QoS Profile Enforcements:**
-  - **Telemetry / Flight Controls:** Reliable reliability, Transient Local durability, System Defaults liveliness.
-  - **Sensor Data (LiDAR/Radar/Imager):** Best Effort reliability, Volatile durability, Keep Last history with depth 1–5.
-  - **Heartbeats & Fail-Safe Signals:** Reliable reliability, Keep Last history (depth 1), deadline enforcement (`< 100ms`).
-- **Launch Safety Monitors:** Node launch files incorporate automated life-cycle verification monitors checking QoS compatibility prior to transition to active state.
+- **ROS2 C++ Profile ([.pipeline/profiles/ros2_cpp.md](.pipeline/profiles/ros2_cpp.md)):**
+  - **Target Distribution:** ROS2 Humble Hawksbill / Jazzy Jalisco C++ (`rclcpp::Node`).
+  - **Memory Allocation:** Zero dynamic heap allocation in execution critical loops; uses `tlsf` (Two-Level Segregated Fit) or stack allocation.
+  - **QoS Profile Enforcements:**
+    - **Telemetry / Flight Controls:** Reliable reliability, Transient Local durability, System Defaults liveliness.
+    - **Sensor Data (LiDAR/Radar/Imager):** Best Effort reliability, Volatile durability, Keep Last history with depth 1–5.
+    - **Heartbeats & Fail-Safe Signals:** Reliable reliability, Keep Last history (depth 1), deadline enforcement (`< 100ms`).
+  - **Launch Safety Monitors:** Node launch files incorporate automated life-cycle verification monitors checking QoS compatibility prior to transition to active state.
 
 ### 2. PX4 Autopilot Module Architecture
-- **Module Architecture:** Integrates with PX4 Autopilot using `ModuleBase` lifecycle pattern with zero-blocking main loop constraints.
-- **uORB Topic Messaging:** Standardized uORB messaging for sensor data, vehicle command (`vehicle_command`), vehicle status (`vehicle_status`), and fail-safe flags (`vehicle_failsafe_flags`).
-- **Safe State Fail-Safe Behaviors:**
-  - **Lost C2 Datalink (`t_loss > 2.0s`):** Automatic loiter transition followed by deterministic Return-To-Launch (RTL).
-  - **Geofence Breach:** Immediate activation of RTA VSF controller overriding manual/auto commands to execute RTL or safe emergency land.
-  - **Low Battery Cell Sag:** Multi-stage thresholding (Warning -> RTL -> Emergency Immediate Land).
-  - **EMF / Magnetometer Saturation:** Automatic fall-back to dual-optical flow / visual-inertial odometry state estimation.
+- **PX4 Module Profile ([.pipeline/profiles/px4_module.md](.pipeline/profiles/px4_module.md)):**
+  - **Module Architecture:** Integrates with PX4 Autopilot using `ModuleBase` lifecycle pattern with zero-blocking main loop constraints.
+  - **uORB Topic Messaging:** Standardized uORB messaging for sensor data, vehicle command (`vehicle_command`), vehicle status (`vehicle_status`), and fail-safe flags (`vehicle_failsafe_flags`).
+  - **Safe State Fail-Safe Behaviors:**
+    - **Lost C2 Datalink (`t_loss > 2.0s`):** Automatic loiter transition followed by deterministic Return-To-Launch (RTL).
+    - **Geofence Breach:** Immediate activation of RTA VSF controller overriding manual/auto commands to execute RTL or safe emergency land.
+    - **Low Battery Cell Sag:** Multi-stage thresholding (Warning -> RTL -> Emergency Immediate Land).
+    - **EMF / Magnetometer Saturation:** Automatic fall-back to dual-optical flow / visual-inertial odometry state estimation.
+
+### 3. Safety Concept & Architecture Specifications
+- **Safety Concept Paper:** [docs/architecture/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md](docs/architecture/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md)
+- **SysML v2 Safety Model:** [docs/architecture/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml](docs/architecture/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
 
 ---
 
@@ -86,4 +92,4 @@ packages/DEAP-uas-infrastructure-safety/
 
 ## License & Governance
 
-This package is governed by the **DEAP Tier 1 UAS Infrastructure Safety Constitution** (`.pipeline/constitution.md`) and project-scoped subagent rules (`.agents/AGENTS.md`). All modifications must be verified through automated static analysis, compile gates, and SORA assurance checks.
+This package is governed by the **DEAP Tier 1 UAS Infrastructure Safety Constitution** ([.pipeline/constitution.md](.pipeline/constitution.md)) and project-scoped subagent rules ([.agents/AGENTS.md](.agents/AGENTS.md)). All modifications must be verified through automated static analysis, compile gates, and SORA assurance checks.
