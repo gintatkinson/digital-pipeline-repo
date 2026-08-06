@@ -804,3 +804,43 @@ W4. `tests/test_installer_distribution.py` asserts all three, so they cannot reg
 2. Yes, for the four files above.
 3. No silent assumptions; all three defects were verified earlier in this session.
 4. Yes, repository documentation and test source. Coordinator-direct per D1.
+
+## Part X — Restore Safety Concept Papers and SysML v2 Models
+
+**STATUS: READY FOR EXECUTION.**
+
+### X1. Objective
+Restore missing safety concept papers and SysML v2 model specification files from `/Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/` into `/Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/`, and update `docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md` Section 5 table to list all reference safety blueprints.
+
+### X2. Approved Files Manifest
+
+<!-- APPROVED-FILES:START -->
+docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md
+docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md
+docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml
+docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md
+docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md
+<!-- APPROVED-FILES:END -->
+
+### X3. Actions
+1. Copy safety blueprint files from `/Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/`:
+   - `DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md` -> `docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`
+   - `DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md` -> `docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md`
+   - `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml` -> `docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`
+   - `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md` -> `docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md`
+2. Update `docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md` Section 5 table to include entries for the restored safety concept papers and SysML v2 model specifications.
+
+### X4. Verification
+- `python3 -m pytest tests/`
+- `PYTHONPATH=skills/spec-orchestrator/parity_auditor/src python3 -m pytest skills/spec-orchestrator/parity_auditor/tests/`
+
+### X5. Commit & Push
+- `git add -A && git commit -m "feat(blueprints): restore safety concept papers and SysML v2 model specifications"`
+- `git push origin main`
+
+#### 4-Point Compliance Check
+
+1. Command — User direct command to execute safety blueprints restoration plan with explicit PROCEED keyword.
+2. Yes, explicit authorization granted for file writes and command execution.
+3. No silent assumptions; requirements and target paths are explicitly defined by the user.
+4. Yes, repository documentation files are being written. Coordinator-direct execution per user instruction.

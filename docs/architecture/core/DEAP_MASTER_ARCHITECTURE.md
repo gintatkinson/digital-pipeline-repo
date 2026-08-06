@@ -120,6 +120,10 @@ The core DEAP master architecture remains 100% domain-neutral and standard-agnos
 | **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/PERSISTENCE_ARCHITECTURE.md) |
 | **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
 | **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
+| **Flight Systems Safety Concept Paper** | Avionic Flight Safety Concept Paper & Safety Architecture | [`DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md) |
+| **UAS Infrastructure Safety Concept Paper** | UAS Infrastructure & Airspace Operations Safety Concept Paper | [`DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md) |
+| **SysML v2 Safety Model Specification** | SysML v2 Safety Model Specification (Textual Spec) | [`DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md) |
+| **SysML v2 Safety Model Definition** | SysML v2 Safety Model Source Code (`.sysml`) | [`DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml) |
 
 ---
 
