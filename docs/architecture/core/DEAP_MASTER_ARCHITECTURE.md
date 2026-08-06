@@ -1,8 +1,8 @@
-# Domain-Engineered Architecture & Pipeline (DEAP) Master Architecture Specification
+# Digital Engineering Agentic Pipeline (DEAP) Master Architecture Specification
 
 ## 1. Architectural Overview & Core Principles
 
-The **Domain-Engineered Architecture & Pipeline (DEAP)** framework establishes a standard-neutral, platform-decoupled, two-tier architecture for automated software engineering and protocol specification engineering. DEAP enforces strict separation of concerns between domain modeling, protocol specification extraction, runtime metadata rendering, and platform-specific code generation.
+The **Digital Engineering Agentic Pipeline (DEAP)** framework establishes a standard-neutral, platform-decoupled, two-tier architecture for automated software engineering and protocol specification engineering. DEAP enforces strict separation of concerns between domain modeling, protocol specification extraction, runtime metadata rendering, and platform-specific code generation.
 
 ### Core Architectural Principles:
 1. **Domain Neutrality:** The core pipeline, master architecture, runtime engines, and rule enforcement mechanisms are 100% domain-agnostic and standard-neutral.
