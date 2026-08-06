@@ -1,11 +1,11 @@
-# Design Document: Hardware-Decoupled Persistence & Bus-Mapped Register Architecture (VHDL/FPGA Platform Profile)
+# Platform Profile: Hardware-Decoupled Persistence & Bus-Mapped Register Architecture (VHDL/FPGA)
 
 ## 1. Context & Architectural Goals
-This document details the hardware design for implementing the decoupled, agnostic persistence specification as a synthesized digital system in **VHDL** on a **Xilinx FPGA** platform.
+This document details the hardware design for implementing the decoupled, agnostic persistence specification as a synthesized digital system in **VHDL** on a **Xilinx FPGA** platform profile.
 
 The core objectives are:
 1. **Contract Decoupling in Silicon:** Isolating the core digital signal processing (DSP) or control logic from the physical IO transport protocol (e.g. SPI, I2C, UART, AXI-Lite, or PCIe).
-2. **Memory-Mapped Register Abstraction:** Abstracting the geometry database tables into a hardware **Register Map** utilizing fixed-point arithmetic representations.
+2. **Memory-Mapped Register Abstraction:** Abstracting the domain model tables into a hardware **Register Map** utilizing fixed-point arithmetic representations.
 3. **Heterogeneous Interface Mapping:** Supporting dynamic configuration of the transport wrapper (the adapter) to swap between serial testbenches (simulation) and physical bus synthesis (production hardware) without modifying the internal computation cores.
 
 ---
@@ -45,23 +45,23 @@ flowchart LR
 ---
 
 ## 3. Register & Data Format Mapping
-To realize the Yang geometry specifications (`test-geo-location.yang`) in hardware registers, we define a 32-bit memory-mapped register configuration.
+To realize abstract domain model specifications in hardware registers, we define a 32-bit memory-mapped register configuration template.
 
-### Fixed-Point Coordinate Representation
-To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, dim_0, dim_1, and dim_2 coordinates are stored as **32-bit two's complement fixed-point numbers (Q16.16 format)**:
-* **Whole integer part:** 16 bits (signed).
+### Fixed-Point Numerical Representation
+To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, continuous numeric data values (dim_0, dim_1, dim_2) are stored as **32-bit two's complement fixed-point numbers (Q16.16 format)**:
+* **Whole integer part:** 16 bits (signed, range -32,768 to +32,767).
 * **Fractional part:** 16 bits.
-* **Resolution:** $2^{-16} \approx 0.000015$ degrees (approx. 1.7 meters at the equator), which satisfies coordinate accuracy specifications.
+* **Resolution:** $2^{-16} \approx 0.00001525878$, providing high-precision numerical representation for abstract multi-dimensional attributes.
 
 ### Register Map Table (Base Offset: `0x43C0_0000`)
 
 | Address Offset | Register Name | Access Type | Description / Bit Fields |
 | :--- | :--- | :--- | :--- |
 | `0x00` | `CONTROL_STATUS` | R/W | Bit 0: Commit (Trigger update)<br>Bit 1: Busy flag (Read-only)<br>Bit 2: Error flag (Read-only) |
-| `0x04` | `GEODETIC_SYSTEM` | R/W | Bits 1-0: Coordinate Choice (00=Unconfigured, 01=Geometry, 10=Cartesian)<br>Bits 7-2: Datum ID |
-| `0x08` | `COORD_LAT_X` | R/W | Dim_0 or Cartesian X (32-bit Q16.16 format) |
-| `0x0C` | `COORD_LON_Y` | R/W | Dim_1 or Cartesian Y (32-bit Q16.16 format) |
-| `0x10` | `COORD_ALT_Z` | R/W | Dim_2 or Cartesian Z (32-bit Q16.16 format) |
+| `0x04` | `SYSTEM_CONFIG` | R/W | Bits 1-0: System Mode Selection (00=Unconfigured, 01=Mode A, 10=Mode B)<br>Bits 7-2: Profile Identifier |
+| `0x08` | `PARAM_DIM_0` | R/W | Dimension 0 Value (32-bit Q16.16 format) |
+| `0x0C` | `PARAM_DIM_1` | R/W | Dimension 1 Value (32-bit Q16.16 format) |
+| `0x10` | `PARAM_DIM_2` | R/W | Dimension 2 Value (32-bit Q16.16 format) |
 | `0x14` | `VALIDITY_LIMIT` | R/W | Epoch timestamp indicating validity boundary |
 
 ---
@@ -91,11 +91,11 @@ stateDiagram-v2
 
 ### 1. Standalone Simulation Testbench (Local Run)
 For local development and E2E verification without physical hardware:
-* We implement a testbench (`tb_geodetic_register_map.vhd`).
-* The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`) containing coordinate values.
+* We implement a testbench (`tb_register_map.vhd`).
+* The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`) containing numerical parameter values.
 * The testbench simulates the physical SPI clock and data lines, feeding the vectors into the wrapper, and asserts that the internal registers resolve to the expected values (e.g. checking that the Q16.16 output matches the input).
 
 ### 2. Distributed Synthesis (Production Run)
 For physical deployment:
 * The core VHDL code is synthesized using **Xilinx Vivado** targeting a specific FPGA board (e.g. Xilinx Zynq-7000 or UltraScale+ SoC).
-* The registers are exposed to the host CPU (e.g. ARM Cortex core) over an **AXI4-Lite IP block**, allowing software operating systems to read/write hardware geometry coordinates via memory-mapped pointer offsets (`/dev/mem`).
+* The registers are exposed to the host CPU (e.g. ARM Cortex core) over an **AXI4-Lite IP block**, allowing software operating systems to read/write hardware numerical parameter coordinates via memory-mapped pointer offsets (`/dev/mem`).

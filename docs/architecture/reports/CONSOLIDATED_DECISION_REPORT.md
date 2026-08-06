@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-16  
 **Status**: PROPOSED / AUDITED  
-**Auditors**: Adversarial Auditing Agents (GPGPU, Astrodynamics, Communications, UI Sync, Pipeline Integration)  
+**Auditors**: Adversarial Auditing Agents (GPGPU, Spatial Geometry, Communications, UI Sync, Pipeline Integration)  
 
 ---
 
@@ -12,44 +12,44 @@ This report consolidates the deep-dive technical critiques from five adversarial
 
 ### Key Architectural Decisions:
 1. **CPU-Side Floating Origin (Relative-to-Eye) Migration**: Abandon GPU-side double-single precision (`ds_sub`) emulation. Bandwidth calculations prove that CPU-side `float64` subtraction and `f32` dynamic uploads consume `<0.06%` of PCIe Gen3 x16 bandwidth. This saves 50% VRAM, eliminates shader compiler optimization vulnerabilities, and guarantees sub-millimeter precision.
-2. **Coriolis RateOfChange Corrections**: Standardize the ECI-to-ECEF transformation to include the frame rotation rateOfChange correction ($\boldsymbol{\omega}_{Earth} \times \mathbf{r}_{ECI}$). Without this term, Hermite spline interpolations overshoot by up to 465 m/s, warping trajectories.
+2. **Coriolis RateOfChange Corrections**: Standardize frame transformations to include the frame rotation rateOfChange correction ($\boldsymbol{\omega}_{Body} \times \mathbf{r}_I$). Without this term, Hermite spline interpolations overshoot, warping trajectories.
 3. **Exact Geometric Occlusion & Physical Jamming Models**: Upgrade line-of-sight checks from ray-sphere to ray-geometry quadratic intersections in WGSL. Integrate antenna patterns (Gaussian/Airy), pointing errors, system noise temperature ($T_{sys}$), and polarization losses into the RF interference models.
 4. **Time-State PLL & Isolate Swap Protocols**: Replace the PID clock-rate smoothing with a Low-Pass Filtered Phase-Locked Loop (PLL) to prevent time-reversal and integrator windup. Enforce double-buffered pointer swaps and NativeFinalizers on Dart FFI allocations to prevent data tearing and use-after-free errors.
 5. **AST-Based Pipeline Linting**: Upgrade the static linter (`verify_model_coverage.py`) from basic regex searches to AST-based checks, closing dynamic import and directory bypasses. Remediate the global-match loophole in behavioral triggers.
 
 ---
 
-## 2. Astrodynamics & Geometry Coordinate Transformations
+## 2. 3D Spatial & Geometry Coordinate Transformations
 
-### 2.1 ECI-to-ECEF Frame Rotation RateOfChange Correction
-When translating orbital vectors from ECI (TEME via SGP4) to ECEF (for ground terrain rendering) for spline keyframes, the rotation rateOfChange correction must be applied. 
+### 2.1 Fixed-Frame to Body-Centered Frame Rotation RateOfChange Correction
+When translating spatial vectors from an inertial reference frame to a body-centered rotating frame for spline keyframes, the rotation rateOfChange correction must be applied. 
 
 **The Mathematical Correction**:
-Let $\mathbf{r}_I$ and $\mathbf{v}_I$ be ECI position and rateOfChange. Let $\mathbf{r}_R$ and $\mathbf{v}_R$ be ECEF position and rateOfChange. The Earth's rotation vector is $\boldsymbol{\omega}_{Earth} \approx [0, 0, 7.292115 \times 10^{-5}\text{ rad/s}]^T$.
-$$\mathbf{r}_R = \mathbf{R}_{ECI\to ECEF}(t) \mathbf{r}_I$$
-$$\mathbf{v}_R = \mathbf{R}_{ECI\to ECEF}(t) \left( \mathbf{v}_I - \boldsymbol{\omega}_{Earth} \times \mathbf{r}_I \right)$$
+Let $\mathbf{r}_I$ and $\mathbf{v}_I$ be inertial position and rateOfChange. Let $\mathbf{r}_R$ and $\mathbf{v}_R$ be rotating frame position and rateOfChange. The reference body's rotation vector is $\boldsymbol{\omega}_{Body} \approx [0, 0, \omega_z]^T$.
+$$\mathbf{r}_R = \mathbf{R}_{I\to R}(t) \mathbf{r}_I$$
+$$\mathbf{v}_R = \mathbf{R}_{I\to R}(t) \left( \mathbf{v}_I - \boldsymbol{\omega}_{Body} \times \mathbf{r}_I \right)$$
 
-*Failure Mode*: Omitting the Coriolis term $\boldsymbol{\omega}_{Earth} \times \mathbf{r}_I$ introduces a rateOfChange error of up to **465.1 m/s** at the equator. This causes cubic Hermite spline interpolation to overshoot wildly between keyframes, distorting spacecraft trajectories.
+*Failure Mode*: Omitting the Coriolis term $\boldsymbol{\omega}_{Body} \times \mathbf{r}_I$ introduces a rateOfChange error at high rotational speeds. This causes cubic Hermite spline interpolation to overshoot wildly between keyframes, distorting spatial trajectories.
 
 ```typescript
 // Remediated State Vector Conversion
-function transformStateToECEF(
-    r_eci: Vector3,
-    v_eci: Vector3,
-    R_eci_to_ecef: Matrix3,
-    omega_earth: number = 7.292115e-5
-): { r_ecef: Vector3, v_ecef: Vector3 } {
-    const r_ecef = R_eci_to_ecef.multiplyVector(r_eci);
-    const omega_vec = new Vector3(0, 0, omega_earth);
-    const omega_cross_r = omega_vec.cross(r_eci);
-    const corrected_v_eci = v_eci.subtract(omega_cross_r);
-    const v_ecef = R_eci_to_ecef.multiplyVector(corrected_v_eci);
-    return { r_ecef, v_ecef };
+function transformStateToBodyFrame(
+    r_inertial: Vector3,
+    v_inertial: Vector3,
+    R_inertial_to_body: Matrix3,
+    omega_body: number
+): { r_body: Vector3, v_body: Vector3 } {
+    const r_body = R_inertial_to_body.multiplyVector(r_inertial);
+    const omega_vec = new Vector3(0, 0, omega_body);
+    const omega_cross_r = omega_vec.cross(r_inertial);
+    const corrected_v_inertial = v_inertial.subtract(omega_cross_r);
+    const v_body = R_inertial_to_body.multiplyVector(corrected_v_inertial);
+    return { r_body, v_body };
 }
 ```
 
-### 2.2 Deep-Space Scaling & LCA-Based Coordinate Tree Traversals
-To prevent float64 precision collapse at interstellar scales (where absolute precision falls to 27.3 km at galactic center distances), coordinates must be resolved via **Lowest Common Ancestor (LCA)** tree traversals:
+### 2.2 Relative-to-Eye Scale & LCA-Based Coordinate Tree Traversals
+To prevent float64 precision collapse at large spatial scales (where absolute precision degrades at large distances), coordinates must be resolved relative-to-eye via **Lowest Common Ancestor (LCA)** tree traversals:
 1. Traverse the scene graph to find the LCA node of Object $A$ and Camera $C$.
 2. Compute $\mathbf{r}_{A/LCA}$ and $\mathbf{r}_{C/LCA}$ in double precision.
 3. Perform subtraction in the local LCA frame: $\mathbf{r}_{rel} = \mathbf{r}_{A/LCA} - \mathbf{r}_{C/LCA}$.
@@ -57,22 +57,22 @@ To prevent float64 precision collapse at interstellar scales (where absolute pre
 
 ```mermaid
 graph TD
-    Root[Galactic Center]
-    SSB[Solar System Barycenter]
-    Earth[Earth Centered]
-    Moon[Moon Centered]
-    Rover[Lunar Rover]
-    Orbiter[Lunar Orbiter]
+    Root[World Origin]
+    ParentNode[Parent Reference Frame]
+    SubFrame1[Primary Local Frame]
+    SubFrame2[Secondary Local Frame]
+    TargetObject[Target Entity]
+    CameraEntity[Viewport Camera]
 
-    Root --> SSB
-    SSB --> Earth
-    SSB --> Moon
-    Moon --> Rover
-    Moon --> Orbiter
+    Root --> ParentNode
+    ParentNode --> SubFrame1
+    ParentNode --> SubFrame2
+    SubFrame2 --> TargetObject
+    SubFrame2 --> CameraEntity
 
-    style Moon fill:#f9f,stroke:#333,stroke-width:2px
+    style SubFrame2 fill:#f9f,stroke:#333,stroke-width:2px
     classDef lca fill:#bbf,stroke:#333,stroke-width:2px;
-    class Moon lca;
+    class SubFrame2 lca;
 ```
 
 ---

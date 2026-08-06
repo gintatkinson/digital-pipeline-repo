@@ -766,3 +766,41 @@ Cleared, not defects:
 2. Yes, for the one file above.
 3. No silent assumptions; the sibling test establishes the intended assertion.
 4. Yes, repository test source. Coordinator-direct per D1, divergence registered.
+
+## Part W — Close the three distribution defects
+
+Found during the earlier audits, reported, and left unfixed. They are all in the
+distribution path, so they ship to every customer.
+
+<!-- APPROVED-FILES:START -->
+README.md
+install-guide.md
+skills/feature-driven-implementation/SKILL.md
+tests/test_installer_distribution.py
+<!-- APPROVED-FILES:END -->
+
+W1. `tests/` is absent from the copy list, yet `install-guide.md:73` instructs the
+operator to run `.venv/bin/pytest tests/` as the post-install verification. That command
+cannot work on a fresh downstream project. Add `tests/` to the copy list, which also
+makes the governance guards travel rather than staying upstream-only.
+
+W2. No documented way to update an existing installation. The only published procedure is
+the Direct Copy block, whose second line is
+`rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react` —
+on a project with real work in it that deletes the customer's application. Add an
+explicit update procedure that copies only the pipeline directories and never touches
+`app_flutter/` or `web_react/`.
+
+W3. The GitHub template route ships `.pipeline/upstream/`. `gh repo create --template`
+copies the whole tree, and the `export-ignore` attribute in `.gitattributes` applies to
+`git archive` only. The Direct Copy block deletes that directory explicitly; the template
+route has no equivalent step. Add one where the template route is documented.
+
+W4. `tests/test_installer_distribution.py` asserts all three, so they cannot regress.
+
+#### 4-Point Compliance Check
+
+1. Command — outstanding work I identified and did not finish.
+2. Yes, for the four files above.
+3. No silent assumptions; all three defects were verified earlier in this session.
+4. Yes, repository documentation and test source. Coordinator-direct per D1.
