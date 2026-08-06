@@ -108,3 +108,17 @@ DEAP defines standard-neutral, bi-directional mapping rules to ingest protocol d
 | YANG `typedef` / OpenAPI `enum` / Protobuf `enum` | `EnumDescriptor` | User Story Validation Constraint | ViewModel Enum State & Picker |
 | YANG `rpc` / OpenAPI `path` / Protobuf `service rpc` | `OperationDescriptor` | Use Case Main Success Scenario | ViewModel Action & Event Handlers |
 | YANG `must` / `when` / OpenAPI `constraints` | `ConstraintRule` | BDD Given-When-Then Scenario | ViewModel Validator & UI Error State |
+
+---
+
+## 5. Domain Architecture Blueprints & Extensions
+
+The master architecture is extended by specialized domain architecture blueprints that specify safety-critical, persistence, runtime metadata, and platform-specific engineering rules:
+
+| Domain Blueprint | Target Subsystem / Focus | Document Reference |
+| :--- | :--- | :--- |
+| **DEAP Flight Systems Safety Concept Paper** | Avionic Safety Architecture, STPA (UCAs), FMECA (Hardware & Bus babbling), DO-178C/DO-254 DAL A–E Alignment, Zero Heap Ban, MC/DC Coverage Gates | [`DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md) |
+| **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/PERSISTENCE_ARCHITECTURE.md) |
+| **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
+| **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
+
