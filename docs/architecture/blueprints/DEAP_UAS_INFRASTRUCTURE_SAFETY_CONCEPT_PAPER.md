@@ -207,13 +207,13 @@ The 16-row STPA matrix below evaluates control flaws across the 5 primary UAS co
 - **$L_3$ (Loss of Controlled Airspace Integrity):** Geofence breach into active airport approach zones causing civil traffic groundings.
 - **$L_4$ (Loss of Operational Mission / Payload):** Aborted inspection run resulting in uncollected infrastructure diagnostic data.
 
-#### System Hazards ($H_{\text{UAS\_1}} \dots H_{\text{UAS\_6}}$)
-- **$H_{\text{UAS\_1}}$ (Lost-Link Flyaway / Airspace Infringement):** Uncontrolled departure beyond approved operational volume.
-- **$H_{\text{UAS\_2}}$ (Loss of Control in Flight - LOC-I):** Aerodynamic stall, spin, or attitude destabilization driven by sensor or control fault.
-- **$H_{\text{UAS\_3}}$ (High-Voltage Wire / Infrastructure Strike):** Collision with transmission lines, towers, or pipeline structures.
-- **$H_{\text{UAS\_4}}$ (Uncontrolled Terrain / Obstacle Impact - CFIT):** Power exhaustion or forced landing into un-cleared terrain.
-- **$H_{\text{UAS\_5}}$ (Ground Impact in Populated Zone):** Premature parachute deployment or unmitigated descent over populated areas.
-- **$H_{\text{UAS\_6}}$ (Mid-Air Collision - MAC):** Loss of well-clear separation with manned air traffic.
+#### System Hazards ($H_{\mathrm{UAS-1}} \dots H_{\mathrm{UAS-6}}$)
+- **$H_{\mathrm{UAS-1}}$ (Lost-Link Flyaway / Airspace Infringement):** Uncontrolled departure beyond approved operational volume.
+- **$H_{\mathrm{UAS-2}}$ (Loss of Control in Flight - LOC-I):** Aerodynamic stall, spin, or attitude destabilization driven by sensor or control fault.
+- **$H_{\mathrm{UAS-3}}$ (High-Voltage Wire / Infrastructure Strike):** Collision with transmission lines, towers, or pipeline structures.
+- **$H_{\mathrm{UAS-4}}$ (Uncontrolled Terrain / Obstacle Impact - CFIT):** Power exhaustion or forced landing into un-cleared terrain.
+- **$H_{\mathrm{UAS-5}}$ (Ground Impact in Populated Zone):** Premature parachute deployment or unmitigated descent over populated areas.
+- **$H_{\mathrm{UAS-6}}$ (Mid-Air Collision - MAC):** Loss of well-clear separation with manned air traffic.
 
 | System Hazard ID | Hazard Title & Regulatory Baseline | Associated System Losses | Mapped Unsafe Control Actions (UCAs) |
 | :--- | :--- | :--- | :--- |
@@ -228,7 +228,7 @@ The 16-row STPA matrix below evaluates control flaws across the 5 primary UAS co
 
 #### Derivation of Mathematical Safety Constraints
 1. **$SC_{\text{UAS}-1}$:** $\forall t, (t_{\text{loss}} > 2.0\text{s}) \implies \text{Cmd}_{\text{RTL}}(t + 100\text{ms}) = \text{ASSERTED}$.
-2. **$SC_{\text{UAS}-2}$:** $\forall t, (\|\mathbf{B}_{\text{EMF}}\| > 200\,\mu\text{T}) \implies \text{Fusion}_{\text{mag}}(t) = \text{REJECTED} \land \text{State}_{\text{heading}} = \text{EKF\_GPS\_YAW}$.
+2. **$SC_{\text{UAS}-2}$:** $\forall t, (\|\mathbf{B}_{\text{EMF}}\| > 200\,\mu\text{T}) \implies \text{Fusion}_{\text{mag}}(t) = \text{REJECTED} \land \text{State}_{\text{heading}} = \mathrm{EKF-GPS-YAW}$.
 3. **$SC_{\text{UAS}-3}$:** $\forall t, (d_{\text{wire}} < 10.0\text{m} \land v_x > 3.0\text{m/s}) \implies a_x(t + 50\text{ms}) \le -2.5\text{m/s}^2 \quad (\text{Active Braking})$.
 4. **$SC_{\text{UAS}-5}$:** $\forall t, (d_{\text{geo}} \le v_{\text{rad}} \times 2.0\text{s}) \implies \mathbf{v}_{\text{cmd}} \cdot \mathbf{n}_{\text{geo}} \le 0.0 \quad (\text{Velocity Vector Clamped})$.
 
