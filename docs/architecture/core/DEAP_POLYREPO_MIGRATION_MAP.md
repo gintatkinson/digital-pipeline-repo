@@ -35,6 +35,8 @@ properly decomposed into a polyrepo architecture (v2).
 | `app_flutter/` | `DEAP-profile-flutter-app/app_flutter/` | ⚠️ Exists but governance incomplete |
 | `web_react/` | `DEAP-profile-react-web/web_react/` | ⚠️ Exists but governance incomplete |
 | `scripts/` | `DEAP-spec-core/` or `DEAP-implementation-driver/` | ❌ Not migrated |
+| `packages/DEAP-avionic-flight-safety/` | `DEAP-avionic-flight-safety` | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
+| `packages/DEAP-uas-infrastructure-safety/` | `DEAP-uas-infrastructure-safety` | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
 
 ---
 
@@ -147,6 +149,20 @@ properly decomposed into a polyrepo architecture (v2).
 - **`profile.yaml`**: ⚠️ One-line stub
 - **`.pipeline/`**: ❌ Missing
 - **`.agents/`**: ❌ Missing
+
+---
+
+### `DEAP-avionic-flight-safety`
+- **Path**: `/Users/perkunas/jail/digital-pipeline-repo/packages/DEAP-avionic-flight-safety`
+- **Scope**: Civil Avionic Flight Safety Platform (DO-178C DAL A-E, DO-254, ARP4754A/4761, SPARK Ada / MISRA-C)
+- **Status**: ✅ Provisioned (Option A Standalone Monorepo Package Stage)
+
+---
+
+### `DEAP-uas-infrastructure-safety`
+- **Path**: `/Users/perkunas/jail/digital-pipeline-repo/packages/DEAP-uas-infrastructure-safety`
+- **Scope**: Low-Altitude UAS Infrastructure Safety Platform (SORA v2.5 SAIL I-VI, ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, ROS2 / PX4)
+- **Status**: ✅ Provisioned (Option A Standalone Monorepo Package Stage)
 
 ---
 
@@ -280,6 +296,8 @@ python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py
 | DEAP React profile | `/Users/perkunas/jail/DEAP-profile-react-web` |
 | DEAP Backend API profile | `/Users/perkunas/jail/DEAP-profile-backend-api` |
 | DEAP VHDL Hardware profile | `/Users/perkunas/jail/DEAP-profile-vhdl-hardware` |
+| DEAP avionic flight safety package | `/Users/perkunas/jail/digital-pipeline-repo/packages/DEAP-avionic-flight-safety` |
+| DEAP uas infrastructure safety package | `/Users/perkunas/jail/digital-pipeline-repo/packages/DEAP-uas-infrastructure-safety` |
 | debug-protocol SKILL.md | `/Users/perkunas/jail/digital-pipeline-repo/.agents/skills/debug-protocol/SKILL.md` |
 | adversarial-code-auditor SKILL.md | `/Users/perkunas/jail/digital-pipeline-repo/.agents/skills/adversarial-code-auditor/SKILL.md` |
 | feature-driven-implementation SKILL.md | `/Users/perkunas/jail/digital-pipeline-repo/.agents/skills/feature-driven-implementation/SKILL.md` |

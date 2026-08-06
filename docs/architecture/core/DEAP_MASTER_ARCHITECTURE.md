@@ -124,4 +124,16 @@ The master architecture is extended by specialized domain architecture blueprint
 | **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
 | **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
 
+---
+
+## 6. Downstream Domain Polyrepo Packages & Provisioning
+
+DEAP provisions domain-specific safety, infrastructure, and runtime platforms as modular packages under the downstream polyrepo architecture:
+
+| Package Directory | Domain Platform / Standards Scope | Provisioning Status |
+| :--- | :--- | :--- |
+| `packages/DEAP-avionic-flight-safety/` | Civil Avionic Flight Safety Platform (DO-178C DAL A-E, DO-254, ARP4754A/4761, SPARK Ada / MISRA-C) | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
+| `packages/DEAP-uas-infrastructure-safety/` | Low-Altitude UAS Infrastructure Safety Platform (SORA v2.5 SAIL I-VI, ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, ROS2 / PX4) | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
+
+
 
