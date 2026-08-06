@@ -140,31 +140,174 @@ flowchart TD
 
 ### 3.2 Formal STPA Unsafe Control Actions (UCAs)
 
-DEAP formalizes STPA control flaws into 4 core Unsafe Control Actions (UCAs):
+System-Theoretic Process Analysis (STPA), as formulated by Leveson (2018), NASA/TM-2013-217985, and NASA/CR-2020-220454, treats safety as a dynamic control problem rather than a component failure problem. In airborne safety-critical systems governed by SAE ARP4754A, SAE ARP4761, RTCA DO-178C, and RTCA DO-254, software and hardware interactions can lead to catastrophic losses even when all individual components function as designed. DEAP formalizes STPA top-down hazard analysis into mathematically rigorous, state-space-bounded Unsafe Control Actions (UCAs) mapped to civil avionic airworthiness standards (FAA AC 25.1309-1A, EASA CS-25.1309).
 
-1. **UCA-1 (Providing Action Causes Hazard):**
-   - **Control Action:** Pilot or Autopilot issues a high-rate `Pitch Up Command`.
-   - **Context:** Aircraft Angle of Attack (AoA) is already near stall boundary (`AoA > 14.5 deg`) during low-altitude approach.
-   - **Hazard:** Loss of control / aerodynamic stall resulting in ground impact.
-   - **Safety Constraint `SC-STPA-001`:** The FCC pitch controller MUST intercept and clamp pitch commands to maintain `AoA <= 12.0 deg` regardless of autopilot or pilot stick position.
+#### 3.2.1 Mathematical & State-Space Formulation of STPA UCAs
 
-2. **UCA-2 (Not Providing Action Causes Hazard):**
-   - **Control Action:** Autopilot fails to issue `Actuator Arming Signal`.
-   - **Context:** Automated ILS Precision Approach engaged and glideslope deviation exceeds 1.5 dots.
-   - **Hazard:** Controlled Flight Into Terrain (CFIT) due to unmodeled approach descent.
-   - **Safety Constraint `SC-STPA-002`:** The Autopilot MUST continuously assert `Actuator Arming Signal` while ILS lock is verified, and automatically initiate a Go-Around command if glideslope lock is lost for `> 200 ms`.
+Per Leveson (2018), NASA/TM-2013-217985, and NASA/CR-2020-220454, an Unsafe Control Action (UCA) is formally defined as a 4-tuple:
 
-3. **UCA-3 (Providing Too Early / Too Late / Out of Order):**
-   - **Control Action:** FCC provides `Roll Stabilization Command`.
-   - **Context:** Delivered with execution delay exceeding `50 ms` during high-rate turbulence disturbance.
-   - **Hazard:** Pilot-Induced Oscillation (PIO) leading to structural overstress.
-   - **Safety Constraint `SC-STPA-003`:** ARINC 653 minor frame scheduling MUST guarantee Roll Control Loop processing latency `t_latency <= 10 ms` under maximum CPU utilization.
+$$\text{UCA} = \langle C, CA, \text{Type}, C_{\text{context}} \rangle$$
 
-4. **UCA-4 (Stopped Too Soon / Applied Too Long):**
-   - **Control Action:** Elevator ACU continues applying `Elevator Trim Torque`.
-   - **Context:** After `Autopilot Disengage Signal` has been asserted by the pilot.
-   - **Hazard:** Runaway elevator trim causing pitch hardover.
-   - **Safety Constraint `SC-STPA-004`:** Elevator ACU hardware MUST remove motor drive power within `5 ms` of detecting hardware disengage line assertion.
+where:
+- **$C \in \mathcal{C}$** is the issuing control entity (e.g., Flight Control Computer, Autopilot Mode Logic, Auto-Throttle Manager, Rudder Yaw Damper, or ARINC 653 Partition Switcher).
+- **$CA \in \mathcal{U}$** is the discrete or continuous control action signal emitted by $C$ into the physical plant or downstream controllers.
+- **$\text{Type} \in \mathcal{T}$** is the STPA control flaw category, where $\mathcal{T} = \{\text{Not Provided}, \text{Provided Unsafely}, \text{Provided Too Early/Late}, \text{Stopped Too Soon / Applied Too Long}\}$.
+- **$C_{\text{context}} \subseteq \mathcal{X}$** is the set of operational environment and physical aircraft dynamic states under which issuing (or failing to issue) $CA$ causes a transition into a hazardous state space region.
+
+##### Aircraft State-Space Vector $\mathbf{x}(t)$
+The continuous aircraft dynamic state space $\mathcal{X} \subset \mathbb{R}^n$ is modeled by the state vector $\mathbf{x}(t)$:
+
+$$\mathbf{x}(t) = \begin{bmatrix} h(t) \\ V_{\text{CAS}}(t) \\ \alpha(t) \\ \theta(t) \\ \phi(t) \\ r(t) \\ T_{\text{eng}}(t) \\ WoW(t) \\ S_{\text{phase}}(t) \end{bmatrix} \in \mathcal{X}$$
+
+where:
+- $h(t) \in \mathbb{R}$: Pressure / Radio Altitude (ft AGL or MSL).
+- $V_{\text{CAS}}(t) \in \mathbb{R}^+$: Calibrated Airspeed (knots).
+- $\alpha(t) \in \mathbb{R}$: Angle of Attack (degrees).
+- $\theta(t), \phi(t) \in [-\pi, \pi]$: Aircraft Pitch and Roll attitude angles (degrees).
+- $r(t) \in \mathbb{R}$: Yaw Rate (degrees/second).
+- $T_{\text{eng}}(t) \in [0, 100\%]$: Engine Thrust Level / N1 Percentage.
+- $WoW(t) \in \{\text{True}, \text{False}\}$: Weight-on-Wheels discrete sensor state.
+- $S_{\text{phase}}(t) \in \{\text{TAKEOFF}, \text{CLIMB}, \text{CRUISE}, \text{DESCENT}, \text{APPROACH}, \text{FLARE}, \text{TOUCHDOWN}, \text{TAXI}\}$: Discrete Flight Phase state.
+
+##### State Evolution & Unsafe Trajectory
+The time evolution of the dynamic physical plant is governed by nonlinear differential state equations:
+
+$$\dot{\mathbf{x}}(t) = f\big(\mathbf{x}(t), \mathbf{u}(t), \mathbf{d}(t)\big)$$
+
+where $\mathbf{u}(t) = g(CA, t)$ is the physical control surface or actuator input generated by control action $CA$, and $\mathbf{d}(t)$ represents atmospheric wind gusts, turbulence, and external environmental disturbances.
+
+A Control Action $CA$ emitted by controller $C$ at time $t_0$ is defined as an **Unsafe Control Action** if the resulting system state trajectory $\mathbf{x}(t)$ enters an unsafe state region $\mathcal{H}_{\text{unsafe}} \subset \mathcal{X}$ for any $t \ge t_0$:
+
+$$\text{UCA} \iff \exists t \ge t_0 : \mathbf{x}(t) \in \mathcal{H}_{\text{unsafe}} \quad \text{given } \mathbf{x}(t_0) \in C_{\text{context}}$$
+
+where $\mathcal{H}_{\text{unsafe}}$ corresponds to one or more civil system hazards $H_1$ through $H_6$ specified under FAA AC 25.1309-1A and EASA CS-25.1309.
+
+#### 3.2.2 Exhaustive 16-Row Avionic Control Action Risk Matrix
+
+The 16-row STPA matrix below systematically synthesizes all 4 UCA categories ($\mathcal{T}$) across the 5 primary avionic control subsystems: Flight Control Computer (Pitch/Roll), Autopilot Mode Logic, Auto-Throttle / Engine Thrust Reversers, Rudder Yaw Damper, and ARINC 653 Partition Switcher. Each UCA is classified by environmental context vector $C_{\text{context}}$, triggered hazard (FAA AC 25.1309-1A / EASA CS-25.1309), severity classification (ARP4761 / ARP4754A), and software development assurance level (RTCA DO-178C / DO-254).
+
+| UCA ID | Controller ($C$) | Control Action ($CA$) | STPA UCA Category ($\text{Type}$) | Environmental Context Vector ($C_{\text{context}}$) | Triggered System Hazard | Severity Classification | DO-178C DAL Level |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **UCA-01** | Flight Control Computer (FCC) | Pitch Nose-Up Recovery Command | **1. Not Provided** | $h < 500\text{ ft AGL}$, $V_{\text{CAS}} < V_{\text{ref}}$, $\alpha > 12.0^{\circ}$, $WoW = \text{False}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
+| **UCA-02** | Flight Control Computer (FCC) | Pitch High-Rate Elevator Command | **2. Provided Unsafely** | $\alpha > 14.5^{\circ}$, $V_{\text{CAS}} < V_{\text{stall}} + 5\text{ kts}$, $\theta > 18.0^{\circ}$, $WoW = \text{False}$, $S_{\text{phase}} \in \{\text{CLIMB}, \text{APPROACH}\}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-03** | Flight Control Computer (FCC) | Roll Stabilization Aileron Command | **3. Provided Too Late** | Command processing latency $t_{\text{latency}} > 50\text{ ms}$, severe turbulence gust $\mathbf{d}(t)$, $S_{\text{phase}} = \text{CRUISE}$ | **H_5:** Airframe Structural Overstress | Hazardous | **DAL B** |
+| **UCA-04** | Flight Control Computer (FCC) | Elevator Auto-Trim Torque Drive | **4. Applied Too Long** | Continuous trim drive applied for $t > 2.0\text{ s}$ after manual pilot override / AP disconnect signal | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-05** | Autopilot Mode Logic | Auto-Go-Around (GA) Mode Engage | **1. Not Provided** | ILS glideslope deviation $> 1.5\text{ dots}$ below decision height $h < 200\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
+| **UCA-06** | Autopilot Mode Logic | Autopilot Pitch Down Trim Command | **2. Provided Unsafely** | Radio altimeter sensor fault / lock loss at low altitude $h < 400\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
+| **UCA-07** | Autopilot Mode Logic | VNAV Descent Mode Transition | **3. Provided Too Early** | Executed $15\text{ s}$ prior to ATC altitude clearance boundary, $h = 24,000\text{ ft MSL}$, $S_{\text{phase}} = \text{CRUISE}$ | **H_3:** Mid-Air Collision (MAC) | Hazardous | **DAL B** |
+| **UCA-08** | Autopilot Mode Logic | Nose-Up Pitch Hold Command | **4. Applied Too Long** | Pitch command maintained for $t > 5.0\text{ s}$ after Go-Around mode disengagement, $V_{\text{CAS}} < V_{\text{min}}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-09** | Auto-Throttle System | Engine Thrust Increase Command | **1. Not Provided** | Airspeed decay $V_{\text{CAS}} < V_{\text{stall\_warning}}$ ($V_{\text{CAS}} < 1.1 V_{\text{stall}}$), $h > 500\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-10** | Auto-Throttle / Reverser | Engine Thrust Reverser Deploy Command | **2. Provided Unsafely** | In-flight execution ($WoW = \text{False}$, $h > 50\text{ ft AGL}$, $V_{\text{CAS}} = 250\text{ kts}$, $S_{\text{phase}} \in \{\text{CLIMB}, \text{CRUISE}\}$) | **H_6:** Uncommanded Thrust Reversal | Catastrophic | **DAL A** |
+| **UCA-11** | Auto-Throttle System | Idle Thrust Retard Command | **3. Provided Too Early** | Issued $5.0\text{ s}$ prior to main landing gear touchdown, $h = 80\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_4:** Runway Excursion / Hard Landing | Major | **DAL C** |
+| **UCA-12** | Auto-Throttle / Reverser | Reverse Thrust Actuator Drive Power | **4. Applied Too Long** | Reverse thrust applied for $t > 3.0\text{ s}$ after ground taxi speed drops below $V_{\text{CAS}} < 10\text{ kts}$, $S_{\text{phase}} = \text{TAXI}$ | **H_4:** Runway / Taxiway Excursion | Major | **DAL C** |
+| **UCA-13** | Rudder Yaw Damper | Asymmetric Thrust Compensation Yaw Command | **1. Not Provided** | Single engine failure event ($T_{\text{eng1}} - T_{\text{eng2}} > 40\%$), $V_{\text{CAS}} > V_1$, $h > 100\text{ ft AGL}$, $S_{\text{phase}} = \text{TAKEOFF}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-14** | Rudder Yaw Damper | Full Scale Rudder Deflection Command | **2. Provided Unsafely** | Airspeed exceeds maneuvering speed ($V_{\text{CAS}} > V_A = 270\text{ kts}$), $h = 15,000\text{ ft MSL}$, $S_{\text{phase}} = \text{CRUISE}$ | **H_5:** Airframe Structural Overstress | Catastrophic | **DAL A** |
+| **UCA-15** | ARINC 653 Partition Switcher | Executive Partition Context Switch Command | **1. Not Provided** | Flight Control Partition 1 execution minor frame deadline expired ($t > 20\text{ ms}$), $S_{\text{phase}} = \text{ALL}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-16** | ARINC 653 Partition Switcher | Partition Preemption Switch Command | **2. Provided Unsafely** | Preempting active DAL A Flight Control Partition 1 to service lower-criticality Partition 4 during maneuver | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+
+#### 3.2.3 System Loss & Hazard Mapping Matrix
+
+Per SAE ARP4761, NASA/CR-2020-220454, and FAA AC 25.1309-1A / EASA CS-25.1309, safety constraints must trace explicitly from high-level System Losses ($L_i$) through System Hazards ($H_j$) down to Unsafe Control Actions ($\text{UCA}_k$).
+
+##### System Loss Definitions ($L_1 \dots L_4$)
+- **$L_1$ (Loss of Life / Aircraft Destruction):** Complete hull loss, fatal injuries to passengers/crew. Severity: *Catastrophic* ($\text{Probability} < 10^{-9} \text{ per flight hour}$).
+- **$L_2$ (Loss of Mission / Severe Operational Failure):** Total failure of flight objective, emergency landing divert required. Severity: *Hazardous* ($\text{Probability} < 10^{-7} \text{ per flight hour}$).
+- **$L_3$ (Damage to Ground Infrastructure):** Physical destruction of runway, airport structures, or ground equipment. Severity: *Major* ($\text{Probability} < 10^{-5} \text{ per flight hour}$).
+- **$L_4$ (Loss of System Availability / Margins):** Reduction in avionic functional capability or pilot workload safety margins. Severity: *Major* ($\text{Probability} < 10^{-5} \text{ per flight hour}$).
+
+##### System Hazard Definitions ($H_1 \dots H_6$)
+- **$H_1$ (Controlled Flight Into Terrain - CFIT):** Airworthy aircraft under control or automated guidance flown into terrain, water, or obstacles.
+- **$H_2$ (Loss of Control in Flight - LOC-I):** Aircraft attitude, altitude, or aerodynamic state exceeds normal flight envelope, resulting in unrecoverable stall or dive.
+- **$H_3$ (Mid-Air Collision - MAC):** Loss of required horizontal or vertical separation between aircraft in controlled airspace.
+- **$H_4$ (Runway Incursion / Excursion):** Aircraft departs runway surface during landing, takeoff, or ground taxi operations.
+- **$H_5$ (Airframe Structural Overstress):** Aerodynamic or structural loads exceed ultimate limit design limits ($Q > Q_{\text{max}}$ or $n_z > n_{z,\text{limit}}$).
+- **$H_6$ (Uncommanded Engine Thrust Reversal):** In-flight deployment of engine thrust reversers creating catastrophic asymmetric drag and loss of pitch/yaw authority.
+
+##### System Hazard to Loss & UCA Tracing Matrix
+
+| System Hazard ID | Hazard Title & Description | Regulatory Baseline (FAA AC 25.1309-1A / EASA CS-25.1309) | Associated System Losses | Mapped Unsafe Control Actions (UCAs) |
+| :--- | :--- | :--- | :--- | :--- |
+| **H_1** | Controlled Flight Into Terrain (CFIT) | AC 25.1309-1A § 8.b / CS-25.1309(b)(1) Catastrophic Failure Condition | **L_1, L_2** | `UCA-01`, `UCA-05`, `UCA-06` |
+| **H_2** | Loss of Control in Flight (LOC-I) | AC 25.1309-1A § 8.a / CS-25.1309(b)(1) Catastrophic Failure Condition | **L_1, L_2** | `UCA-02`, `UCA-04`, `UCA-08`, `UCA-09`, `UCA-13`, `UCA-15`, `UCA-16` |
+| **H_3** | Mid-Air Collision (MAC) | AC 25.1309-1A § 8.c / CS-25.1309(b)(2) Hazardous Failure Condition | **L_1, L_2** | `UCA-07` |
+| **H_4** | Runway Incursion / Excursion | AC 25.1309-1A § 8.d / CS-25.1309(b)(3) Major Failure Condition | **L_2, L_3, L_4** | `UCA-11`, `UCA-12` |
+| **H_5** | Airframe Structural Overstress | AC 25.1309-1A § 8.e / CS-25.1309(b)(1) Catastrophic / Hazardous | **L_1, L_2** | `UCA-03`, `UCA-14` |
+| **H_6** | Uncommanded Engine Thrust Reversal | AC 25.1309-1A § 8.f / CS-25.1309(b)(1) Catastrophic Failure Condition | **L_1, L_2** | `UCA-10` |
+
+#### 3.2.4 Formal Safety Control Constraint ($SC_i$) Derivation & BDD Proof Scenarios
+
+To satisfy RTCA DO-178C DAL A software requirements, each Unsafe Control Action ($\text{UCA}_i$) must be inverted into a mathematically verifiable Safety Control Constraint ($SC_i$). In DEAP, these constraints are expressed as formal mathematical invariants and realized as executable BDD Given-When-Then scenarios tagged with `/// Safety-Realises: [SAFETY-FHA-xxx/UCA-yyy]`.
+
+##### Mathematical Derivation of Safety Constraints ($SC_1 \dots SC_{16}$)
+
+1. **$SC_1$ (Derivation from UCA-01):**  
+   $$\forall t, \left(h(t) < 500 \land V_{\text{CAS}}(t) < V_{\text{ref}} \land \alpha(t) > 12.0^{\circ} \land WoW = \text{False}\right) \implies CA_{\text{pitch\_recovery}}(t) = \text{ASSERTED}$$
+2. **$SC_2$ (Derivation from UCA-02):**  
+   $$\forall t, \left(\alpha(t) > 14.5^{\circ} \lor V_{\text{CAS}}(t) < V_{\text{stall}} + 5\text{ kts}\right) \implies CA_{\text{pitch\_up}}(t) \le 0.0^{\circ} \quad (\text{Pitch Clamp Engaged})$$
+3. **$SC_3$ (Derivation from UCA-03):**  
+   $$\forall t, \quad t_{\text{latency}}\left(CA_{\text{aileron}}\right) \le 10\text{ ms} \quad (\text{ARINC 653 Execution Bound})$$
+4. **$SC_4$ (Derivation from UCA-04):**  
+   $$\forall t, \left(Signal_{\text{pilot\_override}} = \text{TRUE} \lor Signal_{\text{ap\_disengage}} = \text{TRUE}\right) \implies Torque_{\text{trim\_drive}}(t + 5\text{ ms}) = 0.0\text{ Nm}$$
+5. **$SC_5$ (Derivation from UCA-05):**  
+   $$\forall t, \left(h(t) < 200 \land Dev_{\text{glideslope}} > 1.5\text{ dots} \land S_{\text{phase}} = \text{APPROACH}\right) \implies Mode_{\text{GA\_engage}}(t) = \text{ASSERTED}$$
+6. **$SC_6$ (Derivation from UCA-06):**  
+   $$\forall t, \left(Status_{\text{rad\_alt}} = \text{INVALID} \land h < 400\text{ ft}\right) \implies Trim_{\text{pitch\_down}}(t) = \text{INHIBITED}$$
+7. **$SC_7$ (Derivation from UCA-07):**  
+   $$\forall t, \left(Clearance_{\text{ATC\_altitude}} = \text{FALSE}\right) \implies Mode_{\text{VNAV\_descent}}(t) = \text{INHIBITED}$$
+8. **$SC_8$ (Derivation from UCA-08):**  
+   $$\forall t, \left(Mode_{\text{GA}} = \text{DISENGAGED}\right) \implies \left(t_{\text{hold}}(CA_{\text{nose\_up}}) \le 0\text{ ms}\right)$$
+9. **$SC_9$ (Derivation from UCA-09):**  
+   $$\forall t, \left(V_{\text{CAS}}(t) < 1.1 V_{\text{stall}} \land h > 500\text{ ft}\right) \implies Command_{\text{thrust\_increase}}(t) = \text{MAX\_TOGA}$$
+10. **$SC_{10}$ (Derivation from UCA-10):**  
+    $$\forall t, \left(WoW = \text{FALSE} \lor h(t) > 50\text{ ft}\right) \implies Power_{\text{reverser\_solenoid}}(t) = \text{ISOLATED} \quad (\text{Hardware Lockout})$$
+11. **$SC_{11}$ (Derivation from UCA-11):**  
+    $$\forall t, \left(h(t) > 30\text{ ft AGL}\right) \implies Thrust_{\text{retard\_command}}(t) = \text{INHIBITED}$$
+12. **$SC_{12}$ (Derivation from UCA-12):**  
+    $$\forall t, \left(V_{\text{CAS}}(t) < 10\text{ kts} \land WoW = \text{TRUE}\right) \implies Reverser_{\text{actuator\_drive}}(t + 500\text{ ms}) = \text{OFF}$$
+13. **$SC_{13}$ (Derivation from UCA-13):**  
+    $$\forall t, \left(\left|T_{\text{eng1}} - T_{\text{eng2}}\right| > 40\% \land V_{\text{CAS}} > V_1\right) \implies Rudder_{\text{yaw\_damper\_comp}}(t) = \text{ACTIVE}$$
+14. **$SC_{14}$ (Derivation from UCA-14):**  
+    $$\forall t, \left(V_{\text{CAS}}(t) > V_A\right) \implies \delta_{\text{rudder\_command}}(t) \le \delta_{\text{max\_safe}}\left(V_{\text{CAS}}\right)$$
+15. **$SC_{15}$ (Derivation from UCA-15):**  
+    $$\forall t, \left(Timer_{\text{minor\_frame\_partition1}} \ge 20\text{ ms}\right) \implies Switch_{\text{partition\_context}}(t) = \text{FORCED}$$
+16. **$SC_{16}$ (Derivation from UCA-16):**  
+    $$\forall t, \left(State_{\text{partition1}} = \text{EXECUTING\_DAL\_A}\right) \implies Interrupt_{\text{preemption\_partition4}}(t) = \text{BLOCKED}$$
+
+##### BDD Executable Proof Scenarios (DO-178C DAL A Verification Suite)
+
+```gherkin
+Feature: Safety Control Constraint Enforcement (DO-178C DAL A Verification)
+  As an Airborne Flight Control Computer (FCC)
+  I want safety control constraints enforced mechanically at runtime
+  So that Unsafe Control Actions (UCAs) cannot lead to catastrophic civil aircraft hazards
+
+  @Safety-Realises: [SAFETY-FHA-001/UCA-01] @DAL_A @STPA_Constraint
+  Scenario: SC-1 Pitch Recovery Assertion on Low Altitude Speed Decay
+    Given the aircraft altitude h is 450 feet AGL
+    And calibrated airspeed V_CAS is below V_ref
+    And angle of attack alpha is 12.5 degrees
+    And Weight-on-Wheels WoW is False
+    When the FCC executes the pitch control loop in Partition 1
+    Then the pitch recovery command MUST be ASSERTED within 10 ms
+    And the software execution path MUST maintain 100% MC/DC coverage
+    And zero dynamic heap memory MUST be allocated
+
+  @Safety-Realises: [SAFETY-FHA-002/UCA-02] @DAL_A @STPA_Constraint
+  Scenario: SC-2 Pitch Command Clamping on Critical Angle of Attack
+    Given the aircraft angle of attack alpha is 15.0 degrees
+    And calibrated airspeed V_CAS is below V_stall + 5 knots
+    When the pilot stick or autopilot issues a pitch high-rate nose-up command
+    Then the FCC pitch control output MUST be clamped to 0.0 degrees
+    And elevator actuator deflection MUST NOT exceed maximum stall margin boundary
+
+  @Safety-Realises: [SAFETY-FHA-010/UCA-10] @DAL_A @STPA_Constraint @DO_254
+  Scenario: SC-10 In-Flight Engine Thrust Reverser Lockout
+    Given Weight-on-Wheels WoW sensor state is False
+    And aircraft radio altitude h is 250 feet AGL
+    When an auto-throttle or reverser deploy signal is asserted
+    Then the hardware thrust reverser interlock solenoid MUST remain ISOLATED
+    And the reverser actuator drive line MUST register zero electrical current within 5 ms
+```
 
 ### 3.3 ARINC 653 Time-Partitioned Execution Architecture
 
