@@ -138,3 +138,52 @@ def test_run_verification_uses_run_bounded_for_react(tmp_path):
     react_cmds = [c[0] for c in calls if c[0][0] == "npm"]
     assert ["npm", "install"] in react_cmds
     assert ["npm", "run", "build"] in react_cmds
+
+
+def test_run_verification_removes_preexisting_zip_archive_and_logs_size(tmp_path, capsys):
+    """
+    Assert pre-existing zip_path is removed before zipping and created archive size is logged.
+    """
+    dest = tmp_path / "app_flutter"
+    dest.mkdir()
+    (dest / "pubspec.yaml").write_text("name: test_app\n")
+    (dest / "analysis_options.yaml").write_text("linter: {}\n")
+    lib = dest / "lib"
+    lib.mkdir()
+    (lib / "main.dart").write_text("void main() {}\n")
+    domain = lib / "domain"
+    domain.mkdir()
+    (domain / "validation.dart").write_text("void validate() {}\n")
+    (domain / "repository_resolver.dart").write_text("class RepositoryResolver {}\n")
+
+    release_dir = dest / "build" / "macos" / "Build" / "Products" / "Release"
+    release_dir.mkdir(parents=True)
+    (release_dir / "Platform Console.app").mkdir()
+
+    # Create pre-existing zip file at the expected location (repo_root / "app_flutter_release.zip")
+    stale_zip = tmp_path / "app_flutter_release.zip"
+    stale_zip.write_bytes(b"stale_archive_content_12345")
+
+    zip_existed_during_zip_call = []
+
+    def mock_run_bounded(cmd, cwd, timeout, label):
+        if cmd[0] == "zip":
+            zip_path = cmd[2]
+            # Record whether the pre-existing zip file was removed before zip was called
+            zip_existed_during_zip_call.append(os.path.exists(zip_path))
+            # Create a fresh zip file to simulate zip output
+            with open(zip_path, "wb") as f:
+                f.write(b"fresh_zip_content_9876543210")
+
+    args = mock.MagicMock()
+    args.no_domain = False
+
+    with mock.patch.object(verify_downstream_baseline, "_run_bounded", side_effect=mock_run_bounded), \
+         mock.patch.object(verify_downstream_baseline, "load_mandated_classes", return_value=[]):
+        verify_downstream_baseline._run_verification(args, str(dest), str(tmp_path), is_flutter=True, is_react=False)
+
+    assert zip_existed_during_zip_call == [False], "zip_path should have been unlinked before executing zip command"
+    captured = capsys.readouterr()
+    assert "Created archive size:" in captured.out or "bytes" in captured.out
+    assert "26 bytes" in captured.out or f"{len(b'fresh_zip_content_9876543210')} bytes" in captured.out
+

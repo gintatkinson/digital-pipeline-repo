@@ -357,8 +357,12 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 app_bundle = "Platform Console.app"
                 
                 if os.path.exists(os.path.join(release_dir, app_bundle)):
+                    if os.path.exists(zip_path):
+                        print(f"Removing pre-existing release archive at {zip_path}...")
+                        os.remove(zip_path)
                     _run_bounded(["zip", "-r", zip_path, app_bundle], cwd=release_dir, timeout=TIMEOUT_SECONDS, label="zip macos bundle")
-                    print(f"Success: App bundled to {zip_path}")
+                    archive_size = os.path.getsize(zip_path) if os.path.exists(zip_path) else 0
+                    print(f"Success: App bundled to {zip_path} (created archive size: {archive_size} bytes)")
                 else:
                     print(f"ERROR: App bundle not found at {os.path.join(release_dir, app_bundle)}", file=sys.stderr)
                     sys.exit(1)
