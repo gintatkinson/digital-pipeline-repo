@@ -844,3 +844,43 @@ docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md
 2. Yes, explicit authorization granted for file writes and command execution.
 3. No silent assumptions; requirements and target paths are explicitly defined by the user.
 4. Yes, repository documentation files are being written. Coordinator-direct execution per user instruction.
+
+
+## Part Y — Fix Issue #363: Step-Citation Matcher Accepts Sub-Step Headings
+
+**STATUS: IN PROGRESS.**
+
+### Y1. Objective
+Fix regex pattern in `tests/test_skill_path_references.py` where step-citation heading matcher incorrectly accepts sub-step headings (e.g. `Step 5.5`) when searching for main step headings (e.g. `Step 5`). Add a unit test / vacuity assertion verifying that citing `Step 5` rejects a document whose only step heading is `### Step 5.5`.
+
+### Y2. Approved Files Manifest
+
+<!-- APPROVED-FILES:START -->
+tests/test_skill_path_references.py
+<!-- APPROVED-FILES:END -->
+
+### Y3. Actions
+1. Write RED unit test / assertion in `tests/test_skill_path_references.py` asserting that `Step 5` citation matcher rejects a document whose only heading is `### Step 5.5`.
+2. Run `pytest tests/test_skill_path_references.py` to confirm failure (RED).
+3. Update step-citation heading regex pattern from `r"^#{1,6}\s*Step\s+" + re.escape(step) + r"\b"` to `r"^#{1,6}\s*Step\s+" + re.escape(step) + r"(?![\d.])"`.
+4. Re-run `pytest tests/test_skill_path_references.py` to confirm pass (GREEN).
+5. Execute full test suite `pytest tests/` to confirm all tests pass cleanly.
+6. Commit changes and push to `origin main`.
+7. Update GitHub Issue #363 with root cause, fix details, test output, and add `status:fixed-resolved` label.
+
+### Y4. Verification
+- `python3 -m pytest tests/test_skill_path_references.py`
+- `python3 -m pytest tests/`
+
+### Y5. Commit & Push
+- `git add tests/test_skill_path_references.py`
+- `git commit -m "fix(tests): prevent step citation matcher from accepting sub-step headings (issue #363)"`
+- `git push origin main`
+
+#### 4-Point Compliance Check
+
+1. Command — Direct command to resolve Issue #363 under debug-protocol skill.
+2. Yes, explicit authorization granted for file edits, test execution, git push, and issue update.
+3. No silent assumptions; requirements are fully specified in issue request.
+4. Yes, test file `tests/test_skill_path_references.py` will be modified.
+

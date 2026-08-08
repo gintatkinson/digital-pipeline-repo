@@ -176,7 +176,7 @@ def test_step_citations_resolve_issue307():
             continue  # not a skill reference, or anaphoric — nothing to resolve
         checked += 1
         heading = re.compile(
-            r"^#{1,6}\s*Step\s+" + re.escape(step) + r"\b", re.MULTILINE
+            r"^#{1,6}\s*Step\s+" + re.escape(step) + r"(?![\d.])", re.MULTILINE
         )
         if not heading.search(_read(target)):
             offenders.append(f"{rel} cites `{name}` Step {step}, which has no heading")
@@ -185,6 +185,19 @@ def test_step_citations_resolve_issue307():
         f"only {checked} cross-document step citations examined; the scan is near-vacuous"
     )
     assert not offenders, f"governance documents cite steps that do not exist: {offenders}"
+
+
+def test_step_citation_matcher_rejects_substep_heading_issue363():
+    """Confirm that Step 5 citation matcher rejects a document whose only heading is ### Step 5.5."""
+    step = "5"
+    heading_pattern = r"^#{1,6}\s*Step\s+" + re.escape(step) + r"(?![\d.])"
+    heading = re.compile(heading_pattern, re.MULTILINE)
+    sample_doc = "### Step 5.5 — Sub-step heading\nSome text"
+    assert not heading.search(sample_doc), (
+        "Citation matcher for Step 5 incorrectly accepted '### Step 5.5'"
+    )
+
+
 
 
 # A concrete subagent dispatch/lifecycle tool identifier: an action verb joined to
