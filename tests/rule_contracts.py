@@ -655,6 +655,20 @@ SCHEMA_TRACEABILITY_CONTRACTS: List[RuleContract] = [
         enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
         enforcement_anchor="sysml-extraction-missing",
     ),
+    RuleContract(
+        id="sysml-model-not-readable",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="SysML Models Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="sysml-model-not-readable",
+    ),
+    RuleContract(
+        id="sysml-feature-not-readable",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="SysML Feature Specifications Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="sysml-feature-not-readable",
+    ),
 ]
 
 SCHEMA_TRACEABILITY_FAMILY = ContractFamily(
@@ -1860,6 +1874,14 @@ UML_MODEL_FAMILY = ContractFamily(
             "model-integrity constraints, and because its previous anchor -- a heading "
             "in implementation_plan.md -- was deleted when that working document was "
             "rewritten, leaving the rule enforced and documented nowhere."
+        ),
+        "SysML Models Must Be Readable": (
+            "Registered in the schema-traceability family as sysml-model-not-readable, "
+            "and enforced in cardinality_validator.py rather than uml.py."
+        ),
+        "SysML Feature Specifications Must Be Readable": (
+            "Registered in the schema-traceability family as sysml-feature-not-readable, "
+            "and enforced in cardinality_validator.py rather than uml.py."
         ),
     },
 )

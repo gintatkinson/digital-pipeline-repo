@@ -34,40 +34,54 @@ class SchemaCardinalityValidator(IValidator):
         backlog_dirs = rules.backlog_directories
         
         schemas_dir_rel = getattr(backlog_dirs, "schemas", None)
-        if not schemas_dir_rel:
-            return []
-        schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel)
-        if not os.path.exists(schemas_dir):
-            return []
-        schema_files = [f for f in os.listdir(schemas_dir) if not f.startswith('.')]
-        if not schema_files:
-            return []
+        schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel) if schemas_dir_rel else os.path.join(repo.workspace_dir, "schemas")
+        features_dir_rel = getattr(backlog_dirs, "features", None)
+        features_dir = os.path.join(repo.workspace_dir, features_dir_rel) if features_dir_rel else None
 
-        features_dir = os.path.join(repo.workspace_dir, backlog_dirs.features)
-        
         if is_sysml:
             errors = []
+            if not os.path.exists(schemas_dir):
+                sysml_files = []
+            else:
+                schema_files = [f for f in os.listdir(schemas_dir) if not f.startswith('.')]
+                sysml_files = [f for f in schema_files if f.endswith('.sysml')]
+
+            if not sysml_files:
+                errors.append(Finding(
+                    "sysml-model-not-readable",
+                    f"SysML mode was requested but no .sysml file was found in {schemas_dir}.",
+                    location="schemas"
+                ))
+                return errors
+
             sysml_nodes = set()
-            for f in schema_files:
-                if f.endswith('.sysml'):
-                    try:
-                        with open(os.path.join(schemas_dir, f), 'r') as file:
-                            content = file.read()
-                            for match in re.finditer(r'(?:part|attribute|port)\s+def\s+(\w+)', content):
-                                sysml_nodes.add(match.group(1))
-                    except Exception:
-                        pass
-            
+            for f in sysml_files:
+                try:
+                    with open(os.path.join(schemas_dir, f), 'r', encoding='utf-8') as file:
+                        content = file.read()
+                        for match in re.finditer(r'(?:part|attribute|port)\s+def\s+(\w+)', content):
+                            sysml_nodes.add(match.group(1))
+                except Exception as exc:
+                    errors.append(Finding(
+                        "sysml-model-not-readable",
+                        f"Failed to read SysML model file '{f}': {exc}",
+                        location="schemas"
+                    ))
+
             feature_texts = []
             if features_dir and os.path.exists(features_dir):
                 for fn in os.listdir(features_dir):
                     if fn.endswith('.md'):
                         try:
-                            with open(os.path.join(features_dir, fn), 'r') as file:
+                            with open(os.path.join(features_dir, fn), 'r', encoding='utf-8') as file:
                                 feature_texts.append(file.read())
-                        except Exception:
-                            pass
-            
+                        except Exception as exc:
+                            errors.append(Finding(
+                                "sysml-feature-not-readable",
+                                f"Failed to read Feature specification '{fn}': {exc}",
+                                location="features"
+                            ))
+
             for node in sysml_nodes:
                 found = False
                 for ft in feature_texts:
@@ -81,6 +95,12 @@ class SchemaCardinalityValidator(IValidator):
                         location="features"
                     ))
             return errors
+
+        if not os.path.exists(schemas_dir):
+            return []
+        schema_files = [f for f in os.listdir(schemas_dir) if not f.startswith('.')]
+        if not schema_files:
+            return []
         use_cases_dir_rel = getattr(backlog_dirs, "use_cases", None)
         use_cases_dir = (
             os.path.join(repo.workspace_dir, use_cases_dir_rel)
