@@ -55,10 +55,21 @@ flowchart LR
 To realize the Yang geodetic specifications (`docs/schemas/ietf-geo-location.yang`) in hardware registers, we define a 32-bit memory-mapped register configuration.
 
 ### Fixed-Point Coordinate Representation
-To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, latitude, longitude, and height coordinates are stored as **32-bit two's complement fixed-point numbers (Q16.16 format)**:
-* **Whole integer part:** 16 bits (signed).
-* **Fractional part:** 16 bits.
-* **Resolution:** $2^{-16} \approx 0.000015$ degrees (approx. 1.7 meters at the equator), which satisfies coordinate accuracy specifications.
+To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, coordinates are stored as **32-bit two's complement fixed-point numbers**. Based on `GEODETIC_SYSTEM` bits 1-0 (Coordinate Choice), two distinct encodings are defined:
+
+1. **Geometry / Ellipsoid (`GEODETIC_SYSTEM` bits 1-0 = `01`):**
+   * Latitude (`COORD_LAT_X`) and Longitude (`COORD_LON_Y`) use **Q16.16 signed format** (16 integer bits, 16 fractional bits), covering a representable range from **-32768 to +32767.99998** degrees.
+   * Resolution: $2^{-16} \approx 0.000015$ degrees (approx. 1.7 meters at the equator), satisfying coordinate accuracy specifications.
+2. **Cartesian (`GEODETIC_SYSTEM` bits 1-0 = `10`):**
+   * Cartesian X (`COORD_LAT_X`) and Cartesian Y (`COORD_LON_Y`) use **Q24.8 signed format** (24 integer bits, 8 fractional bits), covering a representable range from **-8388608 to +8388607.996** metres. This accommodates Earth-Centered, Earth-Fixed (ECEF) Cartesian magnitudes up to ~6.4M+ metres (Earth's radius $\approx 6,378,137$ metres).
+   * Resolution: $2^{-8} = 0.00390625$ metres (approx. 3.9 mm).
+3. **Altitude / Cartesian Z (`COORD_ALT_Z`):**
+   * `COORD_ALT_Z` carries linear altitude in metres under both variants and uses **Q24.8 signed format unconditionally** (range **-8388608 to +8388607.996** metres).
+
+### Overflow & Error Handling
+Coordinate writes exceeding the selected variant's representable range MUST **leave the register unmodified** and set `CONTROL_STATUS` bit 2 (Error flag).
+
+These register formats and resolution claims map directly to the `location` container (`dim_0`, `dim_1`, `dim_2` leaf nodes) and `control-status` container in `docs/schemas/ietf-geo-location.yang` (see [Source References](#source-references)).
 
 ### Register Map Table (Base Offset: `0x43C0_0000`)
 
@@ -66,9 +77,9 @@ To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, la
 | :--- | :--- | :--- | :--- |
 | `0x00` | `CONTROL_STATUS` | R/W | Bit 0: Commit (Trigger update)<br>Bit 1: Busy flag (Read-only)<br>Bit 2: Error flag (Read-only) |
 | `0x04` | `GEODETIC_SYSTEM` | R/W | Bits 1-0: Coordinate Choice (00=Unconfigured, 01=Ellipsoid, 10=Cartesian)<br>Bits 7-2: Datum ID |
-| `0x08` | `COORD_LAT_X` | R/W | Dim_0 or Cartesian X (32-bit Q16.16 format) |
-| `0x0C` | `COORD_LON_Y` | R/W | Dim_1 or Cartesian Y (32-bit Q16.16 format) |
-| `0x10` | `COORD_ALT_Z` | R/W | Dim_2 or Cartesian Z (32-bit Q16.16 format) |
+| `0x08` | `COORD_LAT_X` | R/W | Dim_0 Latitude (Q16.16) or Cartesian X (Q24.8) |
+| `0x0C` | `COORD_LON_Y` | R/W | Dim_1 Longitude (Q16.16) or Cartesian Y (Q24.8) |
+| `0x10` | `COORD_ALT_Z` | R/W | Dim_2 Altitude in metres or Cartesian Z (Q24.8 format unconditionally) |
 | `0x14` | `VALIDITY_LIMIT` | R/W | Epoch timestamp indicating validity boundary |
 
 ---
@@ -88,7 +99,7 @@ Each bus wrapper runs a VHDL Finite State Machine to handle interface-specific t
 stateDiagram-v2
     IDLE --> RECEIVING : "Bus Transaction Detected / Assert Busy bit 1"
     RECEIVING --> DESERIALIZING : "Read Frame Complete"
-    DESERIALIZING --> MAPPING : "Convert format (e.g. SPI stream -> Q16.16)"
+    DESERIALIZING --> MAPPING : "Convert format (e.g. SPI stream -> Q16.16/Q24.8)"
     MAPPING --> STAGED : "Hold coordinates safely without premature commit"
     STAGED --> COMMIT_REG : "commit_bit == 1 AND GEODETIC_SYSTEM in (01, 10)"
     COMMIT_REG --> IDLE : "Register write complete / Deassert Busy bit 1"
@@ -103,7 +114,7 @@ stateDiagram-v2
 1. **IDLE:** Waits for interface-specific handshakes (e.g. AXI `AWVALID` and `WVALID` flags, or SPI Chip Select `CS_N` going low). Busy bit 1 and Error bit 2 are deasserted.
 2. **RECEIVING:** Shifts in serialization data packets and asserts Busy bit 1. If a truncated frame is detected, transitions to **ERROR** and sets Error bit 2.
 3. **DESERIALIZING:** Assembles bits into standard 32-bit hardware words. If an out-of-range value is detected, transitions to **ERROR** and sets Error bit 2.
-4. **MAPPING:** Executes binary translation (e.g. converting IEEE-754 single-precision float inputs from a CPU into internal Q16.16 fixed-point format). If invalid encoding (`11`) or unconfigured geodetic system (`00`) is detected, transitions to **ERROR** and sets Error bit 2.
+4. **MAPPING:** Executes binary translation (e.g. converting IEEE-754 single-precision float inputs from a CPU into internal Q16.16 or Q24.8 fixed-point format). If invalid encoding (`11`) or unconfigured geodetic system (`00`) is detected, transitions to **ERROR** and sets Error bit 2.
 5. **STAGED:** Holds coordinates safely in staging registers without premature atomic commit. Guarded transition to **COMMIT_REG** occurs when `commit_bit == 1` (Commit bit 0) and `GEODETIC_SYSTEM` coordinate choice is valid (`01` Ellipsoid or `10` Cartesian). If unconfigured (`00`) or invalid encoding (`11`), transitions to **ERROR** and sets Error bit 2.
 6. **COMMIT_REG:** Asserts the internal register write enable to write values to target registers, then returns to **IDLE** while deasserting Busy bit 1.
 7. **ERROR:** Sets Error bit 2. FSM remains in **ERROR** state holding error status until an error acknowledgment transaction is received, which transitions `ERROR --> IDLE`, clearing Error bit 2 and Busy bit 1.
@@ -116,7 +127,7 @@ stateDiagram-v2
 For local development and E2E verification without physical hardware:
 * We implement a testbench (`tb_geodetic_register_map.vhd`).
 * The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`) containing coordinate values.
-* The testbench simulates the physical SPI clock and data lines, feeding the vectors into the wrapper, and asserts that the internal registers resolve to the expected values (e.g. checking that the Q16.16 output matches the input).
+* The testbench simulates the physical SPI clock and data lines, feeding the vectors into the wrapper, and asserts that the internal registers resolve to the expected values (e.g. checking that the Q16.16 or Q24.8 output matches the input).
 
 ### 2. Distributed Synthesis (Production Run)
 For physical deployment:

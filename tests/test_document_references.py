@@ -80,8 +80,39 @@ def test_control_status_bits_fsm_realisation_issue372():
     assert "11" in content and "00" in content, "FSM must specify error triggers for invalid 11 and unconfigured 00"
     assert "truncated" in content.lower() or "out-of-range" in content.lower() or "error" in content.lower()
 
-    # Assert ERROR -> IDLE transition on error acknowledgment
+    # Assert ERROR --> IDLE transition on error acknowledgment
     assert "ERROR --> IDLE" in content or ("ERROR" in content and "IDLE" in content), (
         "FSM must define transition from ERROR to IDLE on error acknowledgment"
     )
 
+
+def test_cartesian_and_geodetic_fixed_point_representations_issue371():
+    assert os.path.isfile(TARGET_DOC), f"Target document does not exist: {TARGET_DOC}"
+
+    with open(TARGET_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Geodetic (01) uses Q16.16 signed (range -32768 to +32767.99998 degrees)
+    assert "Q16.16" in content, "Document must define Q16.16 representation"
+    assert "-32768" in content and "+32767.99998" in content, (
+        "Document must define Q16.16 range -32768 to +32767.99998 degrees for Geodetic representation"
+    )
+
+    # 2. Cartesian (10) uses Q24.8 signed (range -8388608 to +8388607.996 metres)
+    assert "Q24.8" in content, "Document must define Q24.8 representation for Cartesian representation"
+    assert "-8388608" in content and "+8388607.996" in content, (
+        "Document must define Q24.8 range -8388608 to +8388607.996 metres for Cartesian representation"
+    )
+
+    # 3. COORD_ALT_Z uses Q24.8 encoding unconditionally
+    alt_z_lines = [line for line in content.splitlines() if "COORD_ALT_Z" in line]
+    assert len(alt_z_lines) > 0, "Document must reference COORD_ALT_Z"
+    assert any("Q24.8" in line for line in alt_z_lines), (
+        "COORD_ALT_Z must be specified as Q24.8 format unconditionally"
+    )
+
+    # 4. Overflow error flag assertions: exceeding representable range leaves register unmodified and sets CONTROL_STATUS bit 2 (Error flag)
+    assert "unmodified" in content.lower(), (
+        "Document must specify that out-of-range writes leave the register unmodified"
+    )
+    assert "CONTROL_STATUS" in content, "Document must reference CONTROL_STATUS for overflow flag"
