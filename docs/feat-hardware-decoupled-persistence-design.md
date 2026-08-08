@@ -123,11 +123,18 @@ stateDiagram-v2
 
 ## 5. Standalone Simulation & Verification Plan
 
-### 1. Standalone Simulation Testbench (Local Run)
+### 1. Standalone Simulation Testbench & Golden Vector Oracle Verification Plan (Local Run)
 For local development and E2E verification without physical hardware:
 * We implement a testbench (`tb_geodetic_register_map.vhd`).
-* The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`) containing coordinate values.
-* The testbench simulates the physical SPI clock and data lines, feeding the vectors into the wrapper, and asserts that the internal registers resolve to the expected values (e.g. checking that the Q16.16 or Q24.8 output matches the input).
+* **Golden Vector Oracle Test Requirements:** The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`). The stimulus file declares IEEE-754 floating-point input vectors AND independently derived expected Q16.16 (Ellipsoid) / Q24.8 (Cartesian) golden fixed-point output vectors.
+* The testbench simulates the physical SPI clock and data lines, feeding the IEEE-754 input vectors into the wrapper, and asserts that the internal registers resolve to the golden vector oracle outputs.
+* **Mandated Verification Assertions:**
+  1. **Nominal Conversion Accuracy:** Asserts that valid IEEE-754 input values correctly convert to nominal Q16.16 and Q24.8 fixed-point representations within 1 LSB tolerance.
+  2. **Negative Two's Complement Sign Extension:** Asserts that negative coordinate inputs correctly produce proper sign-extended two's complement fixed-point values.
+  3. **LSB Rounding Mode:** Asserts that fractional rounding adheres to half-up LSB rounding rules without truncation drift.
+  4. **Saturation & Error Flag on Overflow:** Asserts that coordinate inputs exceeding representable range (-32768 to +32767.99998 for Q16.16, -8388608 to +8388607.996 for Q24.8) trigger register write inhibition and assert `CONTROL_STATUS` bit 2 (Error flag).
+* **Negative Control Verification Requirement:** The verification suite MUST execute a negative control test where the conversion module is stubbed to pass-through IEEE-754 raw bits directly. The verification suite MUST fail if the conversion is stubbed to pass-through, confirming that the testbench detects broken or bypassed fixed-point conversion logic.
+
 
 ### 2. Distributed Synthesis (Production Run)
 For physical deployment:

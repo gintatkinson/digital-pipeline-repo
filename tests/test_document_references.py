@@ -116,3 +116,43 @@ def test_cartesian_and_geodetic_fixed_point_representations_issue371():
         "Document must specify that out-of-range writes leave the register unmodified"
     )
     assert "CONTROL_STATUS" in content, "Document must reference CONTROL_STATUS for overflow flag"
+
+
+def test_simulation_testbench_golden_vector_oracle_issue370():
+    assert os.path.isfile(TARGET_DOC), f"Target document does not exist: {TARGET_DOC}"
+
+    with open(TARGET_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    content_lower = content.lower()
+
+    # Assert golden vector oracle requirements
+    assert "golden vector oracle" in content_lower or "golden vector" in content_lower, (
+        "Document must define golden vector oracle test requirements"
+    )
+    assert "ieee-754" in content_lower, "Document must specify IEEE-754 input vectors"
+    assert "q16.16" in content_lower and "q24.8" in content_lower, (
+        "Document must specify expected Q16.16 and Q24.8 golden fixed-point outputs"
+    )
+
+    # Assert mandated assertions: nominal conversion accuracy, negative two's complement sign extension, LSB rounding mode, saturation/error flag on overflow
+    assert "nominal conversion accuracy" in content_lower or "nominal accuracy" in content_lower, (
+        "Document must mandate nominal conversion accuracy assertions"
+    )
+    assert "two's complement" in content_lower and "sign extension" in content_lower, (
+        "Document must mandate negative two's complement sign extension assertions"
+    )
+    assert "rounding" in content_lower, "Document must mandate LSB rounding mode assertions"
+    assert "saturation" in content_lower or "overflow" in content_lower, (
+        "Document must mandate saturation/error flag assertions on overflow"
+    )
+
+    # Assert negative control requirement
+    assert "negative control" in content_lower, (
+        "Document must mandate a negative control verification requirement"
+    )
+    assert "pass-through" in content_lower or "stubbed" in content_lower, (
+        "Document must mandate failure if conversion is stubbed to pass-through"
+    )
+
+
