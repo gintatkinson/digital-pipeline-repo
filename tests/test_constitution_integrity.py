@@ -223,5 +223,30 @@ def test_source_references_mandated_for_all_spec_types():
     )
 
 
+def test_all_15_enforced_quality_gates_table_in_constitution():
+    content = _read(CONSTITUTION)
+    gates_and_enforcers = [
+        ("Specification Validation", "validators/spec_validator.py"),
+        ("Model Coverage Verification", "scripts/verify_model_coverage.py"),
+        ("Cross-Reference Integrity", "validators/link_validator.py"),
+        ("Human Approval", "rules/user-authorization-lock.md"),
+        ("Downstream Conformance", "scripts/verify_downstream_baseline.py"),
+        ("UML Model Integrity", "validators/uml.py"),
+        ("Mermaid Syntax Constraints", "validators/mermaid_syntax_validator.py"),
+        ("Behavioral Trigger Coverage", "validators/behavioral.py"),
+        ("Codebase Compliance", "validators/codebase.py"),
+        ("Document Cross-Reference Integrity", "tests/test_skill_path_references.py"),
+        ("Constitution Amendment Integrity", "tests/test_constitution_integrity.py"),
+        ("Specification File Integrity", "validators/docs.py"),
+        ("Spec Title Uniqueness", "validators/spec_title_uniqueness_validator.py"),
+        ("Source Reference Integrity", "validators/source_reference_validator.py"),
+        ("Logical UI Validation", "validators/logical_ui_validator.py"),
+    ]
+    for gate_name, enforcer_path in gates_and_enforcers:
+        assert gate_name in content, f"Constitution missing quality gate: {gate_name}"
+        assert enforcer_path in content, f"Constitution missing enforcing validator path: {enforcer_path} for gate {gate_name}"
+
+
+
 
 
