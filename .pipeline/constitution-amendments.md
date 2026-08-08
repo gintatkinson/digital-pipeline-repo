@@ -533,7 +533,52 @@ Add a CMMI Level 3 Process Area Mapping table under Section introducing CMMI Lev
 
 Non-destructive: additive table substantiating CMMI Level 3 alignment, line count increased from 219 to 233 lines, governance rules preserved.
 
+---
 
+## AMEND-0013 — Update Granularity Bounds to normative RFC 2119 language with explicit enforcers
 
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #379
+- **Approved by:** "PROCEED" — approved user request for Issue #379 Tier 1 constitution amendment.
+- **Destructive:** no
+- **Line count:** 235
+- **Resulting SHA-256:** `14d2e2dfc339f51e924e12908a6e7b1b9de1d58c2e48c523ed45b1aa2e1ee9c8`
 
+### Change
 
+Section *Specification Standards*, added subsection `### Granularity Bounds` and updated Epic and Feature Granularity rules.
+
+Before:
+
+> ### Epic Granularity
+> - One Epic per major functional domain or protocol module.
+> - An Epic should contain 3-15 Features. Fewer than 3 means the Epic is too narrow; more than 15 means it should be split.
+> - Epic titles use the format: `[Module/Domain]: [Functional Area]`.
+>
+> ### Feature Granularity
+> - A Feature represents a single, independently testable functional capability.
+> - A Feature should have 3-10 acceptance criteria. Fewer means it lacks specificity; more than 10 means it should be split.
+> - Features MUST be platform-independent and standard-agnostic.
+> - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
+
+After:
+
+> ### Granularity Bounds
+> - An Epic SHOULD contain 3-15 Features. Epics exceeding 15 Features MUST be split by the schema-specification-engineering worker during Step 1 decomposition; Epics with fewer than 3 Features MUST be reviewed for consolidation. Enforced by schema-specification-engineering decomposition heuristics.
+> - A Feature SHOULD carry 3-10 acceptance criteria. Features exceeding 10 acceptance criteria MUST be split into targeted sub-features; Features with fewer than 3 acceptance criteria MUST be expanded to ensure full scenario coverage. Enforced by parity_auditor/validators/cardinality_validator.py and spec worker review gates.
+>
+> ### Epic Granularity
+> - One Epic per major functional domain or protocol module.
+> - Epic titles use the format: `[Module/Domain]: [Functional Area]`.
+>
+> ### Feature Granularity
+> - A Feature represents a single, independently testable functional capability.
+> - Features MUST be platform-independent and standard-agnostic.
+> - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Granularity Bounds` to use normative RFC 2119 SHOULD/MUST language with explicit enforcing mechanisms (`schema-specification-engineering` decomposition heuristics and `parity_auditor/validators/cardinality_validator.py`), resolving audit finding #379.
+
+Non-destructive: additive Granularity Bounds subsection with normative language and explicit enforcers, line count increased from 233 to 235 lines, governance rules preserved.

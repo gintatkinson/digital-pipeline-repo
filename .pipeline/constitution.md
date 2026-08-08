@@ -98,14 +98,16 @@ graph TD
 
 ## Specification Standards
 
+### Granularity Bounds
+- An Epic SHOULD contain 3-15 Features. Epics exceeding 15 Features MUST be split by the schema-specification-engineering worker during Step 1 decomposition; Epics with fewer than 3 Features MUST be reviewed for consolidation. Enforced by schema-specification-engineering decomposition heuristics.
+- A Feature SHOULD carry 3-10 acceptance criteria. Features exceeding 10 acceptance criteria MUST be split into targeted sub-features; Features with fewer than 3 acceptance criteria MUST be expanded to ensure full scenario coverage. Enforced by parity_auditor/validators/cardinality_validator.py and spec worker review gates.
+
 ### Epic Granularity
 - One Epic per major functional domain or protocol module.
-- An Epic should contain 3-15 Features. Fewer than 3 means the Epic is too narrow; more than 15 means it should be split.
 - Epic titles use the format: `[Module/Domain]: [Functional Area]`.
 
 ### Feature Granularity
 - A Feature represents a single, independently testable functional capability.
-- A Feature should have 3-10 acceptance criteria. Fewer means it lacks specificity; more than 10 means it should be split.
 - Features MUST be platform-independent and standard-agnostic.
 - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
 
