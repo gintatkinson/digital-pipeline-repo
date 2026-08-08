@@ -275,8 +275,26 @@ def test_cmmi_level_3_process_area_mapping_table_in_constitution():
         assert ref_artifact in content, f"Constitution CMMI Level 3 mapping missing reference artifact: {ref_artifact}"
 
 
-
-
-
-
-
+def test_granularity_bounds_normative_rfc2119_and_enforcers():
+    content = _read(CONSTITUTION)
+    assert "### Granularity Bounds" in content, (
+        "Constitution missing '### Granularity Bounds' section under Specification Standards."
+    )
+    epic_bound = (
+        "An Epic SHOULD contain 3-15 Features. Epics exceeding 15 Features MUST be split "
+        "by the schema-specification-engineering worker during Step 1 decomposition; "
+        "Epics with fewer than 3 Features MUST be reviewed for consolidation. "
+        "Enforced by schema-specification-engineering decomposition heuristics."
+    )
+    feature_bound = (
+        "A Feature SHOULD carry 3-10 acceptance criteria. Features exceeding 10 acceptance "
+        "criteria MUST be split into targeted sub-features; Features with fewer than 3 "
+        "acceptance criteria MUST be expanded to ensure full scenario coverage. "
+        "Enforced by parity_auditor/validators/cardinality_validator.py and spec worker review gates."
+    )
+    assert epic_bound in content, (
+        "Constitution missing normative RFC 2119 Epic granularity bound and enforcer statement."
+    )
+    assert feature_bound in content, (
+        "Constitution missing normative RFC 2119 Feature granularity bound and enforcer statement."
+    )
