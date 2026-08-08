@@ -206,6 +206,19 @@ The pipeline mechanically enforces 15 active quality gates that halt execution o
 
 ## CMMI Level 3 & Scrum Issue Lifecycle Rules
 
+### CMMI Level 3 Process Area Mapping
+The pipeline explicitly substantiates CMMI Level 3 alignment across key engineering and management process areas:
+
+| Process Area (CMMI Acronym) | Enforcing Mechanisms & Pipeline Artifacts |
+|---|---|
+| Requirements Management (REQM) | `tracker-source-of-truth.md`, `reconcile_backlog.py` |
+| Verification (VER) | `verify_model_coverage.py`, `parity_auditor` validators |
+| Validation (VAL) | Product Owner `Closed` state transition & verification walkthroughs |
+| Configuration Management (CM) | Git-tracked specification files, `constitution-amendments.md` |
+| Technical Solution (TS) | 3-Layer LUI Definition of Done & implementation profiles |
+| Product Integration (PI) | Automated baseline verification `verify_downstream_baseline.py` |
+
+
 ### Separation of Verification and Validation
 - **Verification (Process Quality Gate)**: Conducted by the development subagent and pipeline. The issue is resolved when the code compiles, the linter passes, and all unit/integration tests pass. The issue moves to the `Fixed / Resolved` state.
 - **Validation (Product Owner/Customer Approval Gate)**: Conducted by the Product Owner or Customer. The issue is moved to the `Closed` state ONLY after explicit verification, testing, and acceptance by the Product Owner/Customer in the chat.
@@ -217,3 +230,4 @@ The pipeline mechanically enforces 15 active quality gates that halt execution o
 - `Verifying`: Code changes are in peer review (PR) and automated tests are executing.
 - `Fixed / Resolved`: Development work is complete, tests have passed, and the fix is integrated into `main`. The issue remains in this state awaiting customer feedback.
 - `Closed`: The issue is archived. This state is unreachable without explicit Product Owner/Customer validation approval.
+

@@ -257,6 +257,25 @@ def test_labeling_taxonomy_contains_spec_operational_and_state_labels():
         assert label in content, f"Constitution missing label: {label}"
 
 
+def test_cmmi_level_3_process_area_mapping_table_in_constitution():
+    content = _read(CONSTITUTION)
+    assert "CMMI Level 3 Process Area Mapping" in content, (
+        "Constitution missing 'CMMI Level 3 Process Area Mapping' table/header."
+    )
+    process_areas = [
+        ("Requirements Management (REQM)", "tracker-source-of-truth.md"),
+        ("Verification (VER)", "verify_model_coverage.py"),
+        ("Validation (VAL)", "Closed"),
+        ("Configuration Management (CM)", "constitution-amendments.md"),
+        ("Technical Solution (TS)", "3-Layer LUI Definition of Done"),
+        ("Product Integration (PI)", "verify_downstream_baseline.py"),
+    ]
+    for pa_name, ref_artifact in process_areas:
+        assert pa_name in content, f"Constitution CMMI Level 3 mapping missing Process Area: {pa_name}"
+        assert ref_artifact in content, f"Constitution CMMI Level 3 mapping missing reference artifact: {ref_artifact}"
+
+
+
 
 
 

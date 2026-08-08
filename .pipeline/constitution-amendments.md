@@ -487,5 +487,53 @@ Update `.pipeline/constitution.md` under `### Labeling Taxonomy` to explicitly l
 
 Non-destructive: additive taxonomy expansion, line count updated from 216 to 219 lines, governance rules preserved.
 
+---
+
+## AMEND-0012 — Add CMMI Level 3 Process Area Mapping table explicitly substantiating process alignment
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #380
+- **Approved by:** "PROCEED" — approved user request for Issue #380 Tier 1 constitution amendment.
+- **Destructive:** no
+- **Line count:** 233
+- **Resulting SHA-256:** `65a9614cc4e0238acbabdb19fa07db52ff9a3b32c6b4e3ec71c71d4b826b239b`
+
+### Change
+
+Section *CMMI Level 3 & Scrum Issue Lifecycle Rules*, added subsection `### CMMI Level 3 Process Area Mapping`.
+
+Before:
+
+> ## CMMI Level 3 & Scrum Issue Lifecycle Rules
+>
+> ### Separation of Verification and Validation
+
+After:
+
+> ## CMMI Level 3 & Scrum Issue Lifecycle Rules
+>
+> ### CMMI Level 3 Process Area Mapping
+> The pipeline explicitly substantiates CMMI Level 3 alignment across key engineering and management process areas:
+>
+> | Process Area (CMMI Acronym) | Enforcing Mechanisms & Pipeline Artifacts |
+> |---|---|
+> | Requirements Management (REQM) | `tracker-source-of-truth.md`, `reconcile_backlog.py` |
+> | Verification (VER) | `verify_model_coverage.py`, `parity_auditor` validators |
+> | Validation (VAL) | Product Owner `Closed` state transition & verification walkthroughs |
+> | Configuration Management (CM) | Git-tracked specification files, `constitution-amendments.md` |
+> | Technical Solution (TS) | 3-Layer LUI Definition of Done & implementation profiles |
+> | Product Integration (PI) | Automated baseline verification `verify_downstream_baseline.py` |
+>
+> ### Separation of Verification and Validation
+
+### Rationale
+
+Add a CMMI Level 3 Process Area Mapping table under Section introducing CMMI Level 3 & Scrum Issue Lifecycle Rules in `.pipeline/constitution.md` explicitly substantiating CMMI Level 3 alignment across key process areas (REQM, VER, VAL, CM, TS, PI), resolving audit finding #380.
+
+Non-destructive: additive table substantiating CMMI Level 3 alignment, line count increased from 219 to 233 lines, governance rules preserved.
+
+
+
 
 
