@@ -170,3 +170,18 @@ def test_current_line_count_matches_newest_entry():
         f"constitution has {actual} lines but the newest amendment records "
         f"{fields.get('Line count')!r}"
     )
+
+
+def test_traceability_rules_name_enforcing_validators():
+    content = _read(CONSTITUTION)
+    expected_rules = [
+        "Every Epic MUST reference the specification section(s) it covers. Enforced by parity_auditor/validators/uml.py via required sections configuration.",
+        "Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.",
+        "Every User Story MUST link to the Features it validates. Enforced by parity_auditor/validators/uml.py via Required Features Matrix validation.",
+        "Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.",
+    ]
+    for rule_pattern in expected_rules:
+        assert rule_pattern in content, (
+            f"Constitution traceability section is missing expected enforcing validator rule anchor: {rule_pattern!r}"
+        )
+
