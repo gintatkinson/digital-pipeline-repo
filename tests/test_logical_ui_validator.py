@@ -50,3 +50,33 @@ def test_workspace_split_axis_is_vertical_and_has_no_nested_splitters(layout_fil
     assert "topology_pane" in child_ids, f"topology_pane missing from workspace_split in {layout_file_path}"
     assert "elements_view" in child_ids, f"elements_view missing from workspace_split in {layout_file_path}"
     assert "details_and_relations_tab" in child_ids, f"details_and_relations_tab missing from workspace_split in {layout_file_path}"
+
+
+def _collect_token_prefixed_strings(data, path=""):
+    findings = []
+    if isinstance(data, dict):
+        for k, v in data.items():
+            current_path = f"{path}.{k}" if path else k
+            findings.extend(_collect_token_prefixed_strings(v, current_path))
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            current_path = f"{path}[{i}]"
+            findings.extend(_collect_token_prefixed_strings(item, current_path))
+    elif isinstance(data, str):
+        if data.startswith("token:"):
+            findings.append((path, data))
+    return findings
+
+
+@pytest.mark.parametrize("layout_file_path", [LOGICAL_UI_PATH, FLUTTER_ASSETS_PATH])
+def test_logical_layout_contains_zero_token_indirection_prefixes(layout_file_path):
+    assert os.path.exists(layout_file_path), f"Layout file does not exist: {layout_file_path}"
+    with open(layout_file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    token_findings = _collect_token_prefixed_strings(data)
+    assert len(token_findings) == 0, (
+        f"Found {len(token_findings)} 'token:' indirection prefixes in {layout_file_path}:\n"
+        + "\n".join(f"  - {path}: {val}" for path, val in token_findings)
+    )
+
