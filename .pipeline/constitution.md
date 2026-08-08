@@ -125,7 +125,10 @@ graph TD
 - The Realization Matrix maps each Use Case to its constituent User Stories and Features.
 
 ### Labeling Taxonomy
-- Exactly four label types: `epic`, `feature`, `user-story`, `use-case`, or as defined by the issue tracker configuration.
+- Issue tracking labels are defined with `codebase_rules.json` acting as the authoritative label registry, categorized into specification, operational, and state labels:
+  - Specification labels: `epic`, `feature`, `user-story`, `use-case`.
+  - Operational labels: `bug`, `enhancement`, `chore`.
+  - State labels: `status:fixed-resolved`.
 - Labels are bootstrapped via the configured label bootstrap command to ensure idempotency.
 
 ## Agent Behavior

@@ -450,4 +450,42 @@ Expand `.pipeline/constitution.md` under `## Universal Quality Gates` with a `##
 
 Non-destructive: additive table detailing all active quality gates, line count increased from 195 to 216 lines, governance rules preserved.
 
+---
+
+## AMEND-0011 — Update labeling taxonomy to explicitly include operational and state labels
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #381
+- **Approved by:** "PROCEED" — approved user request for Issue #381 Tier 1 constitution amendment.
+- **Destructive:** no
+- **Line count:** 219
+- **Resulting SHA-256:** `8c6a24269a55b1312c53799b68f72c8fc7511d6816ddf459d93ab958237a8dc0`
+
+### Change
+
+Section *Labeling Taxonomy*, lines 127-132.
+
+Before:
+
+> ### Labeling Taxonomy
+> - Exactly four label types: `epic`, `feature`, `user-story`, `use-case`, or as defined by the issue tracker configuration.
+> - Labels are bootstrapped via the configured label bootstrap command to ensure idempotency.
+
+After:
+
+> ### Labeling Taxonomy
+> - Issue tracking labels are defined with `codebase_rules.json` acting as the authoritative label registry, categorized into specification, operational, and state labels:
+>   - Specification labels: `epic`, `feature`, `user-story`, `use-case`.
+>   - Operational labels: `bug`, `enhancement`, `chore`.
+>   - State labels: `status:fixed-resolved`.
+> - Labels are bootstrapped via the configured label bootstrap command to ensure idempotency.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Labeling Taxonomy` to explicitly list specification labels (`epic`, `feature`, `user-story`, `use-case`), operational labels (`bug`, `enhancement`, `chore`), state labels (`status:fixed-resolved`), and reference `codebase_rules.json` as the authoritative label registry, resolving audit finding #381.
+
+Non-destructive: additive taxonomy expansion, line count updated from 216 to 219 lines, governance rules preserved.
+
+
 

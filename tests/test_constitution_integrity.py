@@ -247,6 +247,17 @@ def test_all_15_enforced_quality_gates_table_in_constitution():
         assert enforcer_path in content, f"Constitution missing enforcing validator path: {enforcer_path} for gate {gate_name}"
 
 
+def test_labeling_taxonomy_contains_spec_operational_and_state_labels():
+    content = _read(CONSTITUTION)
+    assert "Specification labels:" in content, "Constitution missing 'Specification labels:' under Labeling Taxonomy"
+    assert "Operational labels:" in content, "Constitution missing 'Operational labels:' under Labeling Taxonomy"
+    assert "State labels:" in content, "Constitution missing 'State labels:' under Labeling Taxonomy"
+    assert "codebase_rules.json" in content, "Constitution Labeling Taxonomy missing reference to codebase_rules.json"
+    for label in ["`epic`", "`feature`", "`user-story`", "`use-case`", "`bug`", "`enhancement`", "`chore`", "`status:fixed-resolved`"]:
+        assert label in content, f"Constitution missing label: {label}"
+
+
+
 
 
 
