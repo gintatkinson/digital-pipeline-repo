@@ -394,3 +394,60 @@ Update `.pipeline/constitution.md` under `### Traceability` to explicitly mandat
 
 Non-destructive: additive clarification of Source References requirement across all four specification types, line count preserved at 195 lines, governance rules preserved.
 
+---
+
+## AMEND-0010 — Expand Quality Gates section with comprehensive table of all 15 enforced quality gates
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #382
+- **Approved by:** "PROCEED" — approved implementation plan to expand Quality Gates section in constitution.md with comprehensive table of 15 active enforced quality gates.
+- **Destructive:** no
+- **Line count:** 216
+- **Resulting SHA-256:** `b01ef7d5da9ebcfdc6d0244f94d2a78ff140e3161b8157d26dc233c9490ba52c`
+
+### Change
+
+Section *Universal Quality Gates*, line 157.
+
+Before:
+
+> ## Universal Quality Gates
+>
+> ### Specification Validation Gates
+> - Post schema extraction: Every schema node maps to at least one Feature. Coverage = 100%.
+
+After:
+
+> ## Universal Quality Gates
+>
+> ### Quality Gates & Verification Standards
+> The pipeline mechanically enforces 15 active quality gates that halt execution on failure. All agents MUST ensure deliverables comply with these gates before declaring completion:
+>
+> | Quality Gate | Enforcing Validator Path | Documentation Reference |
+> |---|---|---|
+> | Specification Validation | `validators/spec_validator.py` | `rules/platform-independence.md` |
+> | Model Coverage Verification | `scripts/verify_model_coverage.py` | `rules/platform-independence.md` |
+> | Cross-Reference Integrity | `validators/link_validator.py` | `rules/document-references.md` |
+> | Human Approval | `rules/user-authorization-lock.md` | `.pipeline/constitution.md` |
+> | Downstream Conformance | `scripts/verify_downstream_baseline.py` | `rules/downstream-conformance.md` |
+> | UML Model Integrity | `validators/uml.py` | `rules/uml-model-integrity.md` |
+> | Mermaid Syntax Constraints | `validators/mermaid_syntax_validator.py` | `rules/platform-independence.md` |
+> | Behavioral Trigger Coverage | `validators/behavioral.py` | `rules/behavioral-trigger-coverage.md` |
+> | Codebase Compliance | `validators/codebase.py` | `rules/codebase-compliance.md` |
+> | Document Cross-Reference Integrity | `tests/test_skill_path_references.py` | `rules/document-references.md` |
+> | Constitution Amendment Integrity | `tests/test_constitution_integrity.py` | `.pipeline/constitution-amendments.md` |
+> | Specification File Integrity | `validators/docs.py` | `rules/platform-independence.md` |
+> | Spec Title Uniqueness | `validators/spec_title_uniqueness_validator.py` | `rules/tracker-source-of-truth.md` |
+> | Source Reference Integrity | `validators/source_reference_validator.py` | `rules/codebase-compliance.md` |
+> | Logical UI Validation | `validators/logical_ui_validator.py` | `rules/platform-independence.md` |
+>
+> ### Specification Validation Gates
+
+### Rationale
+
+Expand `.pipeline/constitution.md` under `## Universal Quality Gates` with a `### Quality Gates & Verification Standards` table listing all 15 active enforced quality gates, their enforcing validator paths, and documentation references, resolving audit finding #382.
+
+Non-destructive: additive table detailing all active quality gates, line count increased from 195 to 216 lines, governance rules preserved.
+
+

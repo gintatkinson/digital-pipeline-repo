@@ -156,6 +156,27 @@ graph TD
 
 ## Universal Quality Gates
 
+### Quality Gates & Verification Standards
+The pipeline mechanically enforces 15 active quality gates that halt execution on failure. All agents MUST ensure deliverables comply with these gates before declaring completion:
+
+| Quality Gate | Enforcing Validator Path | Documentation Reference |
+|---|---|---|
+| Specification Validation | `validators/spec_validator.py` | `rules/platform-independence.md` |
+| Model Coverage Verification | `scripts/verify_model_coverage.py` | `rules/platform-independence.md` |
+| Cross-Reference Integrity | `validators/link_validator.py` | `rules/document-references.md` |
+| Human Approval | `rules/user-authorization-lock.md` | `.pipeline/constitution.md` |
+| Downstream Conformance | `scripts/verify_downstream_baseline.py` | `rules/downstream-conformance.md` |
+| UML Model Integrity | `validators/uml.py` | `rules/uml-model-integrity.md` |
+| Mermaid Syntax Constraints | `validators/mermaid_syntax_validator.py` | `rules/platform-independence.md` |
+| Behavioral Trigger Coverage | `validators/behavioral.py` | `rules/behavioral-trigger-coverage.md` |
+| Codebase Compliance | `validators/codebase.py` | `rules/codebase-compliance.md` |
+| Document Cross-Reference Integrity | `tests/test_skill_path_references.py` | `rules/document-references.md` |
+| Constitution Amendment Integrity | `tests/test_constitution_integrity.py` | `.pipeline/constitution-amendments.md` |
+| Specification File Integrity | `validators/docs.py` | `rules/platform-independence.md` |
+| Spec Title Uniqueness | `validators/spec_title_uniqueness_validator.py` | `rules/tracker-source-of-truth.md` |
+| Source Reference Integrity | `validators/source_reference_validator.py` | `rules/codebase-compliance.md` |
+| Logical UI Validation | `validators/logical_ui_validator.py` | `rules/platform-independence.md` |
+
 ### Specification Validation Gates
 - Post schema extraction: Every schema node maps to at least one Feature. Coverage = 100%.
 - Post User Stories: Every User Story links to at least one Feature.
