@@ -164,6 +164,17 @@ MERMAID_CONTRACTS: List[RuleContract] = [
             "feat-10 and feat-11 output."
         ),
     ),
+    RuleContract(
+        id="mermaid-reserved-keyword-as-participant-alias",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Sequence Diagram Participant Alias Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="mermaid-reserved-keyword-as-participant-alias",
+        note=(
+            "Issue #358. Disallows Mermaid reserved keywords ('link', 'actor', 'participant', 'loop', 'opt', 'alt', 'rect', 'note', 'end', etc.) "
+            "from being used as participant aliases in sequence diagrams."
+        ),
+    ),
 ]
 
 FILENAME_CONTRACTS: List[RuleContract] = [
