@@ -363,3 +363,34 @@ After:
 Promote the three-tier platform isolation architecture to a top-level section with Mermaid diagram visualization to elevate foundational architectural isolation principles, resolving audit finding #384.
 
 Non-destructive: Three-tier architecture principles promoted and expanded, line count increased from 164 to 195 lines, governance rules preserved.
+
+---
+
+## AMEND-0009 — Mandate Source References across all four specification types
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #383
+- **Approved by:** "PROCEED" — approved implementation plan to update Source References mandate in constitution.md to explicitly cover Epics, Features, User Stories, and Use Cases.
+- **Destructive:** no
+- **Line count:** 195
+- **Resulting SHA-256:** `89060b0d78264c603570fe54c7f2a36c3d91ea869c868fefaa0fc7989f2afb6d`
+
+### Change
+
+Section *Traceability*, line 81.
+
+Before:
+
+> - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths. Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.
+
+After:
+
+> - Every Feature MUST include a 'Source References' section with verbatim specification clause numbers and schema paths. Every Epic, User Story, and Use Case MUST also carry a 'Source References' section (or Realization / Target Features Matrix linking to upstream sources). Enforced by parity_auditor/validators/uml.py via required_sections configuration in codebase_rules.json.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Traceability` to explicitly mandate that every Epic, Feature, User Story, and Use Case carry a 'Source References' section (or Realization / Target Features Matrix linking to upstream sources), enforced via `required_sections` configuration in `codebase_rules.json`, resolving audit finding #383.
+
+Non-destructive: additive clarification of Source References requirement across all four specification types, line count preserved at 195 lines, governance rules preserved.
+

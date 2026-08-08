@@ -176,7 +176,7 @@ def test_traceability_rules_name_enforcing_validators():
     content = _read(CONSTITUTION)
     expected_rules = [
         "Every Epic MUST reference the specification section(s) it covers. Enforced by parity_auditor/validators/uml.py via required sections configuration.",
-        "Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.",
+        "Enforced by parity_auditor/validators/uml.py via required_sections configuration in codebase_rules.json.",
         "Every User Story MUST link to the Features it validates. Enforced by parity_auditor/validators/uml.py via Required Features Matrix validation.",
         "Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.",
     ]
@@ -209,6 +209,19 @@ def test_three_tier_architecture_section_and_mermaid_diagram():
     assert "```mermaid" in content, "Constitution is missing Mermaid diagram code fence."
     assert "graph TD" in content, "Constitution is missing 'graph TD' Mermaid diagram header."
     assert "subgraph" in content, "Constitution Mermaid diagram is missing subgraphs for tiers."
+
+
+def test_source_references_mandated_for_all_spec_types():
+    content = _read(CONSTITUTION)
+    expected_clause = (
+        "Every Feature MUST include a 'Source References' section with verbatim specification clause numbers and schema paths. "
+        "Every Epic, User Story, and Use Case MUST also carry a 'Source References' section (or Realization / Target Features Matrix linking to upstream sources). "
+        "Enforced by parity_auditor/validators/uml.py via required_sections configuration in codebase_rules.json."
+    )
+    assert expected_clause in content, (
+        "Constitution Traceability section is missing explicit Source References mandate for Epic, Feature, User Story, and Use Case."
+    )
+
 
 
 
