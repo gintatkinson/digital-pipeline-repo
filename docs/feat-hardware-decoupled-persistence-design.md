@@ -12,7 +12,7 @@ This document details the hardware design for implementing the decoupled, agnost
 
 The core objectives are:
 1. **Contract Decoupling in Silicon:** Isolating the core digital signal processing (DSP) or control logic from the physical IO transport protocol (e.g. SPI, I2C, UART, AXI-Lite, or PCIe).
-2. **Memory-Mapped Register Abstraction:** Abstracting the geodetic database tables into a hardware **Register Map** utilizing fixed-point arithmetic representations.
+2. **Memory-Mapped Register Abstraction:** Abstracting application database tables into a hardware **Register Map** utilizing fixed-point arithmetic representations.
 3. **Heterogeneous Interface Mapping:** Supporting dynamic configuration of the transport wrapper (the adapter) to swap between serial testbenches (simulation) and physical bus synthesis (production hardware) without modifying the internal computation cores.
 
 ---
@@ -52,34 +52,32 @@ flowchart LR
 ---
 
 ## 3. Register & Data Format Mapping
-To realize the Yang geodetic specifications (`docs/schemas/ietf-geo-location.yang`) in hardware registers, we define a 32-bit memory-mapped register configuration.
+To realize domain-neutral persistence in hardware registers, we define a 32-bit memory-mapped register configuration.
 
-### Fixed-Point Coordinate Representation
-To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, coordinates are stored as **32-bit two's complement fixed-point numbers**. Based on `GEODETIC_SYSTEM` bits 1-0 (Coordinate Choice), two distinct encodings are defined:
+### Fixed-Point Abstract Data Representation
+To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, values are stored as **32-bit two's complement fixed-point numbers**. Based on `CONFIG_FLAGS` bits 1-0 (Mode Choice), two distinct encodings are defined:
 
-1. **Geometry / Ellipsoid (`GEODETIC_SYSTEM` bits 1-0 = `01`):**
-   * Latitude (`COORD_LAT_X`) and Longitude (`COORD_LON_Y`) use **Q16.16 signed format** (16 integer bits, 16 fractional bits), covering a representable range from **-32768 to +32767.99998** degrees.
-   * Resolution: $2^{-16} \approx 0.000015$ degrees (approx. 1.7 meters at the equator), satisfying coordinate accuracy specifications.
-2. **Cartesian (`GEODETIC_SYSTEM` bits 1-0 = `10`):**
-   * Cartesian X (`COORD_LAT_X`) and Cartesian Y (`COORD_LON_Y`) use **Q24.8 signed format** (24 integer bits, 8 fractional bits), covering a representable range from **-8388608 to +8388607.996** metres. This accommodates Earth-Centered, Earth-Fixed (ECEF) Cartesian magnitudes up to ~6.4M+ metres (Earth's radius $\approx 6,378,137$ metres).
-   * Resolution: $2^{-8} = 0.00390625$ metres (approx. 3.9 mm).
-3. **Altitude / Cartesian Z (`COORD_ALT_Z`):**
-   * `COORD_ALT_Z` carries linear altitude in metres under both variants and uses **Q24.8 signed format unconditionally** (range **-8388608 to +8388607.996** metres).
+1. **Fixed-32 Representation (`CONFIG_FLAGS` bits 1-0 = `01`):**
+   * Primary registers (`REGISTER_0`, `REGISTER_1`) use **Q16.16 signed format** (16 integer bits, 16 fractional bits), covering a representable range from **-32768 to +32767.99998**.
+   * Resolution: $2^{-16} \approx 0.000015$, satisfying numerical accuracy specifications.
+2. **Fixed-64 / High-Precision Representation (`CONFIG_FLAGS` bits 1-0 = `10`):**
+   * Primary registers (`REGISTER_0`, `REGISTER_1`) use **Q24.8 signed format** (24 integer bits, 8 fractional bits), covering a representable range from **-8388608 to +8388607.996**.
+   * Resolution: $2^{-8} = 0.00390625$.
+3. **Auxiliary Data Register (`REGISTER_2`):**
+   * `REGISTER_2` carries linear offset values under both variants and uses **Q24.8 signed format unconditionally** (range **-8388608 to +8388607.996**).
 
 ### Overflow & Error Handling
-Coordinate writes exceeding the selected variant's representable range MUST **leave the register unmodified** and set `CONTROL_STATUS` bit 2 (Error flag).
-
-These register formats and resolution claims map directly to the `location` container (`dim_0`, `dim_1`, `dim_2` leaf nodes) and `control-status` container in `docs/schemas/ietf-geo-location.yang` (see [Source References](#source-references)).
+Register writes exceeding the selected variant's representable range MUST **leave the register unmodified** and set `CONTROL_STATUS` bit 2 (Error flag).
 
 ### Register Map Table (Base Offset: `0x43C0_0000`)
 
 | Address Offset | Register Name | Access Type | Description / Bit Fields |
 | :--- | :--- | :--- | :--- |
 | `0x00` | `CONTROL_STATUS` | R/W | Bit 0: Commit (Trigger update)<br>Bit 1: Busy flag (Read-only)<br>Bit 2: Error flag (Read-only) |
-| `0x04` | `GEODETIC_SYSTEM` | R/W | Bits 1-0: Coordinate Choice (00=Unconfigured, 01=Ellipsoid, 10=Cartesian)<br>Bits 7-2: Datum ID |
-| `0x08` | `COORD_LAT_X` | R/W | Dim_0 Latitude (Q16.16) or Cartesian X (Q24.8) |
-| `0x0C` | `COORD_LON_Y` | R/W | Dim_1 Longitude (Q16.16) or Cartesian Y (Q24.8) |
-| `0x10` | `COORD_ALT_Z` | R/W | Dim_2 Altitude in metres or Cartesian Z (Q24.8 format unconditionally) |
+| `0x04` | `CONFIG_FLAGS` | R/W | Bits 1-0: Mode Choice (00=Unconfigured, 01=Fixed-32, 10=Fixed-64)<br>Bits 7-2: Profile ID |
+| `0x08` | `REGISTER_0` | R/W | Dim_0 Primary Register (Q16.16 format for Mode 01 or Q24.8 format for Mode 10) |
+| `0x0C` | `REGISTER_1` | R/W | Dim_1 Secondary Register (Q16.16 format for Mode 01 or Q24.8 format for Mode 10) |
+| `0x10` | `REGISTER_2` | R/W | Dim_2 Auxiliary Register (Q24.8 format unconditionally) |
 | `0x14` | `VALIDITY_LIMIT` | R/W | Epoch timestamp indicating validity boundary |
 
 ---
@@ -93,15 +91,15 @@ Each bus wrapper runs a VHDL Finite State Machine to handle interface-specific t
 | :--- | :--- | :--- | :--- | :--- |
 | Bit 0 | Commit bit 0 | R/W | Guard condition for atomic commit | Asserted by host CPU to trigger commit; FSM checks `commit_bit == 1` in `STAGED` state before proceeding to `COMMIT_REG`. |
 | Bit 1 | Busy bit 1 | Read-only | Asserted high during transaction processing | Asserted high when transitioning `IDLE --> RECEIVING`; remains high through `RECEIVING`, `DESERIALIZING`, `MAPPING`, `STAGED`, `COMMIT_REG`, and `ERROR`; deasserted low on returning to `IDLE`. |
-| Bit 2 | Error bit 2 | Read-only | Asserted high on fault or invalid frame | Asserted high upon transition to `ERROR` state (triggered by invalid encoding `11`, unconfigured geodetic system `00`, truncated frame, or out-of-range coordinate value); cleared on error acknowledgment transition `ERROR --> IDLE`. |
+| Bit 2 | Error bit 2 | Read-only | Asserted high on fault or invalid frame | Asserted high upon transition to `ERROR` state (triggered by invalid encoding `11`, unconfigured mode choice `00`, truncated frame, or out-of-range value); cleared on error acknowledgment transition `ERROR --> IDLE`. |
 
 ```mermaid
 stateDiagram-v2
     IDLE --> RECEIVING : "Bus Transaction Detected / Assert Busy bit 1"
     RECEIVING --> DESERIALIZING : "Read Frame Complete"
     DESERIALIZING --> MAPPING : "Convert format (e.g. SPI stream -> Q16.16/Q24.8)"
-    MAPPING --> STAGED : "Hold coordinates safely without premature commit"
-    STAGED --> COMMIT_REG : "commit_bit == 1 AND GEODETIC_SYSTEM in (01, 10)"
+    MAPPING --> STAGED : "Hold register state safely without premature commit"
+    STAGED --> COMMIT_REG : "commit_bit == 1 AND CONFIG_FLAGS in (01, 10)"
     COMMIT_REG --> IDLE : "Register write complete / Deassert Busy bit 1"
     RECEIVING --> ERROR : "Truncated frame / Set Error bit 2"
     DESERIALIZING --> ERROR : "Out-of-range value / Set Error bit 2"
@@ -114,8 +112,8 @@ stateDiagram-v2
 1. **IDLE:** Waits for interface-specific handshakes (e.g. AXI `AWVALID` and `WVALID` flags, or SPI Chip Select `CS_N` going low). Busy bit 1 and Error bit 2 are deasserted.
 2. **RECEIVING:** Shifts in serialization data packets and asserts Busy bit 1. If a truncated frame is detected, transitions to **ERROR** and sets Error bit 2.
 3. **DESERIALIZING:** Assembles bits into standard 32-bit hardware words. If an out-of-range value is detected, transitions to **ERROR** and sets Error bit 2.
-4. **MAPPING:** Executes binary translation (e.g. converting IEEE-754 single-precision float inputs from a CPU into internal Q16.16 or Q24.8 fixed-point format). If invalid encoding (`11`) or unconfigured geodetic system (`00`) is detected, transitions to **ERROR** and sets Error bit 2.
-5. **STAGED:** Holds coordinates safely in staging registers without premature atomic commit. Guarded transition to **COMMIT_REG** occurs when `commit_bit == 1` (Commit bit 0) and `GEODETIC_SYSTEM` coordinate choice is valid (`01` Ellipsoid or `10` Cartesian). If unconfigured (`00`) or invalid encoding (`11`), transitions to **ERROR** and sets Error bit 2.
+4. **MAPPING:** Executes binary translation (e.g. converting IEEE-754 single-precision float inputs from a CPU into internal Q16.16 or Q24.8 fixed-point format). If invalid encoding (`11`) or unconfigured mode choice (`00`) is detected, transitions to **ERROR** and sets Error bit 2.
+5. **STAGED:** Holds register state safely in staging registers without premature atomic commit. Guarded transition to **COMMIT_REG** occurs when `commit_bit == 1` (Commit bit 0) and `CONFIG_FLAGS` mode choice is valid (`01` Fixed-32 or `10` Fixed-64). If unconfigured (`00`) or invalid encoding (`11`), transitions to **ERROR** and sets Error bit 2.
 6. **COMMIT_REG:** Asserts the internal register write enable to write values to target registers, then returns to **IDLE** while deasserting Busy bit 1.
 7. **ERROR:** Sets Error bit 2. FSM remains in **ERROR** state holding error status until an error acknowledgment transaction is received, which transitions `ERROR --> IDLE`, clearing Error bit 2 and Busy bit 1.
 
@@ -125,31 +123,18 @@ stateDiagram-v2
 
 ### 1. Standalone Simulation Testbench & Golden Vector Oracle Verification Plan (Local Run)
 For local development and E2E verification without physical hardware:
-* We implement a testbench (`tb_geodetic_register_map.vhd`).
-* **Golden Vector Oracle Test Requirements:** The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`). The stimulus file declares IEEE-754 floating-point input vectors AND independently derived expected Q16.16 (Ellipsoid) / Q24.8 (Cartesian) golden fixed-point output vectors.
+* We implement a testbench (`tb_register_map.vhd`).
+* **Golden Vector Oracle Test Requirements:** The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`). The stimulus file declares IEEE-754 floating-point input vectors AND independently derived expected Q16.16 (Fixed-32) / Q24.8 (Fixed-64) golden fixed-point output vectors.
 * The testbench simulates the physical SPI clock and data lines, feeding the IEEE-754 input vectors into the wrapper, and asserts that the internal registers resolve to the golden vector oracle outputs.
 * **Mandated Verification Assertions:**
   1. **Nominal Conversion Accuracy:** Asserts that valid IEEE-754 input values correctly convert to nominal Q16.16 and Q24.8 fixed-point representations within 1 LSB tolerance.
-  2. **Negative Two's Complement Sign Extension:** Asserts that negative coordinate inputs correctly produce proper sign-extended two's complement fixed-point values.
+  2. **Negative Two's Complement Sign Extension:** Asserts that negative register inputs correctly produce proper sign-extended two's complement fixed-point values.
   3. **LSB Rounding Mode:** Asserts that fractional rounding adheres to half-up LSB rounding rules without truncation drift.
-  4. **Saturation & Error Flag on Overflow:** Asserts that coordinate inputs exceeding representable range (-32768 to +32767.99998 for Q16.16, -8388608 to +8388607.996 for Q24.8) trigger register write inhibition and assert `CONTROL_STATUS` bit 2 (Error flag).
+  4. **Saturation & Error Flag on Overflow:** Asserts that register inputs exceeding representable range (-32768 to +32767.99998 for Q16.16, -8388608 to +8388607.996 for Q24.8) trigger register write inhibition and assert `CONTROL_STATUS` bit 2 (Error flag).
 * **Negative Control Verification Requirement:** The verification suite MUST execute a negative control test where the conversion module is stubbed to pass-through IEEE-754 raw bits directly. The verification suite MUST fail if the conversion is stubbed to pass-through, confirming that the testbench detects broken or bypassed fixed-point conversion logic.
 
 
 ### 2. Distributed Synthesis (Production Run)
 For physical deployment:
 * The core VHDL code is synthesized using **Xilinx Vivado** targeting a specific FPGA board (e.g. Xilinx Zynq-7000 or UltraScale+ SoC).
-* The registers are exposed to the host CPU (e.g. ARM Cortex core) over an **AXI4-Lite IP block**, allowing software operating systems to read/write hardware geometry coordinates via memory-mapped pointer offsets (`/dev/mem`).
-
----
-
-## Source References
-
-| Register | Schema path | Leaf node | Verbatim clause |
-| :--- | :--- | :--- | :--- |
-| `CONTROL_STATUS` | `docs/schemas/ietf-geo-location.yang` | `control-status` | `container control-status` |
-| `GEODETIC_SYSTEM` | `docs/schemas/ietf-geo-location.yang` | `datum-id` | `leaf datum-id` |
-| `COORD_LAT_X` | `docs/schemas/ietf-geo-location.yang` | `dim_0` | `leaf dim_0` |
-| `COORD_LON_Y` | `docs/schemas/ietf-geo-location.yang` | `dim_1` | `leaf dim_1` |
-| `COORD_ALT_Z` | `docs/schemas/ietf-geo-location.yang` | `dim_2` | `leaf dim_2` |
-| `VALIDITY_LIMIT` | `docs/schemas/ietf-geo-location.yang` | `validity-limit` | `leaf validity-limit` |
+* The registers are exposed to the host CPU (e.g. ARM Cortex core) over an **AXI4-Lite IP block**, allowing software operating systems to read/write hardware registers via memory-mapped pointer offsets (`/dev/mem`).

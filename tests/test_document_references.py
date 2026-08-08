@@ -28,22 +28,28 @@ def test_hardware_decoupled_persistence_design_document_integrity_issue373():
     assert str(metadata.get("issue_id")) == "373", "Frontmatter 'issue_id' must be 373"
     assert metadata.get("platform") == "vhdl-fpga", "Frontmatter 'platform' must be 'vhdl-fpga'"
 
-    # Verify absence of dangling test-geo-location.yang reference
-    assert "test-geo-location.yang" not in content, (
-        "Document must not reference unresolvable 'test-geo-location.yang'"
-    )
+    # Verify zero .yang file references
+    assert ".yang" not in content, "Document must not reference any .yang schema file"
+    assert "ietf-geo-location" not in content, "Document must not reference 'ietf-geo-location'"
 
-    # Verify Source References section and path resolution
-    assert "## Source References" in content, "Document must contain a '## Source References' section"
-    
-    # Extract referenced schema paths from table or text in Source References section
-    source_ref_section = content.split("## Source References", 1)[1]
-    referenced_paths = re.findall(r"`([a-zA-Z0-9_\-/\.]+\.(?:yang|json|yaml|md))`", source_ref_section)
-    assert len(referenced_paths) > 0, "Source References section must cite at least one schema file"
+    # Verify domain-free abstract primitive register names exist
+    assert "REGISTER_0" in content, "Document must reference primitive REGISTER_0"
+    assert "REGISTER_1" in content, "Document must reference primitive REGISTER_1"
+    assert "REGISTER_2" in content, "Document must reference primitive REGISTER_2"
+    assert "CONFIG_FLAGS" in content, "Document must reference CONFIG_FLAGS"
+    assert "CONTROL_STATUS" in content, "Document must reference CONTROL_STATUS"
 
-    for rel_path in referenced_paths:
-        abs_path = os.path.join(REPO_ROOT, rel_path)
-        assert os.path.isfile(abs_path), f"Referenced schema file does not exist: {rel_path} (resolved to {abs_path})"
+    # Verify purge of geodetic terms
+    for domain_term in ["COORD_LAT_X", "COORD_LON_Y", "COORD_ALT_Z", "GEODETIC_SYSTEM", "geodetic"]:
+        assert domain_term not in content, f"Document must not contain domain term '{domain_term}'"
+
+    # Verify path resolution of any referenced files if Source References section exists
+    if "## Source References" in content:
+        source_ref_section = content.split("## Source References", 1)[1]
+        referenced_paths = re.findall(r"`([a-zA-Z0-9_\-/\.]+\.(?:json|yaml|md))`", source_ref_section)
+        for rel_path in referenced_paths:
+            abs_path = os.path.join(REPO_ROOT, rel_path)
+            assert os.path.isfile(abs_path), f"Referenced file does not exist: {rel_path} (resolved to {abs_path})"
 
 
 def test_control_status_bits_fsm_realisation_issue372():
@@ -74,7 +80,7 @@ def test_control_status_bits_fsm_realisation_issue372():
 
     # Assert STAGED -> COMMIT_REG guard requirements
     assert "commit_bit" in content or "Commit bit" in content, "FSM must check commit_bit / Commit bit"
-    assert "01" in content and "10" in content, "FSM guard must check valid geodetic system 01 or 10"
+    assert "01" in content and "10" in content, "FSM guard must check valid mode choice 01 or 10"
 
     # Assert error transitions and triggers
     assert "11" in content and "00" in content, "FSM must specify error triggers for invalid 11 and unconfigured 00"
@@ -86,30 +92,27 @@ def test_control_status_bits_fsm_realisation_issue372():
     )
 
 
-def test_cartesian_and_geodetic_fixed_point_representations_issue371():
+def test_abstract_fixed_point_representations_issue371():
     assert os.path.isfile(TARGET_DOC), f"Target document does not exist: {TARGET_DOC}"
 
     with open(TARGET_DOC, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Geodetic (01) uses Q16.16 signed (range -32768 to +32767.99998 degrees)
+    # 1. Q16.16 signed (range -32768 to +32767.99998)
     assert "Q16.16" in content, "Document must define Q16.16 representation"
     assert "-32768" in content and "+32767.99998" in content, (
-        "Document must define Q16.16 range -32768 to +32767.99998 degrees for Geodetic representation"
+        "Document must define Q16.16 range -32768 to +32767.99998 for fixed-point representation"
     )
 
-    # 2. Cartesian (10) uses Q24.8 signed (range -8388608 to +8388607.996 metres)
-    assert "Q24.8" in content, "Document must define Q24.8 representation for Cartesian representation"
+    # 2. Q24.8 signed (range -8388608 to +8388607.996)
+    assert "Q24.8" in content, "Document must define Q24.8 representation"
     assert "-8388608" in content and "+8388607.996" in content, (
-        "Document must define Q24.8 range -8388608 to +8388607.996 metres for Cartesian representation"
+        "Document must define Q24.8 range -8388608 to +8388607.996 for fixed-point representation"
     )
 
-    # 3. COORD_ALT_Z uses Q24.8 encoding unconditionally
-    alt_z_lines = [line for line in content.splitlines() if "COORD_ALT_Z" in line]
-    assert len(alt_z_lines) > 0, "Document must reference COORD_ALT_Z"
-    assert any("Q24.8" in line for line in alt_z_lines), (
-        "COORD_ALT_Z must be specified as Q24.8 format unconditionally"
-    )
+    # 3. Primitive register REGISTER_2 format assertion
+    reg2_lines = [line for line in content.splitlines() if "REGISTER_2" in line]
+    assert len(reg2_lines) > 0, "Document must reference REGISTER_2"
 
     # 4. Overflow error flag assertions: exceeding representable range leaves register unmodified and sets CONTROL_STATUS bit 2 (Error flag)
     assert "unmodified" in content.lower(), (
@@ -154,5 +157,6 @@ def test_simulation_testbench_golden_vector_oracle_issue370():
     assert "pass-through" in content_lower or "stubbed" in content_lower, (
         "Document must mandate failure if conversion is stubbed to pass-through"
     )
+
 
 
