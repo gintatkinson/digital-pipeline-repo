@@ -225,3 +225,40 @@ def test_cleanup_workspace_sqlite_sidecars(tmp_path):
     assert not orphaned_journal.exists()
 
 
+def test_tag_restoration_point_success():
+    """
+    Assert tag_restoration_point accepts repo_root, passes cwd=repo_root and timeout=30 to subprocess.run.
+    """
+    mock_res = mock.MagicMock()
+    mock_res.returncode = 0
+
+    with mock.patch("subprocess.run", return_value=mock_res) as mock_run:
+        result = verify_downstream_baseline.tag_restoration_point(repo_root="/custom/root")
+        assert result is True
+        assert mock_run.call_count == 2
+        
+        # Check first call (git rev-parse HEAD)
+        args1, kwargs1 = mock_run.call_args_list[0]
+        assert args1[0] == ["git", "rev-parse", "HEAD"]
+        assert kwargs1.get("cwd") == "/custom/root"
+        assert kwargs1.get("timeout") == 30
+
+        # Check second call (git tag -f restoration-point)
+        args2, kwargs2 = mock_run.call_args_list[1]
+        assert args2[0] == ["git", "tag", "-f", "restoration-point"]
+        assert kwargs2.get("cwd") == "/custom/root"
+        assert kwargs2.get("timeout") == 30
+
+
+def test_tag_restoration_point_timeout(capsys):
+    """
+    Assert tag_restoration_point handles subprocess.TimeoutExpired, logs a warning to stderr, and returns False.
+    """
+    with mock.patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["git", "rev-parse", "HEAD"], 30)):
+        result = verify_downstream_baseline.tag_restoration_point(repo_root="/custom/root")
+        assert result is False
+        captured = capsys.readouterr()
+        assert "WARNING: Failed to tag restoration point" in captured.err or "timed out" in captured.err
+
+
+

@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 TIMEOUT_SECONDS = 600
+GIT_TIMEOUT_SECONDS = 30
 
 def _run_bounded(cmd, cwd, timeout, label):
     """Run cmd with a timeout that binds the whole process tree.
@@ -64,15 +65,18 @@ def check_no_domain_config(destination):
                 pass
     return False
 
-def tag_restoration_point():
+def tag_restoration_point(repo_root=None):
     print("Tagging restoration point...")
     try:
-        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
+        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=repo_root, timeout=GIT_TIMEOUT_SECONDS)
         if res.returncode != 0:
             print("WARNING: Skipping restoration point tag - git HEAD is unborn (fresh repository).", file=sys.stderr)
             return True
-        subprocess.run(["git", "tag", "-f", "restoration-point"], check=True)
+        subprocess.run(["git", "tag", "-f", "restoration-point"], check=True, cwd=repo_root, timeout=GIT_TIMEOUT_SECONDS)
         return True
+    except subprocess.TimeoutExpired as e:
+        print(f"WARNING: Failed to tag restoration point: {e}", file=sys.stderr)
+        return False
     except (subprocess.CalledProcessError, OSError) as e:
         print(f"WARNING: Failed to tag restoration point: {e}", file=sys.stderr)
         return False
@@ -244,7 +248,7 @@ def main():
             json.dump(report_data, f, indent=2)
         print(f"Wrote downstream baseline report to {args.output}")
 
-    if not tag_restoration_point():
+    if not tag_restoration_point(repo_root=repo_root):
         print("ERROR: Conformance gate verified but restoration point tag could not be placed.", file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
