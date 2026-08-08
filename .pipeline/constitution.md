@@ -56,7 +56,7 @@ last_updated: "2026-08-08"
 
 ### Unique Backlog Identifiers
 - All local specification files MUST include a permanent unique identifier (`issue_id: <int>`) in their YAML frontmatter, mapped directly to their remote issue number.
-- Matching by title normalization is prohibited as a primary selector.
+- Matching by title normalization is the primary selector used by the backlog reconciliation tool. To prevent collisions, all specification files of the same spec type MUST have unique normalised titles, as enforced by parity_auditor/validators/spec_title_uniqueness_validator.py and rules/tracker-source-of-truth.md.
 
 ### 1.9 Zero-Mocking Live Persistence Mandate
 - All client-side application targets (e.g., React, Flutter) MUST connect to a live, persistent database, emulator, or local register map at runtime.

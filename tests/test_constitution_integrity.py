@@ -185,3 +185,19 @@ def test_traceability_rules_name_enforcing_validators():
             f"Constitution traceability section is missing expected enforcing validator rule anchor: {rule_pattern!r}"
         )
 
+
+def test_title_normalization_clause_updated():
+    content = _read(CONSTITUTION)
+    expected_clause = (
+        "Matching by title normalization is the primary selector used by the backlog reconciliation tool. "
+        "To prevent collisions, all specification files of the same spec type MUST have unique normalised titles, "
+        "as enforced by parity_auditor/validators/spec_title_uniqueness_validator.py and rules/tracker-source-of-truth.md."
+    )
+    assert expected_clause in content, (
+        "Constitution is missing the updated title normalization clause."
+    )
+    assert "prohibited as a primary selector" not in content, (
+        "Constitution still contains 'prohibited as a primary selector'."
+    )
+
+

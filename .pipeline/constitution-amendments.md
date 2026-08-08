@@ -294,6 +294,37 @@ Update each of the four traceability mandates in the Tier 1 constitution to expl
 
 Non-destructive: additive clarification of enforcing validator paths, governance rules unchanged.
 
+---
+
+## AMEND-0007 — Title normalization primary selector requirement for backlog reconciliation
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #377
+- **Approved by:** "PROCEED" — approved implementation plan to replace title normalization prohibition with reconciliation primary selector requirement in constitution.md.
+- **Destructive:** no
+- **Line count:** 164
+- **Resulting SHA-256:** `d763c600eda7ef7fa2447bcb732ec3e148c803d94bbebddf1824134f8dd2d016`
+
+### Change
+
+Section *Unique Backlog Identifiers*, line 59.
+
+Before:
+
+> - Matching by title normalization is prohibited as a primary selector.
+
+After:
+
+> - Matching by title normalization is the primary selector used by the backlog reconciliation tool. To prevent collisions, all specification files of the same spec type MUST have unique normalised titles, as enforced by parity_auditor/validators/spec_title_uniqueness_validator.py and rules/tracker-source-of-truth.md.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Unique Backlog Identifiers` to reflect that matching by title normalization is the primary selector used by the backlog reconciliation tool (`reconcile_backlog.py`), resolving governance document contradiction as required by Issue #377.
+
+Non-destructive: title normalization rule updated to match enforced reconciliation primary selector, governance rules aligned.
+
+
 
 
 
