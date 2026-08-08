@@ -159,4 +159,36 @@ def test_simulation_testbench_golden_vector_oracle_issue370():
     )
 
 
+def test_parameterized_wrapper_kind_and_equivalence_matrix_issue374():
+    assert os.path.isfile(TARGET_DOC), f"Target document does not exist: {TARGET_DOC}"
+
+    with open(TARGET_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    content_lower = content.lower()
+
+    # 1. Parameterized testbench execution over WRAPPER_KIND (SPI, AXI_LITE, PCIE)
+    assert "wrapper_kind" in content_lower, (
+        "Document must parameterize testbench execution over WRAPPER_KIND"
+    )
+    for wrapper in ["spi", "axi_lite", "pcie"]:
+        assert wrapper in content_lower, f"Document must include wrapper kind '{wrapper}' in WRAPPER_KIND"
+
+    # 2. Cross-Wrapper Equivalence Assertion
+    assert "cross-wrapper equivalence assertion" in content_lower or "equivalence assertion" in content_lower, (
+        "Document must contain Cross-Wrapper Equivalence Assertion"
+    )
+    for reg in ["REGISTER_0", "REGISTER_1", "REGISTER_2", "CONTROL_STATUS"]:
+        assert reg in content, f"Cross-wrapper equivalence assertion must cover register '{reg}'"
+
+    for wrap_name in ["SPI_Wrap", "AXI_Lite", "PCIe_Wrap"]:
+        assert wrap_name in content, f"Cross-wrapper equivalence assertion must cover adapter '{wrap_name}'"
+
+    # 3. Objective-to-Assertion Matrix
+    assert "objective-to-assertion matrix" in content_lower or "objective-to-assertion" in content_lower, (
+        "Document must contain an Objective-to-Assertion Matrix binding Section 1 objectives to verification assertions"
+    )
+
+
+
 

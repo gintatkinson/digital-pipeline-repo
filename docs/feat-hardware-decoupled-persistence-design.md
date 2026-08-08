@@ -123,18 +123,28 @@ stateDiagram-v2
 
 ### 1. Standalone Simulation Testbench & Golden Vector Oracle Verification Plan (Local Run)
 For local development and E2E verification without physical hardware:
-* We implement a testbench (`tb_register_map.vhd`).
-* **Golden Vector Oracle Test Requirements:** The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`). The stimulus file declares IEEE-754 floating-point input vectors AND independently derived expected Q16.16 (Fixed-32) / Q24.8 (Fixed-64) golden fixed-point output vectors.
-* The testbench simulates the physical SPI clock and data lines, feeding the IEEE-754 input vectors into the wrapper, and asserts that the internal registers resolve to the golden vector oracle outputs.
+* We implement a parameterized testbench (`tb_register_map.vhd`).
+* **Testbench Parameterization (`WRAPPER_KIND`):** The testbench instantiates the register map and binds a generic parameter `WRAPPER_KIND` taking values from (`SPI`, `AXI_LITE`, `PCIE`).
+* **Golden Vector Oracle Test Requirements:** The testbench reads test data shapes from a local configuration vector file (`stimulus.dat`). The stimulus file declares IEEE-754 floating-point input vectors AND independently derived expected Q16.16 (Fixed-32) / Q24.8 (Fixed-64) golden fixed-point output vectors. The exact same `stimulus.dat` vector set runs against every configured value of `WRAPPER_KIND` (`SPI`, `AXI_LITE`, `PCIE`).
+* The testbench simulates the physical clock and data lines for each interface, feeding the IEEE-754 input vectors into the active wrapper, and asserts that the internal registers resolve to the golden vector oracle outputs.
 * **Mandated Verification Assertions:**
   1. **Nominal Conversion Accuracy:** Asserts that valid IEEE-754 input values correctly convert to nominal Q16.16 and Q24.8 fixed-point representations within 1 LSB tolerance.
   2. **Negative Two's Complement Sign Extension:** Asserts that negative register inputs correctly produce proper sign-extended two's complement fixed-point values.
   3. **LSB Rounding Mode:** Asserts that fractional rounding adheres to half-up LSB rounding rules without truncation drift.
   4. **Saturation & Error Flag on Overflow:** Asserts that register inputs exceeding representable range (-32768 to +32767.99998 for Q16.16, -8388608 to +8388607.996 for Q24.8) trigger register write inhibition and assert `CONTROL_STATUS` bit 2 (Error flag).
+  5. **Cross-Wrapper Equivalence Assertion:** Verifies that writing the same vector through any adapter (`SPI_Wrap`, `AXI_Lite`, `PCIe_Wrap`) yields identical bit-level state in `REGISTER_0`, `REGISTER_1`, `REGISTER_2`, and `CONTROL_STATUS`. For each vector in `stimulus.dat`, resulting register contents are captured per wrapper and asserted bit-identical across all three adapters (`SPI_Wrap`, `AXI_Lite`, `PCIe_Wrap`). This assertion explicitly validates Objective 3 of Section 1; without it, the decoupling claim remains unasserted.
 * **Negative Control Verification Requirement:** The verification suite MUST execute a negative control test where the conversion module is stubbed to pass-through IEEE-754 raw bits directly. The verification suite MUST fail if the conversion is stubbed to pass-through, confirming that the testbench detects broken or bypassed fixed-point conversion logic.
 
+### 2. Objective-to-Assertion Matrix
+The following matrix binds each architectural objective stated in Section 1 to its explicit verification assertion in Section 5:
 
-### 2. Distributed Synthesis (Production Run)
+| Section 1 Architectural Objective | Named Verification Assertion | Verification Scope & Target |
+| :--- | :--- | :--- |
+| **Objective 1: Contract Decoupling in Silicon** | Negative Control Verification & Interface Isolation Assertion | Asserts DSP/logic processing core operates strictly on internal register map address boundaries, decoupled from transport protocol framing. |
+| **Objective 2: Memory-Mapped Register Abstraction** | Golden Vector Oracle & Nominal/Saturation Accuracy Assertions | Asserts vectors in `stimulus.dat` map to exact Q16.16/Q24.8 fixed-point state in `REGISTER_0`, `REGISTER_1`, `REGISTER_2`, and set `CONTROL_STATUS` bit 2 on overflow. |
+| **Objective 3: Heterogeneous Interface Mapping** | Cross-Wrapper Equivalence Assertion | Asserts writing through any adapter (`SPI_Wrap`, `AXI_Lite`, `PCIe_Wrap`) under parameterized `WRAPPER_KIND` (`SPI`, `AXI_LITE`, `PCIE`) yields bit-identical state in `REGISTER_0`, `REGISTER_1`, `REGISTER_2`, and `CONTROL_STATUS`. |
+
+### 3. Distributed Synthesis (Production Run)
 For physical deployment:
 * The core VHDL code is synthesized using **Xilinx Vivado** targeting a specific FPGA board (e.g. Xilinx Zynq-7000 or UltraScale+ SoC).
 * The registers are exposed to the host CPU (e.g. ARM Cortex core) over an **AXI4-Lite IP block**, allowing software operating systems to read/write hardware registers via memory-mapped pointer offsets (`/dev/mem`).
