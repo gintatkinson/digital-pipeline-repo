@@ -130,3 +130,33 @@ def test_feature_driven_implementation_subagent_retry_limit_guard():
     assert "RETRY_LIMIT_EXCEEDED" in content
     assert "DONE (integrity verified)" in content or "integrity verified" in content
 
+
+def test_feature_driven_implementation_preamble_sentinel_and_read_instruction_issue387():
+    """Verify skills/feature-driven-implementation/SKILL.md documents Preamble Integrity Sentinel (---GOVERNANCE-END---) and mandatory SKILL.md and profile reading instruction (Issue #387)."""
+    skill_path = os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "../skills/feature-driven-implementation/SKILL.md",
+        )
+    )
+    assert os.path.exists(skill_path), f"Skill file not found at {skill_path}"
+
+    with open(skill_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Verify Preamble Integrity Sentinel (---GOVERNANCE-END---) token requirement
+    assert "---GOVERNANCE-END---" in content, (
+        "skills/feature-driven-implementation/SKILL.md must contain '---GOVERNANCE-END---' sentinel token line"
+    )
+    assert "Preamble Integrity Sentinel" in content, (
+        "skills/feature-driven-implementation/SKILL.md must specify 'Preamble Integrity Sentinel'"
+    )
+
+    # Verify Mandatory Skill and Profile Read instruction
+    assert "Mandatory Skill and Profile Read" in content, (
+        "skills/feature-driven-implementation/SKILL.md must state 'Mandatory Skill and Profile Read'"
+    )
+    assert "active SKILL.md file by explicit path" in content or "SKILL.md" in content
+    assert ".pipeline/profiles/" in content
+
+

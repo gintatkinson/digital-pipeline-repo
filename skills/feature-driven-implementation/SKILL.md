@@ -106,7 +106,8 @@ The implementer receives ONLY (Prompt Payload Template):
 - Relevant file contents (read and provided by the coordinator)
 - Project conventions (TDD mandate, typing rules, docstring mandate, drill-down navigation rule, etc.)
 - The driving test specification
-- Mandatory Implementation Profile Read: Explicit prompt instruction requiring the subagent to read `.pipeline/profiles/flutter.md` (or target platform profile under `.pipeline/profiles/`) by explicit path as its very first step.
+- Mandatory Skill and Profile Read: Explicit prompt instruction requiring the subagent to execute view_file on both (1) the active SKILL.md file by explicit path (e.g., `skills/feature-driven-implementation/SKILL.md`) and (2) `.pipeline/profiles/<platform>.md` (e.g., `.pipeline/profiles/flutter.md`) as its very first steps.
+- Preamble Integrity Sentinel: Mandatory sentinel token line (e.g. `---GOVERNANCE-END---`) terminating the governance preamble block. The subagent MUST verify the sentinel token before executing and report BLOCKED if missing due to preamble truncation.
 - Mandatory Docstring & Traceability Requirement: Prompt instruction requiring that every generated class, interface, method, function, and public property MUST include full docstrings (DartDoc `///`, JSDoc `/** */`, Python `"""`), and attach UML traceability tags (`/// Realises: [SpecName/ClassName]`) to every public class header.
 
 **Mandatory Subagent Prompt Governance Preamble**:
@@ -117,6 +118,7 @@ Every subagent prompt transmitted by the coordinator MUST begin with the complet
 4. **3-Layer DoD**: `3-Layer Definition of Done (DoD)`.
 5. **TDD Mandate**: `RED-GREEN-REFACTOR`.
 6. **Build/Test Verification Commands**: `flutter analyze (0 issues), flutter test (all pass)` (or platform profile equivalents).
+7. **Preamble Integrity Sentinel Token**: `---GOVERNANCE-END---` (terminating line).
 
 The coordinator is strictly forbidden from truncating, abbreviating, or stripping this preamble across sequential feature executions regardless of prior subagent success or failures.
 
