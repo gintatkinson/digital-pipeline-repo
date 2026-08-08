@@ -146,25 +146,34 @@ def test_referenced_skill_paths_resolve_on_disk_issue285():
     pattern = re.compile(r"(?<![\w-])((?:\./)?(?:\.agents/)?skills/[A-Za-z0-9_./-]+)")
     offenders = []
     checked = 0
+    skipped_placeholders = []
+    unclassified = []
     for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             for match in pattern.finditer(line):
                 candidate = match.group(1).rstrip(".,;:)`\"'")
+                raw = line[match.end(1):match.end(1)+1]
                 if candidate.startswith("./"):
                     candidate = candidate[2:]
                 # skip glob/placeholder forms that cannot be resolved literally
-                if any(ch in candidate for ch in "<>*[]") or candidate.endswith("/"):
+                if raw in "<>*[]" or candidate.endswith("/") or any(ch in candidate for ch in "<>*[]"):
+                    skipped_placeholders.append(f"{rel}:{lineno} -> {candidate} (raw: {raw!r})")
                     continue
-                if "spec-orchestrator/scripts" in candidate or candidate.endswith(
-                    (".md", ".py", ".sh", ".json")
+                if (
+                    "spec-orchestrator/scripts" in candidate
+                    or "parity_auditor" in candidate
+                    or candidate.endswith((".md", ".py", ".sh", ".json"))
                 ):
                     checked += 1
                     if not os.path.exists(os.path.join(REPO_ROOT, candidate)):
                         offenders.append(f"{rel}:{lineno} -> {candidate}")
+                else:
+                    unclassified.append(f"{rel}:{lineno} -> {candidate} (raw: {raw!r})")
     assert checked >= 10, (
         f"only {checked} concrete skill paths examined; the scan is close to vacuous"
     )
+    assert not unclassified, f"Unclassified skill path candidates silently dropped: {unclassified}"
     assert not offenders, f"governance documents reference paths that do not exist: {offenders}"
 
 
@@ -291,6 +300,31 @@ def test_root_coverage_validator_fails_when_roots_dropped_issue362(monkeypatch):
         with pytest.raises(AssertionError) as exc_info:
             _assert_corpus_covers_all_roots()
         assert "SCAN_ROOTS is missing mandatory roots" in str(exc_info.value)
+
+
+def test_unreachable_placeholder_filter_detects_unclassified_or_wildcard_issue364():
+    """Confirm raw trailing character inspection catches wildcards and unclassified candidates."""
+    pattern = re.compile(r"(?<![\w-])((?:\./)?(?:\.agents/)?skills/[A-Za-z0-9_./-]+)")
+    line_wildcard = "Refer to skills/my-skill/* for details"
+    match = list(pattern.finditer(line_wildcard))[0]
+    candidate = match.group(1).rstrip(".,;:)`\"'")
+    raw = line_wildcard[match.end(1):match.end(1)+1]
+    assert candidate == "skills/my-skill/"
+    assert raw == "*"
+    assert raw in "<>*[]" or candidate.endswith("/")
+
+    line_unclassified = "Refer to skills/my-skill/unknown_file_type for details"
+    match_unc = list(pattern.finditer(line_unclassified))[0]
+    candidate_unc = match_unc.group(1).rstrip(".,;:)`\"'")
+    raw_unc = line_unclassified[match_unc.end(1):match_unc.end(1)+1]
+    assert candidate_unc == "skills/my-skill/unknown_file_type"
+    assert raw_unc == " "
+    assert not (
+        "spec-orchestrator/scripts" in candidate_unc
+        or "parity_auditor" in candidate_unc
+        or candidate_unc.endswith((".md", ".py", ".sh", ".json"))
+    )
+
 
 
 
