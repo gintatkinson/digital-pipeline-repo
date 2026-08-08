@@ -119,3 +119,62 @@ def test_sysml_coverage_unreadable_feature_file_produces_finding(tmp_path):
     finding_ids = [e.rule_id for e in errors]
     assert "sysml-feature-not-readable" in finding_ids
 
+
+def test_sysml_coverage_word_boundary_negative_control(tmp_path):
+    workspace_dir = str(tmp_path)
+    schemas_dir = os.path.join(workspace_dir, "schemas")
+    features_dir = os.path.join(workspace_dir, "features")
+    os.makedirs(schemas_dir, exist_ok=True)
+    os.makedirs(features_dir, exist_ok=True)
+
+    sysml_file = os.path.join(schemas_dir, "model.sysml")
+    with open(sysml_file, "w") as f:
+        f.write("port def Port {}")
+
+    feat_file = os.path.join(features_dir, "feat.md")
+    with open(feat_file, "w") as f:
+        f.write("This feature uses Portal and Passport.")
+
+    repo_mock = MagicMock()
+    repo_mock.workspace_dir = workspace_dir
+    rules = MagicMock()
+    rules.backlog_directories.schemas = "schemas"
+    rules.backlog_directories.features = "features"
+    repo_mock.get_codebase_rules.return_value = rules
+
+    validator = SchemaCardinalityValidator()
+    errors = validator.validate(repo_mock, is_sysml=True)
+
+    assert len(errors) == 1
+    assert errors[0].rule_id == "sysml-extraction-missing"
+    assert "SysML node 'Port' is not extracted into any feature specification." in str(errors[0])
+
+
+def test_sysml_coverage_word_boundary_positive_control(tmp_path):
+    workspace_dir = str(tmp_path)
+    schemas_dir = os.path.join(workspace_dir, "schemas")
+    features_dir = os.path.join(workspace_dir, "features")
+    os.makedirs(schemas_dir, exist_ok=True)
+    os.makedirs(features_dir, exist_ok=True)
+
+    sysml_file = os.path.join(schemas_dir, "model.sysml")
+    with open(sysml_file, "w") as f:
+        f.write("port def Port {}")
+
+    feat_file = os.path.join(features_dir, "feat.md")
+    with open(feat_file, "w") as f:
+        f.write("This feature configures Port 80.")
+
+    repo_mock = MagicMock()
+    repo_mock.workspace_dir = workspace_dir
+    rules = MagicMock()
+    rules.backlog_directories.schemas = "schemas"
+    rules.backlog_directories.features = "features"
+    repo_mock.get_codebase_rules.return_value = rules
+
+    validator = SchemaCardinalityValidator()
+    errors = validator.validate(repo_mock, is_sysml=True)
+
+    assert len(errors) == 0
+
+

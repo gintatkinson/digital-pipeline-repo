@@ -85,7 +85,7 @@ class SchemaCardinalityValidator(IValidator):
             for node in sysml_nodes:
                 found = False
                 for ft in feature_texts:
-                    if node in ft:
+                    if re.search(rf"\b{re.escape(node)}\b", ft):
                         found = True
                         break
                 if not found:
