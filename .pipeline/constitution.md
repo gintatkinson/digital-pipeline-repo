@@ -12,6 +12,39 @@ last_updated: "2026-08-08"
 > All agents MUST read this file before beginning any pipeline execution.
 > For platform-specific rules, see `.pipeline/profiles/<platform>.md`.
 
+## Architecture: Three-Tier Platform Isolation
+
+The pipeline enforces a strict three-tier platform isolation architecture to decouple abstract functional specifications from dynamic runtime parameters and platform-specific execution details.
+
+```mermaid
+graph TD
+    subgraph "Tier 1: Functional Layer (Abstract Specification)"
+        T1_Specs["Epics, Features, User Stories, Use Cases"]
+        T1_LUI["Logical UI (LUI) & 3-Layer Semantic Chain"]
+    end
+
+    subgraph "Tier 2: Runtime Configuration (Dynamic Context)"
+        T2_Tokens["Design Tokens & Theme Mappings"]
+        T2_Configs["Dynamic Translation Files & Rules"]
+    end
+
+    subgraph "Tier 3: Platform Implementation Profiles (Technical Execution)"
+        T3_Profiles[".pipeline/profiles/[platform].md"]
+        T3_Code["Platform Codebases (Flutter, React, etc.)"]
+    end
+
+    T1_Specs --> T2_Tokens
+    T1_LUI --> T2_Configs
+    T2_Tokens --> T3_Profiles
+    T2_Configs --> T3_Code
+```
+
+### Tier Boundary Guidelines
+
+1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across 3 canonical aerospace architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Flight Control (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
+3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
+
 ## Domain Rules
 
 ### Specification Sources
@@ -50,9 +83,7 @@ last_updated: "2026-08-08"
 - Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.
 
 ### Standard & Platform Parameter Isolation
-1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across 3 canonical aerospace architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Flight Control (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
-2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
-3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
+- See top-level section [Architecture: Three-Tier Platform Isolation](#architecture-three-tier-platform-isolation) for tier isolation rules and boundary guidelines.
 
 ### Unique Backlog Identifiers
 - All local specification files MUST include a permanent unique identifier (`issue_id: <int>`) in their YAML frontmatter, mapped directly to their remote issue number.

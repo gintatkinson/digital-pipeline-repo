@@ -201,3 +201,14 @@ def test_title_normalization_clause_updated():
     )
 
 
+def test_three_tier_architecture_section_and_mermaid_diagram():
+    content = _read(CONSTITUTION)
+    assert "## Architecture: Three-Tier Platform Isolation" in content, (
+        "Constitution is missing top-level '## Architecture: Three-Tier Platform Isolation' section."
+    )
+    assert "```mermaid" in content, "Constitution is missing Mermaid diagram code fence."
+    assert "graph TD" in content, "Constitution is missing 'graph TD' Mermaid diagram header."
+    assert "subgraph" in content, "Constitution Mermaid diagram is missing subgraphs for tiers."
+
+
+

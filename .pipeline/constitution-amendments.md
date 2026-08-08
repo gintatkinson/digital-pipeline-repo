@@ -324,7 +324,42 @@ Update `.pipeline/constitution.md` under `### Unique Backlog Identifiers` to ref
 
 Non-destructive: title normalization rule updated to match enforced reconciliation primary selector, governance rules aligned.
 
+---
 
+## AMEND-0008 — Promote Three-Tier Platform Isolation architecture to top-level section
 
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #384
+- **Approved by:** "PROCEED" — approved implementation plan to promote three-tier platform isolation architecture to top-level section in constitution.md.
+- **Destructive:** no
+- **Line count:** 195
+- **Resulting SHA-256:** `f0d3ab82d4658f5798e3e228a3b5ec324f54be94dfb66762a1a0733ee85075f1`
 
+### Change
 
+Promote Three-Tier Platform Isolation architecture from `### Standard & Platform Parameter Isolation` under `## Domain Rules` to a top-level section (`## Architecture: Three-Tier Platform Isolation`) under Functional Layer Governance. Add Mermaid graph TD diagram with Tier 1, Tier 2, Tier 3 subgraphs and relationships, and explicit tier boundary guidelines.
+
+Before:
+
+> ### Standard & Platform Parameter Isolation
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications...
+> 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens...
+> 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md`...
+
+After:
+
+> ## Architecture: Three-Tier Platform Isolation
+>
+> The pipeline enforces a strict three-tier platform isolation architecture to decouple abstract functional specifications from dynamic runtime parameters and platform-specific execution details.
+> [Mermaid graph TD diagram]
+> ### Tier Boundary Guidelines
+> 1. **Tier 1: Functional Layer (Abstract Specification)**...
+> 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**...
+> 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**...
+
+### Rationale
+
+Promote the three-tier platform isolation architecture to a top-level section with Mermaid diagram visualization to elevate foundational architectural isolation principles, resolving audit finding #384.
+
+Non-destructive: Three-tier architecture principles promoted and expanded, line count increased from 164 to 195 lines, governance rules preserved.
