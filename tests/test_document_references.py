@@ -44,3 +44,44 @@ def test_hardware_decoupled_persistence_design_document_integrity_issue373():
     for rel_path in referenced_paths:
         abs_path = os.path.join(REPO_ROOT, rel_path)
         assert os.path.isfile(abs_path), f"Referenced schema file does not exist: {rel_path} (resolved to {abs_path})"
+
+
+def test_control_status_bits_fsm_realisation_issue372():
+    assert os.path.isfile(TARGET_DOC), f"Target document does not exist: {TARGET_DOC}"
+
+    with open(TARGET_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Assert FSM Realisation Matrix section/table exists
+    assert "FSM Realisation Matrix" in content or "Realisation Matrix" in content, (
+        "Document must contain an FSM Realisation Matrix for CONTROL_STATUS bits"
+    )
+
+    # Assert CONTROL_STATUS bit definitions are realised in FSM
+    assert "Commit bit 0" in content or "Bit 0: Commit" in content or "Bit 0" in content, (
+        "Document must define Commit bit 0 in FSM matrix"
+    )
+    assert "Busy bit 1" in content or "Bit 1: Busy" in content or "Bit 1" in content, (
+        "Document must define Busy bit 1 in FSM matrix"
+    )
+    assert "Error bit 2" in content or "Bit 2: Error" in content or "Bit 2" in content, (
+        "Document must define Error bit 2 in FSM matrix"
+    )
+
+    # Assert STAGED and ERROR states exist in FSM diagram / prose
+    assert "STAGED" in content, "Document must include STAGED state in FSM"
+    assert "ERROR" in content, "Document must include ERROR state in FSM"
+
+    # Assert STAGED -> COMMIT_REG guard requirements
+    assert "commit_bit" in content or "Commit bit" in content, "FSM must check commit_bit / Commit bit"
+    assert "01" in content and "10" in content, "FSM guard must check valid geodetic system 01 or 10"
+
+    # Assert error transitions and triggers
+    assert "11" in content and "00" in content, "FSM must specify error triggers for invalid 11 and unconfigured 00"
+    assert "truncated" in content.lower() or "out-of-range" in content.lower() or "error" in content.lower()
+
+    # Assert ERROR -> IDLE transition on error acknowledgment
+    assert "ERROR --> IDLE" in content or ("ERROR" in content and "IDLE" in content), (
+        "FSM must define transition from ERROR to IDLE on error acknowledgment"
+    )
+

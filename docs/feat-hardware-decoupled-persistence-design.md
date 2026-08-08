@@ -76,21 +76,37 @@ To avoid the resource overhead of floating-point units (FPUs) in FPGA fabric, la
 ## 4. Agnostic Transport Translation FSM
 Each bus wrapper runs a VHDL Finite State Machine to handle interface-specific transactions and commit them to the internal registers.
 
+### FSM Realisation Matrix for `CONTROL_STATUS` Bits
+
+| Bit | Bit Name | Access | FSM Assertion / Condition | State Transitions & Behavior |
+| :--- | :--- | :--- | :--- | :--- |
+| Bit 0 | Commit bit 0 | R/W | Guard condition for atomic commit | Asserted by host CPU to trigger commit; FSM checks `commit_bit == 1` in `STAGED` state before proceeding to `COMMIT_REG`. |
+| Bit 1 | Busy bit 1 | Read-only | Asserted high during transaction processing | Asserted high when transitioning `IDLE --> RECEIVING`; remains high through `RECEIVING`, `DESERIALIZING`, `MAPPING`, `STAGED`, `COMMIT_REG`, and `ERROR`; deasserted low on returning to `IDLE`. |
+| Bit 2 | Error bit 2 | Read-only | Asserted high on fault or invalid frame | Asserted high upon transition to `ERROR` state (triggered by invalid encoding `11`, unconfigured geodetic system `00`, truncated frame, or out-of-range coordinate value); cleared on error acknowledgment transition `ERROR --> IDLE`. |
+
 ```mermaid
 stateDiagram-v2
-    IDLE --> RECEIVING : "Bus Transaction Detected"
+    IDLE --> RECEIVING : "Bus Transaction Detected / Assert Busy bit 1"
     RECEIVING --> DESERIALIZING : "Read Frame Complete"
     DESERIALIZING --> MAPPING : "Convert format (e.g. SPI stream -> Q16.16)"
-    MAPPING --> COMMIT_REG : "Write to Register Address"
-    COMMIT_REG --> IDLE : "Assert Done / Deassert Busy"
+    MAPPING --> STAGED : "Hold coordinates safely without premature commit"
+    STAGED --> COMMIT_REG : "commit_bit == 1 AND GEODETIC_SYSTEM in (01, 10)"
+    COMMIT_REG --> IDLE : "Register write complete / Deassert Busy bit 1"
+    RECEIVING --> ERROR : "Truncated frame / Set Error bit 2"
+    DESERIALIZING --> ERROR : "Out-of-range value / Set Error bit 2"
+    MAPPING --> ERROR : "Invalid encoding 11 or unconfigured 00 / Set Error bit 2"
+    STAGED --> ERROR : "Invalid encoding 11 or unconfigured 00 / Set Error bit 2"
+    ERROR --> IDLE : "Error acknowledgment / Clear Error bit 2 & Busy bit 1"
 ```
 
 ### VHDL Translator FSM Details:
-1. **IDLE:** Waits for interface-specific handshakes (e.g. AXI `AWVALID` and `WVALID` flags, or SPI Chip Select `CS_N` going low).
-2. **RECEIVING:** Shifts in serialization data packets.
-3. **DESERIALIZING:** Assembles bits into standard 32-bit hardware words.
-4. **MAPPING:** Executes binary translation (e.g. converting IEEE-754 single-precision float inputs from a CPU into the internal Q16.16 fixed-point format).
-5. **COMMIT_REG:** Asserts the register write enable to write values to internal registers, then returns to IDLE.
+1. **IDLE:** Waits for interface-specific handshakes (e.g. AXI `AWVALID` and `WVALID` flags, or SPI Chip Select `CS_N` going low). Busy bit 1 and Error bit 2 are deasserted.
+2. **RECEIVING:** Shifts in serialization data packets and asserts Busy bit 1. If a truncated frame is detected, transitions to **ERROR** and sets Error bit 2.
+3. **DESERIALIZING:** Assembles bits into standard 32-bit hardware words. If an out-of-range value is detected, transitions to **ERROR** and sets Error bit 2.
+4. **MAPPING:** Executes binary translation (e.g. converting IEEE-754 single-precision float inputs from a CPU into internal Q16.16 fixed-point format). If invalid encoding (`11`) or unconfigured geodetic system (`00`) is detected, transitions to **ERROR** and sets Error bit 2.
+5. **STAGED:** Holds coordinates safely in staging registers without premature atomic commit. Guarded transition to **COMMIT_REG** occurs when `commit_bit == 1` (Commit bit 0) and `GEODETIC_SYSTEM` coordinate choice is valid (`01` Ellipsoid or `10` Cartesian). If unconfigured (`00`) or invalid encoding (`11`), transitions to **ERROR** and sets Error bit 2.
+6. **COMMIT_REG:** Asserts the internal register write enable to write values to target registers, then returns to **IDLE** while deasserting Busy bit 1.
+7. **ERROR:** Sets Error bit 2. FSM remains in **ERROR** state holding error status until an error acknowledgment transaction is received, which transitions `ERROR --> IDLE`, clearing Error bit 2 and Busy bit 1.
 
 ---
 
