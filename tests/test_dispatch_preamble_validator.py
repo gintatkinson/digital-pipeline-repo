@@ -110,3 +110,23 @@ def test_feature_driven_implementation_skill_documentation():
     assert "empty result" in content.lower()
     assert "two consecutive failures" in content.lower()
     assert "escalate" in content.lower()
+
+
+def test_feature_driven_implementation_subagent_retry_limit_guard():
+    """Verify skills/feature-driven-implementation/SKILL.md contains bounded retry limit and escalation guard terms."""
+    skill_path = os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "../skills/feature-driven-implementation/SKILL.md",
+        )
+    )
+    assert os.path.exists(skill_path), f"Skill file not found at {skill_path}"
+
+    with open(skill_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    assert "Output Integrity Verification" in content
+    assert "subagent_dispatch_retry" in content
+    assert "RETRY_LIMIT_EXCEEDED" in content
+    assert "DONE (integrity verified)" in content or "integrity verified" in content
+

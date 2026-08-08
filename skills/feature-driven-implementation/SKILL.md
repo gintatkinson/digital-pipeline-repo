@@ -144,10 +144,20 @@ Configure the dispatch method dynamically based on the current agent orchestrato
 - **COMMIT:** Commit the passing micro-task with a descriptive message.
 - **SELF-REVIEW:** Implementer reviews own changes before handing back.
 
+**A.2 Output Integrity Verification**
+
+After the subagent returns and BEFORE evaluating status, verify dispatch integrity:
+1. Confirm the subagent output contains a test file (RED phase output) or explicit test code.
+2. Confirm the subagent output contains implementation code (GREEN phase output) or a build/compile result.
+3. If either is missing or the output is truncated (abrupt end, incomplete docstrings, or invisible dispatch failure), treat as `NEEDS_CONTEXT` and increment `subagent_dispatch_retry`.
+4. **Bounded Retry Limit & Escalation Guard:** Track `subagent_dispatch_retry` for each micro-task dispatch. If `subagent_dispatch_retry` reaches 2 retries (max 2 retries on invisible/truncated/unexpected subagent output), HALT immediately and escalate to human via "The Grill" (`RETRY_LIMIT_EXCEEDED`).
+5. **No Endless Payload Variations:** Endless or unauthorized payload format variations without root cause diagnosis are strictly forbidden. Do NOT vary the payload format ("maybe this format will work") without diagnosing the exact root cause. Report the exact failure mode (missing section, truncation point, preamble degradation).
+
 **C. Handle Implementer Status**
-- **DONE:** Proceed to two-stage review (Step 3.3).
+- **DONE (integrity verified):** Proceed to two-stage review (Step 3.3).
 - **DONE_WITH_CONCERNS:** Read concerns. If correctness/scope issue, address before review. If observational, note and proceed.
-- **NEEDS_CONTEXT:** Coordinator provides missing context and re-dispatches.
+- **NEEDS_CONTEXT:** Coordinator provides missing context and re-dispatches. Increment `subagent_dispatch_retry`.
+- **RETRY_LIMIT_EXCEEDED (HALT and escalate):** HALT immediately. Report failure mode and escalate to human via "The Grill."
 - **BLOCKED:** Assess blocker: (1) context problem → provide more context, (2) task too complex → break into smaller pieces, (3) plan is wrong → escalate to human via "The Grill."
 
 #### 3.3 Two-Stage Review Gate
