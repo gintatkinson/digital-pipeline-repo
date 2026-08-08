@@ -264,7 +264,7 @@ The skills are runtime-agnostic markdown files. The `feature-driven-implementati
 > "Adopt the specification-orchestrator skill by executing view_file on 
 > `skills/spec-orchestrator/SKILL.md` as step 1.
 >
-> I want to specification-engineer [Protocol Standard, e.g., IETF / 3GPP protocol schemas].
+> I want to specification-engineer [Protocol Standard, e.g., IETF / standard protocol schemas].
 >
 > 1. Inputs & Paths:
 >    - Structural schemas are located at: `[path to schemas]`

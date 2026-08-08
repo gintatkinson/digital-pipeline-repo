@@ -85,6 +85,10 @@
               }
             },
             {
+              "type": "TableView",
+              "id": "elements_view"
+            },
+            {
               "type": "TabbedContainer",
               "id": "details_and_relations_tab",
               "props": {
