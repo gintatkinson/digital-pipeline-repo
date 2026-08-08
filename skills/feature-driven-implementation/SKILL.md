@@ -109,6 +109,23 @@ The implementer receives ONLY (Prompt Payload Template):
 - Mandatory Implementation Profile Read: Explicit prompt instruction requiring the subagent to read `.pipeline/profiles/flutter.md` (or target platform profile under `.pipeline/profiles/`) by explicit path as its very first step.
 - Mandatory Docstring & Traceability Requirement: Prompt instruction requiring that every generated class, interface, method, function, and public property MUST include full docstrings (DartDoc `///`, JSDoc `/** */`, Python `"""`), and attach UML traceability tags (`/// Realises: [SpecName/ClassName]`) to every public class header.
 
+**Mandatory Subagent Prompt Governance Preamble**:
+Every subagent prompt transmitted by the coordinator MUST begin with the complete, un-degraded Subagent Prompt Governance Preamble containing all mandatory verbatim governance markers:
+1. **Skill / Constitution Reference**: `Adopt the feature-driven-implementation skill` (referencing `.pipeline/constitution.md`).
+2. **First Step Mandate**: `view_file on skills/feature-driven-implementation/SKILL.md as step 1`.
+3. **Zero-Mocking Mandate**: `Section 1.9 Zero-Mocking Live Persistence Mandate`.
+4. **3-Layer DoD**: `3-Layer Definition of Done (DoD)`.
+5. **TDD Mandate**: `RED-GREEN-REFACTOR`.
+6. **Build/Test Verification Commands**: `flutter analyze (0 issues), flutter test (all pass)` (or platform profile equivalents).
+
+The coordinator is strictly forbidden from truncating, abbreviating, or stripping this preamble across sequential feature executions regardless of prior subagent success or failures.
+
+**Subagent Failure Protocol**:
+If a subagent returns an empty result, fails unexpectedly, or stalls:
+1. **First Failure**: Upon an empty result or transient error, re-dispatch a fresh subagent with the identical, un-degraded preamble and full payload intact.
+2. **Two Consecutive Failures**: If two consecutive failures occur with identical preamble payloads, HALT immediately and escalate to human operator with the failure log.
+3. **Governance Invariant**: Never strip governance under any circumstances — empty result -> re-dispatch with identical preamble -> two consecutive failures -> escalate to human. Never strip governance.
+
 The implementer MUST NOT receive the full session history or prior task context.
 
 **Bypass Subagent Tool Lock**: The coordinator MUST append the keyword `PROCEED` (case-insensitive) to the end of the subagent prompt to authorize modifying tools for the subagent task context.
