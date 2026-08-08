@@ -10,10 +10,37 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 
 TIMEOUT_SECONDS = 600
+
+def _run_bounded(cmd, cwd, timeout, label):
+    """Run cmd with a timeout that binds the whole process tree.
+
+    subprocess.run's timeout kills only the direct child. flutter and npm are
+    launchers whose real work happens in grandchildren (analysis server, dart
+    test host, xcodebuild), which survive that kill, keep the build directory
+    open, and then race the cleanup_workspace rmtree. start_new_session puts the
+    tree in its own process group so a single killpg reaches all of it.
+    """
+    proc = subprocess.Popen(cmd, cwd=cwd, start_new_session=True)
+    try:
+        rc = proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            proc.wait(timeout=15)
+        except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError):
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+            proc.wait()
+        raise subprocess.TimeoutExpired(cmd, timeout)
+    if rc != 0:
+        raise subprocess.CalledProcessError(rc, cmd)
 
 def check_no_domain_config(destination):
     config_paths = [
@@ -308,16 +335,16 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                     print(f"WARNING: Upstream assets directory not found at {src_assets}")
 
                 print("Running 'flutter pub get' to resolve dependencies...")
-                subprocess.run(["flutter", "pub", "get"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
+                _run_bounded(["flutter", "pub", "get"], cwd=dest, timeout=TIMEOUT_SECONDS, label="flutter pub get")
                 
                 print("Running 'flutter analyze'...")
-                subprocess.run(["flutter", "analyze", "--no-fatal-warnings", "--no-fatal-infos"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
+                _run_bounded(["flutter", "analyze", "--no-fatal-warnings", "--no-fatal-infos"], cwd=dest, timeout=TIMEOUT_SECONDS, label="flutter analyze")
                 
                 print("Running 'flutter test'...")
-                subprocess.run(["flutter", "test"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS)
+                _run_bounded(["flutter", "test"], cwd=dest, timeout=TIMEOUT_SECONDS, label="flutter test")
                 
                 print("Running 'flutter build macos --release'...")
-                subprocess.run(["flutter", "build", "macos", "--release"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 3)
+                _run_bounded(["flutter", "build", "macos", "--release"], cwd=dest, timeout=TIMEOUT_SECONDS * 3, label="flutter build macos --release")
                 
                 print("Zipping the macOS application bundle...")
                 # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
@@ -330,7 +357,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 app_bundle = "Platform Console.app"
                 
                 if os.path.exists(os.path.join(release_dir, app_bundle)):
-                    subprocess.run(["zip", "-r", zip_path, app_bundle], cwd=release_dir, check=True, timeout=TIMEOUT_SECONDS)
+                    _run_bounded(["zip", "-r", zip_path, app_bundle], cwd=release_dir, timeout=TIMEOUT_SECONDS, label="zip macos bundle")
                     print(f"Success: App bundled to {zip_path}")
                 else:
                     print(f"ERROR: App bundle not found at {os.path.join(release_dir, app_bundle)}", file=sys.stderr)
@@ -387,10 +414,10 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
         else:
             try:
                 print("Running 'npm install' to resolve dependencies...")
-                subprocess.run(["npm", "install"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 2)
+                _run_bounded(["npm", "install"], cwd=dest, timeout=TIMEOUT_SECONDS * 2, label="npm install")
                 
                 print("Running 'npm run build'...")
-                subprocess.run(["npm", "run", "build"], cwd=dest, check=True, timeout=TIMEOUT_SECONDS * 2)
+                _run_bounded(["npm", "run", "build"], cwd=dest, timeout=TIMEOUT_SECONDS * 2, label="npm run build")
             except subprocess.TimeoutExpired as e:
                 print(f"ERROR: React verification command timed out after {e.timeout}s: {e.cmd}", file=sys.stderr)
                 sys.exit(1)
