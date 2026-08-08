@@ -99,10 +99,20 @@ def cleanup_workspace(destination):
     for root, _, files in os.walk(destination):
         for f in files:
             if f.endswith(".db-shm") or f.endswith(".db-wal") or f.endswith(".db-journal"):
-                try:
-                    os.remove(os.path.join(root, f))
-                except Exception:
-                    pass
+                sidecar_path = os.path.join(root, f)
+                if f.endswith(".db-shm") or f.endswith(".db-wal"):
+                    owner_name = f[:-4]
+                else:
+                    owner_name = f[:-8]
+                owner_db = os.path.join(root, owner_name)
+                if os.path.exists(owner_db):
+                    print(f"NOTE: Preserving active SQLite sidecar '{sidecar_path}' (owning database '{owner_db}' exists).")
+                else:
+                    try:
+                        os.remove(sidecar_path)
+                    except Exception:
+                        pass
+
 
 # Mandated domain classes/interfaces to check in types.ts or types.dart
 MANDATED_CLASSES = []

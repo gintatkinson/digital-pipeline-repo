@@ -187,3 +187,41 @@ def test_run_verification_removes_preexisting_zip_archive_and_logs_size(tmp_path
     assert "Created archive size:" in captured.out or "bytes" in captured.out
     assert "26 bytes" in captured.out or f"{len(b'fresh_zip_content_9876543210')} bytes" in captured.out
 
+
+def test_cleanup_workspace_sqlite_sidecars(tmp_path):
+    """
+    Assert cleanup_workspace preserves SQLite sidecar files (.db-wal, .db-shm, .db-journal)
+    when the owner .db file exists, and unlinks them when the owner .db file is absent.
+    """
+    # Create active database and its sidecars
+    active_db = tmp_path / "active.db"
+    active_db.write_text("db_content")
+    active_wal = tmp_path / "active.db-wal"
+    active_wal.write_text("wal_content")
+    active_shm = tmp_path / "active.db-shm"
+    active_shm.write_text("shm_content")
+    active_journal = tmp_path / "active.db-journal"
+    active_journal.write_text("journal_content")
+
+    # Create orphaned sidecars (no owner .db file)
+    orphaned_wal = tmp_path / "orphaned.db-wal"
+    orphaned_wal.write_text("orphaned_wal")
+    orphaned_shm = tmp_path / "orphaned.db-shm"
+    orphaned_shm.write_text("orphaned_shm")
+    orphaned_journal = tmp_path / "orphaned.db-journal"
+    orphaned_journal.write_text("orphaned_journal")
+
+    verify_downstream_baseline.cleanup_workspace(str(tmp_path))
+
+    # Active .db and its sidecars MUST be preserved
+    assert active_db.exists()
+    assert active_wal.exists()
+    assert active_shm.exists()
+    assert active_journal.exists()
+
+    # Orphaned sidecars MUST be unlinked
+    assert not orphaned_wal.exists()
+    assert not orphaned_shm.exists()
+    assert not orphaned_journal.exists()
+
+
