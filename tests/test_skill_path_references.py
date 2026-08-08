@@ -50,6 +50,9 @@ ALLOWED_AGENTS_PREFIX = {
 }
 
 
+REQUIRED_SCAN_ROOTS = {"skills", "rules", ".agents", ".pipeline"}
+
+
 def _governance_docs():
     found = []
     for base in SCAN_ROOTS:
@@ -64,6 +67,33 @@ def _governance_docs():
     return found
 
 
+def _assert_corpus_covers_all_roots():
+    """Every declared scan root must contribute at least one document, and key required files must exist."""
+    missing_declared = REQUIRED_SCAN_ROOTS - set(SCAN_ROOTS)
+    assert not missing_declared, (
+        f"SCAN_ROOTS is missing mandatory roots: {sorted(missing_declared)}. "
+        "This is the #305/#362 blind spot; do not fix it by lowering the guard."
+    )
+    docs = _governance_docs()
+    rels = {os.path.relpath(p, REPO_ROOT) for p in docs}
+    missing_docs = [
+        base
+        for base in SCAN_ROOTS
+        if not any(r == base or r.startswith(base + os.sep) for r in rels)
+    ]
+    assert not missing_docs, (
+        f"scan roots contributed no documents: {missing_docs}. This is the #305/#362 blind "
+        "spot; do not fix it by lowering the guard."
+    )
+    for required in (".agents/AGENTS.md", ".pipeline/constitution.md"):
+        assert required in rels, (
+            f"{required} is missing from the scanned corpus — a SCAN_ROOTS regression. "
+            "This is the #305/#362 blind spot; do not fix it by lowering the guard."
+        )
+    return docs
+
+
+
 def _read(path):
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
         return fh.read()
@@ -74,26 +104,19 @@ def test_governance_docs_are_discoverable():
 
     The count alone is a weak guard — it cleared comfortably on ``skills/`` and
     ``rules/`` alone while the hidden roots were missing entirely (#305). The
-    membership assertions are the real check: they name one document from each hidden
-    root, so dropping a scan root fails here loudly instead of silently shrinking
-    what the suite examines.
+    root coverage and membership assertions are the real check: they verify every
+    root in SCAN_ROOTS contributes documents and check required documents, so dropping
+    a scan root fails loudly.
     """
-    docs = _governance_docs()
-    rels = {os.path.relpath(p, REPO_ROOT) for p in docs}
-
+    docs = _assert_corpus_covers_all_roots()
     assert len(docs) >= 28, (
         f"expected the skill, rule and hidden governance documents, found {len(docs)}"
     )
-    for required in (".agents/AGENTS.md", ".pipeline/constitution.md"):
-        assert required in rels, (
-            f"{required} is missing from the scanned corpus — a SCAN_ROOTS regression. "
-            "This is the #305 blind spot; do not fix it by lowering the guard."
-        )
 
 
 def test_no_document_uses_the_agents_skills_prefix_issue285():
     offenders = []
-    for path in _governance_docs():
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         if rel in ALLOWED_AGENTS_PREFIX:
             continue
@@ -115,7 +138,7 @@ def test_referenced_skill_paths_resolve_on_disk_issue285():
     pattern = re.compile(r"(?<![\w-])((?:\./)?(?:\.agents/)?skills/[A-Za-z0-9_./-]+)")
     offenders = []
     checked = 0
-    for path in _governance_docs():
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             for match in pattern.finditer(line):
@@ -147,7 +170,7 @@ _CITE_STEP_THEN_NAME = re.compile(r"Step (\d+(?:\.\d+)?) of `?([a-z0-9-]+)`?")
 def _cited_steps():
     """(citing_doc, skill_name, step) for every resolvable cross-document citation."""
     found = []
-    for path in _governance_docs():
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         # Citations wrap across lines in pipeline-tooling.md, so scan the whole text
         # with newlines flattened rather than line by line.
@@ -225,7 +248,7 @@ def test_no_document_names_a_runtime_dispatch_tool_issue312():
     runtime is meant to be reflected.
     """
     offenders = []
-    for path in _governance_docs():
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             if rel == ".agents/AGENTS.md" and line.lstrip().startswith("|"):
@@ -240,7 +263,6 @@ def test_no_document_names_a_runtime_dispatch_tool_issue312():
         "invoke_subagent",
         "manage_subagents",
     ], "the dispatch-tool pattern no longer matches the names issue #312 removed"
-    assert len(_governance_docs()) >= 28, "governance corpus not scanned"
 
     assert not offenders, (
         "governance documents name concrete dispatch tools: "
@@ -248,3 +270,20 @@ def test_no_document_names_a_runtime_dispatch_tool_issue312():
         "dispatch table in .agents/AGENTS.md, so a change of runtime cannot make the "
         "sentence unexecutable."
     )
+
+
+def test_root_coverage_validator_fails_when_roots_dropped_issue362(monkeypatch):
+    """Confirm that _assert_corpus_covers_all_roots raises AssertionError if SCAN_ROOTS drops hidden roots."""
+    import pytest
+    import sys
+
+    mod = sys.modules[__name__]
+    with monkeypatch.context() as m:
+        m.setattr(mod, "SCAN_ROOTS", ("skills", "rules"))
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_corpus_covers_all_roots()
+        assert "SCAN_ROOTS is missing mandatory roots" in str(exc_info.value)
+
+
+
+
