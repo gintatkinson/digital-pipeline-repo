@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-07"
+last_updated: "2026-08-08"
 ---
 
 # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
@@ -30,8 +30,8 @@ last_updated: "2026-08-07"
 - Circular dependencies must be flagged and escalated — do not silently drop them.
 
 ### Model Metamodel & Profile Mapping Standard
-- Namespace & Boundary Constructs: Top-level schema modules, packages, namespaces, or tag groups map to a logical Component or Package.
-- Structural Entity & Type Definitions: Message schemas, container types, lists, structural groupings, and objects map to a logical Class.
+- Module Declarations & Container Nodes: YANG modules, OpenAPI schemas, or Protobuf packages map to a logical Component.
+- Complex Data Structures & Interfaces: RPC input/output payloads, YANG containers/lists, or OpenAPI objects map to a logical Class defined within the parent Component.
 - Data Properties & Leaf Nodes: Individual fields, properties, elements, attributes, or variables map to a logical Property (or owned attribute of a class) with appropriate visibility, type, and multiplicity.
 - Interfaces & Operations: Services, RPC methods, actions, or operational paths map to a logical Operation defined on the target classifier.
 - Rules & Validation Logic: Any syntax constraints, range checks, pattern validations, conditional dependencies, or length constraints map to a logical Constraint.
@@ -44,10 +44,10 @@ last_updated: "2026-08-07"
 - Auto-verification Failure: Any diagram or spec that references undefined operations, classes, or signals will violate the quality gates and halt the pipeline.
 
 ### Traceability
-- Every Epic MUST reference the specification section(s) it covers.
-- Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths.
-- Every User Story MUST link to the Features it validates.
-- Every Use Case MUST link to the User Stories and Features it realizes.
+- Every Epic MUST reference the specification section(s) it covers. Enforced by parity_auditor/validators/uml.py via required sections configuration.
+- Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths. Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.
+- Every User Story MUST link to the Features it validates. Enforced by parity_auditor/validators/uml.py via Required Features Matrix validation.
+- Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.
 
 ### Standard & Platform Parameter Isolation
 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across 3 canonical aerospace architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Flight Control (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.

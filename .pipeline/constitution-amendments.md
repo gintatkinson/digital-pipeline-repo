@@ -258,5 +258,42 @@ Transform legacy BDD/LUI wording to lock in the Evolved 3-Layer Semantic Chain (
 
 Non-destructive: additive refinement of Tier 1 LUI and BDD scenario standards, governance rules unchanged.
 
+---
+
+## AMEND-0006 — Explicitly name enforcing validator paths for traceability mandates
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #378
+- **Approved by:** "PROCEED" — approved implementation plan to explicitly name enforcing validator paths for all four traceability rules in constitution.md.
+- **Destructive:** no
+- **Line count:** 164
+- **Resulting SHA-256:** `8a83667fd5594b03b5a3b9ad5f1357b389f89681b5e0c6e46306e7159d348b57`
+
+### Change
+
+Section *Traceability*, lines 47-50.
+
+Before:
+
+> - Every Epic MUST reference the specification section(s) it covers.
+> - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths.
+> - Every User Story MUST link to the Features it validates.
+> - Every Use Case MUST link to the User Stories and Features it realizes.
+
+After:
+
+> - Every Epic MUST reference the specification section(s) it covers. Enforced by parity_auditor/validators/uml.py via required sections configuration.
+> - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths. Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.
+> - Every User Story MUST link to the Features it validates. Enforced by parity_auditor/validators/uml.py via Required Features Matrix validation.
+> - Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.
+
+### Rationale
+
+Update each of the four traceability mandates in the Tier 1 constitution to explicitly name its enforcing validator paths (`parity_auditor/validators/uml.py` and `source_reference_validator.py`), closing document-enforcement traceability gaps as required by Issue #378.
+
+Non-destructive: additive clarification of enforcing validator paths, governance rules unchanged.
+
+
 
 
