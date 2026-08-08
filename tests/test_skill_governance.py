@@ -204,3 +204,43 @@ def test_skill_numbered_lists_have_no_duplicate_ordinals():
         "numbered lists contain repeated ordinals, so an inserted step did not "
         f"renumber its successors: {offenders}"
     )
+
+
+# --------------------------------------------------------------------------- #
+# #388 - Constructor integrity invariant and cross-cutting field preservation
+# --------------------------------------------------------------------------- #
+
+FEATURE_DRIVEN_IMPL = os.path.join(REPO_ROOT, "skills", "feature-driven-implementation", "SKILL.md")
+
+
+def test_feature_driven_implementation_has_cross_cutting_field_preservation_invariant_issue388():
+    content = _read(FEATURE_DRIVEN_IMPL)
+    assert "Cross-Cutting Field Preservation" in content, (
+        "feature-driven-implementation/SKILL.md Step 3.7 Invariants must contain "
+        "'Cross-Cutting Field Preservation' mandate"
+    )
+    assert re.search(r"Cross-Cutting Field Preservation.*constructors.*copyWith.*valueWriters", content, re.S | re.I), (
+        "feature-driven-implementation/SKILL.md Step 3.7 Invariants must mandate that "
+        "all constructors, copyWith, and valueWriters preserve new fields when extending domain models"
+    )
+
+
+def test_feature_driven_implementation_has_model_integrity_check_spec_review_issue388():
+    content = _read(FEATURE_DRIVEN_IMPL)
+    assert "Model Integrity Check" in content, (
+        "feature-driven-implementation/SKILL.md Step 3.3 Stage 1 Spec Compliance Review must contain "
+        "'Model Integrity Check'"
+    )
+    assert re.search(r"Model Integrity Check.*constructor.*copyWith.*valueWriter", content, re.S | re.I), (
+        "feature-driven-implementation/SKILL.md Step 3.3 Stage 1 Spec Compliance Review must verify that "
+        "every constructor, copyWith, and valueWriter in the diff includes or passes through new fields"
+    )
+
+
+def test_feature_driven_implementation_has_constructor_integrity_regression_assertions_issue388():
+    content = _read(FEATURE_DRIVEN_IMPL)
+    assert re.search(r"Assertion-Based Automation.*regression assertions.*constructor.*copyWith.*valueWriter", content, re.S | re.I), (
+        "feature-driven-implementation/SKILL.md Step 4.1 Assertion-Based Automation must mandate "
+        "regression assertions on existing tests verifying field preservation through every constructor/copyWith/valueWriter path"
+    )
+

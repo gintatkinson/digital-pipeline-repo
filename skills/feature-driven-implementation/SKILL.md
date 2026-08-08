@@ -171,6 +171,7 @@ After each micro-task's implementation, two reviews MUST occur **in this order**
 - **Persistence Verification:** Assert that all persistence transactions are validated directly against a running local database emulator during local integration runs (no stubs).
 - **Coupling & Leakage Audit:** Verify that no direct database SDK dependencies (e.g. `@firebase/firestore` or `cloud_firestore`) leak into UI / presentation components. All components must interact exclusively with abstract repositories.
 - **Layout Engine Compliance:** Verify that split workspaces align with `logical-layout.json`, resizable splitter containers isolate reflows using CSS Container Queries to prevent unmounting state loss, and icons conform to the 16px SVG outline limits (stroke weight 1.0px–1.2px, cell padding 4px).
+- **Model Integrity Check:** Verify that every constructor, `copyWith`, and `valueWriter` in the diff includes or passes through new fields.
 - **If issues found:** Implementer fixes → re-review. Do NOT proceed to Stage 2 until Stage 1 passes.
 
 **Stage 2: Code Quality Review**
@@ -203,6 +204,7 @@ Before proceeding to Step 4, perform explicit grep or file-reading checks of all
 - Never dispatch multiple implementer subagents in parallel on the same feature (conflicts).
 - Never start code quality review before spec compliance is approved (wrong order).
 - Never skip the re-review loop (reviewer found issues = implementer fixes = review again).
+- **Cross-Cutting Field Preservation:** When adding fields to domain models, all constructors, `copyWith` methods, and `valueWriters` MUST preserve new fields across all paths. Micro-tasks MUST explicitly include regression tasks for existing constructors, `copyWith` methods, and `valueWriters`.
 
 ### Step 3.8: Systematic Debugging (When Tests Fail Unexpectedly)
 
@@ -214,7 +216,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 4. **Verify:** Run the full test suite (not just the fixed test) to confirm no regressions. Only proceed when all tests pass.
 
 ### Step 4: Verification & Testing
-1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties.
+1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties. For any modified domain models, mandate regression assertions on existing tests for operations on modified domain models to verify field preservation through every constructor, `copyWith`, and `valueWriter` path.
 2. **Full Compilation Build:** Run local tests and run a full compilation build of the entire application (e.g. `flutter build` or `npm run build` as specified by the platform profile) to ensure it compiles without errors and is completely ready to run.
 3. **Parity Auditor Gate:** Mandate running `python3 -m parity_auditor` as a blocking gate before completing any implementation task.
 4. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.
