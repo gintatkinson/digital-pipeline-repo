@@ -116,13 +116,21 @@ def test_governance_docs_are_discoverable():
 
 def test_no_document_uses_the_agents_skills_prefix_issue285():
     offenders = []
+    scanned = 0
     for path in _assert_corpus_covers_all_roots():
+        scanned += 1
         rel = os.path.relpath(path, REPO_ROOT)
         if rel in ALLOWED_AGENTS_PREFIX:
             continue
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             if ".agents/skills" in line:
                 offenders.append(f"{rel}:{lineno}")
+    assert ".agents/skills" in "see .agents/skills/create_issue.sh", (
+        "the prefix-ban detector no longer matches '.agents/skills'"
+    )
+    assert scanned >= len(SCAN_ROOTS), (
+        f"only {scanned} documents scanned; expected at least {len(SCAN_ROOTS)} scan roots"
+    )
     assert not offenders, (
         "documents reference paths through the '.agents/skills/' symlink. Use the "
         "repository-relative 'skills/' prefix so resolution does not depend on the "
