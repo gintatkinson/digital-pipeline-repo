@@ -236,6 +236,50 @@ def test_lumi_framework_blueprint_document_integrity():
     assert "AMEND-0014" in content, "LUMI blueprint must include Constitution Amendment Specification AMEND-0014"
 
 
+SYSMLV2_BLUEPRINT_DOC = os.path.join(REPO_ROOT, "docs", "designs", "sysmlv2-universal-ingestion-blueprint.md")
+
+
+def test_sysmlv2_universal_ingestion_blueprint_document_integrity():
+    """Verify that docs/designs/sysmlv2-universal-ingestion-blueprint.md exists and contains valid SysML v2 IR framework definitions."""
+    assert os.path.isfile(SYSMLV2_BLUEPRINT_DOC), f"SysML v2 universal ingestion blueprint document does not exist: {SYSMLV2_BLUEPRINT_DOC}"
+
+    with open(SYSMLV2_BLUEPRINT_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Frontmatter verification
+    assert content.startswith("---"), "SysML v2 blueprint must begin with YAML frontmatter delimiter '---'"
+    parts = content.split("---", 2)
+    assert len(parts) >= 3, "SysML v2 blueprint must contain closed YAML frontmatter"
+
+    metadata = yaml.safe_load(parts[1])
+    assert isinstance(metadata, dict), "Frontmatter must parse as a valid YAML dictionary"
+    assert metadata.get("type") == "design", "Frontmatter 'type' must be 'design'"
+    assert "title" in metadata, "Frontmatter must contain 'title'"
+
+    # 2. Executive Vision standards coverage
+    for std in ["IETF YANG", "3GPP TS", "IEEE", "ISO", "OpenAPI", "Protobuf", "AUTOSAR", "ARINC 661"]:
+        assert std in content, f"SysML v2 blueprint must reference normative standard '{std}'"
+
+    # 3. Domain-to-SysML v2 Mapping Metamodel Table
+    for mapping in ["package", "attribute def", "part def", "action def", "port def"]:
+        assert mapping in content, f"SysML v2 blueprint mapping metamodel must contain '{mapping}'"
+
+    # 4. Mermaid diagrams
+    assert "classDiagram" in content or "graph TD" in content or "flowchart TD" in content, "SysML v2 blueprint must contain Mermaid architecture diagram"
+    assert "sequenceDiagram" in content, "SysML v2 blueprint must contain a Mermaid sequence diagram"
+
+    # 5. Formal SysML v2 Synthesis EBNF Grammar
+    assert "EBNF" in content or "ebnf" in content.lower(), "SysML v2 blueprint must contain EBNF grammar specification"
+    assert "package" in content and "part def" in content, "SysML v2 blueprint grammar must define packages and part defs"
+
+    # 6. Skill Architecture Spec for skills/sysmlv2-schema-ingestion/SKILL.md
+    assert "skills/sysmlv2-schema-ingestion/SKILL.md" in content, "SysML v2 blueprint must specify skills/sysmlv2-schema-ingestion/SKILL.md"
+
+    # 7. Pipeline Integration & Downstream Forwarding Flow
+    assert "is_sysml=True" in content, "SysML v2 blueprint must specify is_sysml=True downstream forwarding flag"
+
+
+
 
 
 
