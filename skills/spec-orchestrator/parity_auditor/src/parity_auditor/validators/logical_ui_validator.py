@@ -170,6 +170,14 @@ class LogicalUiValidator(IValidator):
                 if re.search(r"\bN/A\b|\bn/a\b", section_content):
                     has_raw_na = True
                 
+                # Check for literal placeholder strings (#X, Task Y)
+                if re.search(r"#X|Task\s+Y", section_content, re.IGNORECASE):
+                    errors.append(Finding(
+                        "logical-ui-prohibit-placeholder-string",
+                        f"Logical UI Compliance: Feature '{rel_path}' contains literal placeholder string in interface bindings. Literal placeholder strings ('#X', 'Task Y') are strictly prohibited.",
+                        location=rel_path,
+                    ))
+
                 specified_components = set()
                 container_val = ""
                 
@@ -214,7 +222,7 @@ class LogicalUiValidator(IValidator):
                             
                         if ds_val:
                             ds_clean = ds_val.strip().strip("*`\"'[]() ")
-                            if ds_clean and not ds_clean.lower().startswith("deferred") and ds_clean.upper() != "N/A":
+                            if ds_clean and not self._is_unbound_or_deferred(ds_clean):
                                 self._validate_ds_path(ds_clean, rel_path, errors)
                     
                     if declared_interface_types:
@@ -278,7 +286,7 @@ class LogicalUiValidator(IValidator):
                                 ds_val = parts[1].strip().strip("*`\"'[]() ")
                                 if ds_val.strip().upper() == "N/A":
                                     has_raw_na = True
-                                if ds_val and not ds_val.lower().startswith("deferred") and ds_val.upper() != "N/A":
+                                if ds_val and not self._is_unbound_or_deferred(ds_val):
                                     self._validate_ds_path(ds_val, rel_path, errors)
 
                     if declared_interface_types:
@@ -302,7 +310,7 @@ class LogicalUiValidator(IValidator):
 
                 # Ensure specified target component is a valid layout component (if not N/A or deferred)
                 for c in sorted(specified_components):
-                    if c.upper() != "N/A" and not c.lower().startswith("deferred") and c not in {"MCPToolHandler", "RESTEndpointHandler", "gRPCMethodHandler", "GraphQLQueryHandler", "RegisterBuffer", "DiscreteSignal", "SerialDataStream", "I2CBusDevice"}:
+                    if not self._is_unbound_or_deferred(c) and c not in {"MCPToolHandler", "RESTEndpointHandler", "gRPCMethodHandler", "GraphQLQueryHandler", "RegisterBuffer", "DiscreteSignal", "SerialDataStream", "I2CBusDevice"}:
                         if c not in component_types and not (c == "TopologyMap" and ("topology_pane" in container_ids or "TopologyMap" in component_types)):
                             errors.append(Finding(
                                 "logical-ui-component-type-must-exist-in-the-layout",
@@ -311,7 +319,7 @@ class LogicalUiValidator(IValidator):
                             ))
                     
                 # Ensure specified target container ID is valid (if not N/A or deferred)
-                if container_val and container_val.upper() != "N/A" and not container_val.lower().startswith("deferred"):
+                if container_val and not self._is_unbound_or_deferred(container_val):
                     if container_val not in container_ids:
                         errors.append(Finding(
                             "logical-ui-container-id-must-exist-in-the-layout",
@@ -322,7 +330,7 @@ class LogicalUiValidator(IValidator):
                         expected_type = container_to_type.get(container_val)
                         if expected_type and specified_components:
                             for c in sorted(specified_components):
-                                if c.upper() != "N/A" and not c.lower().startswith("deferred") and c != expected_type:
+                                if not self._is_unbound_or_deferred(c) and c != expected_type:
                                     if c == "TopologyMap" and container_val == "topology_pane":
                                         continue
                                     errors.append(Finding(
@@ -336,7 +344,8 @@ class LogicalUiValidator(IValidator):
                 GEODETIC_REGEX = re.compile(r"\b(?:location|velocity|geo-location|geodetic|latitude|longitude|altitude|elevation|datum|position|spatial|reference-frame|geodetic-system|coordinates|velocity\s+vectors)\b", re.IGNORECASE)
 
                 if target_match and GEODETIC_REGEX.search(content):
-                    if any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components) or not specified_components:
+                    has_unbound = any(self._is_unbound_or_deferred(c) for c in specified_components)
+                    if not has_unbound and (any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components) or not specified_components):
                         errors.append(Finding(
                             "logical-ui-spatial-feature-requires-a-spatial-component",
                             f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView').",
@@ -345,20 +354,30 @@ class LogicalUiValidator(IValidator):
 
         return errors
 
+    def _is_unbound_or_deferred(self, val: str) -> bool:
+        if not val:
+            return True
+        v = val.strip().lower()
+        return (
+            v.startswith("unbound")
+            or v.startswith("deferred")
+        )
+
     def _validate_ds_path(self, ds_val: str, rel_path: str, errors: list):
         paths = [p.strip().strip(" *`\"'") for p in ds_val.split(',')]
         nil_elements = {"locations", "racks", "rack", "rack-location", "contained-chassis"}
         FORBIDDEN_CHOICE_NODES = {"location-choice", "cartesian", "ellipsoid", "choice", "case"}
         for path in paths:
-            if not path or path.upper() == "N/A" or path.lower().startswith("deferred"):
+            if not path or self._is_unbound_or_deferred(path):
                 continue
-            if ' ' in path or not (path.startswith('/') or path.startswith('schema:') or path.startswith('provider:') or path.upper() == 'N/A'):
+            if ' ' in path or not (path.startswith('/') or path.startswith('schema:') or path.startswith('provider:')):
                 errors.append(Finding(
                     "logical-ui-data-source-binding-must-be-a-schema-path",
                     f"Logical UI Compliance: Feature '{rel_path}' Data Source Binding '{path}' contains plain-text English instead of valid schema path.",
                     location=rel_path,
                 ))
                 continue
+
             segments = path.split('/')
             in_augmented_subtree = False
             for seg in segments:

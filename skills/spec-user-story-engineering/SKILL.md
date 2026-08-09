@@ -143,11 +143,11 @@ stateDiagram-v2
 - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
 ## Logical UI & Interface Bindings
-*(Required for UI/LUMI features. Raw 'N/A' fallback strings are strictly prohibited.)*
+*(Required for UI/LUMI features. Raw 'N/A' fallback strings and literal placeholder strings ('#X', 'Task Y') are strictly prohibited.)*
 <!-- Single-Channel (Visual GUI) Format -->
-- **Target LUI Component:** [Specify canonical LUI component e.g. StringInputField, TableView, PropertyGrid, OR 'Deferred to Feature #X Task Y']
-- **Target Layout Container ID:** [Specify container ID from logical-layout.json, OR 'Deferred to Feature #X Task Y']
-- **Data Source Bindings:** [Specify data source schema mappings, OR 'Deferred to Feature #X Task Y']
+- **Target LUI Component:** [Specify canonical LUI component e.g. StringInputField, TableView, PropertyGrid, OR 'Unbound (Deferred to Implementation Profile)']
+- **Target Layout Container ID:** [Specify container ID from logical-layout.json, OR 'Unbound (Deferred to Implementation Profile)']
+- **Data Source Bindings:** [Specify exact, authoritative schema path locator e.g. /nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame, OR 'Unbound (Deferred to Implementation Profile)']
 
 <!-- OR Multi-Channel (Multi-Interface) Format -->
 | Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |

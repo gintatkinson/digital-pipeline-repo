@@ -250,6 +250,9 @@ def test_feature_driven_implementation_has_constructor_integrity_regression_asse
 # --------------------------------------------------------------------------- #
 
 SCHEMA_SPEC_ENG = os.path.join(REPO_ROOT, "skills", "schema-specification-engineering", "SKILL.md")
+SPEC_USER_STORY_ENG = os.path.join(REPO_ROOT, "skills", "spec-user-story-engineering", "SKILL.md")
+FLUTTER_PROFILE = os.path.join(REPO_ROOT, ".pipeline", "profiles", "flutter.md")
+REACT_PROFILE = os.path.join(REPO_ROOT, ".pipeline", "profiles", "react.md")
 
 
 def test_schema_spec_eng_prohibits_raw_na_lui_bindings_issue390():
@@ -262,15 +265,31 @@ def test_schema_spec_eng_prohibits_raw_na_lui_bindings_issue390():
     )
 
 
-def test_schema_spec_eng_mandates_canonical_or_deferred_lui_bindings_issue390():
-    content = _read(SCHEMA_SPEC_ENG)
-    assert "Deferred to Feature #" in content, (
-        "schema-specification-engineering/SKILL.md must mandate canonical LUI bindings or explicit deferral "
-        "to a named feature micro-task ID (e.g., 'Deferred to Feature #X Task Y')"
-    )
-    assert re.search(r"interface_type:\s*[\"\']?(?:api|cli)[\"\']?", content, re.I), (
-        "schema-specification-engineering/SKILL.md must explain non-UI feature handling via interface_type "
-        "('api' or 'cli') in frontmatter"
-    )
+def test_spec_skills_mandate_unbound_deferred_lui_bindings_and_prohibit_placeholders():
+    for path, name in ((SCHEMA_SPEC_ENG, "schema-specification-engineering"), (SPEC_USER_STORY_ENG, "spec-user-story-engineering")):
+        content = _read(path)
+        assert "Unbound (Deferred to Implementation Profile)" in content, (
+            f"{name}/SKILL.md must mandate 'Unbound (Deferred to Implementation Profile)'"
+        )
+        assert "Deferred to Feature #X Task Y" not in content, (
+            f"{name}/SKILL.md must not contain template placeholder string 'Deferred to Feature #X Task Y'"
+        )
+        assert "literal placeholder strings" in content or "prohibited" in content, (
+            f"{name}/SKILL.md must instruct spec workers that literal placeholder strings are prohibited"
+        )
+
+
+
+def test_implementation_profiles_contain_lui_resolution_guidelines():
+    for path, name in ((FLUTTER_PROFILE, "flutter.md"), (REACT_PROFILE, "react.md")):
+        assert os.path.isfile(path), f"Profile file not found: {path}"
+        content = _read(path)
+        assert "## LUI Resolution Guidelines" in content, (
+            f"{name} must contain '## LUI Resolution Guidelines' section"
+        )
+        assert "PropertyGrid" in content and "TableView" in content and "NumericSpinBox" in content, (
+            f"{name} LUI Resolution Guidelines must instruct how to map to PropertyGrid, TableView, and NumericSpinBox"
+        )
+
 
 

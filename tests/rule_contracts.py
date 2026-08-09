@@ -1208,6 +1208,14 @@ LOGICAL_UI_CONTRACTS: List[RuleContract] = [
         note="Raw N/A fallback strings are strictly prohibited across interface bindings.",
     ),
     RuleContract(
+        id="logical-ui-prohibit-placeholder-string",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Raw N/A Fallback Strings Strictly Prohibited",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-prohibit-placeholder-string",
+        note="Literal placeholder strings (#X, Task Y) are strictly prohibited across interface bindings.",
+    ),
+    RuleContract(
         id="logical-ui-missing-interface-channel-row",
         documented_in="skills/schema-specification-engineering/SKILL.md",
         doc_anchor="Interface Channel Row Required",

@@ -201,3 +201,121 @@ interface_type: "gui"
         shutil.rmtree(tmpdir)
 
 
+def test_lumi_unbound_deferred_to_implementation_profile_is_valid():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "StringInputField", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Unbound LUMI Feature"
+interface_type: "gui"
+---
+## Logical UI & Interface Bindings
+- **Target LUI Component:** Unbound (Deferred to Implementation Profile)
+- **Target Layout Container ID:** Unbound (Deferred to Implementation Profile)
+- **Data Source Binding:** Unbound (Deferred to Implementation Profile)
+"""
+        with open(os.path.join(features_dir, "feat-lumi-unbound.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert not errors, f"Expected no validation errors for Unbound (Deferred to Implementation Profile), got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_lumi_unbound_short_form_is_valid():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "StringInputField", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Unbound Short Form Feature"
+interface_type: "gui"
+---
+## Logical UI & Interface Bindings
+- **Target LUI Component:** Unbound
+- **Target Layout Container ID:** Unbound
+- **Data Source Binding:** Unbound
+"""
+        with open(os.path.join(features_dir, "feat-lumi-unbound-short.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert not errors, f"Expected no validation errors for Unbound, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_lumi_placeholder_strings_rejected():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "StringInputField", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Placeholder String Feature"
+interface_type: "gui"
+---
+## Logical UI & Interface Bindings
+- **Target LUI Component:** Deferred to Feature #X Task Y
+- **Target Layout Container ID:** elements_view
+- **Data Source Binding:** /schema:path
+"""
+        with open(os.path.join(features_dir, "feat-lumi-placeholder.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert any(err.rule_id == "logical-ui-prohibit-placeholder-string" for err in errors), f"Expected placeholder rejection error, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_lumi_authoritative_schema_path_data_source_binding_is_valid():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "PropertyGrid", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Authoritative Schema Path Feature"
+interface_type: "gui"
+---
+## Logical UI & Interface Bindings
+- **Target LUI Component:** PropertyGrid
+- **Target Layout Container ID:** elements_view
+- **Data Source Binding:** /nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame
+"""
+        with open(os.path.join(features_dir, "feat-lumi-authoritative.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert not errors, f"Expected no validation errors for authoritative schema path, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
+
