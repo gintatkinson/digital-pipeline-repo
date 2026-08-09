@@ -25,7 +25,8 @@ def test_install_pipeline_sh_exists_and_executable():
     with open(script_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert "./.pipeline/upstream" in content
+    assert '!= "upstream"' in content
+    assert "rm -rf ./.pipeline/upstream" not in content
     assert "git clone" in content
     assert ".tmp-pipeline-install" in content
     assert "skills/" in content

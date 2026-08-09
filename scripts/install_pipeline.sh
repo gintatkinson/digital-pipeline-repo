@@ -27,12 +27,19 @@ for dir in "${FORK_DIRS[@]}"; do
   clean_dir="${dir%/}"
   if [ -d "$TMP_DIR/$clean_dir" ]; then
     mkdir -p "$clean_dir"
-    cp -R "$TMP_DIR/$clean_dir/." "$clean_dir/" 2>/dev/null || cp -R "$TMP_DIR/$clean_dir/"* "$clean_dir/"
+    if [ "$clean_dir" = ".pipeline" ]; then
+      for item in "$TMP_DIR/$clean_dir/"* "$TMP_DIR/$clean_dir/".*; do
+        [ -e "$item" ] || continue
+        base="$(basename "$item")"
+        if [ "$base" != "." ] && [ "$base" != ".." ] && [ "$base" != "upstream" ]; then
+          cp -R "$item" "$clean_dir/"
+        fi
+      done
+    else
+      cp -R "$TMP_DIR/$clean_dir/." "$clean_dir/" 2>/dev/null || cp -R "$TMP_DIR/$clean_dir/"* "$clean_dir/"
+    fi
   fi
 done
-
-# Automatically remove .pipeline/upstream if copied
-rm -rf ./.pipeline/upstream
 
 # Automatically generate clean, standardized AGENTS.md if not present
 if [ ! -f AGENTS.md ]; then
