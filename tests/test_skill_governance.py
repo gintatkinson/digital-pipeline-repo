@@ -244,3 +244,33 @@ def test_feature_driven_implementation_has_constructor_integrity_regression_asse
         "regression assertions on existing tests verifying field preservation through every constructor/copyWith/valueWriter path"
     )
 
+
+# --------------------------------------------------------------------------- #
+# #390 - Prohibit raw N/A strings in Logical UI & Layout Bindings
+# --------------------------------------------------------------------------- #
+
+SCHEMA_SPEC_ENG = os.path.join(REPO_ROOT, "skills", "schema-specification-engineering", "SKILL.md")
+
+
+def test_schema_spec_eng_prohibits_raw_na_lui_bindings_issue390():
+    content = _read(SCHEMA_SPEC_ENG)
+    assert ", or be `N/A`" not in content and ", or be N/A" not in content, (
+        "schema-specification-engineering/SKILL.md must not allow ', or be N/A' as a valid binding option"
+    )
+    assert "MUST be `N/A`" not in content and "MUST be N/A" not in content, (
+        "schema-specification-engineering/SKILL.md must not allow 'MUST be N/A' as a valid binding option"
+    )
+
+
+def test_schema_spec_eng_mandates_canonical_or_deferred_lui_bindings_issue390():
+    content = _read(SCHEMA_SPEC_ENG)
+    assert "Deferred to Feature #" in content, (
+        "schema-specification-engineering/SKILL.md must mandate canonical LUI bindings or explicit deferral "
+        "to a named feature micro-task ID (e.g., 'Deferred to Feature #X Task Y')"
+    )
+    assert re.search(r"interface_type:\s*[\"\']?(?:api|cli)[\"\']?", content, re.I), (
+        "schema-specification-engineering/SKILL.md must explain non-UI feature handling via interface_type "
+        "('api' or 'cli') in frontmatter"
+    )
+
+
