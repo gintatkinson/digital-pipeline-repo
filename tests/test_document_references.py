@@ -190,5 +190,52 @@ def test_parameterized_wrapper_kind_and_equivalence_matrix_issue374():
     )
 
 
+LUMI_BLUEPRINT_DOC = os.path.join(REPO_ROOT, "docs", "designs", "lumi-framework-blueprint.md")
+
+
+def test_lumi_framework_blueprint_document_integrity():
+    """Verify that docs/designs/lumi-framework-blueprint.md exists and contains valid LUMI framework definitions."""
+    assert os.path.isfile(LUMI_BLUEPRINT_DOC), f"LUMI framework blueprint document does not exist: {LUMI_BLUEPRINT_DOC}"
+
+    with open(LUMI_BLUEPRINT_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Frontmatter verification
+    assert content.startswith("---"), "LUMI blueprint must begin with YAML frontmatter delimiter '---'"
+    parts = content.split("---", 2)
+    assert len(parts) >= 3, "LUMI blueprint must contain closed YAML frontmatter"
+
+    metadata = yaml.safe_load(parts[1])
+    assert isinstance(metadata, dict), "Frontmatter must parse as a valid YAML dictionary"
+    assert metadata.get("type") == "design", "Frontmatter 'type' must be 'design'"
+    assert "title" in metadata, "Frontmatter must contain 'title'"
+
+    # 2. Executive Summary & Metamodel Vision categories
+    for category in ["Visual GUI", "M2M API", "Hardware Bus"]:
+        assert category in content, f"LUMI blueprint must define category '{category}'"
+
+    # 3. Mermaid diagrams
+    assert "classDiagram" in content, "LUMI blueprint must contain a Mermaid class diagram"
+    assert "sequenceDiagram" in content, "LUMI blueprint must contain a Mermaid sequence diagram"
+    assert "LUMIInterfaceBinding" in content, "LUMI blueprint must include LUMIInterfaceBinding class"
+
+    # 4. Schemas and Grammars
+    assert "interface_type" in content, "LUMI blueprint must specify interface_type scalar"
+    assert "interface_types" in content, "LUMI blueprint must specify interface_types array"
+    assert "## Logical UI & Interface Bindings" in content, "LUMI blueprint must include section ## Logical UI & Interface Bindings"
+    assert "EBNF" in content or "ebnf" in content.lower(), "LUMI blueprint must contain EBNF grammar specification"
+
+    # 5. Canonical Interface Component & Handler Dictionary
+    for component in ["StringInputField", "MCPToolHandler", "RESTEndpointHandler", "RegisterBuffer"]:
+        assert component in content, f"LUMI blueprint must define canonical component/handler '{component}'"
+
+    # 6. Parity Auditor Validator Algorithm
+    assert "logical_ui_validator.py" in content, "LUMI blueprint must reference logical_ui_validator.py"
+
+    # 7. Constitution Amendment Specification AMEND-0014
+    assert "AMEND-0014" in content, "LUMI blueprint must include Constitution Amendment Specification AMEND-0014"
+
+
+
 
 
