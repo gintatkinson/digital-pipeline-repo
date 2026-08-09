@@ -582,3 +582,36 @@ After:
 Update `.pipeline/constitution.md` under `### Granularity Bounds` to use normative RFC 2119 SHOULD/MUST language with explicit enforcing mechanisms (`schema-specification-engineering` decomposition heuristics and `parity_auditor/validators/cardinality_validator.py`), resolving audit finding #379.
 
 Non-destructive: additive Granularity Bounds subsection with normative language and explicit enforcers, line count increased from 233 to 235 lines, governance rules preserved.
+
+---
+
+## AMEND-0014 — Universal LUMI (Logical User & Machine Interface) Framework Integration
+
+- **Date:** 2026-08-09
+- **Logged:** 2026-08-09
+- **Motivating issue:** Universal LUMI Framework Integration
+- **Approved by:** "PROCEED" — approved user prompt directive to implement Multi-Interface Bindings (LUMI Framework) code, skill, constitution, and validator updates.
+- **Destructive:** no
+- **Line count:** 235
+- **Resulting SHA-256:** `6b4a547ca9afe379bda2e185e455c46e9a1868f367fc8f4b5f1520ce1d7cc7cf`
+
+### Change
+
+Section *Architecture: Three-Tier Platform Isolation*, line 22 and line 44.
+
+Before:
+
+> T1_LUI["Logical UI (LUI) & 3-Layer Semantic Chain"]
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications...
+
+After:
+
+> T1_LUI["Logical User & Machine Interface (LUMI) & 3-Layer Semantic Chain"]
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical User & Machine Interface (LUMI) specifications. LUMI is 100% platform-independent and framework-agnostic, covering three primary interface categories: Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`). LUMI supports the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across canonical architectural patterns (ARINC 661 Cockpit Display Systems, Real-Time Safety Statecharts & Flight Control, Decoupled Operator Consoles & EFBs, Automated M2M Agentic Tooling, and Hardware Bus Register Mapping). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `## Architecture: Three-Tier Platform Isolation` to define the Universal LUMI (Logical User & Machine Interface) Framework covering Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`) categories.
+
+Non-destructive: additive definition of LUMI framework across Visual GUI, M2M API, and Hardware Bus modalities, line count preserved at 236 lines, governance rules preserved.
+

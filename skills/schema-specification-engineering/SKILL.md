@@ -288,10 +288,17 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    Structural Schema: [Target Schema File](link-to-schema) (Clause: [Clause Number])
    Normative Specification: [Normative Specification](link-to-specification) (Clause: [Clause Number])
 
-   ## Logical UI & Layout Bindings
+   ## Logical UI & Interface Bindings
+   <!-- Single-Channel (Visual GUI) Format -->
    - **Target LUI Component:** [Specify canonical LUI component e.g. StringInputField, TableView, ConfigurationForm, PropertyGrid, DensityTable, DataCard, TimeSeriesChart, OR 'Deferred to Feature #X Task Y']
    - **Target Layout Container ID:** [Specify container ID from logical-layout.json, OR 'Deferred to Feature #X Task Y']
    - **Data Source Bindings:** [Specify data source schema mappings from logical-layout.json, OR 'Deferred to Feature #X Task Y']
+
+   <!-- Multi-Channel (Multi-Interface) Format -->
+   | Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |
+   | --- | --- | --- | --- | --- |
+   | gui | Visual GUI | StringInputField | elements_view | /schema:path |
+   | mcp | M2M API | MCPToolHandler | /mcp/tool | /schema:path |
 
    > [!WARNING]
    > **Mermaid Block Closing Constraints & Code Fence Integrity:**
@@ -313,45 +320,36 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ```
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 
-5. **Logical UI & Layout Bindings Block (MANDATORY):**
-   - Every feature specification markdown file MUST contain a `## Logical UI & Layout Bindings` section at the end of the file (unless exempt as a non-UI feature).
+5. **Logical UI & Interface Bindings Block (MANDATORY):**
+   - Every feature specification markdown file MUST contain a `## Logical UI & Interface Bindings` section at the end of the file (unless exempt as a non-UI feature).
+   - Features may format interface bindings as a single-channel 3-bullet locator list or as a multi-channel Multi-Interface Binding Table (`| Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |`).
    - You MUST map the feature's container and leaf nodes to:
-     - The target LUI component (e.g. `StringInputField`, `TableView`, `ConfigurationForm`, `PropertyGrid`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`), or an explicit deferral.
-     - The specific target layout container ID in `logical-layout.json`, or an explicit deferral.
+     - The target LUI component or M2M/Hardware handler (e.g. `StringInputField`, `TableView`, `MCPToolHandler`, `RegisterBuffer`), or an explicit deferral.
+     - The specific target layout container ID in `logical-layout.json` or API endpoint path, or an explicit deferral.
      - The data source bindings. **CRITICAL PATH DERIVATION RULE**: You are strictly forbidden from copy-pasting generic template or placeholder namespaces (such as `schema:generic-topology`). You MUST derive the data source path directly from the fully-qualified path of the target schema container augmented in the network inventory model (e.g. `/nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame` or `/nwi:network-inventory/nil:locations/nil:racks/nil:rack`), or state an explicit deferral.
-   - **Logical UI Binding Validation Rules**: the bindings block is checked mechanically
-     by `parity_auditor/validators/logical_ui_validator.py`. The checks below were
-     enforced before issue #304 and stated in no document, so a drafting subagent could
-     not comply with them; they are stated here because each one constrains how a Feature
-     file is written.
-     - **Layout Bindings Section Required**: every Feature MUST carry the
-       `## Logical UI & Layout Bindings` section. A Feature is exempt only if its
-       frontmatter declares an `interface_type` of `api`, `config`, `persistence`,
-       `gate`, `cli` or `backend` — a Feature with no UI interface at all has nothing to
-       bind. For non-UI features, specify `interface_type: "api"` or `interface_type: "cli"` (or another non-UI interface type) in YAML frontmatter and omit the section or state abstract CDS widget pattern bindings.
+   - **Logical UI & Interface Binding Validation Rules**: the bindings block is checked mechanically
+     by `parity_auditor/validators/logical_ui_validator.py`.
+     - **Interface Bindings Section Required**: every Feature MUST carry the
+       `## Logical UI & Interface Bindings` section. A Feature is exempt only if its
+       frontmatter declares non-UI interface types (`config`, `persistence`, `gate`, `cli`, `backend`).
      - **Feature Frontmatter Must Parse**: the YAML frontmatter MUST be well formed. It
-       carries `interface_type`, which is what decides whether the exemption above
-       applies, so a Feature whose frontmatter does not parse cannot be classified and is
-       reported rather than silently exempted.
-     - **Target Component Must Exist In The Layout or State Deferral**: raw `N/A` strings are strictly prohibited. The `Target LUI Component` MUST name a canonical component type actually instantiated in `logical-layout.json` (e.g. `StringInputField`, `TableView`, `ConfigurationForm`, `PropertyGrid`), or state an explicit deferral to a named feature micro-task ID (e.g. `Deferred to Feature #X Task Y`). Naming a component that the layout never instantiates specifies a binding to nothing.
-     - **Target Container Must Exist In The Layout or State Deferral**: raw `N/A` strings are strictly prohibited. The `Target Layout Container ID` MUST name a container `id` present in `logical-layout.json`, or state an explicit deferral to a named feature micro-task ID (e.g. `Deferred to Feature #X Task Y`).
+       carries `interface_type` (scalar or array e.g. `["gui", "mcp"]`) or `interface_types`.
+     - **Interface Channel Row Required**: every channel listed in the frontmatter array MUST have a corresponding row in the Multi-Interface Binding Table.
+     - **Raw N/A Fallback Strings Strictly Prohibited**: raw `N/A` fallback strings are strictly prohibited across all single-channel lists and multi-channel binding tables. Explicit deferral syntax (e.g. `Deferred to Feature #X Task Y`) MUST be used instead of raw `N/A`.
+     - **Target Component Must Exist In The Layout or State Deferral**: raw `N/A` strings are strictly prohibited. The `Target LUI Component` MUST name a canonical component type actually instantiated in `logical-layout.json` or canonical LUMI dictionary (e.g. `StringInputField`, `TableView`, `MCPToolHandler`, `RegisterBuffer`), or state an explicit deferral to a named feature micro-task ID (e.g. `Deferred to Feature #X Task Y`).
+     - **Target Container Must Exist In The Layout or State Deferral**: raw `N/A` strings are strictly prohibited. The `Target Layout Container ID` MUST name a container `id` present in `logical-layout.json` or target endpoint, or state an explicit deferral to a named feature micro-task ID (e.g. `Deferred to Feature #X Task Y`).
      - **Component Must Match Its Container Type**: where both are given, the component
-       type MUST equal the declared type of the target container. Binding a `TableView`
-       into a container the layout declares a `PropertyGrid` is a contradiction the
-       renderer resolves arbitrarily. `TopologyMap` in `topology_pane` is the one
-       sanctioned exception.
-     - **Data Source Bindings Must Be Schema Paths or State Deferral**: raw `N/A` strings are strictly prohibited. Each entry MUST begin with `/`, `schema:` or `provider:` and MUST NOT contain spaces, OR state an explicit deferral to a named feature micro-task ID (e.g. `Deferred to Feature #X Task Y`). Prose in this field reads as a binding and resolves to nothing.
+       type MUST equal the declared type of the target container.
+     - **Data Source Bindings Must Be Schema Paths or State Deferral**: raw `N/A` strings are strictly prohibited. Each entry MUST begin with `/`, `schema:` or `provider:` and MUST NOT contain spaces, OR state an explicit deferral to a named feature micro-task ID (e.g. `Deferred to Feature #X Task Y`).
      - **Data Source Bindings Must Omit Choice And Case Nodes**: a YANG `choice` or `case`
        node is a schema-modelling construct and does not appear in the data tree, so it
-       MUST NOT appear in a data path. Bind to the node inside the case instead (allowing data paths to bind directly to target attributes within choice branches).
+       MUST NOT appear in a data path.
      - **Augmented Nodes Must Carry Their Module Prefix**: once a path enters an augmented
        subtree, every following segment MUST carry the augmenting module's prefix (e.g.
-       `nil:location`, not `location`). An un-prefixed segment resolves against the wrong
-       module or not at all.
+       `nil:location`, not `location`).
      - **Spatial Features Must Bind A Spatial Component**: a Feature whose text carries
        geodetic or spatial attributes MUST bind to `TopologyMap`, `TopographicalView`,
-       `GeoSpatialViewer`, `PropertyGrid` or `TableView`. Spatial data bound to a
-       component that cannot render position is specified and undisplayable.
+       `GeoSpatialViewer`, `PropertyGrid` or `TableView`.
    - **Geolocation & Geodetic Semantic Mapping Rules**:
      - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, velocity, geo-location, geodetic, latitude, longitude, altitude, elevation, datum, position, and spatial) represent child properties of concrete parent components.
      - You MUST map these geodetic attributes to details panels and tables (such as `PropertyGrid` with container ID `properties_view`, or `TableView` with container ID `components_table`) that are actively instantiated in the layout.

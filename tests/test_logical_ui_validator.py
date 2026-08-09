@@ -80,3 +80,124 @@ def test_logical_layout_contains_zero_token_indirection_prefixes(layout_file_pat
         + "\n".join(f"  - {path}: {val}" for path, val in token_findings)
     )
 
+
+def _create_lumi_test_repo(tmpdir, layout):
+    import tempfile
+    import shutil
+    from parity_auditor.core.workspace import WorkspaceRepository
+
+    pipeline_dir = os.path.join(tmpdir, ".pipeline", "logical-ui")
+    os.makedirs(pipeline_dir, exist_ok=True)
+    rules = {
+        "meta": {},
+        "target_directories": {"flutter": "app_flutter"},
+        "flutter_rules": {},
+        "python_rules": {"exclusions": []},
+        "spec_rules": {},
+        "validation_rules": {},
+        "backlog_directories": {
+            "epics": ".pipeline/backlog/epics",
+            "features": ".pipeline/backlog/features",
+            "use_cases": ".pipeline/backlog/use_cases",
+            "user_stories": ".pipeline/backlog/user_stories"
+        }
+    }
+    with open(os.path.join(pipeline_dir, "codebase_rules.json"), "w") as f:
+        json.dump(rules, f)
+    features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+    os.makedirs(features_dir, exist_ok=True)
+    with open(os.path.join(pipeline_dir, "logical-layout.json"), "w") as f:
+        json.dump(layout, f)
+    return WorkspaceRepository(tmpdir)
+
+
+def test_lumi_multi_interface_binding_table_parsing():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "StringInputField", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Multi-Interface LUMI Feature"
+interface_type: ["gui", "mcp"]
+---
+## Logical UI & Interface Bindings
+
+| Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |
+| --- | --- | --- | --- | --- |
+| gui | Visual GUI | StringInputField | elements_view | /schema:path |
+| mcp | M2M API | MCPToolHandler | /mcp/tool | /schema:path |
+"""
+        with open(os.path.join(features_dir, "feat-lumi-table.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert not errors, f"Expected no validation errors for valid LUMI table, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_lumi_multi_interface_missing_channel_error():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "StringInputField", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Missing Channel LUMI Feature"
+interface_type: ["gui", "mcp"]
+---
+## Logical UI & Interface Bindings
+
+| Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |
+| --- | --- | --- | --- | --- |
+| gui | Visual GUI | StringInputField | elements_view | /schema:path |
+"""
+        with open(os.path.join(features_dir, "feat-lumi-missing.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert any(err.rule_id == "logical-ui-missing-interface-channel-row" for err in errors), f"Expected missing channel error for mcp, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_lumi_rejection_of_raw_na_fallback_strings():
+    import tempfile
+    import shutil
+    from parity_auditor.validators.logical_ui_validator import LogicalUiValidator
+    tmpdir = tempfile.mkdtemp()
+    try:
+        layout = {"type": "StringInputField", "id": "elements_view"}
+        repo = _create_lumi_test_repo(tmpdir, layout)
+        features_dir = os.path.join(tmpdir, ".pipeline", "backlog", "features")
+
+        content = """---
+title: "Raw NA LUMI Feature"
+interface_type: "gui"
+---
+## Logical UI & Interface Bindings
+- **Target LUI Component:** N/A
+- **Target Layout Container ID:** N/A
+- **Data Source Binding:** N/A
+"""
+        with open(os.path.join(features_dir, "feat-lumi-na.md"), "w") as f:
+            f.write(content)
+
+        validator = LogicalUiValidator()
+        errors = validator.validate(repo)
+        assert any("contains raw 'N/A' fallback string" in str(err) for err in errors), f"Expected raw N/A rejection error, got: {errors}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+

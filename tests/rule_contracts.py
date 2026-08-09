@@ -1183,7 +1183,7 @@ LOGICAL_UI_CONTRACTS: List[RuleContract] = [
     RuleContract(
         id="logical-ui-feature-requires-layout-bindings-section",
         documented_in="skills/schema-specification-engineering/SKILL.md",
-        doc_anchor="Layout Bindings Section Required",
+        doc_anchor="Interface Bindings Section Required",
         enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
         enforcement_anchor="logical-ui-feature-requires-layout-bindings-section",
         note=(
@@ -1198,6 +1198,22 @@ LOGICAL_UI_CONTRACTS: List[RuleContract] = [
         doc_anchor="Feature Frontmatter Must Parse",
         enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
         enforcement_anchor="logical-ui-feature-frontmatter-must-parse",
+    ),
+    RuleContract(
+        id="logical-ui-prohibit-raw-na-fallback",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Raw N/A Fallback Strings Strictly Prohibited",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-prohibit-raw-na-fallback",
+        note="Raw N/A fallback strings are strictly prohibited across interface bindings.",
+    ),
+    RuleContract(
+        id="logical-ui-missing-interface-channel-row",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Interface Channel Row Required",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-missing-interface-channel-row",
+        note="Every interface channel listed in frontmatter must have a row in the Multi-Interface Binding Table.",
     ),
     RuleContract(
         id="logical-ui-component-type-must-exist-in-the-layout",

@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-08"
+last_updated: "2026-08-09"
 ---
 
 # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
@@ -20,7 +20,7 @@ The pipeline enforces a strict three-tier platform isolation architecture to dec
 graph TD
     subgraph "Tier 1: Functional Layer (Abstract Specification)"
         T1_Specs["Epics, Features, User Stories, Use Cases"]
-        T1_LUI["Logical UI (LUI) & 3-Layer Semantic Chain"]
+        T1_LUI["Logical User & Machine Interface (LUMI) & 3-Layer Semantic Chain"]
     end
 
     subgraph "Tier 2: Runtime Configuration (Dynamic Context)"
@@ -41,7 +41,7 @@ graph TD
 
 ### Tier Boundary Guidelines
 
-1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across 3 canonical aerospace architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Flight Control (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical User & Machine Interface (LUMI) specifications. LUMI is 100% platform-independent and framework-agnostic, covering three primary interface categories: Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`). LUMI supports the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across canonical architectural patterns (ARINC 661 Cockpit Display Systems, Real-Time Safety Statecharts & Flight Control, Decoupled Operator Consoles & EFBs, Automated M2M Agentic Tooling, and Hardware Bus Register Mapping). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
 

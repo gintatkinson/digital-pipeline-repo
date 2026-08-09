@@ -298,3 +298,13 @@ def test_granularity_bounds_normative_rfc2119_and_enforcers():
     assert feature_bound in content, (
         "Constitution missing normative RFC 2119 Feature granularity bound and enforcer statement."
     )
+
+
+def test_amend_0014_lumi_framework_in_constitution():
+    content = _read(CONSTITUTION)
+    amendment_log = _read(AMENDMENT_LOG)
+    assert "AMEND-0014" in amendment_log, "AMEND-0014 missing from constitution-amendments.md"
+    assert "Logical User & Machine Interface" in content or "LUMI" in content, (
+        "Constitution missing LUMI (Logical User & Machine Interface) Framework definition."
+    )
+
