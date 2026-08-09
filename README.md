@@ -140,9 +140,17 @@ The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Pyt
   pip install -r requirements.txt
   ```
 
-### Direct Copy Installation
+### Turnkey One-Line Installation (Recommended)
 
-Copy the pipeline directories and (optionally) the application templates into your project repository.
+Run the turnkey automated installer directly in your project root:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash
+```
+
+### Direct Copy / Manual Installation
+
+Alternatively, copy the pipeline directories and (optionally) the application templates into your project repository.
 
 ```bash
 # Refuse to run inside the pipeline repository itself. The cleanup steps below are
