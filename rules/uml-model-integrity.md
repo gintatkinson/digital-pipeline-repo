@@ -93,6 +93,7 @@ those are.
 - **Specifications Must Not Contain Unresolved Registration Tokens**: unresolved
   identifier tokens such as `#[EpicID]` must be replaced with the registered issue number
   before the document is published. Every referenced item must be explicitly registered.
+- **Epic Prohibit Unreplaced Placeholder Text**: Epic specifications must not contain literal '(semantic linkage justification)' or '[POPULATE:' placeholder tokens. All placeholders must be replaced with concise justifications.
 
 ## Sequence diagrams
 

@@ -1635,6 +1635,16 @@ UML_MODEL_CONTRACTS: List[RuleContract] = [
         ),
     ),
     RuleContract(
+        id="epic-prohibit-unreplaced-placeholder-text",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Epic Prohibit Unreplaced Placeholder Text",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="epic-prohibit-unreplaced-placeholder-text",
+        note=(
+            "Prohibits literal '(semantic linkage justification)' and '[POPULATE:' placeholder tokens in Epic markdown files (#391)."
+        ),
+    ),
+    RuleContract(
         id="specification-requires-the-subagent-generation-mode-marker",
         documented_in="skills/spec-orchestrator/SKILL.md",
         doc_anchor="generation_mode",

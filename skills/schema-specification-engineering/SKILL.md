@@ -142,15 +142,20 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification and clause references)
+    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) (semantic linkage justification and clause references)
+    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
 
     #### Associated User Stories
-    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification and clause references)
+    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
+
+    > [!IMPORTANT]
+    > **EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE**
+    > Subagents MUST replace all `[POPULATE: ...]` tokens (e.g. `[POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]`) with concise, context-specific semantic justifications. Leaving literal `[POPULATE: ...]` tokens or unreplaced placeholder text in generated Epic specifications is strictly prohibited and will trigger validator rejection.
+
 
     ## 3. Architecture
 
@@ -219,7 +224,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    # Feature: [Feature Title]
 
    ## Parent Epic
-   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
 
    ## Description
    [Functional description of the feature]

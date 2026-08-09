@@ -292,4 +292,18 @@ def test_implementation_profiles_contain_lui_resolution_guidelines():
         )
 
 
+# --------------------------------------------------------------------------- #
+# #391 - Replace literal Epic template placeholder with explicit token
+# --------------------------------------------------------------------------- #
 
+def test_schema_spec_eng_replaces_semantic_linkage_justification_placeholder_issue391():
+    content = _read(SCHEMA_SPEC_ENG)
+    assert "(semantic linkage justification)" not in content, (
+        "schema-specification-engineering/SKILL.md must not contain literal '(semantic linkage justification)' placeholder"
+    )
+    assert '[POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]' in content, (
+        "schema-specification-engineering/SKILL.md must contain explicit token '[POPULATE: concise semantic linkage justification e.g. \"defines counter and gauge typedefs\"]'"
+    )
+    assert "EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE" in content or "prohibiting literal placeholder text" in content or "replace all `[POPULATE:" in content, (
+        "schema-specification-engineering/SKILL.md must contain explicit skill rule mandating subagents replace all [POPULATE: ...] tokens"
+    )
