@@ -128,7 +128,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
-    ```markdown
+    ````markdown
     ---
     title: "[Epic Title]"
     type: "epic"
@@ -208,10 +208,10 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
     ## 6. Source References
     {{REQUIRED_SOURCE_REF}}
-    ```
+    ````
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
-   ```markdown
+   ````markdown
    ---
    title: "[Feature Title]"
    type: "feature"
@@ -299,6 +299,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    | --- | --- | --- | --- | --- |
    | gui | Visual GUI | StringInputField | elements_view | /schema:path |
    | mcp | M2M API | MCPToolHandler | /mcp/tool | /schema:path |
+   ````
 
    > [!WARNING]
    > **Mermaid Block Closing Constraints & Code Fence Integrity:**
@@ -313,11 +314,11 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 4. **Source References Block (CRITICAL):**
    - **Dynamic Schema Locator**: You MUST inspect the active workspace directories (e.g. `schema/`) to build schema locators dynamically. Do NOT hardcode legacy paths like `standard/ietf/RFC/`.
    - At the bottom of every feature markdown file, you MUST append a `## Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
-   ```markdown
+   ````markdown
    ## Source References
    Structural Schema: [Target Schema File](link-to-schema) (Clause: [Clause Number])
    Normative Specification: [Normative Specification](link-to-specification) (Clause: [Clause Number])
-   ```
+   ````
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 
 5. **Logical UI & Interface Bindings Block (MANDATORY):**
