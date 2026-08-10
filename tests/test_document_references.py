@@ -340,6 +340,7 @@ def test_product_name_standardization_enforcement():
         os.path.join(REPO_ROOT, "docs", "designs", "lumi-framework-blueprint.md"),
         os.path.join(REPO_ROOT, "docs", "designs", "sysmlv2-universal-ingestion-blueprint.md"),
         os.path.join(REPO_ROOT, "docs", "designs", "six-mechanical-enforcement-gates-blueprint.md"),
+        os.path.join(REPO_ROOT, "docs", "designs", "zero-skip-test-remediation-blueprint.md"),
     ]
 
     for tf in target_files:
@@ -461,3 +462,64 @@ def test_firestore_profile_domain_neutrality():
     # Assert absence of domain-specific sample data
     for domain_term in ["Tokyo-Gateway-01", "astronomicalBody", "earth", "ROUTER"]:
         assert domain_term not in content, f"Document must not contain domain-specific term '{domain_term}'"
+
+
+ZERO_SKIP_BLUEPRINT_DOC = os.path.join(REPO_ROOT, "docs", "designs", "zero-skip-test-remediation-blueprint.md")
+
+
+def test_zero_skip_test_remediation_blueprint_document_integrity():
+    """Verify that docs/designs/zero-skip-test-remediation-blueprint.md exists and contains valid Zero-Skip remediation definitions."""
+    assert os.path.isfile(ZERO_SKIP_BLUEPRINT_DOC), (
+        f"Zero-skip test remediation blueprint document does not exist: {ZERO_SKIP_BLUEPRINT_DOC}"
+    )
+
+    with open(ZERO_SKIP_BLUEPRINT_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Frontmatter verification
+    assert content.startswith("---"), "Blueprint must begin with YAML frontmatter delimiter '---'"
+    parts = content.split("---", 2)
+    assert len(parts) >= 3, "Blueprint must contain closed YAML frontmatter"
+
+    metadata = yaml.safe_load(parts[1])
+    assert isinstance(metadata, dict), "Frontmatter must parse as a valid YAML dictionary"
+    assert metadata.get("type") == "design", "Frontmatter 'type' must be 'design'"
+    assert "title" in metadata, "Frontmatter must contain 'title'"
+    assert metadata.get("project") == "Digital Engineering Agent Platform (DEAP)", (
+        "Frontmatter 'project' must match 'Digital Engineering Agent Platform (DEAP)'"
+    )
+
+    # 2. Key Section Assertions
+    assert "Architectural Goal" in content or "Executive Summary" in content, (
+        "Blueprint must detail Architectural Goal"
+    )
+    assert "Co-Normative Rule Contract Heading Scan Resolution" in content, (
+        "Blueprint must detail Co-Normative Rule Contract Heading Scan Resolution"
+    )
+    assert "Fixture Directory & Mock Scoped Context Patterns" in content, (
+        "Blueprint must detail Fixture Directory & Mock Scoped Context Patterns"
+    )
+    assert "Verification Metrics & Maintenance Mandate" in content, (
+        "Blueprint must detail Verification Metrics & Maintenance Mandate"
+    )
+
+    # 3. File & Module Reference Assertions
+    assert "tests/test_rule_contracts.py" in content, "Blueprint must reference 'tests/test_rule_contracts.py'"
+    assert "rules/platform-independence.md" in content, "Blueprint must reference 'rules/platform-independence.md'"
+    assert "rules/tracker-source-of-truth.md" in content, "Blueprint must reference 'rules/tracker-source-of-truth.md'"
+    assert "rules/user-authorization-lock.md" in content, "Blueprint must reference 'rules/user-authorization-lock.md'"
+    assert ".agents/AGENTS.md" in content, "Blueprint must reference '.agents/AGENTS.md'"
+
+    assert "tests/repro_cases/.gitkeep" in content, "Blueprint must reference 'tests/repro_cases/.gitkeep'"
+    assert "test_gate_scope_issue321_issue331.py" in content, "Blueprint must reference 'test_gate_scope_issue321_issue331.py'"
+    assert "test_validator_findings_migration_issue304.py" in content, (
+        "Blueprint must reference 'test_validator_findings_migration_issue304.py'"
+    )
+    assert "test_pyproject_floor.py" in content, "Blueprint must reference 'test_pyproject_floor.py'"
+
+    # 4. Mermaid Diagrams
+    assert "classDiagram" in content or "graph TD" in content or "flowchart TD" in content, (
+        "Blueprint must contain Mermaid architecture diagram"
+    )
+    assert "sequenceDiagram" in content, "Blueprint must contain Mermaid sequence diagram"
+
