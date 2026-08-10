@@ -922,3 +922,45 @@ Update `DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md` in `/Users/perkunas/jail/DE
 4. Yes, repository specification documentation will be modified. Execution delegated to subagents per governance rules.
 
 
+## Part AA — Legacy Documentation Link Remediation
+
+**STATUS: COMPLETED.**
+
+### AA1. Objective
+Remediate legacy documentation relative links in `digital-pipeline-repo`:
+1. `docs/operations/yang-compiler-guide.md`:
+   Replace link `[Runtime Metadata Architecture Blueprint](../architecture/runtime-metadata-blueprint.md)` with `[Runtime Metadata Architecture Blueprint](../architecture/blueprints/RUNTIME_METADATA_ENGINE.md)`.
+2. `docs/audits/spec-coverage-2026-07-18.md`:
+   Replace relative links missing depth prefix (e.g. `docs/features/` -> `../../docs/features/`, `docs/use-cases/` -> `../../docs/use-cases/`, `scripts/` -> `../../scripts/`, `skills/` -> `../../skills/`, `app_flutter/` -> `../../app_flutter/`, `web_react/` -> `../../web_react/`, `.github/` -> `../../.github/`).
+
+### AA2. Approved Files Manifest
+
+<!-- APPROVED-FILES:START -->
+docs/operations/yang-compiler-guide.md
+docs/audits/spec-coverage-2026-07-18.md
+<!-- APPROVED-FILES:END -->
+
+### AA3. Actions
+1. Dispatch context-isolated subagent to update `docs/operations/yang-compiler-guide.md`:
+   - Replace `[Runtime Metadata Architecture Blueprint](../architecture/runtime-metadata-blueprint.md)` with `[Runtime Metadata Architecture Blueprint](../architecture/blueprints/RUNTIME_METADATA_ENGINE.md)`.
+2. Dispatch context-isolated subagent to update `docs/audits/spec-coverage-2026-07-18.md`:
+   - Update relative hyperlinks in Markdown to add the required `../../` depth prefix.
+3. Run python link validation logic on `docs/operations/` and `docs/audits/` to confirm 0 broken relative links.
+4. Run `python3 -m pytest tests/` to confirm full test suite passes.
+5. Commit with message `fix(docs): repair legacy operations and audit relative hyperlinks` and push to `origin/main`.
+
+### AA4. Verification
+- Python link checker on `docs/operations` and `docs/audits` asserting 0 broken relative links.
+- `python3 -m pytest tests/`
+
+### AA5. Commit & Push
+- `git add docs/operations/yang-compiler-guide.md docs/audits/spec-coverage-2026-07-18.md`
+- `git commit -m "fix(docs): repair legacy operations and audit relative hyperlinks"`
+- `git push origin main`
+
+#### 4-Point Compliance Check
+
+1. Command — Direct user command to execute legacy documentation link remediation.
+2. Yes, authorization keyword PROCEED provided in prompt.
+3. No silent assumptions; target files and exact link replacements specified by user.
+4. Yes, repository documentation files will be modified. Execution delegated to context-isolated subagent per governance rules.
