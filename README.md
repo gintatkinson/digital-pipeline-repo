@@ -13,6 +13,12 @@ By feeding these agents a Structural Schema and its associated Normative Specifi
 
 ---
 
+## Primary Commercial Toolchain Integration
+
+DEAP explicitly declares **MATLAB / Simulink / Stateflow / Embedded Coder** as the Primary Tier-1 Commercial Toolchain Integration (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada Code Generation).
+
+---
+
 ## Governance: The Functional Constitution
 
 This pipeline ships with a **default functional constitution** (located at the configured pipeline configuration directory, e.g., `<pipeline_dir>/constitution.md`) that governs all specification generation (Pipeline 1). It defines:
