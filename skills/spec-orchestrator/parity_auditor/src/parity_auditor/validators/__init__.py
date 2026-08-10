@@ -11,4 +11,5 @@ from .spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .source_reference_validator import SourceReferenceValidator
 from .link_validator import LinkValidator
 from .dispatch_preamble_validator import DispatchPreambleValidator, validate_dispatch_prompt, MANDATORY_PREAMBLE_MARKERS
+from .plan_validator import PlanValidator
 

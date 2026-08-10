@@ -142,19 +142,19 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
+    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
+    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     #### Associated User Stories
-    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
+    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     > [!IMPORTANT]
     > **EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE**
-    > Subagents MUST replace all `[POPULATE: ...]` tokens (e.g. `[POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]`) with concise, context-specific semantic justifications. Leaving literal `[POPULATE: ...]` tokens or unreplaced placeholder text in generated Epic specifications is strictly prohibited and will trigger validator rejection.
+    > Subagents MUST replace all `{{REQUIRED_JUSTIFICATION}}` escape tokens with concise, context-specific semantic justifications. Leaving literal `{{REQUIRED_JUSTIFICATION}}` escape tokens or unreplaced placeholder text in generated Epic specifications is strictly prohibited and will trigger validator rejection.
 
 
     ## 3. Architecture
@@ -207,8 +207,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [Verbatim schema grouping/container descriptions from the normative specification]
 
     ## 6. Source References
-    Structural Schema: [Schema File Name] (Clause: [Clause Number])
-    Normative Specification: [RFC/Standard Name] (Clause: [Clause Number])
+    {{REQUIRED_SOURCE_REF}}
     ```
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
@@ -224,7 +223,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    # Feature: [Feature Title]
 
    ## Parent Epic
-   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) [POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]
+   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
    ## Description
    [Functional description of the feature]
@@ -290,14 +289,10 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    [Raw normative specification context paragraphs]
 
    ## Source References
-   Structural Schema: [Target Schema File](link-to-schema) (Clause: [Clause Number])
-   Normative Specification: [Normative Specification](link-to-specification) (Clause: [Clause Number])
+   {{REQUIRED_SOURCE_REF}}
 
    ## Logical UI & Interface Bindings
-   <!-- Single-Channel (Visual GUI) Format -->
-   - **Target LUI Component:** [Specify canonical LUI component e.g. StringInputField, TableView, ConfigurationForm, PropertyGrid, DensityTable, DataCard, TimeSeriesChart, OR 'Unbound (Deferred to Implementation Profile)']
-   - **Target Layout Container ID:** [Specify container ID from logical-layout.json, OR 'Unbound (Deferred to Implementation Profile)']
-   - **Data Source Bindings:** [Specify exact, authoritative schema path locator e.g. /nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame, OR 'Unbound (Deferred to Implementation Profile)']
+   {{REQUIRED_LUI}}
 
    <!-- Multi-Channel (Multi-Interface) Format -->
    | Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |

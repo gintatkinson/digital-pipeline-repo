@@ -70,6 +70,7 @@ MIGRATED = (
     "docstring_validator.py",
     "profile_compliance_validator.py",
     "dispatch_preamble_validator.py",
+    "plan_validator.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states

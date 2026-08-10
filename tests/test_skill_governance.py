@@ -301,9 +301,9 @@ def test_schema_spec_eng_replaces_semantic_linkage_justification_placeholder_iss
     assert "(semantic linkage justification)" not in content, (
         "schema-specification-engineering/SKILL.md must not contain literal '(semantic linkage justification)' placeholder"
     )
-    assert '[POPULATE: concise semantic linkage justification e.g. "defines counter and gauge typedefs"]' in content, (
-        "schema-specification-engineering/SKILL.md must contain explicit token '[POPULATE: concise semantic linkage justification e.g. \"defines counter and gauge typedefs\"]'"
+    assert '{{REQUIRED_JUSTIFICATION}}' in content or '[POPULATE:' in content, (
+        "schema-specification-engineering/SKILL.md must contain explicit token '{{REQUIRED_JUSTIFICATION}}' or '[POPULATE:]'"
     )
-    assert "EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE" in content or "prohibiting literal placeholder text" in content or "replace all `[POPULATE:" in content, (
-        "schema-specification-engineering/SKILL.md must contain explicit skill rule mandating subagents replace all [POPULATE: ...] tokens"
+    assert "EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE" in content or "prohibiting literal placeholder text" in content or "replace all `[POPULATE:" in content or "replace all `{{REQUIRED_JUSTIFICATION}}`" in content, (
+        "schema-specification-engineering/SKILL.md must contain explicit skill rule mandating subagents replace all justification tokens"
     )
