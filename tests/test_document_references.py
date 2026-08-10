@@ -442,9 +442,22 @@ def test_six_mechanical_enforcement_gates_blueprint_document_integrity():
     )
 
 
+FIRESTORE_PROFILE_DOC = os.path.join(REPO_ROOT, "docs", "architecture", "profiles", "FIRESTORE_PERSISTENCE_PROFILE.md")
 
 
+def test_firestore_profile_domain_neutrality():
+    """Verify domain-specific sample data is purged from FIRESTORE_PERSISTENCE_PROFILE.md (Issue #373 compliance)."""
+    assert os.path.isfile(FIRESTORE_PROFILE_DOC), f"Target document does not exist: {FIRESTORE_PROFILE_DOC}"
 
+    with open(FIRESTORE_PROFILE_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
 
+    # Assert presence of abstract CS primitives
+    assert "NODE_INSTANCE_01" in content, "Document must reference abstract primitive NODE_INSTANCE_01"
+    assert "referenceSystem" in content, "Document must reference referenceSystem"
+    assert "SYSTEM_PRIMARY" in content, "Document must reference SYSTEM_PRIMARY"
+    assert "PRIMARY_TYPE" in content, "Document must reference PRIMARY_TYPE"
 
-
+    # Assert absence of domain-specific sample data
+    for domain_term in ["Tokyo-Gateway-01", "astronomicalBody", "earth", "ROUTER"]:
+        assert domain_term not in content, f"Document must not contain domain-specific term '{domain_term}'"
