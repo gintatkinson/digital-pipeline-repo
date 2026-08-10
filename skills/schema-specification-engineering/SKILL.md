@@ -29,6 +29,13 @@ Use this as the single canonical workflow for translating structural schemas and
 
 ## Step 1: Forensic Audit & Module Decomposition
 
+> [!IMPORTANT]
+> **MANDATORY PRE-EXECUTION INGESTION GATE (SysML v2)**
+> Before initiating Phase 1 decomposition, you MUST execute `sysmlv2_ingest.py` to convert input specification schemas (OMG IDL, AUTOSAR ARXML, Protobuf, OpenAPI) into canonical SysML v2 textual models and generate `.pipeline/schema-digest.json`:
+> ```bash
+> python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py --schema <schema-file-or-dir> --format auto --out schema.sysml
+> ```
+
 1. **Parse the Schema:** Read the primary structural schema file and its imports.
 2. **Categorize the Module (Utility vs. Functional)**:
    - Identify if the module contains only type helpers (`typedef`, `identity`, `grouping` definitions without concrete `container` or `list` data nodes).
