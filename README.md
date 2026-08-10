@@ -1,15 +1,15 @@
 <!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
 
-# Digital Engineering Agentic Pipeline (DEAP) (Builders Project)
+# Digital Engineering Agent Platform (DEAP) (Builders Project)
 
-Welcome to the Digital Engineering Agentic Pipeline (DEAP). This repository contains a suite of autonomous AI Agent "Skills" designed to:
+Welcome to the Digital Engineering Agent Platform (DEAP). This repository contains a suite of autonomous AI Agent "Skills" designed to:
 
 1. **Specification-engineer protocol standards** into deterministic, behavior-driven Agile tracking matrices in the active issue tracker.
 2. **Implement features** from those backlogs using subagent-driven TDD execution discipline with two-stage review gates.
 
 By feeding these agents a Structural Schema and its associated Normative Specification Document, the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
 
-## Documentation at: https://github.com/gintatkinson/DEAP-spec-core
+## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
 
 ---
 
@@ -207,7 +207,7 @@ After copying the pipeline, configure Gemini to load the skills and rules:
    # Agent Instructions
 
    ## Pipeline Skills
-   This project uses the Digital Engineering Agentic Pipeline (DEAP).
+   This project uses the Digital Engineering Agent Platform (DEAP).
    - Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/`)
    - Rules: read all files in the configured rules directory (e.g., `rules/`) -- these are mandatory constraints that apply to every task
    - Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
@@ -461,5 +461,5 @@ This pipeline can also be used **alongside** [Spec Kit](https://github.com/githu
 - **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
 - **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
 
-## Documentation at: https://github.com/gintatkinson/DEAP-spec-core
+## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
 

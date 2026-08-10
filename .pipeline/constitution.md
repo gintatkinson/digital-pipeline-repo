@@ -1,12 +1,12 @@
 ---
 title: "Project Constitution — Functional Layer"
-project: "Digital Engineering Agentic Pipeline (DEAP)"
+project: "Digital Engineering Agent Platform (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-09"
+last_updated: "2026-08-10"
 ---
 
-# Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+# Project Constitution: Digital Engineering Agent Platform (DEAP)
 
 > This document governs specification generation and is platform-independent and protocol-agnostic.
 > All agents MUST read this file before beginning any pipeline execution.

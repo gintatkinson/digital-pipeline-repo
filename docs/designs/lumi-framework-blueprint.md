@@ -11,7 +11,7 @@ created: 2026-08-09
 
 ## 1. Executive Summary & Metamodel Vision
 
-The **LUMI (Logical User & Machine Interface)** Framework is the core architectural foundation for platform-independent interface modeling within the Digital Engineering Agentic Pipeline (DEAP). LUMI elevates and generalizes canonical Logical UI (LUI) principles across three primary operational interaction modalities:
+The **LUMI (Logical User & Machine Interface)** Framework is the core architectural foundation for platform-independent interface modeling within the Digital Engineering Agent Platform (DEAP). LUMI elevates and generalizes canonical Logical UI (LUI) principles across three primary operational interaction modalities:
 
 1. **Visual GUI (Human-to-Machine / Logical UI)**
    - Abstract component models for graphical user interfaces across Web (React), Mobile (Flutter), Cockpit Displays (ARINC 661), and Electronic Flight Bags (EFB).

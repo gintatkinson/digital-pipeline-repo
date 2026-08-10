@@ -165,12 +165,12 @@ verbatim, and condition (1) is added alongside it.
 
 ---
 
-## AMEND-0003 — Standardize product name to Digital Engineering Agentic Pipeline (DEAP)
+## AMEND-0003 — Standardize product name to Digital Engineering Agent Platform (DEAP)
 
 - **Date:** 2026-08-06
 - **Logged:** 2026-08-06
 - **Motivating issue:** n/a — product name standardization across repository
-- **Approved by:** "PROCEED" — approved implementation plan to standardize official product name to Digital Engineering Agentic Pipeline (DEAP).
+- **Approved by:** "PROCEED" — approved implementation plan to standardize official product name to Digital Engineering Agent Platform (DEAP).
 - **Destructive:** no
 - **Line count:** 161
 - **Resulting SHA-256:** `952397210c5163672e05bac9b1afcaa1351522e2ad6a3c18c09525cdc6cae896`
@@ -186,12 +186,12 @@ Before:
 
 After:
 
-> project: "Digital Engineering Agentic Pipeline (DEAP)"
-> # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+> project: "Digital Engineering Agent Platform (DEAP)"
+> # Project Constitution: Digital Engineering Agent Platform (DEAP)
 
 ### Rationale
 
-Standardize the official product name to Digital Engineering Agentic Pipeline (DEAP) across the repository in accordance with the approved implementation plan.
+Standardize the official product name to Digital Engineering Agent Platform (DEAP) across the repository in accordance with the approved implementation plan.
 
 Non-destructive: product name updated, governance rules unchanged.
 
@@ -614,4 +614,37 @@ After:
 Update `.pipeline/constitution.md` under `## Architecture: Three-Tier Platform Isolation` to define the Universal LUMI (Logical User & Machine Interface) Framework covering Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`) categories.
 
 Non-destructive: additive definition of LUMI framework across Visual GUI, M2M API, and Hardware Bus modalities, line count preserved at 236 lines, governance rules preserved.
+
+---
+
+## AMEND-0015 — Standardize product name to Digital Engineering Agent Platform (DEAP)
+
+- **Date:** 2026-08-10
+- **Logged:** 2026-08-10
+- **Motivating issue:** Product Name Standardization
+- **Approved by:** "PROCEED" — approved user prompt directive to standardize official product name to Digital Engineering Agent Platform (DEAP).
+- **Destructive:** no
+- **Line count:** 235
+- **Resulting SHA-256:** `77b040805aa4ada8c71a7e5265e90df34f09b1b4bc4b368aeb9fdd72f0b09b5b`
+
+### Change
+
+Frontmatter line 3 and main title line 9.
+
+Before:
+
+> project: "Digital Engineering Agentic Pipeline (DEAP)"
+> # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+
+After:
+
+> project: "Digital Engineering Agent Platform (DEAP)"
+> # Project Constitution: Digital Engineering Agent Platform (DEAP)
+
+### Rationale
+
+Standardize official product name to Digital Engineering Agent Platform (DEAP) across `.pipeline/constitution.md` and repository artifacts per user instruction and debug-protocol skill execution.
+
+Non-destructive: product name updated to Digital Engineering Agent Platform (DEAP), line count preserved at 236 lines, governance rules preserved.
+
 

@@ -279,6 +279,95 @@ def test_sysmlv2_universal_ingestion_blueprint_document_integrity():
     assert "is_sysml=True" in content, "SysML v2 blueprint must specify is_sysml=True downstream forwarding flag"
 
 
+def test_product_name_standardization_enforcement():
+    """Verify that project metadata and product references across governance and documentation files match 'Digital Engineering Agent Platform (DEAP)'."""
+    constitution_path = os.path.join(REPO_ROOT, ".pipeline", "constitution.md")
+    assert os.path.isfile(constitution_path), f"Constitution file missing: {constitution_path}"
+
+    with open(constitution_path, "r", encoding="utf-8") as f:
+        const_content = f.read()
+
+    assert const_content.startswith("---"), "Constitution must begin with YAML frontmatter delimiter '---'"
+    const_parts = const_content.split("---", 2)
+    assert len(const_parts) >= 3, "Constitution must contain closed YAML frontmatter"
+    const_metadata = yaml.safe_load(const_parts[1])
+    assert isinstance(const_metadata, dict), "Constitution frontmatter must parse as dict"
+
+    expected_product_name = "Digital Engineering Agent Platform (DEAP)"
+    actual_project_name = const_metadata.get("project")
+    assert actual_project_name == expected_product_name, (
+        f"Constitution project name '{actual_project_name}' does not match expected '{expected_product_name}'"
+    )
+
+    governance_files_with_frontmatter = [
+        os.path.join(REPO_ROOT, ".pipeline", "constitution.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "profiles", "flutter.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "profiles", "react.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "upstream", "pipeline-tooling.md"),
+    ]
+
+    for gov_file in governance_files_with_frontmatter:
+        assert os.path.isfile(gov_file), f"Governance file missing: {gov_file}"
+        with open(gov_file, "r", encoding="utf-8") as f:
+            c = f.read()
+        parts = c.split("---", 2)
+        assert len(parts) >= 3, f"File {gov_file} must contain closed YAML frontmatter"
+        meta = yaml.safe_load(parts[1])
+        assert isinstance(meta, dict), f"Frontmatter in {gov_file} must be dict"
+        assert meta.get("project") == expected_product_name, (
+            f"File {gov_file} project field '{meta.get('project')}' does not match '{expected_product_name}'"
+        )
+
+    legacy_terms = [
+        "Digital Engineering Agentic Pipeline",
+        "Digital Engineering Agent Pipeline",
+        "DEAP-spec-core",
+        "Distributed Ecosystem Architecture Platform",
+    ]
+
+    target_files = [
+        os.path.join(REPO_ROOT, ".pipeline", "constitution.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "constitution-amendments.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "logical-ui", "logical-components.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "profiles", "flutter.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "profiles", "react.md"),
+        os.path.join(REPO_ROOT, ".pipeline", "upstream", "pipeline-tooling.md"),
+        os.path.join(REPO_ROOT, "README.md"),
+        os.path.join(REPO_ROOT, "install-guide.md"),
+        os.path.join(REPO_ROOT, "scripts", "install_pipeline.sh"),
+        os.path.join(REPO_ROOT, ".tessl-plugin", "plugin.json"),
+        os.path.join(REPO_ROOT, "tessl.json"),
+        os.path.join(REPO_ROOT, "docs", "designs", "lumi-framework-blueprint.md"),
+        os.path.join(REPO_ROOT, "docs", "designs", "sysmlv2-universal-ingestion-blueprint.md"),
+    ]
+
+    for tf in target_files:
+        assert os.path.isfile(tf), f"Target file missing: {tf}"
+        with open(tf, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        if tf.endswith("constitution-amendments.md"):
+            # Exclude historical 'Before:' diff quotation blocks in amendment logs
+            lines = content.splitlines()
+            filtered = []
+            in_before_block = False
+            for line in lines:
+                if "Before:" in line:
+                    in_before_block = True
+                    continue
+                if in_before_block and (line.startswith("After:") or line.startswith("###") or line.startswith("---")):
+                    in_before_block = False
+                if not in_before_block:
+                    filtered.append(line)
+            check_content = "\n".join(filtered)
+        else:
+            check_content = content
+
+        for term in legacy_terms:
+            assert term not in check_content, f"Target file {tf} contains legacy term '{term}'"
+
+
+
 
 
 
