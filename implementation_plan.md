@@ -884,3 +884,41 @@ tests/test_skill_path_references.py
 3. No silent assumptions; requirements are fully specified in issue request.
 4. Yes, test file `tests/test_skill_path_references.py` will be modified.
 
+
+## Part Z — STPA Methodological Sources, Accident Benchmarks & Reproducibility Protocol
+
+**STATUS: READY FOR EXECUTION.**
+
+### Z1. Objective
+Update `DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md` in `/Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/` with exhaustive methodological sources, literature references, historical accident benchmarks, and a formal STPA reproducibility protocol under Section 3.2 (as `#### 3.2.0 Methodological Sources, Literature References, and STPA Reproducibility Protocol`). Synchronize the updated document to `/Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/` and `/Users/perkunas/jail/DEAP-avionic-flight-safety/docs/architecture/`.
+
+### Z2. Approved Files Manifest
+
+<!-- APPROVED-FILES:START -->
+/Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md
+/Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md
+/Users/perkunas/jail/DEAP-avionic-flight-safety/docs/architecture/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md
+<!-- APPROVED-FILES:END -->
+
+### Z3. Actions
+1. Dispatch context-isolated subagent to update `/Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md` under Section 3.2, adding `#### 3.2.0 Methodological Sources, Literature References, and STPA Reproducibility Protocol` with:
+   - Formal Theoretical Framework Citations (Leveson & Thomas 2018 STPA Handbook, NASA/TM-2013-217985, NASA/CR-2020-220454).
+   - Civil Airworthiness Regulatory Baselines (SAE ARP4754A/ARP4761, FAA AC 25.1309-1A / EASA CS-25.1309, RTCA DO-178C/DO-254, ARINC 653 APEX Part 1).
+   - Historical Avionic Failure Benchmark Sources (AF477 / Colgan 3407 for UCA-01/02, 737 MAX MCAS for UCA-04, TK1951 for UCA-06, Lauda 004 for UCA-10, AA587 for UCA-14).
+   - Step-by-Step STPA Reproducibility Execution Protocol (5-step mathematical derivation algorithm).
+2. Synchronize updated file to:
+   - `/Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`
+   - `/Users/perkunas/jail/DEAP-avionic-flight-safety/docs/architecture/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`
+3. Verification across repositories:
+   - Run `python3 -m pytest tests/` in `DEAP-spec-core`, `digital-pipeline-repo`, and `DEAP-avionic-flight-safety`.
+   - Run `PYTHONPATH=skills/spec-orchestrator/parity_auditor/src python3 -m pytest skills/spec-orchestrator/parity_auditor/tests/` in `digital-pipeline-repo`.
+4. Commit & Push across affected repos to `origin/main` with commit message: `docs(safety): add STPA methodological sources, accident benchmarks, and reproducibility protocol`.
+
+#### 4-Point Compliance Check
+
+1. Command — Direct user command with PROCEED keyword.
+2. Yes, explicit authorization granted for file writes, test execution, git commits, and pushes.
+3. No silent assumptions; target locations, section titles, citations, benchmarks, and protocols are explicitly enumerated.
+4. Yes, repository specification documentation will be modified. Execution delegated to subagents per governance rules.
+
+
