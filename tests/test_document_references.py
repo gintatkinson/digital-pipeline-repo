@@ -339,6 +339,7 @@ def test_product_name_standardization_enforcement():
         os.path.join(REPO_ROOT, "tessl.json"),
         os.path.join(REPO_ROOT, "docs", "designs", "lumi-framework-blueprint.md"),
         os.path.join(REPO_ROOT, "docs", "designs", "sysmlv2-universal-ingestion-blueprint.md"),
+        os.path.join(REPO_ROOT, "docs", "designs", "six-mechanical-enforcement-gates-blueprint.md"),
     ]
 
     for tf in target_files:
@@ -365,6 +366,81 @@ def test_product_name_standardization_enforcement():
 
         for term in legacy_terms:
             assert term not in check_content, f"Target file {tf} contains legacy term '{term}'"
+
+
+SIX_MECHANICAL_GATES_BLUEPRINT_DOC = os.path.join(REPO_ROOT, "docs", "designs", "six-mechanical-enforcement-gates-blueprint.md")
+
+
+def test_six_mechanical_enforcement_gates_blueprint_document_integrity():
+    """Verify that docs/designs/six-mechanical-enforcement-gates-blueprint.md exists and contains valid enforcement gate specifications."""
+    assert os.path.isfile(SIX_MECHANICAL_GATES_BLUEPRINT_DOC), (
+        f"Six mechanical enforcement gates blueprint document does not exist: {SIX_MECHANICAL_GATES_BLUEPRINT_DOC}"
+    )
+
+    with open(SIX_MECHANICAL_GATES_BLUEPRINT_DOC, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Frontmatter verification
+    assert content.startswith("---"), "Blueprint must begin with YAML frontmatter delimiter '---'"
+    parts = content.split("---", 2)
+    assert len(parts) >= 3, "Blueprint must contain closed YAML frontmatter"
+
+    metadata = yaml.safe_load(parts[1])
+    assert isinstance(metadata, dict), "Frontmatter must parse as a valid YAML dictionary"
+    assert metadata.get("type") == "design", "Frontmatter 'type' must be 'design'"
+    assert "title" in metadata, "Frontmatter must contain 'title'"
+    assert metadata.get("project") == "Digital Engineering Agent Platform (DEAP)", (
+        "Frontmatter 'project' must match 'Digital Engineering Agent Platform (DEAP)'"
+    )
+
+    # 2. Check 6 Core Deterministic Enforcement Mechanisms
+    mechanisms = [
+        "Pre-Dispatch Schema Ingestion Gate",
+        "Runtime Capability Pre-Flight Probe Check",
+        "Subagent Output Integrity Validator",
+        "Template Placeholder Escape Tokens",
+        "Shift-Left Registration-Time Phase Gate",
+        "Plan-to-Schema Cross-Reference Gate",
+    ]
+    for mech in mechanisms:
+        assert mech in content, f"Blueprint must contain mechanism '{mech}'"
+
+    # Specific technical details for Mechanism 1
+    assert "schema-digest.json" in content, "Blueprint must reference 'schema-digest.json'"
+    assert "SHA-256" in content or "sha256" in content.lower(), "Blueprint must specify SHA-256 digest"
+
+    # Specific technical details for Mechanism 2
+    assert "Probe subagent" in content or "probe subagent" in content.lower(), "Blueprint must reference Probe subagent"
+
+    # Specific technical details for Mechanism 3
+    assert "verify_subagent_output.py" in content, "Blueprint must reference 'verify_subagent_output.py'"
+
+    # Specific technical details for Mechanism 4
+    for escape_token in ["{{REQUIRED_JUSTIFICATION}}", "{{REQUIRED_SOURCE_REF}}", "{{REQUIRED_LUI}}"]:
+        assert escape_token in content, f"Blueprint must define escape token '{escape_token}'"
+
+    # Specific technical details for Mechanism 5
+    assert "Phase 3" in content or "Use Case" in content, "Blueprint must specify Phase 3 Use Case flow validation"
+
+    # Specific technical details for Mechanism 6
+    assert "implementation_plan.md" in content, "Blueprint must reference 'implementation_plan.md'"
+    assert "schema_nodes" in content, "Blueprint must reference 'schema_nodes' mapping table"
+
+    # 3. Mermaid diagrams
+    assert "classDiagram" in content or "graph TD" in content or "flowchart TD" in content, (
+        "Blueprint must contain Mermaid architecture diagram"
+    )
+    assert "sequenceDiagram" in content, "Blueprint must contain Mermaid sequence diagram"
+
+    # 4. Formal EBNF Grammar & JSON Schema Specifications
+    assert "EBNF" in content or "ebnf" in content.lower(), "Blueprint must contain EBNF grammar specification"
+    assert "$schema" in content or "json" in content.lower(), "Blueprint must contain JSON Schema specification"
+
+    # 5. Codebase Deliverables & Test Plan section
+    assert "Codebase Deliverables" in content or "Test Plan" in content, (
+        "Blueprint must include Codebase Deliverables & Test Plan section"
+    )
+
 
 
 
