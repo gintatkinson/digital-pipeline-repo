@@ -20,12 +20,6 @@ rm -rf "$TMP_DIR"
 echo "==> Cloning latest digital-pipeline-repo..."
 git clone --depth 1 "$REPO_URL" "$TMP_DIR"
 
-echo "==> Setting up Python virtual environment and dependencies..."
-if [ ! -d ".venv" ]; then
-  python3.12 -m venv .venv 2>/dev/null || python3 -m venv .venv
-fi
-pip install -r requirements.txt 2>/dev/null || pip install -r pyproject.toml 2>/dev/null || true
-
 echo "==> Copying pipeline directories and configurations..."
 FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/" "app_flutter/" "web_react/")
 
@@ -79,16 +73,6 @@ if [ -f skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py ]; then
   python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
 elif [ -f .agents/skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py ]; then
   python3 .agents/skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
-fi
-
-echo "==> Running automated verification tests..."
-if [ -d "tests" ]; then
-  .venv/bin/pytest tests/ 2>/dev/null || python3 -m pytest tests/ 2>/dev/null || true
-fi
-
-echo "==> Compiling SysML models..."
-if [ -f "scripts/compile_sysml.py" ] || ls docs/architecture/blueprints/*.sysml 1>/dev/null 2>&1; then
-  python3 scripts/compile_sysml.py docs/architecture/blueprints/*.sysml 2>/dev/null || true
 fi
 
 echo "==> Cleaning up temporary installation files..."

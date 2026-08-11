@@ -1,6 +1,6 @@
 # Digital Pipeline Installation & Setup Guide
 
-This guide details the prerequisites and turnkey setup instructions for installing and configuring the Digital Pipeline in your development environment.
+This guide details the prerequisites and step-by-step setup instructions for installing and configuring the Digital Pipeline in your development environment.
 
 ---
 
@@ -13,18 +13,22 @@ The pipeline requires **Python 3.12+**, the GitHub CLI (`gh`), and `git`.
 #### macOS (Homebrew)
 ```bash
 brew install python@3.12
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 #### Ubuntu / Debian
 ```bash
 sudo apt-get update && sudo apt-get install -y python3.12 python3.12-venv
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ---
 
-## 2. Turnkey One-Line Installation Workflow (Primary Single-Step Standard)
-
-The Turnkey One-Line Installation workflow is the primary single-step standard for deploying the Digital Engineering Agent Platform across all upstream and downstream repositories (including `DEAP-uas-infrastructure-safety` and `DEAP-avionic-flight-safety`).
+## 2. Turnkey One-Line Installation Workflow (Recommended)
 
 Run the turnkey automated installer directly in your project root:
 
@@ -32,18 +36,9 @@ Run the turnkey automated installer directly in your project root:
 curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash
 ```
 
-In a single turnkey step, `install_pipeline.sh` automatically handles:
-- **Virtual Environment Creation**: Creates `.venv` if not present (`python3.12 -m venv .venv`).
-- **Dependency Installation**: Automatically installs requirements (`pip install -r requirements.txt`).
-- **Pipeline Asset Injection**: Injects `skills/`, `rules/`, `.pipeline/`, `.agents/`, `scripts/`, `app_flutter/`, and `web_react/`.
-- **Git Hook Setup**: Configures process discipline git hooks (`scripts/setup_git_hooks.py`).
-- **Label Bootstrapping**: Bootstraps issue tracker label taxonomy (`bootstrap_tracker_labels.py`).
-- **Test Verification**: Runs test verification suite (`pytest tests/`).
-- **SysML Model Compilation**: Compiles SysML v2 models (`scripts/compile_sysml.py`).
+### Manual / Direct Copy Installation Workflow
 
-### Manual / Direct Copy Installation Workflow (Fallback Reference Steps)
-
-Alternatively, for manual setup or fallback reference, copy the pipeline directories manually into your active project repository workspace:
+Alternatively, copy the pipeline directories manually into your active project repository workspace:
 
 ```bash
 # Refuse to run inside the pipeline repository itself. The cleanup steps below are
