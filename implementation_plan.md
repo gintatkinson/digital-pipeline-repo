@@ -959,8 +959,89 @@ docs/audits/spec-coverage-2026-07-18.md
 - `git push origin main`
 
 #### 4-Point Compliance Check
-
 1. Command — Direct user command to execute legacy documentation link remediation.
 2. Yes, authorization keyword PROCEED provided in prompt.
 3. No silent assumptions; target files and exact link replacements specified by user.
 4. Yes, repository documentation files will be modified. Execution delegated to context-isolated subagent per governance rules.
+
+
+## Part AB — DEAP-spec-core Parity Synchronization & Deprecation Execution
+
+**STATUS: AWAITING USER APPROVAL.**
+
+### AB1. Objective
+Achieve 100% complete asset and governance parity in `gintatkinson/DEAP-spec-core` by synchronizing all 42 Category A missing files and 49 Category B mismatched files identified in the empirical parity audit, followed by full verification and remote push to `gintatkinson/DEAP-spec-core` (branch `main`). Add deprecation banner to `digital-pipeline-repo/README.md` marking repository as FROZEN & ARCHIVED.
+
+### AB2. Approved Files Manifest
+
+<!-- APPROVED-FILES:START -->
+README.md
+/Users/perkunas/jail/DEAP-spec-core/*
+<!-- APPROVED-FILES:END -->
+
+### AB3. Execution Steps
+- **Step 1: Clone / Verify Workspace**: Verify or clone `https://github.com/gintatkinson/DEAP-spec-core.git` at `/Users/perkunas/jail/DEAP-spec-core`.
+- **Step 2: Copy Category A Missing Files (42 files)** from `digital-pipeline-repo` into `DEAP-spec-core`:
+  * `docs/architecture/DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md`
+  * `docs/architecture/DEAP_SYSML_V2_INGESTION_ENGINE_BLUEPRINT.md`
+  * `docs/designs/input-validation-architecture-blueprint.md`
+  * `docs/designs/lumi-framework-blueprint.md`
+  * `docs/designs/six-mechanical-enforcement-gates-blueprint.md`
+  * `docs/designs/sysmlv2-universal-ingestion-blueprint.md`
+  * `docs/designs/zero-skip-test-remediation-blueprint.md`
+  * `docs/feat-hardware-decoupled-persistence-design.md`
+  * `scripts/install_pipeline.sh`
+  * `scripts/prune_stale_projects.py`
+  * `scripts/verify_input_ingestion.py`
+  * `scripts/verify_subagent_output.py`
+  * `skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/dispatch_preamble_validator.py`
+  * `skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/plan_validator.py`
+  * `skills/spec-orchestrator/parity_auditor/tests/test_mermaid_syntax.py`
+  * `skills/spec-orchestrator/parity_auditor/tests/test_uml.py`
+  * `skills/spec-orchestrator/scripts/__init__.py`
+  * `skills/spec-orchestrator/scripts/generate_input_digest.py`
+  * `skills/spec-orchestrator/scripts/generate_schema_digest.py`
+  * `skills/spec-orchestrator/scripts/subagent_preflight_probe.py`
+  * `skills/spec-orchestrator/scripts/sysmlv2_ast.py`
+  * `skills/spec-orchestrator/scripts/sysmlv2_ingest.py`
+  * `skills/spec-orchestrator/scripts/translators/__init__.py`
+  * `skills/spec-orchestrator/scripts/translators/autosar_translator.py`
+  * `skills/spec-orchestrator/scripts/translators/idl_translator.py`
+  * `skills/spec-orchestrator/scripts/translators/openapi_translator.py`
+  * `skills/spec-orchestrator/scripts/translators/protobuf_translator.py`
+  * `tests/repro_cases/` fixtures
+  * `tests/test_dispatch_preamble_validator.py`
+  * `tests/test_document_references.py`
+  * `tests/test_gates_mechanisms.py`
+  * `tests/test_logical_ui_validator.py`
+  * `tests/test_reconcile_backlog.py`
+  * `tests/test_root_cause_remediation.py`
+  * `tests/test_schema_digest.py`
+  * `tests/test_sysmlv2_ingestion.py`
+  * `tests/test_verify_downstream_baseline.py`
+  * `tests/test_verify_input_ingestion.py`
+  * `tests/test_verify_subagent_output.py`
+- **Step 3: Copy/Update Category B Mismatched Files (49 files)** from `digital-pipeline-repo` into `DEAP-spec-core`:
+  * `.agents/AGENTS.md`
+  * `.pipeline/constitution.md`
+  * `.pipeline/constitution-amendments.md`
+  * `rules/`
+  * `skills/`
+  * `scripts/`
+  * `tests/`
+  * `docs/`
+- **Step 4: Verify Test Suite in DEAP-spec-core**: Run `python3 -m pytest tests/` in `DEAP-spec-core` to verify 100% pass rate.
+- **Step 5: Push Changes to DEAP-spec-core**: Commit and push to `gintatkinson/DEAP-spec-core` `main` branch. Verify live payload using `gh api`.
+- **Step 6: Add Deprecation Banner to digital-pipeline-repo**: Add deprecation banner to top of `README.md` marking repository as FROZEN & ARCHIVED pointing to `https://github.com/gintatkinson/DEAP-spec-core`. Commit and push to `digital-pipeline-repo` `main`.
+
+### AB4. Verification & Validation
+- `python3 -m pytest tests/` in `DEAP-spec-core`
+- Live payload check via `gh api repos/gintatkinson/DEAP-spec-core/commits/main`
+- Live payload check via `gh api repos/gintatkinson/digital-pipeline-repo/contents/README.md`
+
+#### 4-Point Compliance Check
+
+1. **Question or command?** Command — Direct user instruction to execute DEAP-spec-core Parity Synchronization & Deprecation.
+2. **Approval for a file-write this turn?** No. `implementation_plan.md` updated per Strict Planning Gate rule; awaiting explicit user approval.
+3. **Silent assumptions?** None.
+4. **Does this turn write repository source or specification files?** Only `implementation_plan.md` (the sole permitted exception).
