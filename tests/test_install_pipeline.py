@@ -40,4 +40,35 @@ def test_install_pipeline_sh_exists_and_executable():
     assert ".gitignore" in content
     assert "setup_git_hooks.py" in content
     assert "bootstrap_tracker_labels.py" in content
+    assert ".venv" in content
+    assert "python3.12 -m venv" in content
+    assert "pip install" in content
+    assert "pytest" in content
+    assert "compile_sysml.py" in content
+
+
+def test_turnkey_install_instructions_and_downstream_compatibility_in_docs():
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    docs_to_check = [
+        os.path.join(repo_root, "install-guide.md"),
+        os.path.join(repo_root, "README.md"),
+    ]
+    turnkey_cmd = "curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash"
+    downstream_repos = ["DEAP-uas-infrastructure-safety", "DEAP-avionic-flight-safety"]
+
+    for doc_path in docs_to_check:
+        assert os.path.exists(doc_path), f"{doc_path} must exist"
+        with open(doc_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        assert turnkey_cmd in content, f"{doc_path} must contain turnkey install command"
+        assert "Primary Single-Step Standard" in content or "primary single-step standard" in content.lower(), (
+            f"{doc_path} must position turnkey installer as primary single-step standard"
+        )
+        assert "Fallback Reference Steps" in content or "fallback reference" in content.lower(), (
+            f"{doc_path} must designate manual copy instructions as fallback reference steps"
+        )
+        for repo in downstream_repos:
+            assert repo in content, f"{doc_path} must reference downstream repo compatibility for '{repo}'"
+
 
