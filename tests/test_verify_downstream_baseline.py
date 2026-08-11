@@ -70,6 +70,7 @@ def test_run_verification_uses_run_bounded_for_flutter(tmp_path):
     """
     Assert _run_verification invokes _run_bounded for Flutter commands.
     """
+    (tmp_path / ".gitignore").write_text("build/\n")
     dest = tmp_path / "app_flutter"
     dest.mkdir()
     (dest / "pubspec.yaml").write_text("name: test_app\n")
@@ -112,6 +113,7 @@ def test_run_verification_uses_run_bounded_for_react(tmp_path):
     """
     Assert _run_verification invokes _run_bounded for React commands.
     """
+    (tmp_path / ".gitignore").write_text("build/\n")
     dest = tmp_path / "web_react"
     dest.mkdir()
     (dest / "package.json").write_text('{"name": "test_web"}\n')
@@ -144,6 +146,7 @@ def test_run_verification_removes_preexisting_zip_archive_and_logs_size(tmp_path
     """
     Assert pre-existing zip_path is removed before zipping and created archive size is logged.
     """
+    (tmp_path / ".gitignore").write_text("build/\n")
     dest = tmp_path / "app_flutter"
     dest.mkdir()
     (dest / "pubspec.yaml").write_text("name: test_app\n")

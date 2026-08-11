@@ -289,7 +289,49 @@ def _validate_domain_types(dest, repo_root, ext, domain_subpath):
         sys.exit(1)
     print(f"Success: All {len(mandated)} mandated domain classes found in {domain_subpath}/.")
 
+def check_gitignore_exists(repo_root):
+    """Check 10: Verify .gitignore exists in the repository root."""
+    gitignore_path = os.path.join(repo_root, ".gitignore")
+    if not os.path.isfile(gitignore_path):
+        print(f"ERROR: Check 10 failed: .gitignore missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 10 verified (.gitignore exists in repository root).")
+
+def check_no_ds_store_files(repo_root):
+    """Check 11: Verify zero .DS_Store files exist in the working tree or git index."""
+    ds_store_files = []
+    for root, _, files in os.walk(repo_root):
+        for f in files:
+            if f == ".DS_Store":
+                ds_store_files.append(os.path.join(root, f))
+    if ds_store_files:
+        print(f"ERROR: Check 11 failed: Found {len(ds_store_files)} .DS_Store file(s) in working tree or git index: {', '.join(ds_store_files)}", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 11 verified (zero .DS_Store files found).")
+
+def check_no_duplicate_master_blueprints(dest):
+    """Check 12: Verify downstream repositories do NOT contain duplicate master core blueprints."""
+    master_blueprints = {
+        "DEAP_MASTER_ARCHITECTURE.md",
+        "THREE_TIER_GOVERNANCE_BLUEPRINT.md",
+        "DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml"
+    }
+    duplicates = []
+    for root, _, files in os.walk(dest):
+        for f in files:
+            if f in master_blueprints:
+                duplicates.append(os.path.join(root, f))
+    if duplicates:
+        print(f"ERROR: Check 12 failed: Downstream repository contains duplicate master core blueprint file(s): {', '.join(duplicates)}", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 12 verified (no duplicate master core blueprints found).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
+    # Run Checks 10, 11, and 12
+    check_gitignore_exists(repo_root)
+    check_no_ds_store_files(repo_root)
+    check_no_duplicate_master_blueprints(dest)
+
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
         # 1. Assert baseline files exist
