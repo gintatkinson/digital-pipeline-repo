@@ -25,19 +25,17 @@ def test_install_pipeline_sh_exists_and_executable():
     with open(script_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert '!= "upstream"' in content
-    assert "rm -rf ./.pipeline/upstream" not in content
-    assert "git clone" in content
-    assert ".tmp-pipeline-install" in content
-    assert "skills/" in content
-    assert "rules/" in content
-    assert ".pipeline/" in content
-    assert ".agents/" in content
-    assert "scripts/" in content
-    assert "app_flutter/" in content
-    assert "web_react/" in content
+    assert "INSTALLER_ROOT" in content
+    assert "skills" in content
+    assert "rules" in content
+    assert ".pipeline" in content
+    assert ".agents" in content
+    assert "scripts" in content
+    assert "schema" in content
     assert "AGENTS.md" in content
+    assert "CLAUDE.md" in content
+    assert "README.md" in content
+    assert "test_baseline.py" in content
     assert ".gitignore" in content
     assert "setup_git_hooks.py" in content
-    assert "bootstrap_tracker_labels.py" in content
 

@@ -16,6 +16,7 @@ import sys
 
 TIMEOUT_SECONDS = 600
 GIT_TIMEOUT_SECONDS = 30
+EXCLUDED_DIRS = {".git", "node_modules", ".dart_tool", "build"}
 
 def _run_bounded(cmd, cwd, timeout, label):
     """Run cmd with a timeout that binds the whole process tree.
@@ -100,7 +101,8 @@ def cleanup_workspace(destination):
         if os.path.isdir(d_path):
             shutil.rmtree(d_path, ignore_errors=True)
 
-    for root, _, files in os.walk(destination):
+    for root, dirs, files in os.walk(destination):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f.endswith(".db-shm") or f.endswith(".db-wal") or f.endswith(".db-journal"):
                 sidecar_path = os.path.join(root, f)
@@ -192,8 +194,12 @@ def main():
             if web_react_dir not in targets:
                 targets.append(web_react_dir)
 
+        if not targets and os.path.isdir(repo_root):
+            print(f"NOTE: Destination path '{repo_root}' has no pubspec.yaml or package.json. Registering repository root for non-framework baseline checks.")
+            targets.append(repo_root)
+
     if not targets:
-        print(f"ERROR: Destination path '{repo_root}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
+        print(f"ERROR: Destination path '{repo_root}' does not appear to be a valid directory.", file=sys.stderr)
         sys.exit(1)
 
     reports = []
@@ -300,7 +306,8 @@ def check_gitignore_exists(repo_root):
 def check_no_ds_store_files(repo_root):
     """Check 11: Verify zero .DS_Store files exist in the working tree or git index."""
     ds_store_files = []
-    for root, _, files in os.walk(repo_root):
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f == ".DS_Store":
                 ds_store_files.append(os.path.join(root, f))
@@ -317,7 +324,8 @@ def check_no_duplicate_master_blueprints(dest):
         "DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml"
     }
     duplicates = []
-    for root, _, files in os.walk(dest):
+    for root, dirs, files in os.walk(dest):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f in master_blueprints:
                 duplicates.append(os.path.join(root, f))
@@ -326,11 +334,137 @@ def check_no_duplicate_master_blueprints(dest):
         sys.exit(1)
     print("Success: Check 12 verified (no duplicate master core blueprints found).")
 
+def check_latex_katex_syntax(repo_root):
+    """Check 13: Verify KaTeX / LaTeX mathematical rendering syntax across all markdown files."""
+    allowed_alignment_envs = {
+        "aligned", "alignedat", "matrix", "pmatrix", "bmatrix", "Bmatrix",
+        "vmatrix", "Vmatrix", "cases", "dcases", "rcases", "array",
+        "split", "gathered", "gather", "subarray", "smallmatrix"
+    }
+    errors = []
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            file_path = os.path.join(root, f)
+            rel_path = os.path.relpath(file_path, repo_root)
+            try:
+                with open(file_path, "r", encoding="utf-8") as md_file:
+                    content = md_file.read()
+            except Exception as e:
+                errors.append(f"Failed to read {rel_path}: {e}")
+                continue
+
+            # Strip code blocks and inline code
+            cleaned = re.sub(r"```.*?```|~~~.*?~~~", "", content, flags=re.DOTALL)
+            cleaned = re.sub(r"`+.*?`+", "", cleaned)
+
+            # a. Validate balanced $$ math blocks
+            parts = cleaned.split("$$")
+            if (len(parts) - 1) % 2 != 0:
+                errors.append(f"Unbalanced $$ display math delimiters in {rel_path} (found {len(parts) - 1} delimiters).")
+                continue
+
+            # Check balanced \begin{aligned} and \end{aligned} globally in the file
+            num_begin_aligned_all = len(re.findall(r"\\begin\{aligned\}", cleaned))
+            num_end_aligned_all = len(re.findall(r"\\end\{aligned\}", cleaned))
+            if num_begin_aligned_all != num_end_aligned_all:
+                errors.append(f"Unbalanced \\begin{{aligned}} ({num_begin_aligned_all}) and \\end{{aligned}} ({num_end_aligned_all}) pairs in {rel_path}.")
+
+            # Validate each math block
+            for i in range(1, len(parts), 2):
+                block = parts[i]
+
+                # c. Detect top-level \begin{align} or \begin{align*}
+                if re.search(r"\\begin\{align\*?\}", block):
+                    errors.append(
+                        f"Forbidden \\begin{{align}} or \\begin{{align*}} found in display math block in {rel_path}. "
+                        f"In markdown KaTeX, \\begin{{aligned}} must be used instead."
+                    )
+
+                # d. Validate balanced \begin{aligned} and \end{aligned} pairs within the block
+                num_begin_aligned = len(re.findall(r"\\begin\{aligned\}", block))
+                num_end_aligned = len(re.findall(r"\\end\{aligned\}", block))
+                if num_begin_aligned != num_end_aligned:
+                    errors.append(
+                        f"Unbalanced \\begin{{aligned}} ({num_begin_aligned}) and \\end{{aligned}} ({num_end_aligned}) in math block in {rel_path}."
+                    )
+
+                # b. Detect bare alignment operators & outside alignment environments
+                token_pattern = re.compile(r"\\begin\{([a-zA-Z*]+)\}|\\end\{([a-zA-Z*]+)\}|\\&|&")
+                env_stack = []
+                for match in token_pattern.finditer(block):
+                    token = match.group(0)
+                    if token.startswith(r"\begin{"):
+                        env_stack.append(match.group(1))
+                    elif token.startswith(r"\end{"):
+                        end_name = match.group(2)
+                        if end_name in env_stack:
+                            while env_stack:
+                                popped = env_stack.pop()
+                                if popped == end_name:
+                                    break
+                    elif token == r"\&":
+                        continue
+                    elif token == "&":
+                        if not any(env in allowed_alignment_envs for env in env_stack):
+                            snippet = block[max(0, match.start() - 20):min(len(block), match.end() + 20)].strip().replace("\n", " ")
+                            errors.append(
+                                f"Bare alignment operator '&' outside alignment environment in {rel_path}: \"...{snippet}...\""
+                            )
+
+    if errors:
+        print("ERROR: Check 13 failed (KaTeX / LaTeX mathematical syntax violations found):", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 13 verified (KaTeX / LaTeX mathematical syntax valid across all markdown files).")
+
+def check_downstream_instructions_exist(repo_root):
+    """Check 14: Verify presence of README.md and agent instruction entrypoints (AGENTS.md, CLAUDE.md, or .agents/AGENTS.md)."""
+    readme_path = os.path.join(repo_root, "README.md")
+    if not os.path.isfile(readme_path):
+        print(f"ERROR: Check 14 failed: README.md missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.getsize(readme_path) == 0:
+        print(f"ERROR: Check 14 failed: README.md is empty in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+
+    agent_entrypoints = [
+        os.path.join(repo_root, "AGENTS.md"),
+        os.path.join(repo_root, "CLAUDE.md"),
+        os.path.join(repo_root, ".agents", "AGENTS.md"),
+    ]
+    valid_entrypoints = [p for p in agent_entrypoints if os.path.isfile(p) and os.path.getsize(p) > 0]
+    if not valid_entrypoints:
+        print(f"ERROR: Check 14 failed: No non-empty agent instruction entrypoint found in '{repo_root}' (expected AGENTS.md, CLAUDE.md, or .agents/AGENTS.md).", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 14 verified (README.md and agent instruction entrypoints exist).")
+
+def check_reconcile_backlog_tooling_exists(repo_root):
+    """Check 15: Verify scripts/reconcile_backlog.py exists, is non-empty, and is executable."""
+    reconcile_path = os.path.join(repo_root, "scripts", "reconcile_backlog.py")
+    if not os.path.isfile(reconcile_path):
+        print(f"ERROR: Check 15 failed: scripts/reconcile_backlog.py missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.getsize(reconcile_path) == 0:
+        print(f"ERROR: Check 15 failed: scripts/reconcile_backlog.py is empty in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if not os.access(reconcile_path, os.X_OK):
+        print(f"ERROR: Check 15 failed: scripts/reconcile_backlog.py is not executable in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 15 verified (scripts/reconcile_backlog.py exists, is non-empty, and is executable).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, and 12
+    # Run Checks 10, 11, 12, 13, 14, and 15
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
+    check_latex_katex_syntax(repo_root)
+    check_downstream_instructions_exist(repo_root)
+    check_reconcile_backlog_tooling_exists(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")

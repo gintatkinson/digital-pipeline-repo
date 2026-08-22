@@ -66,11 +66,22 @@ def test_run_bounded_called_process_error():
         assert exc_info.value.returncode == 1
 
 
+def _setup_mock_baseline_repo(tmp_path):
+    (tmp_path / ".gitignore").write_text("build/\n")
+    (tmp_path / "README.md").write_text("# Test Repo\n")
+    (tmp_path / "AGENTS.md").write_text("# Test Agents\n")
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(exist_ok=True)
+    reconcile_script = scripts_dir / "reconcile_backlog.py"
+    reconcile_script.write_text("#!/usr/bin/env python3\n")
+    os.chmod(str(reconcile_script), 0o755)
+
+
 def test_run_verification_uses_run_bounded_for_flutter(tmp_path):
     """
     Assert _run_verification invokes _run_bounded for Flutter commands.
     """
-    (tmp_path / ".gitignore").write_text("build/\n")
+    _setup_mock_baseline_repo(tmp_path)
     dest = tmp_path / "app_flutter"
     dest.mkdir()
     (dest / "pubspec.yaml").write_text("name: test_app\n")
@@ -113,7 +124,7 @@ def test_run_verification_uses_run_bounded_for_react(tmp_path):
     """
     Assert _run_verification invokes _run_bounded for React commands.
     """
-    (tmp_path / ".gitignore").write_text("build/\n")
+    _setup_mock_baseline_repo(tmp_path)
     dest = tmp_path / "web_react"
     dest.mkdir()
     (dest / "package.json").write_text('{"name": "test_web"}\n')
@@ -146,7 +157,7 @@ def test_run_verification_removes_preexisting_zip_archive_and_logs_size(tmp_path
     """
     Assert pre-existing zip_path is removed before zipping and created archive size is logged.
     """
-    (tmp_path / ".gitignore").write_text("build/\n")
+    _setup_mock_baseline_repo(tmp_path)
     dest = tmp_path / "app_flutter"
     dest.mkdir()
     (dest / "pubspec.yaml").write_text("name: test_app\n")
