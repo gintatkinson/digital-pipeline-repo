@@ -1,85 +1,66 @@
 #!/usr/bin/env bash
 set -e
 
-# Turnkey automated installation script for digital-pipeline-repo
+INSTALLER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET_DIR="${1:-.}"
+mkdir -p "$TARGET_DIR"
+TARGET_DIR="$(cd "$TARGET_DIR" 2>/dev/null && pwd || echo "$TARGET_DIR")"
 
-# Refuse to run inside digital-pipeline-repo itself
-if [ -e ./.pipeline/upstream ]; then
-  echo "Error: Cannot run installer inside digital-pipeline-repo itself."
+if [ "$TARGET_DIR" = "$INSTALLER_ROOT" ] && [ -e "$INSTALLER_ROOT/.pipeline/upstream" ]; then
+  echo "REFUSING: target is the pipeline repository itself, not a downstream project." >&2
   exit 1
 fi
 
-REPO_URL="https://github.com/gintatkinson/digital-pipeline-repo.git"
-TMP_DIR=".tmp-pipeline-install"
-
-echo "==> Preparing digital pipeline installation..."
-
-# Cleanup old temp directory if exists
-rm -rf "$TMP_DIR"
-
-echo "==> Cloning latest digital-pipeline-repo..."
-git clone --depth 1 "$REPO_URL" "$TMP_DIR"
-
-echo "==> Copying pipeline directories and configurations..."
-FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/" "app_flutter/" "web_react/")
-
-for dir in "${FORK_DIRS[@]}"; do
-  clean_dir="${dir%/}"
-  if [ -d "$TMP_DIR/$clean_dir" ]; then
-    mkdir -p "$clean_dir"
-    if [ "$clean_dir" = ".pipeline" ]; then
-      for item in "$TMP_DIR/$clean_dir/"* "$TMP_DIR/$clean_dir/".*; do
-        [ -e "$item" ] || continue
-        base="$(basename "$item")"
-        if [ "$base" != "." ] && [ "$base" != ".." ] && [ "$base" != "upstream" ]; then
-          cp -R "$item" "$clean_dir/"
-        fi
-      done
-    else
-      cp -R "$TMP_DIR/$clean_dir/." "$clean_dir/" 2>/dev/null || cp -R "$TMP_DIR/$clean_dir/"* "$clean_dir/"
-    fi
-  fi
-done
-
-# Automatically generate clean, standardized AGENTS.md if not present
-if [ ! -f AGENTS.md ]; then
-  if [ -f "$TMP_DIR/.agents/AGENTS.md" ]; then
-    cp "$TMP_DIR/.agents/AGENTS.md" AGENTS.md
-  else
-    echo "# Project-Scoped Rules" > AGENTS.md
-  fi
+rm -rf "$TARGET_DIR/skills" "$TARGET_DIR/rules" "$TARGET_DIR/.pipeline" "$TARGET_DIR/.agents" "$TARGET_DIR/scripts"
+cp -RP "$INSTALLER_ROOT/skills" "$TARGET_DIR/"
+cp -RP "$INSTALLER_ROOT/rules" "$TARGET_DIR/"
+cp -RP "$INSTALLER_ROOT/.pipeline" "$TARGET_DIR/"
+rm -rf "$TARGET_DIR/.pipeline/upstream"
+cp -RP "$INSTALLER_ROOT/.agents" "$TARGET_DIR/"
+cp -RP "$INSTALLER_ROOT/scripts" "$TARGET_DIR/"
+cp -P "$INSTALLER_ROOT/requirements.txt" "$TARGET_DIR/" 2>/dev/null || true
+if [ -f "$TARGET_DIR/.gitignore" ]; then
+  cat "$INSTALLER_ROOT/.gitignore" >> "$TARGET_DIR/.gitignore"
+  # Deduplicate lines in .gitignore
+  sort -u "$TARGET_DIR/.gitignore" -o "$TARGET_DIR/.gitignore"
+elif [ -f "$INSTALLER_ROOT/.gitignore" ]; then
+  cp "$INSTALLER_ROOT/.gitignore" "$TARGET_DIR/"
 fi
 
-# Merge or create .gitignore
-if [ ! -f .gitignore ]; then
-  if [ -f "$TMP_DIR/.gitignore" ]; then
-    cp "$TMP_DIR/.gitignore" .gitignore
-  else
-    touch .gitignore
-  fi
+mkdir -p "$TARGET_DIR/tests"
+mkdir -p "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
+mkdir -p "$TARGET_DIR/.pipeline/contracts" "$TARGET_DIR/.pipeline/domain_specs" "$TARGET_DIR/.pipeline/profiles"
+chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR"/scripts/*.py 2>/dev/null || true
+
+if [ ! -f "$TARGET_DIR/tests/test_baseline.py" ]; then
+  cat << 'EOF' > "$TARGET_DIR/tests/test_baseline.py"
+"""
+Downstream Environment & Runtime Integrity Verification Suite.
+/// Realises: [BaselineVerification]
+"""
+import sys
+import os
+import tempfile
+import pytest
+
+def test_python_runtime_environment():
+    """Verify Python runtime version and core interpreter executable exist and function."""
+    assert sys.version_info >= (3, 8), f"Python version {sys.version} is below required 3.8+"
+    assert os.path.exists(sys.executable), "Python interpreter path invalid"
+
+def test_disk_io_and_permissions():
+    """Verify local file system read, write, and permission capabilities."""
+    with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp_file:
+        test_payload = "DEAP_ENVIRONMENT_INTEGRITY_CHECK_PAYLOAD_2026"
+        temp_file.write(test_payload)
+        temp_file.seek(0)
+        read_back = temp_file.read()
+        assert read_back == test_payload, "Disk I/O payload mismatch during environment validation"
+EOF
 fi
 
-# Ensure .tmp-pipeline-install is in .gitignore if not present
-if ! grep -q ".tmp-pipeline-install" .gitignore 2>/dev/null; then
-  echo ".tmp-pipeline-install" >> .gitignore
+if [ -f "$TARGET_DIR/scripts/setup_git_hooks.py" ]; then
+  (cd "$TARGET_DIR" && python3 scripts/setup_git_hooks.py) || true
 fi
 
-echo "==> Setting up git hooks and tracker labels..."
-if [ -f scripts/setup_git_hooks.py ]; then
-  python3 scripts/setup_git_hooks.py || true
-fi
-
-if [ -f skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py ]; then
-  python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
-elif [ -f .agents/skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py ]; then
-  python3 .agents/skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
-fi
-
-echo "==> Cleaning up temporary installation files..."
-rm -rf "$TMP_DIR"
-
-echo ""
-echo "=========================================================================="
-echo " Digital Pipeline Installation Complete!"
-echo " 0 manual steps remaining."
-echo "=========================================================================="
+echo "==> Digital Pipeline Installation Complete. 0 manual steps remaining."
